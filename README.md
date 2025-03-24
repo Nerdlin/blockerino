@@ -1,21 +1,21 @@
 # blockerino: 8x8 grid, break lines!
-Web and mobile Block Blast-style puzzle game. Place blocks and break lines for score.
+Веб и мобильная игра-головоломка в стиле Block Blast. Размещайте блоки и разрывайте линии, чтобы получить очки.
 
-#### In-game screenshot
+#### Скриншот из игры
 <img src="./chaos-screenshot.png" width="220" title="hover text"></img>
 <img src="./menu-screenshot.png" width="220" title="hover text"></img>
 
-### Installation
-1. Clone the repo
+### Установка
+1. Клонировать репозиторий
 ```bash
 git clone https://github.com/Nerdlin/blockerino.git
 ```
-2. Install dependencies
+2. Установить зависимости
 ```bash
 npm install
 ```
-3. Run the dev server
+3. Запустите сервер разработки
 ```bash
 npm start
 ```
-blockerino uses Expo - you can use Expo Go, emulators, or the web to run.
+Blockerino использует Expo — для запуска можно использовать Expo Go, эмуляторы или веб-браузер.
