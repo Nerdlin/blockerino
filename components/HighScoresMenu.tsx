@@ -1,49 +1,100 @@
 import { getHighScores, HighScore } from "@/constants/Storage";
+import { getGlobalHighScores, GlobalHighScore } from "@/constants/Supabase";
 import SimplePopupView from "./SimplePopupView";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { GameModeType, useSetAppState } from "@/hooks/useAppState";
 
+type LeaderboardMode = 'local' | 'global';
+
 export default function HighScores() {
     const [ setAppState, _appendAppState, popAppState ] = useSetAppState();
     const [ highScores, setHighScores ] = useState<HighScore[]>([]);
+    const [ globalHighScores, setGlobalHighScores ] = useState<GlobalHighScore[]>([]);
     const [ gameMode, setGameMode ] = useState(GameModeType.Classic);
-    
+    const [ leaderboardMode, setLeaderboardMode ] = useState<LeaderboardMode>('global');
+    const [ loading, setLoading ] = useState(false);
+
     useEffect(() => {
-        getHighScores(gameMode, true, true, 10).then((value) => {
-            setHighScores(value);
-        });
-    }, [gameMode, setHighScores]);
+        if (leaderboardMode === 'local') {
+            getHighScores(gameMode, true, true, 10).then((value) => {
+                setHighScores(value);
+            });
+        } else {
+            setLoading(true);
+            getGlobalHighScores(gameMode, 10).then((value) => {
+                setGlobalHighScores(value);
+                setLoading(false);
+            });
+        }
+    }, [gameMode, leaderboardMode]);
+
+    const hasScores = leaderboardMode === 'local' ? highScores.length > 0 : globalHighScores.length > 0;
 
     return <SimplePopupView style={[{justifyContent: 'flex-start'}]}>
         <StylizedButton text="Back" onClick={popAppState} backgroundColor={cssColors.spaceGray}></StylizedButton>
-        { highScores.length > 0 &&
+
+        <Text style={styles.subHeader}>
+            {"Leaderboard Type"}
+        </Text>
+        <View style={{flexDirection: 'row', gap: 10}}>
+            <StylizedButton
+                text="Global"
+                onClick={() => setLeaderboardMode('global')}
+                backgroundColor={leaderboardMode === 'global' ? cssColors.brightNiceRed : cssColors.spaceGray}
+            />
+            <StylizedButton
+                text="Local"
+                onClick={() => setLeaderboardMode('local')}
+                backgroundColor={leaderboardMode === 'local' ? cssColors.brightNiceRed : cssColors.spaceGray}
+            />
+        </View>
+
+        { hasScores &&
             <>
                 <Text style={styles.subHeader}>
                     {"Select a game mode..."}
                 </Text>
-                <View style={{flexDirection: 'row'}}>
-                    <StylizedButton text="Classic" onClick={() => { setGameMode(GameModeType.Classic) }} backgroundColor={cssColors.brightNiceRed}></StylizedButton>
-                    <StylizedButton text="Chaos" onClick={() => { setGameMode(GameModeType.Chaos) }} backgroundColor={cssColors.pitchBlack}></StylizedButton>
+                <View style={{flexDirection: 'row', gap: 10}}>
+                    <StylizedButton
+                        text="Classic"
+                        onClick={() => { setGameMode(GameModeType.Classic) }}
+                        backgroundColor={gameMode === GameModeType.Classic ? cssColors.brightNiceRed : cssColors.spaceGray}
+                    />
+                    <StylizedButton
+                        text="Chaos"
+                        onClick={() => { setGameMode(GameModeType.Chaos) }}
+                        backgroundColor={gameMode === GameModeType.Chaos ? cssColors.pitchBlack : cssColors.spaceGray}
+                        borderColor={gameMode === GameModeType.Chaos ? "white" : undefined}
+                    />
                 </View>
                 <Text style={styles.header}>
-                    {"All classic high scores (top 10)"}
+                    {leaderboardMode === 'global' ? "Global Leaderboard (Top 10)" : "Your High Scores (Top 10)"}
                 </Text>
                 <Text style={styles.subHeader}>
                     {"Sorted from high to low."}
                 </Text>
-                {
-                    highScores.map((score, idx) => {
-                        return <Score key={idx} rank={idx + 1} score={score}/>
-                    })
-                }
+
+                {loading && <ActivityIndicator size="large" color="white" />}
+
+                {!loading && leaderboardMode === 'local' && highScores.map((score, idx) => {
+                    return <Score key={idx} rank={idx + 1} score={score}/>
+                })}
+
+                {!loading && leaderboardMode === 'global' && globalHighScores.map((score, idx) => {
+                    return <GlobalScore key={idx} rank={idx + 1} score={score}/>
+                })}
             </>
         }
-        { highScores.length == 0 && 
+        { !hasScores && !loading &&
             <>
-                <Text style={styles.noScoresText}>{"You haven't set a score yet? Get playing!"}</Text>
+                <Text style={styles.noScoresText}>
+                    {leaderboardMode === 'global'
+                        ? "No global scores yet. Be the first!"
+                        : "You haven't set a score yet? Get playing!"}
+                </Text>
                 <StylizedButton text="Play Classic" onClick={() => {
                     setAppState(GameModeType.Classic)
                 }} backgroundColor={cssColors.brightNiceRed}></StylizedButton>
@@ -59,6 +110,17 @@ function Score({score, rank}: {score: HighScore, rank: number}) {
     return <>
         <Text style={styles.scoreValueText}>{"#" + String(rank) + " - " + String(score.score)}</Text>
         <Text style={styles.scoreTimeText}>{createTimeAgoString(score.date)}</Text>
+    </>
+}
+
+function GlobalScore({score, rank}: {score: GlobalHighScore, rank: number}) {
+    return <>
+        <Text style={styles.scoreValueText}>
+            {"#" + String(rank) + " - " + score.player_name + " - " + String(score.score)}
+        </Text>
+        <Text style={styles.scoreTimeText}>
+            {score.created_at ? createTimeAgoString(new Date(score.created_at).getTime()) : 'Unknown time'}
+        </Text>
     </>
 }
 

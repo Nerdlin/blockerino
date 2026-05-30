@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "blockerino",
+    "name": "Blockerino",
     "slug": "blockerino",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,14 +8,26 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nerdlin.blockerino"
     },
     "android": {
+      "package": "com.nerdlin.blockerino",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
     },
     "web": {
       "bundler": "metro",
