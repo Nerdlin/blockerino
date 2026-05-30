@@ -7,28 +7,35 @@ export default function StylizedButton({
     backgroundColor, 
     centered, 
     borderColor, 
-    style
+    style,
+    disabled
 }: {
     text: string, 
-    onClick?: () => void, 
+    onClick?: () => any, 
     backgroundColor: string, 
     centered?: boolean, 
     borderColor?: string,
-    style?: any
+    style?: any,
+    disabled?: boolean
 }) {
     const { playSfx } = useSoundSettings();
 
-    if (centered == undefined) {
+    if (centered === undefined) {
         centered = true;
     }
 
     const handleHoverIn = () => {
+        if (disabled) return;
         playSfx('buttonHover');
     };
 
     return (
         <Pressable 
-            onPress={onClick} 
+            onPress={() => {
+                if (!disabled && onClick) {
+                    onClick();
+                }
+            }} 
             onHoverIn={handleHoverIn}
             style={[
                 styles.stylizedButton, 
@@ -36,7 +43,8 @@ export default function StylizedButton({
                     backgroundColor, 
                     alignSelf: centered ? 'center' : 'flex-start', 
                     borderWidth: 2, 
-                    borderColor: borderColor ? borderColor : "transparent"
+                    borderColor: borderColor ? borderColor : "transparent",
+                    opacity: disabled ? 0.5 : 1
                 }, 
                 style
             ]}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Pressable, StyleSheet, Text, View } from "react-native"
+import { Pressable, StyleSheet, Text, View, Platform } from "react-native"
 import Animated, { SharedValue, interpolateColor, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated"
 import { Hand } from "@/constants/Hand";
 import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
@@ -40,9 +40,16 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand}: GameHudProps
 					fontFamily: 'Silkscreen',
 					fontSize: 50,
 					fontWeight: '100',
-					textShadowColor: 'rgb(0, 0, 0)',
-					textShadowOffset: { width: 3, height: 3 },
-					textShadowRadius: 10,
+					...Platform.select({
+						web: {
+							textShadow: "3px 3px 10px rgb(0, 0, 0)"
+						},
+						default: {
+							textShadowColor: 'rgb(0, 0, 0)',
+							textShadowOffset: { width: 3, height: 3 },
+							textShadowRadius: 10,
+						}
+					}),
 					alignSelf: 'center'
 				}}>{scoreText}</Text>
 			</View>
@@ -58,29 +65,38 @@ interface ComboBarProps {
 
 function ComboBar({ lastBrokenLine, handSize }: ComboBarProps) {
 	const fillPercentage = useSharedValue(100);
+	const scale = useSharedValue(1);
 	
 	useAnimatedReaction(() => {
-		return lastBrokenLine.value
-	}, (_cur, _prev) => {
+		return lastBrokenLine.value;
+	}, (cur, prev) => {
 		'worklet';
-		fillPercentage.value = withSpring((1 - lastBrokenLine.value / handSize) * 100, {
+		fillPercentage.value = withSpring((1 - cur / handSize) * 100, {
 			duration: 800,
 			overshootClamping: true
-		})
-	})
+		});
+
+		// Trigger pulse scale animation on last line warning
+		if (cur === handSize - 1) {
+			scale.value = withRepeat(
+				withDelay(500, withRepeat(withSequence(withTiming(1.1, { duration: 150 }), withTiming(1, { duration: 150 })), 2)),
+				-1,
+				true
+			);
+		} else {
+			scale.value = withTiming(1, { duration: 200 });
+		}
+	});
+
 	const animatedStyle = useAnimatedStyle(() => {
 		return {
 			width: `${fillPercentage.value}%`,
 			backgroundColor: interpolateColor(fillPercentage.value / 100, [0, 1/5, 1], ['transparent', comboBarBadColor, comboBarGoodColor]),
 			transform: [
-				{
-					scale: lastBrokenLine.value == handSize - 1 ? withRepeat(
-						withDelay(500, withRepeat(withSequence(withTiming(1.1), withTiming(1)), 2))
-					, 1000) : 1
-				}
+				{ scale: scale.value }
 			]
 		};
-	}, [fillPercentage]);
+	});
 
 	return (
 		<View style={styles.comboBarParent}>

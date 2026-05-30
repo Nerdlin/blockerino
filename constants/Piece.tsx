@@ -323,13 +323,11 @@ export function createFilledBlockStyle(color: Color, borderWidth: number = 7): o
 		borderWidth: borderWidth,
 		boxSizing: 'border-box',
 		boxShadow: 'none',
-		shadowOpacity: 0,
 	}
 }
 
-export function createEmptyBlockStyle(): object {
+export function createEmptyBlockStyle(borderColor: string = 'rgb(40, 40, 40)'): object {
 	"worklet";
-	const borderColor = 'rgb(40, 40, 40)';
 	return {
 		backgroundColor: 'rgba(0, 0, 0, 0)',
 		borderColor: borderColor,
@@ -342,6 +340,5 @@ export function createEmptyBlockStyle(): object {
 		borderRadius: 0,
 		boxSizing: 'border-box',
 		boxShadow: 'none',
-		shadowOpacity: 0,
 	}
 }

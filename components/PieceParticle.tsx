@@ -1,7 +1,7 @@
-import { getRandomPiece, createFilledBlockStyle, PieceData } from "@/constants/Piece";
+import { getRandomPiece } from "@/constants/Piece";
 import React from "react";
 import { useEffect, useState } from "react";
-import { Dimensions, View } from "react-native";
+import { Dimensions } from "react-native";
 import Animated, { useSharedValue, withRepeat, withSequence, withDelay, withTiming, useAnimatedStyle } from "react-native-reanimated";
 import { PieceView } from "./PieceView";
 

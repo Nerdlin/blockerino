@@ -9,7 +9,7 @@ export function PieceView({piece, blockSize, style}: {piece: PieceData, blockSiz
 
     for (let y = 0; y < pieceHeight; y++) {
         for (let x = 0; x < pieceWidth; x++) {
-            if (piece.matrix[y][x] == 1) {
+            if (piece.matrix[y][x] === 1) {
                 const blockStyle = {
                     width: blockSize,
                     height: blockSize,

@@ -1,11 +1,9 @@
-import { useAtom, useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
-import Animated, { BounceInUp, Easing, FadeIn, interpolateColor, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { BounceInUp, Easing, FadeIn, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
 import { cssColors } from "@/constants/Color";
 import { GameModeType } from '@/hooks/useAppState';
-import HighScores from "./HighScoresMenu";
 import { PieceData } from "@/constants/Piece";
 import { PieceView } from "./PieceView";
 
@@ -41,7 +39,7 @@ function BlockerinoLogo({blockSize, style}: {blockSize: number, style: ViewStyle
 }
 
 export default function MainMenu() {
-	const [ _, appendAppState ] = useSetAppState();
+	const [ , appendAppState ] = useSetAppState();
 	
 	return <View style={styles.container}>
 
@@ -137,10 +135,10 @@ function MainButton({
 			const anims = [];
 			for (let i = 0; i < steps; i++) {
 				let deg;
-				if (i == steps - 1) {
+				if (i === steps - 1) {
 					deg = 0;
 				} else {
-					deg = i % 2 == 0 ? -amplitude : amplitude;
+					deg = i % 2 === 0 ? -amplitude : amplitude;
 				}
 				anims.push(
 					withTiming(deg, { duration: stepDuration, easing: Easing.cubic }),
@@ -155,7 +153,7 @@ function MainButton({
 				1000,
 			);
 		}
-	}, []);
+	}, [idleAnimTranslateY, idleBounce, idleBounceRotate, rotationDeg]);
 
 	const onPress = () => {
 		scale.value = withSequence(withTiming(1.25, { duration: 200 }), withTiming(1, { duration: 200 }));

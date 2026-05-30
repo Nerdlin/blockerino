@@ -1,5 +1,6 @@
 import {
 	StyleSheet,
+	LogBox,
 } from "react-native";
 import { useFonts } from "expo-font";
 import Animated, {
@@ -16,6 +17,14 @@ import { MenuStateType, useAppState } from "@/hooks/useAppState";
 import MainMenu from "@/components/MainMenu";
 import HighScores from "@/components/HighScoresMenu";
 import { PieceParticle } from "@/components/PieceParticle";
+import AnimatedBackground from "@/components/AnimatedBackground";
+
+// Suppress noisy library-specific deprecation warnings in developer tools
+LogBox.ignoreLogs([
+	"findDOMNode is deprecated",
+	"props.pointerEvents is deprecated",
+	"pointerEvents is deprecated"
+]);
 
 configureReanimatedLogger({
 	level: ReanimatedLogLevel.warn,
@@ -39,6 +48,7 @@ export default function App() {
 	
 	return (
 		<Animated.View entering={FadeIn} exiting={FadeOut} style={styles.container}>
+			<AnimatedBackground />
 			{[...Array(25)].map((_, i) => (
 				<PieceParticle key={`particle${i}`} />
 			))}

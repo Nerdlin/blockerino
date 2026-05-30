@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View, TextInput, Alert } from "react-native";
+import { StyleSheet, Text, View, TextInput, Alert, Platform } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { GameModeType, MenuStateType, useSetAppState } from "@/hooks/useAppState";
@@ -12,14 +12,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const PLAYER_NAME_KEY = 'PLAYER_NAME';
 
 export default function GameOverModal({ score, gameMode }: { score: number, gameMode: GameModeType }) {
-    const [setAppState, appendAppState, popAppState] = useSetAppState();
+    const [setAppState, appendAppState] = useSetAppState();
     const { playSfx } = useSoundSettings();
     const { currentTheme } = useTheme();
     const scale = useSharedValue(1);
-    const [showNameInput, setShowNameInput] = useState(false);
-    const [playerName, setPlayerName] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isTopScoreValue, setIsTopScoreValue] = useState(false);
+    const [playerName, setPlayerName] = useState('Anonymous');
+    const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'failed'>('idle');
 
     useEffect(() => {
         playSfx('gameOver');
@@ -34,19 +32,28 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
             true
         );
 
-        // Проверяем, попал ли счет в топ-100
-        isTopScore(score, gameMode, 100).then(isTop => {
-            setIsTopScoreValue(isTop);
-            if (isTop) {
-                // Загружаем сохраненное имя игрока
-                AsyncStorage.getItem(PLAYER_NAME_KEY).then(savedName => {
-                    if (savedName) {
-                        setPlayerName(savedName);
-                    }
-                });
+        // Автоматическая отправка рекорда на Supabase
+        const autoSubmit = async () => {
+            setSubmitStatus('submitting');
+            try {
+                let savedName = await AsyncStorage.getItem(PLAYER_NAME_KEY);
+                const nameToSubmit = savedName ? savedName.trim() : 'Anonymous';
+                setPlayerName(nameToSubmit);
+                
+                const success = await submitGlobalHighScore(nameToSubmit, score, gameMode);
+                if (success) {
+                    setSubmitStatus('success');
+                } else {
+                    setSubmitStatus('failed');
+                }
+            } catch (err) {
+                console.error('Error auto-submitting high score:', err);
+                setSubmitStatus('failed');
             }
-        });
-    }, []);
+        };
+
+        autoSubmit();
+    }, [score, gameMode, playSfx, scale]);
 
     const animatedTextStyle = useAnimatedStyle(() => {
         return {
@@ -68,34 +75,6 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
     const handleMainMenu = () => {
         playSfx('menuClick');
         setAppState(MenuStateType.MENU);
-    };
-
-    const handleSubmitScore = async () => {
-        if (!playerName.trim()) {
-            Alert.alert('Error', 'Please enter your name');
-            return;
-        }
-
-        setIsSubmitting(true);
-
-        // Сохраняем имя игрока для будущих игр
-        await AsyncStorage.setItem(PLAYER_NAME_KEY, playerName.trim());
-
-        const success = await submitGlobalHighScore(playerName.trim(), score, gameMode);
-
-        setIsSubmitting(false);
-
-        if (success) {
-            Alert.alert('Success!', 'Your score has been submitted to the global leaderboard!');
-            setShowNameInput(false);
-        } else {
-            Alert.alert('Error', 'Failed to submit score. Please try again later.');
-        }
-    };
-
-    const handleShowNameInput = () => {
-        playSfx('menuClick');
-        setShowNameInput(true);
     };
 
     return (
@@ -131,45 +110,23 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
                 {score}
             </Text>
 
-            {isTopScoreValue && !showNameInput && (
-                <View style={styles.topScoreContainer}>
-                    <Text style={[styles.topScoreText, { color: currentTheme.accent }]}>
-                        🏆 Top 100 Score! 🏆
+            <View style={styles.statusContainer}>
+                {submitStatus === 'submitting' && (
+                    <Text style={[styles.statusText, { color: currentTheme.textSecondary }]}>
+                        Saving score to global leaderboard...
                     </Text>
-                    <StylizedButton
-                        text="Submit to Global Leaderboard"
-                        onClick={handleShowNameInput}
-                        backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(255, 153, 0)' : currentTheme.accent}
-                    />
-                </View>
-            )}
-
-            {showNameInput && (
-                <View style={styles.nameInputContainer}>
-                    <Text style={[styles.nameInputLabel, { color: currentTheme.textPrimary }]}>
-                        Enter your name:
+                )}
+                {submitStatus === 'success' && (
+                    <Text style={[styles.statusText, { color: 'rgb(0, 200, 80)' }]}>
+                        🏆 Score saved under "{playerName}"!
                     </Text>
-                    <TextInput
-                        style={[styles.nameInput, {
-                            color: currentTheme.textPrimary,
-                            borderColor: currentTheme.textSecondary,
-                            backgroundColor: currentTheme.menuBackground
-                        }]}
-                        value={playerName}
-                        onChangeText={setPlayerName}
-                        placeholder="Your Name"
-                        placeholderTextColor={currentTheme.textSecondary}
-                        maxLength={20}
-                        autoFocus
-                    />
-                    <StylizedButton
-                        text={isSubmitting ? "Submitting..." : "Submit Score"}
-                        onClick={handleSubmitScore}
-                        backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(0, 153, 51)' : currentTheme.buttonPrimary}
-                        disabled={isSubmitting}
-                    />
-                </View>
-            )}
+                )}
+                {submitStatus === 'failed' && (
+                    <Text style={[styles.statusText, { color: 'rgb(255, 80, 80)' }]}>
+                        Could not sync score to leaderboard.
+                    </Text>
+                )}
+            </View>
 
             <Text style={[
                 styles.messageText,
@@ -203,9 +160,16 @@ const styles = StyleSheet.create({
         fontFamily: 'Silkscreen',
         marginBottom: 30,
         textAlign: 'center',
-        textShadowColor: 'rgba(0, 0, 0, 0.75)',
-        textShadowOffset: { width: 2, height: 2 },
-        textShadowRadius: 3
+        ...Platform.select({
+            web: {
+                textShadow: "2px 2px 3px rgba(0, 0, 0, 0.75)"
+            },
+            default: {
+                textShadowColor: 'rgba(0, 0, 0, 0.75)',
+                textShadowOffset: { width: 2, height: 2 },
+                textShadowRadius: 3
+            }
+        })
     },
     scoreText: {
         fontSize: 24,
@@ -220,34 +184,14 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontWeight: 'bold',
     },
-    topScoreContainer: {
+    statusContainer: {
         marginBottom: 20,
         alignItems: 'center',
-        gap: 10
+        paddingHorizontal: 20,
     },
-    topScoreText: {
-        fontSize: 20,
-        fontFamily: 'Silkscreen',
-        textAlign: 'center',
-    },
-    nameInputContainer: {
-        marginBottom: 20,
-        width: '100%',
-        alignItems: 'center',
-        gap: 10
-    },
-    nameInputLabel: {
+    statusText: {
         fontSize: 18,
         fontFamily: 'Silkscreen',
-        textAlign: 'center',
-    },
-    nameInput: {
-        width: '80%',
-        fontSize: 20,
-        fontFamily: 'Silkscreen',
-        padding: 10,
-        borderWidth: 2,
-        borderRadius: 5,
         textAlign: 'center',
     },
     messageText: {

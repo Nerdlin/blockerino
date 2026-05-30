@@ -39,29 +39,64 @@ export async function getGlobalHighScores(
     }
 }
 
-// Добавить новый рекорд в глобальную таблицу
+// Добавить новый рекорд в глобальную таблицу (с защитой от дубликатов)
 export async function submitGlobalHighScore(
     playerName: string,
     score: number,
     gameMode: string
 ): Promise<boolean> {
     try {
-        const { error } = await supabase
+        // Проверяем, существует ли уже запись для этого игрока в этом режиме
+        const { data, error: fetchError } = await supabase
             .from('high_scores')
-            .insert([
-                {
-                    player_name: playerName,
-                    score: score,
-                    game_mode: gameMode
-                }
-            ]);
+            .select('id, score')
+            .eq('player_name', playerName)
+            .eq('game_mode', gameMode)
+            .limit(1);
 
-        if (error) {
-            console.error('Error submitting high score:', error);
+        if (fetchError) {
+            console.error('Error fetching existing score:', fetchError);
             return false;
         }
 
-        return true;
+        const existingRecord = data && data[0];
+
+        if (existingRecord) {
+            // Если новый результат лучше, обновляем его
+            if (score > existingRecord.score) {
+                const { error: updateError } = await supabase
+                    .from('high_scores')
+                    .update({
+                        score: score,
+                        created_at: new Date().toISOString()
+                    })
+                    .eq('id', existingRecord.id);
+
+                if (updateError) {
+                    console.error('Error updating high score:', updateError);
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            // Если записи нет, создаем новую
+            const { error: insertError } = await supabase
+                .from('high_scores')
+                .insert([
+                    {
+                        player_name: playerName,
+                        score: score,
+                        game_mode: gameMode
+                    }
+                ]);
+
+            if (insertError) {
+                console.error('Error inserting high score:', insertError);
+                return false;
+            }
+
+            return true;
+        }
     } catch (error) {
         console.error('Error submitting high score:', error);
         return false;

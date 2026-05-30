@@ -1,5 +1,4 @@
-import { cssColors } from "@/constants/Color";
-import { MenuStateType, useAppState, useAppStateValue } from "@/hooks/useAppState";
+import { MenuStateType, useAppState } from "@/hooks/useAppState";
 import { StyleSheet, Switch, Text, View } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -10,7 +9,7 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import Slider from "@react-native-community/slider";
 
 export default function OptionsMenu() {
-	const [ appState, setAppState, _appendAppState, popAppState ] = useAppState();
+	const [ appState, setAppState, , popAppState ] = useAppState();
 	const { 
 		musicVolume, 
 		sfxVolume, 
@@ -29,7 +28,7 @@ export default function OptionsMenu() {
 	useEffect(() => {
 		initialize();
 		loadTheme();
-	}, []);
+	}, [initialize, loadTheme]);
 
 	const handleButtonPress = () => {
 		playSfx('menuClick');

@@ -15,6 +15,7 @@ import { createHighScore, HighScoreId, updateHighScore } from '@/constants/Stora
 import { useSoundSettings } from '@/constants/Sound';
 import { useTheme } from '@/constants/Theme';
 import GameOverModal from '../GameOverModal';
+import { ScorePopup } from './ScorePopup';
 
 // layout = active/dragging
 const pieceOverlapsRectangle = (layout: Rectangle, other: Rectangle) => {
@@ -68,6 +69,17 @@ export const Game = (({gameMode}: {gameMode: GameModeType}) => {
 	const lastBrokenLine = useSharedValue(0);
 	// Состояние для отображения модального окна проигрыша
 	const [isGameOver, setIsGameOver] = useState(false);
+	const [scorePopups, setScorePopups] = useState<{id: number, points: number, x: number, y: number}[]>([]);
+	const scorePopupIdCounter = useRef(0);
+
+	const addScorePopup = (points: number, x: number, y: number) => {
+		const id = scorePopupIdCounter.current++;
+		setScorePopups(prev => [...prev, { id, points, x, y }]);
+	};
+	
+	const removeScorePopup = (id: number) => {
+		setScorePopups(prev => prev.filter(p => p.id !== id));
+	};
 
 	const scoreStorageId = useSharedValue<HighScoreId | undefined>(undefined);
 	const { currentTheme } = useTheme();
@@ -134,7 +146,7 @@ export const Game = (({gameMode}: {gameMode: GameModeType}) => {
 			
 			// add score from placing block
 			const pieceBlockCount = getBlockCount(piece);
-			score.value += pieceBlockCount;
+			let pointsEarned = pieceBlockCount;
 			
 			if (linesBroken > 0) {
 				lastBrokenLine.value = 0;
@@ -144,13 +156,17 @@ export const Game = (({gameMode}: {gameMode: GameModeType}) => {
 				runOnJS(playComboSound)(combo.value);
 				
 				// line break score + combo multiplier stuff
-				score.value += linesBroken * boardLength * (combo.value / 2) * pieceBlockCount;
+				pointsEarned += linesBroken * boardLength * (combo.value / 2) * pieceBlockCount;
+				score.value += pointsEarned;
 			} else {
+				score.value += pointsEarned;
 				lastBrokenLine.value++;
 				if (lastBrokenLine.value >= handSize) {
 					combo.value = 0;
 				}
 			}
+			
+			runOnJS(addScorePopup)(pointsEarned, dropX * GRID_BLOCK_SIZE, dropY * GRID_BLOCK_SIZE);
 			
 			if (scoreStorageId.value) {
 				runOnJS(updateHighScore)(scoreStorageId.value!, {
@@ -244,6 +260,17 @@ export const Game = (({gameMode}: {gameMode: GameModeType}) => {
 					<DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
 						<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand}></StatsGameHud>
 						<BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
+						<View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
+							{scorePopups.map(popup => (
+								<ScorePopup 
+									key={popup.id} 
+									points={popup.points} 
+									x={popup.x + 30} // Смещение для выравнивания
+									y={popup.y + 100} // Смещение относительно BlockGrid
+									onComplete={() => removeScorePopup(popup.id)} 
+								/>
+							))}
+						</View>
 						<HandPieces hand={hand}></HandPieces>
 					</DndProvider>
 					

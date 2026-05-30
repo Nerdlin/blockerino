@@ -2,66 +2,112 @@ import { getHighScores, HighScore } from "@/constants/Storage";
 import { getGlobalHighScores, GlobalHighScore } from "@/constants/Supabase";
 import SimplePopupView from "./SimplePopupView";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
+import { StyleSheet, Text, View, ActivityIndicator, TextInput } from "react-native";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { GameModeType, useSetAppState } from "@/hooks/useAppState";
-
-type LeaderboardMode = 'local' | 'global';
+import { submitGlobalHighScore } from "@/constants/Supabase";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from "@/constants/Theme";
 
 export default function HighScores() {
-    const [ setAppState, _appendAppState, popAppState ] = useSetAppState();
+    const { currentTheme } = useTheme();
+    const [ setAppState, , popAppState ] = useSetAppState();
     const [ highScores, setHighScores ] = useState<HighScore[]>([]);
     const [ globalHighScores, setGlobalHighScores ] = useState<GlobalHighScore[]>([]);
     const [ gameMode, setGameMode ] = useState(GameModeType.Classic);
-    const [ leaderboardMode, setLeaderboardMode ] = useState<LeaderboardMode>('global');
     const [ loading, setLoading ] = useState(false);
+    const [ syncing, setSyncing ] = useState(false);
+    const [ syncMessage, setSyncMessage ] = useState('');
+    const [ playerName, setPlayerName ] = useState('Anonymous');
 
     useEffect(() => {
-        if (leaderboardMode === 'local') {
-            getHighScores(gameMode, true, true, 10).then((value) => {
-                setHighScores(value);
-            });
-        } else {
+        AsyncStorage.getItem('PLAYER_NAME').then((val) => {
+            if (val) {
+                setPlayerName(val);
+            }
+        });
+    }, []);
+
+    const handlePlayerNameChange = (name: string) => {
+        setPlayerName(name);
+    };
+
+    const handlePlayerNameBlur = async () => {
+        const trimmedName = playerName.trim();
+        const finalName = trimmedName || 'Anonymous';
+        
+        await AsyncStorage.setItem('PLAYER_NAME', finalName);
+        
+        // Auto-sync best local score if they have one
+        if (highScores.length > 0) {
+            setSyncing(true);
+            const bestScore = highScores[0].score;
+            await submitGlobalHighScore(finalName, bestScore, gameMode);
+            setSyncing(false);
+            
+            // Refresh global leaderboard
             setLoading(true);
-            getGlobalHighScores(gameMode, 10).then((value) => {
-                setGlobalHighScores(value);
-                setLoading(false);
-            });
+            const updatedScores = await getGlobalHighScores(gameMode, 10);
+            setGlobalHighScores(updatedScores);
+            setLoading(false);
         }
-    }, [gameMode, leaderboardMode]);
+    };
 
-    const hasScores = leaderboardMode === 'local' ? highScores.length > 0 : globalHighScores.length > 0;
+    useEffect(() => {
+        // Load local high scores to enable syncing
+        getHighScores(gameMode, true, true, 10).then((value) => {
+            setHighScores(value);
+        });
 
-    return <SimplePopupView style={[{justifyContent: 'flex-start'}]}>
+        // Load global high scores
+        setLoading(true);
+        getGlobalHighScores(gameMode, 10).then((value) => {
+            setGlobalHighScores(value);
+            setLoading(false);
+        });
+    }, [gameMode]);
+
+    const hasScores = globalHighScores.length > 0;
+
+    return <SimplePopupView style={[{justifyContent: 'flex-start', backgroundColor: currentTheme.menuBackground}]}>
         <StylizedButton text="Back" onClick={popAppState} backgroundColor={cssColors.spaceGray}></StylizedButton>
 
-        <Text style={styles.subHeader}>
-            {"Leaderboard Type"}
-        </Text>
-        <View style={{flexDirection: 'row', gap: 10}}>
-            <StylizedButton
-                text="Global"
-                onClick={() => setLeaderboardMode('global')}
-                backgroundColor={leaderboardMode === 'global' ? cssColors.brightNiceRed : cssColors.spaceGray}
+        <View style={styles.nicknameContainer}>
+            <Text style={[styles.subHeader, { color: currentTheme.textSecondary, fontSize: 18, marginBottom: 5 }]}>
+                {"Your Nickname:"}
+            </Text>
+            <TextInput
+                style={[styles.nicknameInput, {
+                    color: currentTheme.textPrimary,
+                    borderColor: currentTheme.textSecondary,
+                    backgroundColor: 'rgba(0, 0, 0, 0.4)'
+                }]}
+                value={playerName}
+                onChangeText={handlePlayerNameChange}
+                onBlur={handlePlayerNameBlur}
+                onSubmitEditing={handlePlayerNameBlur}
+                placeholder="Enter Nickname"
+                placeholderTextColor={currentTheme.textSecondary}
+                maxLength={20}
             />
-            <StylizedButton
-                text="Local"
-                onClick={() => setLeaderboardMode('local')}
-                backgroundColor={leaderboardMode === 'local' ? cssColors.brightNiceRed : cssColors.spaceGray}
-            />
+            {syncing && (
+                <Text style={{ fontFamily: 'Silkscreen', fontSize: 12, color: currentTheme.textSecondary, marginTop: 5 }}>
+                    Syncing best score...
+                </Text>
+            )}
         </View>
 
         { hasScores &&
             <>
-                <Text style={styles.subHeader}>
+                <Text style={[styles.subHeader, { color: currentTheme.textSecondary }]}>
                     {"Select a game mode..."}
                 </Text>
                 <View style={{flexDirection: 'row', gap: 10}}>
                     <StylizedButton
                         text="Classic"
                         onClick={() => { setGameMode(GameModeType.Classic) }}
-                        backgroundColor={gameMode === GameModeType.Classic ? cssColors.brightNiceRed : cssColors.spaceGray}
+                        backgroundColor={gameMode === GameModeType.Classic ? currentTheme.buttonPrimary : cssColors.spaceGray}
                     />
                     <StylizedButton
                         text="Chaos"
@@ -70,34 +116,28 @@ export default function HighScores() {
                         borderColor={gameMode === GameModeType.Chaos ? "white" : undefined}
                     />
                 </View>
-                <Text style={styles.header}>
-                    {leaderboardMode === 'global' ? "Global Leaderboard (Top 10)" : "Your High Scores (Top 10)"}
+                <Text style={[styles.header, { color: currentTheme.textPrimary }]}>
+                    {"Global Leaderboard (Top 10)"}
                 </Text>
-                <Text style={styles.subHeader}>
+                <Text style={[styles.subHeader, { color: currentTheme.textSecondary }]}>
                     {"Sorted from high to low."}
                 </Text>
 
-                {loading && <ActivityIndicator size="large" color="white" />}
+                {loading && <ActivityIndicator size="large" color={currentTheme.textPrimary} />}
 
-                {!loading && leaderboardMode === 'local' && highScores.map((score, idx) => {
-                    return <Score key={idx} rank={idx + 1} score={score}/>
-                })}
-
-                {!loading && leaderboardMode === 'global' && globalHighScores.map((score, idx) => {
+                {!loading && globalHighScores.map((score, idx) => {
                     return <GlobalScore key={idx} rank={idx + 1} score={score}/>
                 })}
             </>
         }
         { !hasScores && !loading &&
             <>
-                <Text style={styles.noScoresText}>
-                    {leaderboardMode === 'global'
-                        ? "No global scores yet. Be the first!"
-                        : "You haven't set a score yet? Get playing!"}
+                <Text style={[styles.noScoresText, { color: currentTheme.textPrimary }]}>
+                    {"No global scores yet. Be the first!"}
                 </Text>
                 <StylizedButton text="Play Classic" onClick={() => {
                     setAppState(GameModeType.Classic)
-                }} backgroundColor={cssColors.brightNiceRed}></StylizedButton>
+                }} backgroundColor={currentTheme.buttonPrimary}></StylizedButton>
                 <StylizedButton text="Play Chaos" onClick={() => {
                     setAppState(GameModeType.Chaos)
                 }} backgroundColor={cssColors.pitchBlack} borderColor="white"></StylizedButton>
@@ -106,19 +146,13 @@ export default function HighScores() {
     </SimplePopupView>
 }
 
-function Score({score, rank}: {score: HighScore, rank: number}) {
-    return <>
-        <Text style={styles.scoreValueText}>{"#" + String(rank) + " - " + String(score.score)}</Text>
-        <Text style={styles.scoreTimeText}>{createTimeAgoString(score.date)}</Text>
-    </>
-}
-
 function GlobalScore({score, rank}: {score: GlobalHighScore, rank: number}) {
+    const { currentTheme } = useTheme();
     return <>
-        <Text style={styles.scoreValueText}>
+        <Text style={[styles.scoreValueText, { color: currentTheme.textPrimary }]}>
             {"#" + String(rank) + " - " + score.player_name + " - " + String(score.score)}
         </Text>
-        <Text style={styles.scoreTimeText}>
+        <Text style={[styles.scoreTimeText, { color: currentTheme.textSecondary }]}>
             {score.created_at ? createTimeAgoString(new Date(score.created_at).getTime()) : 'Unknown time'}
         </Text>
     </>
@@ -175,5 +209,20 @@ const styles = StyleSheet.create({
         color: 'rgb(100, 100, 100)',
         fontSize: 24,
         fontFamily: 'Silkscreen'
+    },
+    nicknameContainer: {
+        width: '80%',
+        alignItems: 'center',
+        marginVertical: 15,
+        gap: 5
+    },
+    nicknameInput: {
+        width: '100%',
+        fontSize: 20,
+        fontFamily: 'Silkscreen',
+        padding: 10,
+        borderWidth: 2,
+        borderRadius: 5,
+        textAlign: 'center',
     }
 });

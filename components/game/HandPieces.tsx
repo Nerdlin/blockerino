@@ -3,7 +3,7 @@ import { Hand } from "@/constants/Hand";
 import { createFilledBlockStyle } from "@/constants/Piece";
 import { SharedPoint, useDraggable } from "@mgcrea/react-native-dnd";
 import { StyleSheet, View } from "react-native";
-import Animated, { SharedValue, runOnJS, useAnimatedStyle, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { SharedValue, runOnJS, useAnimatedStyle, withSequence, withTiming, useAnimatedReaction } from "react-native-reanimated";
 
 interface HandProps {
 	hand: SharedValue<Hand>
@@ -138,8 +138,15 @@ function PieceDraggable({ children, id, createStyle, hand, ...otherProps }: Piec
 		(setNodeLayout as any)(null);
 	}
 
+	useAnimatedReaction(() => {
+		return hand.value[Number(id)];
+	}, (cur, prev) => {
+		if (cur !== prev) {
+			runOnJS(updateLayout)();
+		}
+	});
+
 	const animatedStyle = useAnimatedStyle(() => {
-		runOnJS(updateLayout)();
 		const isSleeping = state.value === "sleeping"; // Should not animate if sleeping
 		const isActive = state.value === "dragging";
 		const isActing = state.value === "acting";

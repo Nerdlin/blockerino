@@ -19,6 +19,9 @@ export interface Theme {
   id: ThemeType;
   name: string;
   background: string;
+  backgroundGradient1: string;
+  backgroundGradient2: string;
+  backgroundGradient3: string;
   gridBackground: string;
   gridBorder: string;
   emptyBlockBorder: string;
@@ -37,7 +40,10 @@ export const themes: Record<ThemeType, Theme> = {
     id: ThemeType.CLASSIC,
     name: 'Classic',
     background: 'rgba(0, 0, 0, 0.4)',
-    gridBackground: 'rgb(0, 0, 0, 1)',
+    backgroundGradient1: 'rgb(10, 10, 20)',
+    backgroundGradient2: 'rgb(20, 10, 30)',
+    backgroundGradient3: 'rgb(30, 10, 20)',
+    gridBackground: 'rgba(0, 0, 0, 1)',
     gridBorder: 'rgb(255, 255, 255)',
     emptyBlockBorder: 'rgb(40, 40, 40)',
     menuBackground: 'rgba(5, 5, 5, 0.95)',
@@ -59,6 +65,9 @@ export const themes: Record<ThemeType, Theme> = {
     id: ThemeType.NEON,
     name: 'Neon',
     background: 'rgba(0, 0, 20, 0.8)',
+    backgroundGradient1: 'rgb(10, 0, 30)',
+    backgroundGradient2: 'rgb(30, 0, 50)',
+    backgroundGradient3: 'rgb(50, 0, 70)',
     gridBackground: 'rgb(5, 5, 20)',
     gridBorder: 'rgb(0, 230, 255)',
     emptyBlockBorder: 'rgb(30, 30, 60)',
@@ -81,6 +90,9 @@ export const themes: Record<ThemeType, Theme> = {
     id: ThemeType.DARK,
     name: 'Dark',
     background: 'rgb(15, 15, 15)',
+    backgroundGradient1: 'rgb(15, 15, 15)',
+    backgroundGradient2: 'rgb(25, 25, 25)',
+    backgroundGradient3: 'rgb(20, 20, 20)',
     gridBackground: 'rgb(25, 25, 25)',
     gridBorder: 'rgb(60, 60, 60)',
     emptyBlockBorder: 'rgb(40, 40, 40)',
@@ -103,6 +115,9 @@ export const themes: Record<ThemeType, Theme> = {
     id: ThemeType.RETRO,
     name: 'Retro',
     background: 'rgb(20, 43, 35)',
+    backgroundGradient1: 'rgb(15, 56, 15)',
+    backgroundGradient2: 'rgb(20, 43, 35)',
+    backgroundGradient3: 'rgb(30, 62, 46)',
     gridBackground: 'rgb(15, 56, 15)',
     gridBorder: 'rgb(65, 108, 80)',
     emptyBlockBorder: 'rgb(40, 76, 48)',
@@ -125,6 +140,9 @@ export const themes: Record<ThemeType, Theme> = {
     id: ThemeType.BLUE,
     name: 'Blue',
     background: 'rgb(0, 102, 204)',
+    backgroundGradient1: 'rgb(0, 76, 153)',
+    backgroundGradient2: 'rgb(0, 102, 204)',
+    backgroundGradient3: 'rgb(0, 51, 102)',
     gridBackground: 'rgb(0, 76, 153)',
     gridBorder: 'rgb(0, 51, 102)',
     emptyBlockBorder: 'rgb(0, 51, 102)',

@@ -1,7 +1,7 @@
 import { View } from "react-native";
 
 export default function SimplePopupView({children, style}: {children: any, style?: any[]}) {
-	if (style == undefined)
+	if (style === undefined)
 		style = [];
     return <View style={[{
 		width: '81%',

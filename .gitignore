@@ -38,3 +38,6 @@ app-example
 
 *.swp
 *.swo
+
+# Playwright
+.playwright-mcp
