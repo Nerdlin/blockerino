@@ -66,7 +66,7 @@ function GridBlock({ x, y, board, boardSize }: GridBlockProps) {
 
 			placedBlockFall.value = withSequence(
 				withTiming(1, { duration: 600 }),
-				withTiming(0, { duration: 0 })
+				withTiming(0, { duration: 16 })
 			);
 		}
 		// Сброс анимации при размещении нового блока
@@ -106,7 +106,7 @@ function GridBlock({ x, y, board, boardSize }: GridBlockProps) {
 		);
 	}, [board.value[y][x].blockType, boardSize, loadBlockFlash, x, y]);
 
-	const animatedStyle = useAnimatedStyle(() => {
+	const staticStyle = useAnimatedStyle(() => {
 		const block = board.value[y][x];
 
 		if (block.blockType === BoardBlockType.EMPTY && loadBlockFlash.value !== 0) {
@@ -114,22 +114,6 @@ function GridBlock({ x, y, board, boardSize }: GridBlockProps) {
 				...createFilledBlockStyle(block.color),
 				opacity: Math.min(1, loadBlockFlash.value * 10),
 				borderColor: currentTheme.emptyBlockBorder
-			};
-		}
-
-		// Анимация удаления блока
-		if (placedBlockFall.value > 0) {
-			let progress = placedBlockFall.value;
-			progress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress); // easeOutCirc
-			return {
-				...createFilledBlockStyle(block.color),
-				opacity: 1 - progress,
-				transform: [
-					{ scale: 1 - progress * 0.5 },
-					{ translateX: placedBlockDirectionX.value * progress },
-					{ translateY: placedBlockDirectionY.value * progress },
-					{ rotate: `${placedBlockRotation.value * progress}deg` }
-				]
 			};
 		}
 
@@ -166,7 +150,37 @@ function GridBlock({ x, y, board, boardSize }: GridBlockProps) {
 		return style;
 	});
 
-	return <Animated.View style={[animatedStyle, { width: GRID_BLOCK_SIZE, height: GRID_BLOCK_SIZE }]} />;
+	const fallingStyle = useAnimatedStyle(() => {
+		const block = board.value[y][x];
+		if (placedBlockFall.value > 0) {
+			let progress = placedBlockFall.value;
+			progress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress); // easeOutCirc
+			return {
+				...createFilledBlockStyle(block.color),
+				opacity: 1 - progress,
+				transform: [
+					{ scale: 1 - progress * 0.5 },
+					{ translateX: placedBlockDirectionX.value * progress },
+					{ translateY: placedBlockDirectionY.value * progress },
+					{ rotate: `${placedBlockRotation.value * progress}deg` }
+				],
+				position: 'absolute',
+				top: 0,
+				left: 0,
+				width: GRID_BLOCK_SIZE,
+				height: GRID_BLOCK_SIZE,
+				zIndex: 20
+			};
+		}
+		return { opacity: 0, width: 0, height: 0, position: 'absolute' };
+	});
+
+	return (
+		<>
+			<Animated.View style={[staticStyle, { width: GRID_BLOCK_SIZE, height: GRID_BLOCK_SIZE }]} />
+			<Animated.View style={fallingStyle} />
+		</>
+	);
 }
 
 export default function BlockGrid({
