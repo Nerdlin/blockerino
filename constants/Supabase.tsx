@@ -25,14 +25,27 @@ export async function getGlobalHighScores(
             .select('*')
             .eq('game_mode', gameMode)
             .order('score', { ascending: false })
-            .limit(limit);
+            .limit(limit * 5); // Fetch extra to account for duplicates
 
         if (error) {
             console.error('Error fetching global high scores:', error);
             return [];
         }
 
-        return data || [];
+        if (!data) return [];
+
+        const uniquePlayers = new Set();
+        const filteredData = data.filter(record => {
+            // Case-insensitive duplicate check
+            const lowerName = record.player_name.toLowerCase();
+            if (uniquePlayers.has(lowerName)) {
+                return false;
+            }
+            uniquePlayers.add(lowerName);
+            return true;
+        });
+
+        return filteredData.slice(0, limit);
     } catch (error) {
         console.error('Error fetching global high scores:', error);
         return [];
