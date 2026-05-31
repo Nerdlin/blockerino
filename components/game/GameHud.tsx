@@ -19,8 +19,9 @@ interface GameHudProps {
 export function StatsGameHud({ score, combo, lastBrokenLine, hand}: GameHudProps) {
 	const [scoreText, setScoreText] = useState("0");
 	const scoreAnimValue = useSharedValue(0); // stores the score, used to interpolate the number for animation
-	const { width } = useWindowDimensions();
-	const isMobile = width < 600;
+	const { width, height } = useWindowDimensions();
+	const isMobile = width < 600 || height < 700;
+	const isShortScreen = height < 700;
 
 	useAnimatedReaction(() => {
 		return score.value;
@@ -35,12 +36,12 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand}: GameHudProps
 	})
 
 	return <>
-		<View style={[styles.hudContainer, isMobile && { height: 90 }]}>
-			<View style={[styles.scoreContainer, isMobile && { height: 44, marginTop: 5, marginBottom: 5 }]}>
+		<View style={[styles.hudContainer, isMobile && { height: isShortScreen ? 55 : 75 }]}>
+			<View style={[styles.scoreContainer, isMobile && { height: isShortScreen ? 28 : 38, marginTop: 2, marginBottom: 2 }]}>
 				<Text style={{
 					color: 'white',
 					fontFamily: 'Silkscreen',
-					fontSize: isMobile ? 38 : 50,
+					fontSize: isMobile ? (isShortScreen ? 24 : 32) : 50,
 					fontWeight: '100',
 					...Platform.select({
 						web: {
@@ -68,6 +69,8 @@ interface ComboBarProps {
 function ComboBar({ lastBrokenLine, handSize }: ComboBarProps) {
 	const fillPercentage = useSharedValue(100);
 	const scale = useSharedValue(1);
+	const { width, height } = useWindowDimensions();
+	const isMobile = width < 600 || height < 700;
 	
 	useAnimatedReaction(() => {
 		return lastBrokenLine.value;
@@ -101,8 +104,8 @@ function ComboBar({ lastBrokenLine, handSize }: ComboBarProps) {
 	});
 
 	return (
-		<View style={styles.comboBarParent}>
-			<Animated.View style={[styles.comboBar, animatedStyle]} />
+		<View style={[styles.comboBarParent, isMobile && { height: 8, borderWidth: 1 }]}>
+			<Animated.View style={[styles.comboBar, isMobile && { height: 6 }, animatedStyle]} />
 		</View>
 	);
 };
@@ -110,8 +113,8 @@ function ComboBar({ lastBrokenLine, handSize }: ComboBarProps) {
 export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score: SharedValue<number>}) {
 	const [ highestScore, setHighestScore ] = useState(0);
 	const [ scoreState, setScoreState ] = useState(score.value);
-	const { width } = useWindowDimensions();
-	const isMobile = width < 600;
+	const { width, height } = useWindowDimensions();
+	const isMobile = width < 600 || height < 700;
 
 	useEffect(() => {
 		getHighScores(gameMode, true, true).then((highScores) => {

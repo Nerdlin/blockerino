@@ -3,7 +3,7 @@ import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-d
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, SafeAreaView, StyleSheet, Text, View, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
-import { ReduceMotion, runOnJS, useSharedValue } from 'react-native-reanimated';
+import Animated, { ReduceMotion, runOnJS, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Board, BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes } from '@/constants/Board';
 import { StatsGameHud, StickyGameHud } from '@/components/game/GameHud';
@@ -50,8 +50,9 @@ function runPiecePlacedHaptic() {
 }
 
 export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode }: MultiplayerGameProps) {
-    const { width } = useWindowDimensions();
+    const { width, height } = useWindowDimensions();
     const isLargeScreen = width >= 768;
+    const isShortScreen = height < 700;
     const boardLength = gameMode == GameModeType.Chaos ? 10 : 8;
 	
     // Game sizes
@@ -67,6 +68,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 	const combo = useSharedValue(0);
 	const lastBrokenLine = useSharedValue(0);
 	const [isGameOver, setIsGameOver] = useState(false);
+    const [isSpectating, setIsSpectating] = useState(false);
     
     // Opponent states
     const [opponentBoard, setOpponentBoard] = useState<Board>(newEmptyBoard(boardLength));
@@ -81,6 +83,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const { currentTheme } = useTheme();
     const channelRef = useRef<any>(null);
     const lastSentHover = useRef<{ index: number | null, x: number | null, y: number | null }>({ index: null, x: null, y: null });
+    const hoverThrottleTimer = useRef<any>(null);
+    const pendingHover = useRef<{ index: number | null, x: number | null, y: number | null } | null>(null);
     const [playerName, setPlayerName] = useState("Anonymous");
     const [scorePopups, setScorePopups] = useState<{id: number, points: number, x: number, y: number}[]>([]);
     const scorePopupIdCounter = useRef(0);
@@ -129,6 +133,9 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         channelRef.current = channel;
 
         return () => {
+            if (hoverThrottleTimer.current) {
+                clearInterval(hoverThrottleTimer.current);
+            }
             supabase.removeChannel(channel);
             // End room in database when either player exits
             supabase.from('matchmaking_rooms').update({ status: 'finished' }).eq('id', roomId).then();
@@ -165,6 +172,29 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         ) {
             return;
         }
+        
+        pendingHover.current = { index, x, y };
+
+        if (!hoverThrottleTimer.current) {
+            // Send immediately
+            sendPendingHover();
+            // Start throttle period
+            hoverThrottleTimer.current = setInterval(() => {
+                if (pendingHover.current) {
+                    sendPendingHover();
+                } else {
+                    // Clear interval if no updates are pending
+                    clearInterval(hoverThrottleTimer.current);
+                    hoverThrottleTimer.current = null;
+                }
+            }, 80);
+        }
+    };
+
+    const sendPendingHover = () => {
+        if (!pendingHover.current) return;
+        const { index, x, y } = pendingHover.current;
+        pendingHover.current = null;
         lastSentHover.current = { index, x, y };
 
         if (channelRef.current) {
@@ -249,6 +279,10 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
 			if (Platform.OS != 'web') {
 				runPiecePlacedHaptic();
+			} else {
+				if (typeof navigator !== 'undefined' && navigator.vibrate) {
+					navigator.vibrate(15);
+				}
 			}
 
 			const newBoard = clearHoverBlocks([...board.value]);
@@ -261,6 +295,11 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 			if (linesBroken > 0) {
 				lastBrokenLine.value = 0;
 				combo.value += linesBroken;
+				
+				if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.vibrate) {
+					navigator.vibrate([25, 45, 25]);
+				}
+				
 				pointsEarned += linesBroken * boardLength * (combo.value / 2) * pieceBlockCount;
 				score.value += pointsEarned;
 			} else {
@@ -373,66 +412,126 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 		<SafeAreaView style={[styles.root, { backgroundColor: currentTheme.background }]}>
 			<GestureHandlerRootView style={styles.root}>
                 <StickyGameHud gameMode={gameMode} score={score}></StickyGameHud>
-				<View style={isLargeScreen ? styles.sideBySideContainer : styles.stackedContainer}>
-                    
-                    {/* Local Player's board */}
-                    <View style={styles.gameColumn}>
-                        <Text style={[styles.playerNameText, { color: currentTheme.textPrimary }]}>You</Text>
-                        <DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
-                            <StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand}></StatsGameHud>
-                            <BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
-                            <View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
-                                {scorePopups.map(popup => (
-                                    <ScorePopup 
-                                        key={popup.id} 
-                                        points={popup.points} 
-                                        x={popup.x + 30} 
-                                        y={popup.y + 100} 
-                                        onComplete={() => removeScorePopup(popup.id)} 
-                                    />
-                                ))}
-                            </View>
-                            <HandPieces hand={hand} boardSize={boardLength}></HandPieces>
-                        </DndProvider>
-                    </View>
-
-                    {/* Opponent's board */}
-                    <View style={isLargeScreen ? styles.opponentColumn : styles.opponentMiniRow}>
-                        <View style={styles.opponentHeader}>
-                            <Text style={[styles.opponentNameText, { color: currentTheme.textSecondary }]}>
-                                {opponentName} {opponentIsGameOver && "(GameOver)"}
-                            </Text>
-                            <Text style={[styles.opponentScoreText, { color: currentTheme.accent }]}>
-                                Score: {opponentScore}
+				
+				{isSpectating ? (
+					<View style={styles.spectatorContainer}>
+                        <View style={styles.liveContainer}>
+                            <LiveDot />
+                            <Text style={[styles.spectatorTitle, { color: currentTheme.accent }]}>
+                                Watching {opponentName}
                             </Text>
                         </View>
+						<Text style={[styles.spectatorScore, { color: currentTheme.textPrimary }]}>
+							Score: {opponentScore}
+						</Text>
+						
+						<View style={{ marginVertical: 10 }}>
+							<ReadOnlyBlockGrid 
+								board={opponentBoard} 
+								gridBlockSize={GRID_BLOCK_SIZE} 
+								hoverIndex={opponentHover.index}
+								hoverX={opponentHover.x}
+								hoverY={opponentHover.y}
+								hand={opponentHand}
+							/>
+						</View>
 
-                        <View style={isLargeScreen ? undefined : styles.miniGridScale}>
-                            <ReadOnlyBlockGrid 
-                                board={opponentBoard} 
-                                gridBlockSize={isLargeScreen ? GRID_BLOCK_SIZE : 15} 
-                                hoverIndex={opponentHover.index}
-                                hoverX={opponentHover.x}
-                                hoverY={opponentHover.y}
-                                hand={opponentHand}
-                            />
-                        </View>
+						<View style={{ marginTop: 10, alignItems: 'center' }}>
+							<Text style={{ fontFamily: 'Silkscreen', color: currentTheme.textSecondary, fontSize: 14, marginBottom: 5 }}>
+								Opponent's Hand:
+							</Text>
+							<ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} />
+						</View>
 
-                        {isLargeScreen && (
-                            <View style={{ marginTop: 20, alignItems: 'center' }}>
-                                <Text style={{ fontFamily: 'Silkscreen', color: currentTheme.textSecondary, fontSize: 14, marginBottom: 5 }}>Opponent's Hand:</Text>
-                                <ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} />
-                            </View>
-                        )}
+						<View style={{ marginTop: 20 }}>
+							<StylizedButton text="Exit to Lobby" onClick={handleExit} backgroundColor={cssColors.spaceGray} />
+						</View>
+					</View>
+				) : (
+					<View style={isLargeScreen ? styles.sideBySideContainer : styles.stackedContainer}>
+						
+						{/* On mobile, render opponent's board at the top */}
+						{!isLargeScreen && (
+							<View style={[styles.opponentMiniRow, isShortScreen && { padding: 4, marginTop: 5, gap: 5 }]}>
+								<View style={[styles.opponentHeader, isShortScreen && { marginBottom: 0 }]}>
+									<Text style={[styles.opponentNameText, { color: currentTheme.textSecondary }, isShortScreen && { fontSize: 13 }]}>
+										{opponentName} {opponentIsGameOver && "(GameOver)"}
+									</Text>
+									<Text style={[styles.opponentScoreText, { color: currentTheme.accent }, isShortScreen && { fontSize: 15 }]}>
+										Score: {opponentScore}
+									</Text>
+								</View>
 
-                        {!isLargeScreen && (
-                            <View style={{ alignItems: 'center', marginLeft: 10 }}>
-                                <ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} scale={0.5} />
-                            </View>
-                        )}
-                    </View>
+								<View style={styles.miniGridScale}>
+									<ReadOnlyBlockGrid 
+										board={opponentBoard} 
+										gridBlockSize={isShortScreen ? 11 : 14} 
+										hoverIndex={opponentHover.index}
+										hoverX={opponentHover.x}
+										hoverY={opponentHover.y}
+										hand={opponentHand}
+									/>
+								</View>
 
-				</View>
+								<View style={{ alignItems: 'center', marginLeft: isShortScreen ? 4 : 10 }}>
+									<ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} scale={isShortScreen ? 0.4 : 0.5} />
+								</View>
+							</View>
+						)}
+
+						{/* Local Player's board */}
+						<View style={styles.gameColumn}>
+							{isLargeScreen && <Text style={[styles.playerNameText, { color: currentTheme.textPrimary }]}>You</Text>}
+							<DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
+								<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand}></StatsGameHud>
+								<BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
+								<View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
+									{scorePopups.map(popup => (
+										<ScorePopup 
+											key={popup.id} 
+											points={popup.points} 
+											x={popup.x + 30} 
+											y={popup.y + 100} 
+											onComplete={() => removeScorePopup(popup.id)} 
+										/>
+									))}
+								</View>
+								<HandPieces hand={hand} boardSize={boardLength}></HandPieces>
+							</DndProvider>
+						</View>
+
+						{/* On desktop, render opponent's board on the right */}
+						{isLargeScreen && (
+							<View style={styles.opponentColumn}>
+								<View style={styles.opponentHeader}>
+									<Text style={[styles.opponentNameText, { color: currentTheme.textSecondary }]}>
+										{opponentName} {opponentIsGameOver && "(GameOver)"}
+									</Text>
+									<Text style={[styles.opponentScoreText, { color: currentTheme.accent }]}>
+										Score: {opponentScore}
+									</Text>
+								</View>
+
+								<View>
+									<ReadOnlyBlockGrid 
+										board={opponentBoard} 
+										gridBlockSize={GRID_BLOCK_SIZE} 
+										hoverIndex={opponentHover.index}
+										hoverX={opponentHover.x}
+										hoverY={opponentHover.y}
+										hand={opponentHand}
+									/>
+								</View>
+
+								<View style={{ marginTop: 20, alignItems: 'center' }}>
+									<Text style={{ fontFamily: 'Silkscreen', color: currentTheme.textSecondary, fontSize: 14, marginBottom: 5 }}>Opponent's Hand:</Text>
+									<ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} />
+								</View>
+							</View>
+						)}
+
+					</View>
+				)}
 
                 {/* Winner Overlay Modal */}
                 {showWinnerOverlay && (
@@ -460,7 +559,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 )}
 
                 {/* Waiting for opponent to finish */}
-                {isGameOver && !opponentIsGameOver && !opponentDisconnected && (
+                {isGameOver && !opponentIsGameOver && !opponentDisconnected && !isSpectating && (
                     <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
                         <View style={[styles.modalBox, { backgroundColor: currentTheme.menuBackground }]}>
                             <Text style={[styles.modalTitle, { color: currentTheme.accent }]}>Game Over</Text>
@@ -468,6 +567,14 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                             <Text style={[styles.finalScoreText, { color: currentTheme.textSecondary }]}>Your Score: {score.value}</Text>
                             <Text style={[styles.finalScoreText, { color: currentTheme.textSecondary }]}>{opponentName}'s Score: {opponentScore}</Text>
                             <ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 15 }} />
+                            
+                            <StylizedButton 
+                                text="Watch Opponent" 
+                                onClick={() => setIsSpectating(true)} 
+                                backgroundColor={currentTheme.buttonPrimary} 
+                                style={{ marginBottom: 5 }}
+                            />
+                            
                             <StylizedButton text="Exit to Lobby" onClick={handleExit} backgroundColor={cssColors.spaceGray} />
                         </View>
                     </View>
@@ -477,6 +584,26 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 		</SafeAreaView>
 	);
 }
+
+const LiveDot = () => {
+    const pulse = useSharedValue(0.5);
+    useEffect(() => {
+        pulse.value = withRepeat(
+            withSequence(
+                withTiming(1.0, { duration: 600 }),
+                withTiming(0.4, { duration: 600 })
+            ),
+            -1,
+            true
+        );
+    }, []);
+    const animatedStyle = useAnimatedStyle(() => ({
+        opacity: pulse.value
+    }));
+    return (
+        <Animated.View style={[styles.liveDot, animatedStyle]} />
+    );
+};
 
 const styles = StyleSheet.create({
 	root: {
@@ -502,7 +629,7 @@ const styles = StyleSheet.create({
         height: '100%',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: 10
+        paddingTop: 5
     },
     gameColumn: {
         alignItems: 'center',
@@ -518,13 +645,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'rgba(0,0,0,0.6)',
-        width: '90%',
-        padding: 10,
+        width: '95%',
+        padding: 8,
         borderRadius: 8,
         borderWidth: 1,
         borderColor: '#333',
-        marginTop: 15,
-        gap: 15
+        marginTop: 10,
+        marginBottom: 5,
+        gap: 12
     },
     miniGridScale: {
         transform: [{ scale: 1.0 }]
@@ -585,5 +713,38 @@ const styles = StyleSheet.create({
     finalScoreText: {
         fontSize: 16,
         fontFamily: 'Silkscreen',
+    },
+    spectatorContainer: {
+        flexDirection: 'column',
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingTop: 5
+    },
+    spectatorTitle: {
+        fontSize: 24,
+        fontFamily: 'Silkscreen',
+        textAlign: 'center'
+    },
+    spectatorScore: {
+        fontSize: 20,
+        fontFamily: 'Silkscreen',
+        marginBottom: 15,
+        fontWeight: 'bold',
+        textAlign: 'center'
+    },
+    liveDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: 'red',
+        marginRight: 8
+    },
+    liveContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 5
     }
 });

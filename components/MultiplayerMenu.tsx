@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { StyleSheet, Text, View, TextInput, ActivityIndicator, Clipboard } from "react-native";
+import { StyleSheet, Text, View, TextInput, ActivityIndicator, Clipboard, useWindowDimensions } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
@@ -17,6 +17,8 @@ interface MultiplayerMenuProps {
 export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const { currentTheme } = useTheme();
     const [, setAppState, , popAppState] = useAppState();
+    const { width } = useWindowDimensions();
+    const isMobile = width < 600;
     
     const [playerName, setPlayerName] = useState("Anonymous");
     const [playerId, setPlayerId] = useState("");
@@ -357,7 +359,10 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     };
 
     return (
-        <SimplePopupView style={[{ justifyContent: 'flex-start', backgroundColor: currentTheme.menuBackground }]}>
+        <SimplePopupView style={[
+            { justifyContent: 'flex-start', backgroundColor: currentTheme.menuBackground },
+            isMobile && { width: '92%', height: '85%', paddingHorizontal: 10 }
+        ]}>
             {lobbyState === 'idle' && (
                 <Animated.View entering={FadeIn} style={styles.contentContainer}>
                     <StylizedButton text="Back" onClick={popAppState} backgroundColor={cssColors.spaceGray} />
@@ -391,14 +396,14 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             onClick={() => setSelectedMode(GameModeType.Classic)} 
                             backgroundColor={selectedMode === GameModeType.Classic ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
                             borderColor={selectedMode === GameModeType.Classic ? currentTheme.accent : undefined}
-                            style={{ flex: 1 }}
+                            style={{ flex: 1, minWidth: 100 }}
                         />
                         <StylizedButton 
                             text="Chaos" 
                             onClick={() => setSelectedMode(GameModeType.Chaos)} 
                             backgroundColor={selectedMode === GameModeType.Chaos ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
                             borderColor={selectedMode === GameModeType.Chaos ? currentTheme.accent : undefined}
-                            style={{ flex: 1 }}
+                            style={{ flex: 1, minWidth: 100 }}
                         />
                     </View>
 
@@ -411,13 +416,13 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             onClick={() => handleQuickMatch(selectedMode)} 
                             backgroundColor={selectedMode === GameModeType.Chaos ? cssColors.pitchBlack : currentTheme.buttonPrimary} 
                             borderColor={selectedMode === GameModeType.Chaos ? "white" : undefined}
-                            style={{ flex: 1 }}
+                            style={{ flex: 1, minWidth: 100 }}
                         />
                         <StylizedButton 
                             text="Create Room" 
                             onClick={() => handleCreateRoom(selectedMode)} 
                             backgroundColor={cssColors.pink} 
-                            style={{ flex: 1 }}
+                            style={{ flex: 1, minWidth: 100 }}
                         />
                     </View>
 
@@ -436,7 +441,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             autoCapitalize="characters"
                             maxLength={6}
                         />
-                        <StylizedButton text="Join" onClick={handleJoinRoom} backgroundColor={currentTheme.buttonPrimary} />
+                        <StylizedButton text="Join" onClick={handleJoinRoom} backgroundColor={currentTheme.buttonPrimary} style={{ minWidth: 100 }} />
                     </View>
                 </Animated.View>
             )}
@@ -501,7 +506,7 @@ const styles = StyleSheet.create({
         marginBottom: 5
     },
     inputContainer: {
-        width: '80%',
+        width: '90%',
         alignItems: 'center',
         marginVertical: 15,
         gap: 5
@@ -519,14 +524,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 10,
         justifyContent: 'center',
-        width: '80%',
+        width: '90%',
         marginVertical: 5
     },
     joinContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        width: '80%',
+        width: '90%',
         marginTop: 15,
         gap: 10,
         borderTopWidth: 1,

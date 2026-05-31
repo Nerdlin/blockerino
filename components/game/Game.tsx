@@ -140,6 +140,10 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			// we'll do the haptics now
 			if (Platform.OS != 'web') {
 				runPiecePlacedHaptic();
+			} else {
+				if (typeof navigator !== 'undefined' && navigator.vibrate) {
+					navigator.vibrate(15);
+				}
 			}
 			
 			// Звук размещения блока
@@ -159,6 +163,10 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				
 				 // Улучшенный звук разрушения линий с учетом комбо
 				runOnJS(playComboSound)(combo.value);
+				
+				if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.vibrate) {
+					navigator.vibrate([25, 45, 25]);
+				}
 				
 				// line break score + combo multiplier stuff
 				pointsEarned += linesBroken * boardLength * (combo.value / 2) * pieceBlockCount;

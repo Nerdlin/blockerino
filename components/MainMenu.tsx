@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { Pressable, StyleSheet, Text, View, ViewStyle, useWindowDimensions } from "react-native";
 import Animated, { BounceInUp, Easing, FadeIn, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
 import { cssColors } from "@/constants/Color";
@@ -40,11 +40,13 @@ function BlockerinoLogo({blockSize, style}: {blockSize: number, style: ViewStyle
 
 export default function MainMenu() {
 	const [ , appendAppState ] = useSetAppState();
+	const { height } = useWindowDimensions();
+	const isShortScreen = height < 700;
 	
 	return <View style={styles.container}>
 
 		<BlockerinoLogo style={{position: 'absolute', bottom: 10, left: 10}} blockSize={5}></BlockerinoLogo>
-		<Animated.Text entering={BounceInUp.duration(800)} style={[styles.logo]}>
+		<Animated.Text entering={BounceInUp.duration(800)} style={[styles.logo, isShortScreen && { fontSize: 32, marginBottom: 20 }]}>
 			blockerino
 		</Animated.Text>
 
@@ -115,6 +117,8 @@ function MainButton({
 		return idleAnimTranslateY.value + hoverAnimTranslateY.value; 
 	});
 	const rotationDeg = useSharedValue(0);
+	const { height } = useWindowDimensions();
+	const isShortScreen = height < 700;
 
 	const animatedStyle = useAnimatedStyle(() => {
 		return {
@@ -178,7 +182,15 @@ function MainButton({
 	}
 	
 	return (
-		<Pressable style={styles.buttonPressable} onPress={onPress} onHoverIn={onHoverIn} onHoverOut={onHoverOut}>
+		<Pressable 
+			style={[
+				styles.buttonPressable,
+				isShortScreen && { height: 48, marginBottom: 12 }
+			]} 
+			onPress={onPress} 
+			onHoverIn={onHoverIn} 
+			onHoverOut={onHoverOut}
+		>
 			<Animated.View
 				key={title}
 				style={[
@@ -188,11 +200,19 @@ function MainButton({
 					style ? style : {},
 				]}
 			>
-				<Text style={[styles.buttonText, textStyle ? textStyle : {}]}>
+				<Text style={[
+					styles.buttonText, 
+					textStyle ? textStyle : {},
+					isShortScreen && { fontSize: 20 }
+				]}>
 					{title}
 				</Text>
 				{flavorText && (
-					<Text style={[styles.buttonFlavorText, textStyle ? textStyle : {}]}>
+					<Text style={[
+						styles.buttonFlavorText, 
+						textStyle ? textStyle : {},
+						isShortScreen && { fontSize: 12 }
+					]}>
 						{flavorText}
 					</Text>
 				)}

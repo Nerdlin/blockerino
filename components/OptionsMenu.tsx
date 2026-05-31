@@ -1,5 +1,5 @@
 import { MenuStateType, useAppState } from "@/hooks/useAppState";
-import { StyleSheet, Switch, Text, View } from "react-native";
+import { StyleSheet, Switch, Text, View, useWindowDimensions } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { useEffect } from "react";
@@ -11,6 +11,8 @@ import { clearActiveGame } from "@/constants/Storage";
 
 export default function OptionsMenu() {
 	const [ appState, setAppState, , popAppState ] = useAppState();
+	const { width } = useWindowDimensions();
+	const isMobile = width < 600;
 	const { 
 		musicVolume, 
 		sfxVolume, 
@@ -58,7 +60,10 @@ export default function OptionsMenu() {
 	};
 
 	return (
-		<SimplePopupView style={[{ backgroundColor: currentTheme.menuBackground }]}>
+		<SimplePopupView style={[
+			{ backgroundColor: currentTheme.menuBackground },
+			isMobile && { width: '92%', height: '85%', paddingHorizontal: 10 }
+		]}>
 			<Text style={[styles.sectionHeader, { color: currentTheme.textPrimary }]}>Settings</Text>
 			
 			<View style={styles.settingSection}>
@@ -137,6 +142,7 @@ export default function OptionsMenu() {
 							theme={theme} 
 							isSelected={currentTheme.id === theme.id}
 							onPress={() => handleThemeChange(theme.id)}
+							isMobile={isMobile}
 						/>
 					))}
 				</View>
@@ -161,7 +167,7 @@ export default function OptionsMenu() {
 	);
 }
 
-function ThemeButton({ theme, isSelected, onPress }: { theme: Theme; isSelected: boolean; onPress: () => void }) {
+function ThemeButton({ theme, isSelected, onPress, isMobile }: { theme: Theme; isSelected: boolean; onPress: () => void; isMobile?: boolean }) {
 	return (
 		<Animated.View entering={FadeIn}>
 			<StylizedButton
@@ -169,6 +175,7 @@ function ThemeButton({ theme, isSelected, onPress }: { theme: Theme; isSelected:
 				onClick={onPress}
 				backgroundColor={theme.buttonPrimary}
 				borderColor={isSelected ? theme.accent : "transparent"}
+				style={isMobile ? { minWidth: 90, margin: 4 } : undefined}
 			/>
 		</Animated.View>
 	);

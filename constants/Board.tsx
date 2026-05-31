@@ -1,22 +1,36 @@
 import { Color } from "./Color";
 import { getRandomPieceColor, PieceData } from "./Piece";
-
 import { useWindowDimensions } from 'react-native';
+import { useAppStateValue, MenuStateType } from "@/hooks/useAppState";
 
 export function useGameSizes(boardLength: number) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  const appState = useAppStateValue();
   
-  const maxGridWidth = width - 10; // 5px padding on each side
+  const isMobile = width < 600 || height < 700;
+  const isMultiplayer = appState?.containsState(MenuStateType.MULTIPLAYER_GAME);
+  
+  // Calculate grid block size based on width
+  const maxGridWidth = width - 16; // 8px padding on each side
+  const calculatedBlockSizeWidth = Math.floor(maxGridWidth / boardLength);
+  
+  // Calculate grid block size based on height to prevent vertical scrolling
+  // For multiplayer, we need extra reserved height for opponent's mini board
+  const reservedHeight = isMultiplayer ? (isMobile ? 310 : 380) : (isMobile ? 210 : 280);
+  const maxGridHeight = height - reservedHeight;
+  const calculatedBlockSizeHeight = Math.floor(maxGridHeight / boardLength);
+  
   const idealBlockSize = 46;
-  const calculatedBlockSize = Math.floor(maxGridWidth / boardLength);
-  const gridBlockSize = Math.min(idealBlockSize, calculatedBlockSize);
+  // Make sure block size is at least 18px so it remains playable
+  const gridBlockSize = Math.max(18, Math.min(idealBlockSize, calculatedBlockSizeWidth, calculatedBlockSizeHeight));
   
   const scaleRatio = gridBlockSize / 46;
+  const handScale = (isMobile && boardLength === 10) ? 0.65 : (isMobile ? 0.75 : 1.0);
   
   return {
     GRID_BLOCK_SIZE: gridBlockSize,
-    HAND_BLOCK_SIZE: 22 * scaleRatio,
-    HITBOX_SIZE: Math.max(8, 12 * scaleRatio),
+    HAND_BLOCK_SIZE: 22 * scaleRatio * handScale,
+    HITBOX_SIZE: Math.max(6, 12 * scaleRatio),
     DRAG_JUMP_LENGTH: 116 * scaleRatio
   };
 }

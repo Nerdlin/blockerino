@@ -117,14 +117,17 @@ export default function HandPieces({ hand, boardSize }: HandProps) {
 		)
 	}
 
-	const { width } = useWindowDimensions();
-	const isMobile = width < 600;
+	const { width, height } = useWindowDimensions();
+	const isMobile = width < 600 || height < 700;
+	const isShortScreen = height < 700;
 
 	return <View style={[styles.hand, { 
-		maxWidth: HAND_BLOCK_SIZE * 15, 
-		maxHeight: HAND_BLOCK_SIZE * 10,
-		height: HAND_BLOCK_SIZE * 6,
-		marginTop: isMobile ? 15 : 40
+		maxWidth: HAND_BLOCK_SIZE * 5 * handSize, 
+		maxHeight: HAND_BLOCK_SIZE * 5,
+		height: HAND_BLOCK_SIZE * 5,
+		marginTop: isMobile ? (isShortScreen ? 4 : 8) : 40,
+		flexWrap: 'nowrap',
+		flex: 0
 	}]}>{handPieces}</View>
 }
 
@@ -186,17 +189,16 @@ export function ReadOnlyHandPieces({ hand, boardSize, scale = 1 }: { hand: Hand;
 	}
 
 	return (
-		<View style={[styles.hand, { 
-			maxWidth: size * 15, 
-			maxHeight: size * 10,
-			height: size * 6,
-			marginTop: 10,
+		<View style={{ 
+			maxWidth: size * 5 * handSize, 
+			height: size * 5,
+			marginTop: 5,
 			alignSelf: 'center',
 			flexDirection: 'row',
-			flexWrap: 'wrap',
+			flexWrap: 'nowrap',
 			justifyContent: 'center',
 			alignItems: 'center'
-		}]}>
+		}}>
 			{handPieces}
 		</View>
 	);
