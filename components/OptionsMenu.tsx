@@ -149,7 +149,7 @@ export default function OptionsMenu() {
 					backgroundColor={currentTheme.buttonSecondary}
 				/>
 				
-				{appState.containsGameMode() && (
+				{(appState.containsGameMode() || appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
 					<StylizedButton 
 						onClick={handleQuitPress} 
 						text="End Game" 

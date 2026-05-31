@@ -122,10 +122,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
         return () => {
             supabase.removeChannel(channel);
-            // End room in database if host leaves
-            if (myRole === 'player1') {
-                supabase.from('matchmaking_rooms').update({ status: 'finished' }).eq('id', roomId).then();
-            }
+            // End room in database when either player exits
+            supabase.from('matchmaking_rooms').update({ status: 'finished' }).eq('id', roomId).then();
         };
     }, []);
 

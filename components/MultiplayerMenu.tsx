@@ -8,6 +8,7 @@ import { supabase } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { cssColors } from "@/constants/Color";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import * as Crypto from "expo-crypto";
 
 interface MultiplayerMenuProps {
     onStartGame: (roomId: string, role: 'player1' | 'player2', opponentName: string, gameMode: GameModeType) => void;
@@ -18,6 +19,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const [, setAppState, , popAppState] = useAppState();
     
     const [playerName, setPlayerName] = useState("Anonymous");
+    const [playerId, setPlayerId] = useState("");
+    const [selectedMode, setSelectedMode] = useState<GameModeType>(GameModeType.Classic);
     const [lobbyState, setLobbyState] = useState<'idle' | 'searching' | 'hosting' | 'joining'>('idle');
     const [gameMode, setGameMode] = useState<GameModeType>(GameModeType.Classic);
     const [roomCode, setRoomCode] = useState("");
@@ -34,6 +37,19 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         AsyncStorage.getItem('PLAYER_NAME').then((val) => {
             if (val && isMounted.current) {
                 setPlayerName(val);
+            }
+        });
+
+        // Load or generate player ID from storage
+        AsyncStorage.getItem('PLAYER_ID').then((val) => {
+            if (isMounted.current) {
+                if (val) {
+                    setPlayerId(val);
+                } else {
+                    const newId = Crypto.randomUUID();
+                    AsyncStorage.setItem('PLAYER_ID', newId);
+                    setPlayerId(newId);
+                }
             }
         });
 
@@ -67,6 +83,32 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             } catch (e) {
                 console.error("Error deleting room on exit:", e);
             }
+        }
+    };
+
+    const cleanupOldQuickMatchRooms = async () => {
+        try {
+            const cutoff = new Date(Date.now() - 60000).toISOString(); // 1 minute ago
+            await supabase
+                .from('matchmaking_rooms')
+                .delete()
+                .eq('status', 'waiting')
+                .eq('is_private', false)
+                .lt('created_at', cutoff);
+        } catch (e) {
+            console.error("Error cleaning up old quick match rooms:", e);
+        }
+
+        try {
+            const privateCutoff = new Date(Date.now() - 1800000).toISOString(); // 30 minutes ago
+            await supabase
+                .from('matchmaking_rooms')
+                .delete()
+                .eq('status', 'waiting')
+                .eq('is_private', true)
+                .lt('created_at', privateCutoff);
+        } catch (e) {
+            console.error("Error cleaning up old private rooms:", e);
         }
     };
 
@@ -125,14 +167,26 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         setLobbyState('searching');
         setGameMode(mode);
         setMatchError("");
+
+        let activePlayerId = playerId;
+        if (!activePlayerId) {
+            activePlayerId = Crypto.randomUUID();
+            AsyncStorage.setItem('PLAYER_ID', activePlayerId);
+            setPlayerId(activePlayerId);
+        }
         
         try {
+            // Clean up old dead rooms first
+            await cleanupOldQuickMatchRooms();
+
             // Find a room waiting for an opponent
             const { data, error } = await supabase
                 .from('matchmaking_rooms')
                 .select('*')
                 .eq('status', 'waiting')
                 .eq('game_mode', mode)
+                .eq('is_private', false)
+                .neq('player1_id', activePlayerId)
                 .order('created_at', { ascending: true })
                 .limit(1);
 
@@ -145,6 +199,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     .from('matchmaking_rooms')
                     .update({
                         player2_name: playerName.trim() || 'Anonymous',
+                        player2_id: activePlayerId,
                         status: 'playing'
                     })
                     .eq('id', room.id)
@@ -167,8 +222,10 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     .from('matchmaking_rooms')
                     .insert({
                         player1_name: playerName.trim() || 'Anonymous',
+                        player1_id: activePlayerId,
                         game_mode: mode,
-                        status: 'waiting'
+                        status: 'waiting',
+                        is_private: false
                     })
                     .select()
                     .single();
@@ -192,13 +249,22 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         setGameMode(mode);
         setMatchError("");
 
+        let activePlayerId = playerId;
+        if (!activePlayerId) {
+            activePlayerId = Crypto.randomUUID();
+            AsyncStorage.setItem('PLAYER_ID', activePlayerId);
+            setPlayerId(activePlayerId);
+        }
+
         try {
             const { data: newRoom, error } = await supabase
                 .from('matchmaking_rooms')
                 .insert({
                     player1_name: playerName.trim() || 'Anonymous',
+                    player1_id: activePlayerId,
                     game_mode: mode,
-                    status: 'waiting'
+                    status: 'waiting',
+                    is_private: true
                 })
                 .select()
                 .single();
@@ -228,23 +294,38 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         setMatchError("");
         setLobbyState('joining');
 
+        let activePlayerId = playerId;
+        if (!activePlayerId) {
+            activePlayerId = Crypto.randomUUID();
+            AsyncStorage.setItem('PLAYER_ID', activePlayerId);
+            setPlayerId(activePlayerId);
+        }
+
         try {
-            // Find room by ID prefix (since id is UUID, we fetch waiting rooms and filter client-side)
+            // Find room by ID prefix (since id is UUID, we fetch waiting private rooms and filter client-side)
             const { data, error } = await supabase
                 .from('matchmaking_rooms')
                 .select('*')
-                .eq('status', 'waiting');
+                .eq('status', 'waiting')
+                .eq('is_private', true);
 
             if (error) throw error;
 
             const room = data?.find(r => r.id.substring(0, 6).toLowerCase() === code);
 
             if (room) {
+                if (room.player1_id === activePlayerId) {
+                    setMatchError("You cannot join your own room!");
+                    setLobbyState('idle');
+                    return;
+                }
+
                 // Join room
                 const { data: updatedRoom, error: updateError } = await supabase
                     .from('matchmaking_rooms')
                     .update({
                         player2_name: playerName.trim() || 'Anonymous',
+                        player2_id: activePlayerId,
                         status: 'playing'
                     })
                     .eq('id', room.id)
@@ -303,18 +384,45 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         <Text style={[styles.errorText, { color: cssColors.brightNiceRed }]}>{matchError}</Text>
                     )}
 
-                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary }]}>Quick Match:</Text>
+                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary, alignSelf: 'center', marginLeft: 0 }]}>Select Mode:</Text>
                     <View style={styles.row}>
-                        <StylizedButton text="Classic 1v1" onClick={() => handleQuickMatch(GameModeType.Classic)} backgroundColor={currentTheme.buttonPrimary} />
-                        <StylizedButton text="Chaos 1v1" onClick={() => handleQuickMatch(GameModeType.Chaos)} backgroundColor={cssColors.pitchBlack} borderColor="white" />
+                        <StylizedButton 
+                            text="Classic" 
+                            onClick={() => setSelectedMode(GameModeType.Classic)} 
+                            backgroundColor={selectedMode === GameModeType.Classic ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
+                            borderColor={selectedMode === GameModeType.Classic ? currentTheme.accent : undefined}
+                            style={{ flex: 1 }}
+                        />
+                        <StylizedButton 
+                            text="Chaos" 
+                            onClick={() => setSelectedMode(GameModeType.Chaos)} 
+                            backgroundColor={selectedMode === GameModeType.Chaos ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
+                            borderColor={selectedMode === GameModeType.Chaos ? currentTheme.accent : undefined}
+                            style={{ flex: 1 }}
+                        />
                     </View>
 
-                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary, marginTop: 20 }]}>Play with Friend:</Text>
+                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary, alignSelf: 'center', marginLeft: 0, marginTop: 15 }]}>
+                        {selectedMode === GameModeType.Classic ? "Classic Mode Actions:" : "Chaos Mode Actions:"}
+                    </Text>
                     <View style={styles.row}>
-                        <StylizedButton text="Create Room" onClick={() => handleCreateRoom(GameModeType.Classic)} backgroundColor={cssColors.pink} />
+                        <StylizedButton 
+                            text="Quick Match" 
+                            onClick={() => handleQuickMatch(selectedMode)} 
+                            backgroundColor={selectedMode === GameModeType.Chaos ? cssColors.pitchBlack : currentTheme.buttonPrimary} 
+                            borderColor={selectedMode === GameModeType.Chaos ? "white" : undefined}
+                            style={{ flex: 1 }}
+                        />
+                        <StylizedButton 
+                            text="Create Room" 
+                            onClick={() => handleCreateRoom(selectedMode)} 
+                            backgroundColor={cssColors.pink} 
+                            style={{ flex: 1 }}
+                        />
                     </View>
 
-                    <View style={[styles.joinContainer, { borderColor: currentTheme.textSecondary }]}>
+                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary, marginTop: 20 }]}>Join with Code:</Text>
+                    <View style={[styles.joinContainer, { borderColor: currentTheme.textSecondary, borderTopWidth: 0, paddingTop: 0 }]}>
                         <TextInput
                             style={[styles.codeInput, {
                                 color: currentTheme.textPrimary,
