@@ -838,7 +838,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                                         ))}
                                     </View>
                                 </View>
-								<View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
+								<View style={[StyleSheet.absoluteFill, { pointerEvents: 'none', zIndex: 9999 }]}>
 									{scorePopups.map(popup => (
 										<ScorePopup 
 											key={popup.id} 
@@ -1147,7 +1147,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         pointerEvents: 'none',
-        zIndex: 50
+        zIndex: 9999
     },
     emoteBubble: {
         position: 'absolute',
