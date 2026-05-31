@@ -429,19 +429,18 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 let eloDiff = 0;
 
                 if (opponentDisconnected) {
-                    // Win by opponent disconnection
-                    eloDiff = 25;
+                    eloDiff = 10;
                 } else if (isGameOver && opponentIsGameOver) {
                     if (score.value > opponentScore) {
-                        eloDiff = 25;
+                        eloDiff = 10;
                     } else if (opponentScore > score.value) {
-                        eloDiff = -25;
+                        eloDiff = -10;
                     } else {
                         eloDiff = 0;
                     }
                 }
 
-                const newElo = Math.max(500, currentElo + eloDiff);
+                const newElo = Math.max(0, currentElo + eloDiff);
                 AsyncStorage.setItem('PLAYER_ELO', newElo.toString());
                 setPlayerElo(newElo);
                 submitEloRating(playerName, newElo);
