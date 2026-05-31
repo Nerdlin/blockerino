@@ -133,6 +133,80 @@ export async function submitGlobalHighScore(
     }
 }
 
+export interface EloRating {
+    id?: number;
+    player_name: string;
+    elo: number;
+    updated_at?: string;
+}
+
+export async function submitEloRating(playerName: string, elo: number): Promise<boolean> {
+    try {
+        const escapedName = playerName.replace(/[%_]/g, '\\$&');
+
+        const { data, error: fetchError } = await supabase
+            .from('elo_ratings')
+            .select('id, elo')
+            .ilike('player_name', escapedName)
+            .limit(1);
+
+        if (fetchError) {
+            console.error('Error fetching existing elo:', fetchError);
+            return false;
+        }
+
+        const existingRecord = data && data[0];
+
+        if (existingRecord) {
+            const { error: updateError } = await supabase
+                .from('elo_ratings')
+                .update({
+                    player_name: playerName,
+                    elo: elo,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', existingRecord.id);
+
+            if (updateError) {
+                console.error('Error updating elo rating:', updateError);
+                return false;
+            }
+        } else {
+            const { error: insertError } = await supabase
+                .from('elo_ratings')
+                .insert([{ player_name: playerName, elo: elo }]);
+
+            if (insertError) {
+                console.error('Error inserting elo rating:', insertError);
+                return false;
+            }
+        }
+        return true;
+    } catch (error) {
+        console.error('Error submitting elo rating:', error);
+        return false;
+    }
+}
+
+export async function getTopEloRatings(limit: number = 100): Promise<EloRating[]> {
+    try {
+        const { data, error } = await supabase
+            .from('elo_ratings')
+            .select('*')
+            .order('elo', { ascending: false })
+            .limit(limit);
+
+        if (error) {
+            console.error('Error fetching top elo ratings:', error);
+            return [];
+        }
+        return data || [];
+    } catch (error) {
+        console.error('Error fetching top elo ratings:', error);
+        return [];
+    }
+}
+
 // Проверить, попал ли счет в топ N
 export async function isTopScore(
     score: number,

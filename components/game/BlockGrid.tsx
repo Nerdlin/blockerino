@@ -15,6 +15,7 @@ import { useTheme } from "@/constants/Theme";
 import { useDroppable } from "@mgcrea/react-native-dnd";
 import { useEffect } from "react";
 import { StyleSheet, Platform, View } from "react-native";
+import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import Animated, {
 	SharedValue,
 	interpolateColor,
@@ -35,6 +36,73 @@ interface BlockGridProps {
 	draggingPiece: SharedValue<number | null>;
 }
 
+const PARTICLE_CONFIGS = [
+	{ angle: 0.0, speed: 1.0 },
+	{ angle: Math.PI / 4, speed: 1.3 },
+	{ angle: Math.PI / 2, speed: 0.8 },
+	{ angle: 3 * Math.PI / 4, speed: 1.5 },
+	{ angle: Math.PI, speed: 1.1 },
+	{ angle: 5 * Math.PI / 4, speed: 0.9 },
+	{ angle: 3 * Math.PI / 2, speed: 1.4 },
+	{ angle: 7 * Math.PI / 4, speed: 0.7 },
+];
+
+interface SparkParticleProps {
+	sparkProgress: SharedValue<number>;
+	index: number;
+	x: number;
+	y: number;
+	gridBlockSize: number;
+	board: SharedValue<Board>;
+}
+
+function SparkParticle({ sparkProgress, index, x, y, gridBlockSize, board }: SparkParticleProps) {
+	const animatedStyle = useAnimatedStyle(() => {
+		const progress = sparkProgress.value;
+		if (progress === 0 || progress === 1) {
+			return { opacity: 0, transform: [{ scale: 0 }] };
+		}
+
+		const config = PARTICLE_CONFIGS[index];
+		const cellOffset = ((x * 17 + y * 23) % 10) / 10;
+		const angle = config.angle + cellOffset * Math.PI * 0.25;
+		const speed = config.speed * (0.8 + cellOffset * 0.4);
+
+		const maxDist = gridBlockSize * 2.2;
+		const distance = progress * maxDist * speed;
+
+		const tx = Math.cos(angle) * distance;
+		const ty = Math.sin(angle) * distance;
+
+		const scale = (1 - progress) * 1.5;
+		const opacity = progress < 0.15 ? progress / 0.15 : (1 - progress);
+
+		const block = board.value[y][x];
+		const colorHex = colorToHex(block.color);
+
+		return {
+			position: 'absolute',
+			width: 6,
+			height: 6,
+			borderRadius: 3,
+			backgroundColor: colorHex,
+			opacity: opacity,
+			transform: [
+				{ translateX: tx + (gridBlockSize / 2) - 3 },
+				{ translateY: ty + (gridBlockSize / 2) - 3 },
+				{ scale: scale }
+			],
+			shadowColor: colorHex,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 1,
+			shadowRadius: 5,
+			elevation: 3,
+		};
+	});
+
+	return <Animated.View pointerEvents="none" style={animatedStyle} />;
+}
+
 interface GridBlockProps {
 	x: number;
 	y: number;
@@ -51,7 +119,20 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 	const placedBlockRotation = useSharedValue(0);
 	const waveEffect = useSharedValue(0);
 	const flashOpacity = useSharedValue(0);
+	const sparkProgress = useSharedValue(0);
 	const { currentTheme } = useTheme();
+
+	const pulseAnim = useSharedValue(1);
+	useEffect(() => {
+		pulseAnim.value = withRepeat(
+			withSequence(
+				withTiming(1.15, { duration: 400 }),
+				withTiming(0.95, { duration: 400 })
+			),
+			-1,
+			true
+		);
+	}, []);
 
 	// Реакция на изменение состояния блока
 	useAnimatedReaction(() => {
@@ -74,10 +155,14 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 				withTiming(1, { duration: 600 }),
 				withTiming(0, { duration: 16 })
 			);
+
+			sparkProgress.value = 0;
+			sparkProgress.value = withTiming(1, { duration: 550 });
 		}
 		// Сброс анимации при размещении нового блока
 		else if (cur === BoardBlockType.FILLED && prev === BoardBlockType.EMPTY) {
 			placedBlockFall.value = 0;
+			sparkProgress.value = 0;
 		}
 		// Анимация волны для блоков, которые будут разрушены
 		else if ((cur === BoardBlockType.HOVERED_BREAK_FILLED || cur === BoardBlockType.HOVERED_BREAK_EMPTY) &&
@@ -110,7 +195,8 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 				withDelay(downwardDelay, withTiming(0, { duration: step }))
 			)
 		);
-	}, [board.value[y][x].blockType, boardSize, loadBlockFlash, x, y]);
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	const staticStyle = useAnimatedStyle(() => {
 		const block = board.value[y][x];
@@ -196,9 +282,20 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 
 	return (
 		<>
-			<Animated.View style={[staticStyle, { width: gridBlockSize, height: gridBlockSize }]} />
+			<Animated.View style={[staticStyle, { width: gridBlockSize, height: gridBlockSize, justifyContent: 'center', alignItems: 'center' }]} />
 			<Animated.View style={fallingStyle} />
 			<Animated.View pointerEvents="none" style={flashStyle} />
+			{[...Array(8)].map((_, i) => (
+				<SparkParticle
+					key={`spark-${i}`}
+					sparkProgress={sparkProgress}
+					index={i}
+					x={x}
+					y={y}
+					gridBlockSize={gridBlockSize}
+					board={board}
+				/>
+			))}
 		</>
 	);
 }
@@ -217,8 +314,8 @@ export default function BlockGrid({
 	forEachBoardBlock(board.value, (_block, x, y) => {
 		const blockPositionStyle = {
 			position: "absolute" as const,
-			top: y * GRID_BLOCK_SIZE + 3,
-			left: x * GRID_BLOCK_SIZE + 3,
+			top: y * GRID_BLOCK_SIZE,
+			left: x * GRID_BLOCK_SIZE,
 			width: GRID_BLOCK_SIZE,
 			height: GRID_BLOCK_SIZE,
 		};
@@ -345,8 +442,9 @@ function BlockDroppable({
 const styles = StyleSheet.create({
 	grid: {
 		borderWidth: 3,
-		borderRadius: 8,
+		borderRadius: 2,
 		position: "relative",
+		zIndex: 1,
 		...Platform.select({
 			web: {
 				boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.3)"
@@ -395,7 +493,7 @@ export function ReadOnlyBlockGrid({ board, gridBlockSize, hoverIndex, hoverX, ho
 			const pieceWidth = piece.matrix[0].length;
 			for (let py = 0; py < pieceHeight; py++) {
 				for (let px = 0; px < pieceWidth; px++) {
-					if (piece.matrix[py][px] === 1) {
+					if (piece.matrix[py][px] >= 1) {
 						const bx = hoverX + px;
 						const by = hoverY + py;
 						if (bx >= 0 && bx < boardLength && by >= 0 && by < boardLength) {
@@ -410,16 +508,19 @@ export function ReadOnlyBlockGrid({ board, gridBlockSize, hoverIndex, hoverX, ho
 	forEachBoardBlock(board, (block, x, y) => {
 		const blockPositionStyle = {
 			position: "absolute" as const,
-			top: y * gridBlockSize + 3,
-			left: x * gridBlockSize + 3,
+			top: y * gridBlockSize,
+			left: x * gridBlockSize,
 			width: gridBlockSize,
 			height: gridBlockSize,
 		};
 
 		let blockStyle: any;
-		if (block.blockType === BoardBlockType.FILLED || block.blockType === BoardBlockType.HOVERED_BREAK_FILLED) {
+		const isFilledOrHoveredBreak = block.blockType === BoardBlockType.FILLED || block.blockType === BoardBlockType.HOVERED_BREAK_FILLED;
+		const isHoverCell = hoverCells.has(`${x},${y}`);
+
+		if (isFilledOrHoveredBreak) {
 			blockStyle = createFilledBlockStyle(block.color, Math.max(1, Math.round(gridBlockSize * 0.15)));
-		} else if (hoverCells.has(`${x},${y}`)) {
+		} else if (isHoverCell) {
 			// Render ghost preview for opponent's drag
 			blockStyle = {
 				...createFilledBlockStyle(hoverColor, Math.max(1, Math.round(gridBlockSize * 0.15))),
@@ -432,7 +533,7 @@ export function ReadOnlyBlockGrid({ board, gridBlockSize, hoverIndex, hoverX, ho
 		}
 
 		blockElements.push(
-			<View key={`${x},${y}`} style={[blockPositionStyle, blockStyle, { width: gridBlockSize, height: gridBlockSize }]} />
+			<View key={`${x},${y}`} style={[blockPositionStyle, blockStyle, { width: gridBlockSize, height: gridBlockSize, justifyContent: 'center', alignItems: 'center' }]} />
 		);
 	});
 

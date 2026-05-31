@@ -1,6 +1,7 @@
 import {
 	StyleSheet,
 	LogBox,
+	View,
 } from "react-native";
 import { useFonts } from "expo-font";
 import Animated, {
@@ -22,6 +23,8 @@ import { getActiveGame, clearActiveGame, SavedGameState } from "@/constants/Stor
 import ContinueGameModal from "@/components/ContinueGameModal";
 import MultiplayerMenu from "@/components/MultiplayerMenu";
 import MultiplayerGame from "@/components/game/MultiplayerGame";
+import DailyChallengesMenu from "@/components/DailyChallengesMenu";
+import { useSoundSettings } from "@/constants/Sound";
 
 // Suppress noisy library-specific deprecation warnings in developer tools
 LogBox.ignoreLogs([
@@ -36,6 +39,8 @@ configureReanimatedLogger({
 });
 
 export default function App() {
+	const { initialize: initSounds } = useSoundSettings();
+
 	const [loaded] = useFonts({
 		"Press-Start-2P": require("../assets/fonts/PressStart2P-Regular.ttf"),
 		SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
@@ -49,11 +54,14 @@ export default function App() {
 
 	// Multiplayer States
 	const [ multiplayerRoomId, setMultiplayerRoomId ] = useState<string | null>(null);
-	const [ multiplayerRole, setMultiplayerRole ] = useState<'player1' | 'player2'>('player1');
+	const [ multiplayerRole, setMultiplayerRole ] = useState<'player1' | 'player2' | 'spectator'>('player1');
 	const [ opponentName, setOpponentName ] = useState('');
 	const [ multiplayerGameMode, setMultiplayerGameMode ] = useState<GameModeType>(GameModeType.Classic);
 
 	useEffect(() => {
+		// Initialize sounds at app startup
+		initSounds();
+
 		// On startup, check for active saved game
 		getActiveGame().then((game) => {
 			if (game) {
@@ -89,7 +97,7 @@ export default function App() {
 		setShowContinueModal(false);
 	};
 
-	const handleStartGame = (roomId: string, role: 'player1' | 'player2', oppName: string, mode: GameModeType) => {
+	const handleStartGame = (roomId: string, role: 'player1' | 'player2' | 'spectator', oppName: string, mode: GameModeType) => {
 		setMultiplayerRoomId(roomId);
 		setMultiplayerRole(role);
 		setOpponentName(oppName);
@@ -104,13 +112,17 @@ export default function App() {
 				<PieceParticle key={`particle${i}`} />
 			))}
 
-			{ (appState.containsState(MenuStateType.MENU) && !gameMode && !appState.containsState(MenuStateType.MULTIPLAYER) && !appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && <MainMenu></MainMenu> }
+			{ (appState.containsState(MenuStateType.MENU) && !gameMode && !appState.containsState(MenuStateType.MULTIPLAYER) && !appState.containsState(MenuStateType.MULTIPLAYER_GAME) && !appState.containsState(MenuStateType.DAILY_CHALLENGES)) && <MainMenu></MainMenu> }
 			{ gameMode && <Game gameMode={gameMode} initialState={savedGame || undefined}></Game> }
 			{ appState.containsState(MenuStateType.OPTIONS) && <OptionsMenu></OptionsMenu> }
 			{ appState.containsState(MenuStateType.HIGH_SCORES) && <HighScores></HighScores>}
 			
 			{ appState.containsState(MenuStateType.MULTIPLAYER) && (
 				<MultiplayerMenu onStartGame={handleStartGame} />
+			)}
+
+			{ appState.containsState(MenuStateType.DAILY_CHALLENGES) && (
+				<DailyChallengesMenu />
 			)}
 
 			{ appState.containsState(MenuStateType.MULTIPLAYER_GAME) && multiplayerRoomId && (

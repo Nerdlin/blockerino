@@ -13,11 +13,41 @@ interface GameHudProps {
 	score: SharedValue<number>,
 	combo: SharedValue<number>,
 	lastBrokenLine: SharedValue<number>,
-	hand: SharedValue<Hand>
+	hand: SharedValue<Hand>,
+	gameMode?: GameModeType,
+	timeRemaining?: SharedValue<number>
 }
 
-export function StatsGameHud({ score, combo, lastBrokenLine, hand}: GameHudProps) {
+function TimerBar({ timeRemaining }: { timeRemaining: SharedValue<number> }) {
+	const animatedStyle = useAnimatedStyle(() => {
+		const time = timeRemaining.value;
+		const percentage = Math.min(100, Math.max(0, (time / 60) * 100));
+		const barColor = interpolateColor(
+			time / 60,
+			[0, 0.25, 0.5, 1],
+			[
+				'rgb(255, 51, 51)',   // red
+				'rgb(255, 153, 51)',  // orange
+				'rgb(0, 255, 100)',   // green
+				'rgb(0, 255, 100)'    // green
+			]
+		);
+		return {
+			width: `${percentage}%`,
+			backgroundColor: barColor,
+		};
+	});
+
+	return (
+		<View style={styles.timerBarParent}>
+			<Animated.View style={[styles.timerBar, animatedStyle]} />
+		</View>
+	);
+}
+
+export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, timeRemaining }: GameHudProps) {
 	const [scoreText, setScoreText] = useState("0");
+	const [timeLeftText, setTimeLeftText] = useState("60");
 	const scoreAnimValue = useSharedValue(0); // stores the score, used to interpolate the number for animation
 	const { width, height } = useWindowDimensions();
 	const isMobile = width < 600 || height < 700;
@@ -35,8 +65,16 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand}: GameHudProps
 		runOnJS(setScoreText)(String(Math.floor(current)));
 	})
 
+	useAnimatedReaction(() => {
+		return timeRemaining ? timeRemaining.value : 0;
+	}, (current) => {
+		if (timeRemaining) {
+			runOnJS(setTimeLeftText)(String(Math.ceil(current)));
+		}
+	});
+
 	return <>
-		<View style={[styles.hudContainer, isMobile && { height: isShortScreen ? 55 : 75 }]}>
+		<View style={[styles.hudContainer, isMobile && { height: isShortScreen ? 70 : 90 }]}>
 			<View style={[styles.scoreContainer, isMobile && { height: isShortScreen ? 28 : 38, marginTop: 2, marginBottom: 2 }]}>
 				<Text style={{
 					color: 'white',
@@ -56,7 +94,22 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand}: GameHudProps
 					alignSelf: 'center'
 				}}>{scoreText}</Text>
 			</View>
-			<ComboBar lastBrokenLine={lastBrokenLine} handSize={hand.value.length}></ComboBar>
+			
+			{gameMode === GameModeType.TimeAttack && timeRemaining ? (
+				<View style={{ width: '90%', alignItems: 'center', marginVertical: 4 }}>
+					<Text style={{
+						fontFamily: 'Silkscreen',
+						color: '#FFD700',
+						fontSize: isMobile ? 18 : 24,
+						marginBottom: 4
+					}}>
+						⏳ {timeLeftText}s
+					</Text>
+					<TimerBar timeRemaining={timeRemaining} />
+				</View>
+			) : (
+				<ComboBar lastBrokenLine={lastBrokenLine} handSize={hand.value.length}></ComboBar>
+			)}
 		</View>
 	</>
 }
@@ -225,6 +278,21 @@ const styles = StyleSheet.create({
 		backgroundColor: 'blue',
 		zIndex: 99,
 		position: 'absolute'
+	},
+	timerBarParent: {
+		width: '100%',
+		height: 14,
+		borderWidth: 2,
+		borderRadius: 8,
+		borderColor: 'gray',
+		zIndex: 100,
+		backgroundColor: 'rgba(0, 0, 0, 0.4)',
+		overflow: 'hidden',
+	},
+	timerBar: {
+		height: 10,
+		borderRadius: 8,
+		zIndex: 99,
 	},
 	hudLabel: {
 		color: 'white',

@@ -2,66 +2,111 @@ import { useGameSizes } from "@/constants/Board";
 import { Hand } from "@/constants/Hand";
 import { createFilledBlockStyle } from "@/constants/Piece";
 import { SharedPoint, useDraggable } from "@mgcrea/react-native-dnd";
-import { StyleSheet, View, useWindowDimensions } from "react-native";
-import Animated, { SharedValue, runOnJS, useAnimatedStyle, withSequence, withTiming, useAnimatedReaction } from "react-native-reanimated";
+import { StyleSheet, View, useWindowDimensions, Pressable, Platform } from "react-native";
+import Animated, { SharedValue, runOnJS, useAnimatedStyle, useAnimatedReaction } from "react-native-reanimated";
+import { useState } from "react";
+import { Ionicons, FontAwesome } from "@expo/vector-icons";
+import { useSoundSettings } from "@/constants/Sound";
+import * as Haptics from "expo-haptics";
 
 interface HandProps {
 	hand: SharedValue<Hand>;
 	boardSize: number;
+	onHandChange?: (newHand: Hand) => void;
 }
 
-export default function HandPieces({ hand, boardSize }: HandProps) {
+function HandBlock({
+	hand,
+	i,
+	x,
+	y,
+	GRID_BLOCK_SIZE,
+}: {
+	hand: SharedValue<Hand>;
+	i: number;
+	x: number;
+	y: number;
+	GRID_BLOCK_SIZE: number;
+}) {
+	const animatedStyle = useAnimatedStyle(() => {
+		const piece = hand.value[i];
+		if (piece == null) {
+			return {
+				opacity: 0,
+			};
+		}
+		const pieceHeight = piece.matrix.length;
+		const pieceWidth = piece.matrix[0].length;
+
+		let style = {};
+		if (x > pieceWidth - 1 || y > pieceHeight - 1 || piece.matrix[y][x] === 0) {
+			style = {
+				opacity: 0,
+			};
+		} else {
+			style = {
+				top: y * GRID_BLOCK_SIZE,
+				left: x * GRID_BLOCK_SIZE,
+				width: GRID_BLOCK_SIZE,
+				height: GRID_BLOCK_SIZE,
+				...createFilledBlockStyle(piece.color),
+				opacity: 1,
+			};
+		}
+
+		return style;
+	});
+
+	return (
+		<Animated.View
+			style={[
+				styles.emptyBlock,
+				{
+					width: GRID_BLOCK_SIZE,
+					height: GRID_BLOCK_SIZE,
+				},
+				animatedStyle,
+			]}
+		/>
+	);
+}
+
+export default function HandPieces({ hand, boardSize, onHandChange }: HandProps) {
 	const { GRID_BLOCK_SIZE, HAND_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardSize);
+	const { playSfx } = useSoundSettings();
 	const handSize = hand.value.length;
 	const handPieces = [];
+
 	for (let i = 0; i < handSize; i++) {
-		// we'll make a 5x5 grid to store the piece data to come
 		const pieceBlocks = [];
-		// create all blocks
 		for (let y = 0; y < 5; y++) {
 			for (let x = 0; x < 5; x++) {
-				const animatedStyle = useAnimatedStyle(() => {
-					const piece = hand.value[i];
-					if (piece == null) {
-						return {
-							// default
-							opacity: 0
-						};
-					}
-					const pieceHeight = piece.matrix.length;
-					const pieceWidth = piece.matrix[0].length;
-
-					let style = {};
-					if (x > pieceWidth - 1 || y > pieceHeight - 1 || piece.matrix[y][x] == 0) {
-						style = {
-							opacity: 0
-						}
-					} else {
-						style = {
-							top: y * GRID_BLOCK_SIZE,
-							left: x * GRID_BLOCK_SIZE,
-							width: GRID_BLOCK_SIZE,
-							height: GRID_BLOCK_SIZE,
-							...createFilledBlockStyle(piece.color),
-							opacity: 1
-						}
-					}
-
-					return style;
-				})
-				pieceBlocks.push(<Animated.View key={`p${x},${y}`} style={[styles.emptyBlock, {width: GRID_BLOCK_SIZE, height: GRID_BLOCK_SIZE}, animatedStyle]}></Animated.View>)
+				pieceBlocks.push(
+					<HandBlock
+						key={`p${x},${y}`}
+						hand={hand}
+						i={i}
+						x={x}
+						y={y}
+						GRID_BLOCK_SIZE={GRID_BLOCK_SIZE}
+					/>
+				);
 			}
 		}
 
-		const id = String(i)
+		const id = String(i);
 
-		// style of the piece div
 		const animatedStyle = (sleeping: boolean, dragging: boolean, acting: boolean, offset: SharedPoint, hand: Hand) => {
 			"worklet";
 			const piece = hand[i];
 			if (piece == null) {
 				return {
-					bottom: 0,
+					position: 'absolute' as const,
+					top: 0,
+					left: 0,
+					width: 0,
+					height: 0,
+					opacity: 0,
 					transform: [
 						{
 							translateX: 0
@@ -80,12 +125,18 @@ export default function HandPieces({ hand, boardSize }: HandProps) {
 			const pieceHeight = piece.matrix.length;
 			const pieceWidth = piece.matrix[0].length;
 
+			// Center the absolutely positioned element visually inside the slot when not dragging
+			const topOffset = (HAND_BLOCK_SIZE * 5 - pieceHeight * GRID_BLOCK_SIZE) / 2;
+			const leftOffset = (HAND_BLOCK_SIZE * 5 - pieceWidth * GRID_BLOCK_SIZE) / 2;
+
 			const style = {
+				position: 'absolute' as const,
+				top: topOffset,
+				left: leftOffset,
 				width: pieceWidth * GRID_BLOCK_SIZE,
 				height: pieceHeight * GRID_BLOCK_SIZE,
 				opacity: 1,
 				zIndex,
-				bottom: dragging ? DRAG_JUMP_LENGTH : 0,
 				transform: [
 					{
 						translateX:
@@ -96,7 +147,7 @@ export default function HandPieces({ hand, boardSize }: HandProps) {
 					{
 						translateY:
 							dragging || acting
-								? offset.y.value
+								? offset.y.value - (dragging ? DRAG_JUMP_LENGTH : 0)
 								: 0,
 					},
 					{
@@ -110,25 +161,39 @@ export default function HandPieces({ hand, boardSize }: HandProps) {
 
 		handPieces.push(
 			<View key={"v" + i} style={[styles.piece, { width: HAND_BLOCK_SIZE * 5, height: HAND_BLOCK_SIZE * 5 }]}>
-				<PieceDraggable id={id} key={`${i}`} createStyle={animatedStyle} hand={hand}>
+				<PieceDraggable
+					id={id}
+					key={`${i}`}
+					createStyle={animatedStyle}
+					hand={hand}
+				>
 					{pieceBlocks}
 				</PieceDraggable>
 			</View>
-		)
+		);
 	}
 
 	const { width, height } = useWindowDimensions();
 	const isMobile = width < 600 || height < 700;
 	const isShortScreen = height < 700;
 
-	return <View style={[styles.hand, { 
-		maxWidth: HAND_BLOCK_SIZE * 5 * handSize, 
-		maxHeight: HAND_BLOCK_SIZE * 5,
-		height: HAND_BLOCK_SIZE * 5,
-		marginTop: isMobile ? (isShortScreen ? 4 : 8) : 40,
-		flexWrap: 'nowrap',
-		flex: 0
-	}]}>{handPieces}</View>
+	return (
+		<View
+			style={[
+				styles.hand,
+				{
+					maxWidth: HAND_BLOCK_SIZE * 5 * handSize,
+					maxHeight: HAND_BLOCK_SIZE * 5,
+					height: HAND_BLOCK_SIZE * 5,
+					marginTop: isMobile ? (isShortScreen ? 20 : 30) : 45,
+					flexWrap: 'nowrap',
+					flex: 0
+				}
+			]}
+		>
+			{handPieces}
+		</View>
+	);
 }
 
 export function ReadOnlyHandPieces({ hand, boardSize, scale = 1 }: { hand: Hand; boardSize: number; scale?: number }) {
@@ -154,7 +219,7 @@ export function ReadOnlyHandPieces({ hand, boardSize, scale = 1 }: { hand: Hand;
 
 		for (let y = 0; y < pieceHeight; y++) {
 			for (let x = 0; x < pieceWidth; x++) {
-				if (piece.matrix[y][x] === 1) {
+				if (piece.matrix[y][x] >= 1) {
 					pieceBlocks.push(
 						<View 
 							key={`p${x},${y}`} 
@@ -166,7 +231,9 @@ export function ReadOnlyHandPieces({ hand, boardSize, scale = 1 }: { hand: Hand;
 									width: blockSize,
 									height: blockSize,
 									...createFilledBlockStyle(piece.color, Math.max(1, Math.round(blockSize * 0.15))),
-									opacity: 1
+									opacity: 1,
+									justifyContent: 'center',
+									alignItems: 'center',
 								}
 							]} 
 						/>
@@ -205,10 +272,10 @@ export function ReadOnlyHandPieces({ hand, boardSize, scale = 1 }: { hand: Hand;
 }
 
 interface PieceDraggableProps {
-	children: any,
-	id: string,
-	createStyle: (sleeping: boolean, dragging: boolean, acting: boolean, offset: SharedPoint, hand: Hand) => object,
-	hand: any
+	children: any;
+	id: string;
+	createStyle: (sleeping: boolean, dragging: boolean, acting: boolean, offset: SharedPoint, hand: Hand) => object;
+	hand: any;
 }
 
 function PieceDraggable({ children, id, createStyle, hand, ...otherProps }: PieceDraggableProps) {
@@ -216,12 +283,10 @@ function PieceDraggable({ children, id, createStyle, hand, ...otherProps }: Piec
 		id,
 	});
 
-	// internally of react-native-dnd, the cache of this draggable's layout is only updated in onLayout
-	// reanimated styles/animated styles do not call onLayout
-	// because of above, react-native-dnd does not see width or height changes and collisions become off
-	// below is a very hacky fix
 	const updateLayout = () => {
-		(setNodeLayout as any)(null);
+		setTimeout(() => {
+			(setNodeLayout as any)(null);
+		}, 50);
 	}
 
 	useAnimatedReaction(() => {
@@ -233,15 +298,17 @@ function PieceDraggable({ children, id, createStyle, hand, ...otherProps }: Piec
 	});
 
 	const animatedStyle = useAnimatedStyle(() => {
-		const isSleeping = state.value === "sleeping"; // Should not animate if sleeping
+		const isSleeping = state.value === "sleeping";
 		const isActive = state.value === "dragging";
 		const isActing = state.value === "acting";
 		return createStyle(isSleeping, isActive, isActing, offset, hand.value);
-	}, [state, hand]);
+	}, [state, hand, createStyle]);
 
-	return <Animated.View {...props} style={animatedStyle} {...otherProps}>
-		{children}
-	</Animated.View>
+	return (
+		<Animated.View {...props} style={animatedStyle} {...otherProps}>
+			{children}
+		</Animated.View>
+	);
 }
 
 const styles = StyleSheet.create({
@@ -262,10 +329,11 @@ const styles = StyleSheet.create({
 		flexWrap: 'wrap',
 		alignSelf: 'center',
 		flex: 1,
+		zIndex: 20,
 	},
 	piece: {
 		position: 'relative',
 		justifyContent: 'center',
 		alignItems: 'center'
 	}
-})
+});

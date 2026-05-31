@@ -1,21 +1,22 @@
-import { PieceData, getBlockCount } from '@/constants/Piece';
+import { PieceData, getBlockCount, getRandomPieceWorklet } from '@/constants/Piece';
 import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-dnd';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, SafeAreaView, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
-import { ReduceMotion, runOnJS, useSharedValue } from 'react-native-reanimated';
+import { ReduceMotion, runOnJS, useSharedValue, useAnimatedReaction } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes } from '@/constants/Board';
+import { BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes, createSeededBoard } from '@/constants/Board';
 import { StatsGameHud, StickyGameHud } from '@/components/game/GameHud';
 import BlockGrid from '@/components/game/BlockGrid';
-import { createRandomHand, createRandomHandWorklet } from '@/constants/Hand';
+import { createRandomHand, createRandomHandWorklet, createSeededHand, getNumericSeedFromDate } from '@/constants/Hand';
 import HandPieces from '@/components/game/HandPieces';
-import { GameModeType } from '@/hooks/useAppState';
+import { GameModeType, activeComboAtom } from '@/hooks/useAppState';
 import { createHighScore, HighScoreId, updateHighScore, SavedGameState, saveActiveGame, clearActiveGame } from '@/constants/Storage';
 import { useSoundSettings } from '@/constants/Sound';
 import { useTheme } from '@/constants/Theme';
 import GameOverModal from '../GameOverModal';
 import { ScorePopup } from './ScorePopup';
+import { useAtom } from 'jotai';
 
 
 const SPRING_CONFIG_MISSED_DRAG = {
@@ -30,7 +31,11 @@ const SPRING_CONFIG_MISSED_DRAG = {
 
 function decodeDndId(id: string): XYPoint {
 	"worklet";
-	return {x: Number(id[0]), y: Number(id[2])}
+	const parts = id.split(",");
+	return {
+		x: parts.length > 0 ? Number(parts[0]) : NaN,
+		y: parts.length > 1 ? Number(parts[1]) : NaN
+	};
 }
 
 function impactAsyncHelper(style: Haptics.ImpactFeedbackStyle) {
@@ -46,14 +51,31 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const boardLength = gameMode == GameModeType.Chaos ? 10 : 8;
 	const { GRID_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardLength);
 	const handSize = gameMode == GameModeType.Chaos ? 5 : 3;
-	const board = useSharedValue(initialState ? initialState.board : newEmptyBoard(boardLength));
+
+	const isDaily = gameMode === GameModeType.DailyPuzzle;
+	const dailySeed = isDaily ? getNumericSeedFromDate(new Date().toDateString()) : 0;
+	const handCount = useSharedValue(initialState ? (initialState as any).handCount || 0 : 0);
+
+	const board = useSharedValue(
+		initialState 
+			? initialState.board 
+			: (isDaily ? createSeededBoard(boardLength, dailySeed) : newEmptyBoard(boardLength))
+	);
 	const draggingPiece = useSharedValue<number | null>(null);
 	const possibleBoardDropSpots = useSharedValue<PossibleBoardSpots>(JS_emptyPossibleBoardSpots(boardLength));
-	const hand = useSharedValue(initialState ? initialState.hand : createRandomHand(handSize));
+	const hand = useSharedValue(
+		initialState 
+			? initialState.hand 
+			: (isDaily ? createSeededHand(handSize, dailySeed + 1 + handCount.value) : createRandomHand(handSize, gameMode))
+	);
 	const score = useSharedValue(initialState ? initialState.score : 0);
 	const combo = useSharedValue(initialState ? initialState.combo : 0);
 	// How many moves ago was the last broken line?
 	const lastBrokenLine = useSharedValue(initialState ? initialState.lastBrokenLine : 0);
+
+	// Time Attack mode timer remaining state
+	const timeRemaining = useSharedValue(initialState ? (initialState as any).timeRemaining || 60 : 60);
+
 	// Состояние для отображения модального окна проигрыша
 	const [isGameOver, setIsGameOver] = useState(false);
 	const [scorePopups, setScorePopups] = useState<{id: number, points: number, x: number, y: number}[]>([]);
@@ -76,6 +98,11 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const { currentTheme } = useTheme();
 	const { playSfx, playComboSound, initialize } = useSoundSettings();
 
+	const [, setActiveCombo] = useAtom(activeComboAtom);
+	const updateActiveCombo = (val: number) => {
+		setActiveCombo(val);
+	};
+
 	const pieceOverlapsRectangle = (layout: Rectangle, other: Rectangle) => {
 		"worklet";
 		if (other.width == 0 && other.height == 0) {
@@ -92,7 +119,27 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 
 	useEffect(() => {
 		initialize();
+		setActiveCombo(0);
+		return () => {
+			setActiveCombo(0);
+		};
 	}, []);
+
+	useEffect(() => {
+		if (gameMode !== GameModeType.TimeAttack || isGameOver) return;
+		
+		const timer = setInterval(() => {
+			if (timeRemaining.value > 0) {
+				timeRemaining.value = Math.max(0, timeRemaining.value - 1);
+				if (timeRemaining.value <= 0) {
+					runOnJS(setIsGameOver)(true);
+					runOnJS(clearActiveGame)();
+				}
+			}
+		}, 1000);
+
+		return () => clearInterval(timer);
+	}, [gameMode, isGameOver]);
 
 	useEffect(() => {
 		if (scoreStorageId.value !== undefined) return;
@@ -134,6 +181,11 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 
 			const dropIdStr = over.id.toString();
 			const {x: dropX, y: dropY} = decodeDndId(dropIdStr);
+			if (isNaN(dropX) || isNaN(dropY)) {
+				draggingPiece.value = null;
+				possibleBoardDropSpots.value = emptyPossibleBoardSpots(boardLength);
+				return;
+			}
 			const piece: PieceData = hand.value[draggingPiece.value!]!;
 
 			// the block is gonna fit, let's place the block
@@ -151,6 +203,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 
 			const newBoard = clearHoverBlocks([...board.value]);
 			placePieceOntoBoard(newBoard, piece, dropX, dropY, BoardBlockType.FILLED);
+
 			const linesBroken = breakLines(newBoard);
 			
 			// add score from placing block
@@ -163,6 +216,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				
 				 // Улучшенный звук разрушения линий с учетом комбо
 				runOnJS(playComboSound)(combo.value);
+				runOnJS(updateActiveCombo)(combo.value);
 				
 				if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.vibrate) {
 					navigator.vibrate([25, 45, 25]);
@@ -171,12 +225,23 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				// line break score + combo multiplier stuff
 				pointsEarned += linesBroken * boardLength * (combo.value / 2) * pieceBlockCount;
 				score.value += pointsEarned;
+
+				// Time Attack: +5s per broken line
+				if (gameMode === GameModeType.TimeAttack) {
+					timeRemaining.value = Math.min(99, timeRemaining.value + linesBroken * 5);
+				}
 			} else {
 				score.value += pointsEarned;
 				lastBrokenLine.value++;
 				if (lastBrokenLine.value >= handSize) {
 					combo.value = 0;
+					runOnJS(updateActiveCombo)(0);
 				}
+			}
+
+			// Time Attack: +1s per 15 points
+			if (gameMode === GameModeType.TimeAttack) {
+				timeRemaining.value = Math.min(99, timeRemaining.value + Math.floor(pointsEarned / 15));
 			}
 			
 			runOnJS(addScorePopup)(pointsEarned, dropX * GRID_BLOCK_SIZE, dropY * GRID_BLOCK_SIZE);
@@ -203,7 +268,12 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			
 			let nextHand;
 			if (empty) {
-				nextHand = createRandomHandWorklet(handSize);
+				if (isDaily) {
+					handCount.value += 1;
+					nextHand = createSeededHand(handSize, dailySeed + 1 + handCount.value);
+				} else {
+					nextHand = createRandomHandWorklet(handSize, gameMode);
+				}
 			} else {
 				nextHand = newHand;
 			}
@@ -219,8 +289,10 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				score: score.value,
 				combo: combo.value,
 				lastBrokenLine: lastBrokenLine.value,
-				scoreStorageId: scoreStorageId.value
-			});
+				scoreStorageId: scoreStorageId.value,
+				timeRemaining: timeRemaining.value,
+				handCount: handCount.value
+			} as any);
 			
 			// Проверка игры на окончание после обновления руки
 			runOnJS(setTimeout)(() => {
@@ -270,7 +342,16 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		}
 
 		const dropIdStr = droppableActiveId.toString();
+		if (dropIdStr === "trash") {
+			board.value = clearHoverBlocks([...board.value]);
+			return;
+		}
+
 		const {x: dropX, y: dropY} = decodeDndId(dropIdStr);
+		if (isNaN(dropX) || isNaN(dropY)) {
+			board.value = clearHoverBlocks([...board.value]);
+			return;
+		}
 		const piece: PieceData = hand.value[draggingPiece.value!]!;
 
 		const newBoard = clearHoverBlocks([...board.value]);
@@ -280,12 +361,12 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	};
 	
 	return (        
-		<SafeAreaView style={[styles.root, { backgroundColor: currentTheme.background }]}>
+		<SafeAreaView style={[styles.root, { backgroundColor: 'transparent' }]}>
 			<GestureHandlerRootView style={styles.root}>
 				<View style={styles.root}>
 					<StickyGameHud gameMode={gameMode} score={score}></StickyGameHud>
 					<DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
-						<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand}></StatsGameHud>
+						<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand} gameMode={gameMode} timeRemaining={timeRemaining}></StatsGameHud>
 						<BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
 						<View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
 							{scorePopups.map(popup => (
@@ -298,7 +379,23 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 								/>
 							))}
 						</View>
-						<HandPieces hand={hand} boardSize={boardLength}></HandPieces>
+						<HandPieces 
+							hand={hand} 
+							boardSize={boardLength}
+							onHandChange={(newHand) => {
+								saveActiveGame({
+									gameMode,
+									board: board.value,
+									hand: newHand,
+									score: score.value,
+									combo: combo.value,
+									lastBrokenLine: lastBrokenLine.value,
+									scoreStorageId: scoreStorageId.value,
+									timeRemaining: timeRemaining.value,
+									handCount: handCount.value
+								} as any);
+							}}
+						/>
 					</DndProvider>
 					
 					{isGameOver && (
@@ -318,6 +415,14 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		padding: 0,
 		overflow: 'hidden',
+	},
+	handRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		width: '100%',
+		gap: 15,
+		marginTop: 10,
 	}
 });
 

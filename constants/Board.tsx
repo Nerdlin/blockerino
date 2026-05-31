@@ -2,6 +2,7 @@ import { Color } from "./Color";
 import { getRandomPieceColor, PieceData } from "./Piece";
 import { useWindowDimensions } from 'react-native';
 import { useAppStateValue, MenuStateType } from "@/hooks/useAppState";
+import { makeSeededPrng } from "./Hand";
 
 export function useGameSizes(boardLength: number) {
   const { width, height } = useWindowDimensions();
@@ -66,6 +67,46 @@ export function newEmptyBoard(boardLength: number): Board {
       };
     });
   });
+}
+
+export function createSeededBoard(boardLength: number, seedNum: number): Board {
+  const board = newEmptyBoard(boardLength);
+  const prng = makeSeededPrng(seedNum);
+  
+  // Prefill with 10 to 15 blocks
+  const numBlocks = prng.nextInt(10, 15);
+  
+  const rowCounts = new Array(boardLength).fill(0);
+  const colCounts = new Array(boardLength).fill(0);
+  
+  const colors = [
+    { r: 227, g: 143, b: 16 },
+    { r: 186, g: 19, b: 38 },
+    { r: 16, g: 158, b: 40 },
+    { r: 20, g: 56, b: 184 },
+    { r: 101, g: 19, b: 148 },
+    { r: 31, g: 165, b: 222 }
+  ];
+
+  let placed = 0;
+  let attempts = 0;
+  while (placed < numBlocks && attempts < 100) {
+    attempts++;
+    const x = prng.nextInt(0, boardLength - 1);
+    const y = prng.nextInt(0, boardLength - 1);
+    
+    if (board[y][x].blockType === BoardBlockType.EMPTY) {
+      if (rowCounts[y] < boardLength - 2 && colCounts[x] < boardLength - 2) {
+        const colorIdx = prng.nextInt(0, colors.length - 1);
+        board[y][x].blockType = BoardBlockType.FILLED;
+        board[y][x].color = colors[colorIdx];
+        rowCounts[y]++;
+        colCounts[x]++;
+        placed++;
+      }
+    }
+  }
+  return board;
 }
 
 export type PossibleBoardSpots = number[][];
@@ -159,7 +200,7 @@ export function placePieceOntoBoard(
   "worklet";
   for (let y = 0; y < piece.matrix.length; y++) {
     for (let x = 0; x < piece.matrix[0].length; x++) {
-      if (piece.matrix[y][x] == 1) {
+      if (piece.matrix[y][x] >= 1) {
         board[dropY + y][dropX + x].blockType = blockType;
         board[dropY + y][dropX + x].color = piece.color;
       }

@@ -8,7 +8,8 @@ export default function StylizedButton({
     centered, 
     borderColor, 
     style,
-    disabled
+    disabled,
+    textStyle
 }: {
     text: string, 
     onClick?: () => any, 
@@ -16,7 +17,8 @@ export default function StylizedButton({
     centered?: boolean, 
     borderColor?: string,
     style?: any,
-    disabled?: boolean
+    disabled?: boolean,
+    textStyle?: any
 }) {
     const { playSfx } = useSoundSettings();
 
@@ -49,7 +51,7 @@ export default function StylizedButton({
                 style
             ]}
         >
-            <Text style={styles.stylizedButtonText}>{text}</Text>
+            <Text style={[styles.stylizedButtonText, textStyle]}>{text}</Text>
         </Pressable>
     );
 }

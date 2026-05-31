@@ -68,6 +68,7 @@ export interface SavedGameState {
     combo: number;
     lastBrokenLine: number;
     scoreStorageId: string | undefined;
+    recyclesUsed?: number;
 }
 
 export async function saveActiveGame(state: SavedGameState): Promise<void> {

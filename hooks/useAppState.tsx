@@ -5,12 +5,15 @@ export enum MenuStateType {
 	OPTIONS = 'options', 
 	HIGH_SCORES = 'highscores',
 	MULTIPLAYER = 'multiplayer',
-	MULTIPLAYER_GAME = 'multiplayer_game'
+	MULTIPLAYER_GAME = 'multiplayer_game',
+	DAILY_CHALLENGES = 'daily_challenges'
 }
 
 export enum GameModeType {
 	Classic = 'classic',
-	Chaos = 'chaos'
+	Chaos = 'chaos',
+	DailyPuzzle = 'daily_puzzle',
+	TimeAttack = 'time_attack'
 }
 
 type AppStateType = GameModeType | MenuStateType;
@@ -52,6 +55,8 @@ export class AppState {
 		return undefined;
 	}
 }
+
+export const activeComboAtom = atom<number>(0);
 
 const appStateAtom = atom<AppState>(new AppState(MenuStateType.MENU));
 

@@ -1,26 +1,29 @@
-import { PieceData, getBlockCount } from '@/constants/Piece';
+import { PieceData, getBlockCount, getRandomPieceWorklet } from '@/constants/Piece';
 import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-dnd';
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform, SafeAreaView, StyleSheet, Text, View, useWindowDimensions, ActivityIndicator } from 'react-native';
+import { Platform, SafeAreaView, StyleSheet, Text, View, useWindowDimensions, ActivityIndicator, ScrollView } from 'react-native';
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
-import Animated, { ReduceMotion, runOnJS, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { ReduceMotion, runOnJS, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, useAnimatedReaction } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Board, BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes } from '@/constants/Board';
 import { StatsGameHud, StickyGameHud } from '@/components/game/GameHud';
 import BlockGrid, { ReadOnlyBlockGrid } from '@/components/game/BlockGrid';
 import { Hand, createRandomHand, createRandomHandWorklet } from '@/constants/Hand';
 import HandPieces, { ReadOnlyHandPieces } from '@/components/game/HandPieces';
-import { GameModeType, MenuStateType, useAppState } from '@/hooks/useAppState';
-import { supabase, submitGlobalHighScore } from '@/constants/Supabase';
+import { GameModeType, MenuStateType, useAppState, activeComboAtom } from '@/hooks/useAppState';
+import { supabase, submitGlobalHighScore, submitEloRating } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScorePopup } from './ScorePopup';
+import { useSoundSettings } from '@/constants/Sound';
+import { useAtom } from 'jotai';
+import { getEloBadge } from '@/components/MultiplayerMenu';
 
 interface MultiplayerGameProps {
     roomId: string;
-    myRole: 'player1' | 'player2';
+    myRole: 'player1' | 'player2' | 'spectator';
     opponentName: string;
     gameMode: GameModeType;
 }
@@ -37,7 +40,11 @@ const SPRING_CONFIG_MISSED_DRAG = {
 
 function decodeDndId(id: string): XYPoint {
 	"worklet";
-	return {x: Number(id[0]), y: Number(id[2])}
+	const parts = id.split(",");
+	return {
+		x: parts.length > 0 ? Number(parts[0]) : NaN,
+		y: parts.length > 1 ? Number(parts[1]) : NaN
+	};
 }
 
 function impactAsyncHelper(style: Haptics.ImpactFeedbackStyle) {
@@ -48,6 +55,67 @@ function runPiecePlacedHaptic() {
 	"worklet";
 	runOnJS(impactAsyncHelper)(Haptics.ImpactFeedbackStyle.Light);
 }
+
+function FloatingEmote({ text, onComplete }: { text: string; onComplete: () => void }) {
+    const translateY = useSharedValue(0);
+    const opacity = useSharedValue(1);
+
+    useEffect(() => {
+        translateY.value = withTiming(-60, { duration: 1500 });
+        opacity.value = withTiming(0, { duration: 1500 }, (finished) => {
+            if (finished) {
+                runOnJS(onComplete)();
+            }
+        });
+    }, []);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ translateY: translateY.value }],
+        opacity: opacity.value,
+    }));
+
+    return (
+        <Animated.View style={[styles.emoteBubble, animatedStyle]}>
+            <Text style={styles.emoteText}>{text}</Text>
+        </Animated.View>
+    );
+}
+
+const addGarbageLines = (currentBoard: Board, lines: number): Board => {
+    const boardLength = currentBoard.length;
+    const nextBoard = currentBoard.map(row => row.map(cell => ({ ...cell })));
+    
+    // Shift rows up by lines
+    for (let y = 0; y < boardLength - lines; y++) {
+        nextBoard[y] = nextBoard[y + lines];
+    }
+    
+    // Insert new garbage rows at the bottom
+    for (let y = boardLength - lines; y < boardLength; y++) {
+        const randomHoleX = Math.floor(Math.random() * boardLength);
+        const garbageRow = [];
+        for (let x = 0; x < boardLength; x++) {
+            if (x === randomHoleX) {
+                garbageRow.push({
+                    blockType: BoardBlockType.EMPTY,
+                    color: { r: 0, g: 0, b: 0 },
+                    hoveredBreakColor: { r: 0, g: 0, b: 0 },
+                    isBomb: false,
+                });
+            } else {
+                garbageRow.push({
+                    blockType: BoardBlockType.FILLED,
+                    color: { r: 100, g: 100, b: 100 }, // Gray color
+                    hoveredBreakColor: { r: 0, g: 0, b: 0 },
+                    isBomb: false,
+                });
+            }
+        }
+        nextBoard[y] = garbageRow;
+    }
+    
+    return nextBoard;
+};
 
 export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode }: MultiplayerGameProps) {
     const { width, height } = useWindowDimensions();
@@ -63,13 +131,18 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 	const board = useSharedValue(newEmptyBoard(boardLength));
 	const draggingPiece = useSharedValue<number | null>(null);
 	const possibleBoardDropSpots = useSharedValue<PossibleBoardSpots>(JS_emptyPossibleBoardSpots(boardLength));
-	const hand = useSharedValue(createRandomHand(handSize));
+	const hand = useSharedValue(createRandomHand(handSize, gameMode));
 	const score = useSharedValue(0);
 	const combo = useSharedValue(0);
 	const lastBrokenLine = useSharedValue(0);
+
 	const [isGameOver, setIsGameOver] = useState(false);
-    const [isSpectating, setIsSpectating] = useState(false);
+    const [isSpectating, setIsSpectating] = useState(myRole === 'spectator');
     
+    // ELO states
+    const [playerElo, setPlayerElo] = useState<number>(1000);
+    const [opponentElo, setOpponentElo] = useState<number | null>(null);
+
     // Opponent states
     const [opponentBoard, setOpponentBoard] = useState<Board>(newEmptyBoard(boardLength));
     const [opponentHand, setOpponentHand] = useState<Hand>([]);
@@ -77,6 +150,28 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const [opponentScore, setOpponentScore] = useState(0);
     const [opponentIsGameOver, setOpponentIsGameOver] = useState(false);
     const [opponentDisconnected, setOpponentDisconnected] = useState(false);
+
+    // Spectator state tracking
+    const [player1Board, setPlayer1Board] = useState<Board>(newEmptyBoard(boardLength));
+    const [player1Hand, setPlayer1Hand] = useState<Hand>([]);
+    const [player1Score, setPlayer1Score] = useState(0);
+    const [player1IsGameOver, setPlayer1IsGameOver] = useState(false);
+    const [player1Elo, setPlayer1Elo] = useState<number | null>(null);
+    const [player1Name, setPlayer1Name] = useState('Player 1');
+    const [player1Hover, setPlayer1Hover] = useState<{ index: number | null, x: number | null, y: number | null }>({ index: null, x: null, y: null });
+
+    const [player2Board, setPlayer2Board] = useState<Board>(newEmptyBoard(boardLength));
+    const [player2Hand, setPlayer2Hand] = useState<Hand>([]);
+    const [player2Score, setPlayer2Score] = useState(0);
+    const [player2IsGameOver, setPlayer2IsGameOver] = useState(false);
+    const [player2Elo, setPlayer2Elo] = useState<number | null>(null);
+    const [player2Name, setPlayer2Name] = useState('Player 2');
+    const [player2Hover, setPlayer2Hover] = useState<{ index: number | null, x: number | null, y: number | null }>({ index: null, x: null, y: null });
+
+    // Emotes overlay tracking
+    const [p1Emotes, setP1Emotes] = useState<{ id: number; text: string }[]>([]);
+    const [p2Emotes, setP2Emotes] = useState<{ id: number; text: string }[]>([]);
+    const emoteCounter = useRef(0);
 
     // End game variables
     const [setAppState] = useAppState()[1] ? [useAppState()[1]] : [() => {}];
@@ -98,45 +193,167 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         setScorePopups(prev => prev.filter(p => p.id !== id));
     };
 
+    const { playSfx, playComboSound } = useSoundSettings();
+    const [, setActiveCombo] = useAtom(activeComboAtom);
+    const updateActiveCombo = (val: number) => {
+        setActiveCombo(val);
+    };
+
+    const sendGarbageAttack = (lines: number) => {
+        if (myRole === 'spectator') return;
+        if (channelRef.current) {
+            channelRef.current.send({
+                type: 'broadcast',
+                event: 'garbage_attack',
+                payload: { lines, role: myRole }
+            });
+        }
+    };
+
+    const sendEmote = (text: string) => {
+        if (myRole === 'spectator') return;
+        if (channelRef.current) {
+            channelRef.current.send({
+                type: 'broadcast',
+                event: 'live_emote',
+                payload: { text, role: myRole }
+            });
+        }
+        const id = emoteCounter.current++;
+        if (myRole === 'player1') {
+            setP1Emotes(prev => [...prev, { id, text }]);
+        } else if (myRole === 'player2') {
+            setP2Emotes(prev => [...prev, { id, text }]);
+        }
+    };
+
     // Setup networking
     useEffect(() => {
-        AsyncStorage.getItem('PLAYER_NAME').then((val) => {
-            if (val) {
-                setPlayerName(val);
-            }
+        setActiveCombo(0);
+
+        Promise.all([
+            AsyncStorage.getItem('PLAYER_NAME'),
+            AsyncStorage.getItem('PLAYER_ELO')
+        ]).then(([nameVal, eloVal]) => {
+            const loadedName = nameVal || 'Anonymous';
+            const loadedElo = parseInt(eloVal || '1000', 10);
+            
+            if (nameVal) setPlayerName(nameVal);
+            setPlayerElo(loadedElo);
+
+            const channel = supabase.channel(`room:${roomId}`);
+            
+            channel
+                .on('broadcast', { event: 'game_state' }, (payload) => {
+                    const data = payload.payload;
+                    if (myRole === 'spectator' || isSpectating) {
+                        if (data.role === 'player1') {
+                            if (data.board) setPlayer1Board(data.board);
+                            if (data.hand) setPlayer1Hand(data.hand);
+                            if (typeof data.score === 'number') setPlayer1Score(data.score);
+                            if (typeof data.isGameOver === 'boolean') setPlayer1IsGameOver(data.isGameOver);
+                            if (typeof data.elo === 'number') setPlayer1Elo(data.elo);
+                            if (data.playerName) setPlayer1Name(data.playerName);
+                        } else if (data.role === 'player2') {
+                            if (data.board) setPlayer2Board(data.board);
+                            if (data.hand) setPlayer2Hand(data.hand);
+                            if (typeof data.score === 'number') setPlayer2Score(data.score);
+                            if (typeof data.isGameOver === 'boolean') setPlayer2IsGameOver(data.isGameOver);
+                            if (typeof data.elo === 'number') setPlayer2Elo(data.elo);
+                            if (data.playerName) setPlayer2Name(data.playerName);
+                        }
+                    } else {
+                        if (data.board) setOpponentBoard(data.board);
+                        if (data.hand) setOpponentHand(data.hand);
+                        if (typeof data.score === 'number') setOpponentScore(data.score);
+                        if (typeof data.isGameOver === 'boolean') setOpponentIsGameOver(data.isGameOver);
+                        if (typeof data.elo === 'number') setOpponentElo(data.elo);
+                    }
+                })
+                .on('broadcast', { event: 'hover_state' }, (payload) => {
+                    const data = payload.payload;
+                    if (myRole === 'spectator' || isSpectating) {
+                        if (data.role === 'player1') {
+                            setPlayer1Hover({ index: data.index, x: data.x, y: data.y });
+                        } else if (data.role === 'player2') {
+                            setPlayer2Hover({ index: data.index, x: data.x, y: data.y });
+                        }
+                    } else {
+                        setOpponentHover(data);
+                    }
+                })
+                .on('broadcast', { event: 'live_emote' }, (payload) => {
+                    const data = payload.payload;
+                    const id = emoteCounter.current++;
+                    if (data.role === 'player1') {
+                        setP1Emotes(prev => [...prev, { id, text: data.text }]);
+                    } else if (data.role === 'player2') {
+                        setP2Emotes(prev => [...prev, { id, text: data.text }]);
+                    }
+                })
+                .on('broadcast', { event: 'garbage_attack' }, (payload) => {
+                    const data = payload.payload;
+                    // apply garbage attack if we are an active player
+                    if (myRole !== 'spectator' && !isGameOver) {
+                        const nextBoard = addGarbageLines(board.value, data.lines);
+                        board.value = nextBoard;
+
+                        if (Platform.OS === 'web') {
+                            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                                navigator.vibrate([100, 50, 100]);
+                            }
+                        } else {
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                        }
+
+                        playSfx('invalidPlacement');
+
+                        broadcastState(nextBoard, hand.value, score.value, combo.value, lastBrokenLine.value, false);
+
+                        setTimeout(() => {
+                            const hasPossibleMoves = checkForPossibleMoves();
+                            if (!hasPossibleMoves) {
+                                handleGameOver();
+                            }
+                        }, 300);
+                    }
+                })
+                .on('presence', { event: 'leave' }, () => {
+                    setOpponentDisconnected(true);
+                })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        if (myRole !== 'spectator') {
+                            if (channelRef.current) {
+                                channelRef.current.send({
+                                    type: 'broadcast',
+                                    event: 'game_state',
+                                    payload: {
+                                        board: board.value,
+                                        hand: hand.value,
+                                        score: score.value,
+                                        isGameOver: false,
+                                        elo: loadedElo,
+                                        playerName: loadedName,
+                                        role: myRole
+                                    }
+                                });
+                            }
+                        }
+                    }
+                });
+
+            channelRef.current = channel;
         });
 
-        const channel = supabase.channel(`room:${roomId}`);
-        
-        channel
-            .on('broadcast', { event: 'game_state' }, (payload) => {
-                const data = payload.payload;
-                if (data.board) setOpponentBoard(data.board);
-                if (data.hand) setOpponentHand(data.hand);
-                if (typeof data.score === 'number') setOpponentScore(data.score);
-                if (typeof data.isGameOver === 'boolean') setOpponentIsGameOver(data.isGameOver);
-            })
-            .on('broadcast', { event: 'hover_state' }, (payload) => {
-                const data = payload.payload;
-                setOpponentHover(data);
-            })
-            .on('presence', { event: 'leave' }, () => {
-                setOpponentDisconnected(true);
-            })
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    // Send initial state
-                    broadcastState(board.value, hand.value, score.value, combo.value, lastBrokenLine.value, false);
-                }
-            });
-
-        channelRef.current = channel;
-
         return () => {
+            setActiveCombo(0);
             if (hoverThrottleTimer.current) {
                 clearInterval(hoverThrottleTimer.current);
             }
-            supabase.removeChannel(channel);
+            if (channelRef.current) {
+                supabase.removeChannel(channelRef.current);
+            }
             // End room in database when either player exits
             supabase.from('matchmaking_rooms').update({ status: 'finished' }).eq('id', roomId).then();
         };
@@ -150,7 +367,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         currentLastBrokenLine: number,
         currentIsGameOver: boolean
     ) => {
-        if (channelRef.current) {
+        if (channelRef.current && myRole !== 'spectator') {
             channelRef.current.send({
                 type: 'broadcast',
                 event: 'game_state',
@@ -158,13 +375,17 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                     board: currentBoard,
                     hand: currentHand,
                     score: currentScore,
-                    isGameOver: currentIsGameOver
+                    isGameOver: currentIsGameOver,
+                    elo: playerElo,
+                    playerName: playerName,
+                    role: myRole
                 }
             });
         }
     };
 
     const broadcastHoverState = (index: number | null, x: number | null, y: number | null) => {
+        if (myRole === 'spectator') return;
         if (
             lastSentHover.current.index === index &&
             lastSentHover.current.x === x &&
@@ -176,35 +397,57 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         pendingHover.current = { index, x, y };
 
         if (!hoverThrottleTimer.current) {
-            // Send immediately
-            sendPendingHover();
-            // Start throttle period
             hoverThrottleTimer.current = setInterval(() => {
-                if (pendingHover.current) {
-                    sendPendingHover();
-                } else {
-                    // Clear interval if no updates are pending
-                    clearInterval(hoverThrottleTimer.current);
-                    hoverThrottleTimer.current = null;
+                if (pendingHover.current && channelRef.current) {
+                    channelRef.current.send({
+                        type: 'broadcast',
+                        event: 'hover_state',
+                        payload: {
+                            ...pendingHover.current,
+                            role: myRole
+                        }
+                    });
+                    lastSentHover.current = pendingHover.current;
+                    pendingHover.current = null;
                 }
-            }, 80);
+            }, 100); // 100ms throttle
         }
     };
 
-    const sendPendingHover = () => {
-        if (!pendingHover.current) return;
-        const { index, x, y } = pendingHover.current;
-        pendingHover.current = null;
-        lastSentHover.current = { index, x, y };
+    const eloUpdatedRef = useRef(false);
 
-        if (channelRef.current) {
-            channelRef.current.send({
-                type: 'broadcast',
-                event: 'hover_state',
-                payload: { index, x, y }
+    useEffect(() => {
+        if (myRole === 'spectator') return;
+        if (eloUpdatedRef.current) return;
+
+        const isGameComplete = (isGameOver && opponentIsGameOver) || opponentDisconnected;
+        if (isGameComplete) {
+            eloUpdatedRef.current = true;
+
+            AsyncStorage.getItem('PLAYER_ELO').then((val) => {
+                const currentElo = parseInt(val || '1000', 10);
+                let eloDiff = 0;
+
+                if (opponentDisconnected) {
+                    // Win by opponent disconnection
+                    eloDiff = 25;
+                } else if (isGameOver && opponentIsGameOver) {
+                    if (score.value > opponentScore) {
+                        eloDiff = 25;
+                    } else if (opponentScore > score.value) {
+                        eloDiff = -25;
+                    } else {
+                        eloDiff = 0;
+                    }
+                }
+
+                const newElo = Math.max(500, currentElo + eloDiff);
+                AsyncStorage.setItem('PLAYER_ELO', newElo.toString());
+                setPlayerElo(newElo);
+                submitEloRating(playerName, newElo);
             });
         }
-    };
+    }, [isGameOver, opponentIsGameOver, opponentDisconnected]);
 
 	const pieceOverlapsRectangle = (layout: Rectangle, other: Rectangle) => {
 		"worklet";
@@ -275,6 +518,12 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
 			const dropIdStr = over.id.toString();
 			const {x: dropX, y: dropY} = decodeDndId(dropIdStr);
+			if (isNaN(dropX) || isNaN(dropY)) {
+				draggingPiece.value = null;
+				possibleBoardDropSpots.value = emptyPossibleBoardSpots(boardLength);
+				runOnJS(broadcastHoverState)(null, null, null);
+				return;
+			}
 			const piece: PieceData = hand.value[draggingPiece.value!]!;
 
 			if (Platform.OS != 'web') {
@@ -285,8 +534,12 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 				}
 			}
 
+			// Play placement sound
+			runOnJS(playSfx)('placeBlock');
+
 			const newBoard = clearHoverBlocks([...board.value]);
 			placePieceOntoBoard(newBoard, piece, dropX, dropY, BoardBlockType.FILLED);
+
 			const linesBroken = breakLines(newBoard);
 			
 			const pieceBlockCount = getBlockCount(piece);
@@ -295,6 +548,10 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 			if (linesBroken > 0) {
 				lastBrokenLine.value = 0;
 				combo.value += linesBroken;
+
+				// Play combo/break sound and update global active combo
+				runOnJS(playComboSound)(combo.value);
+				runOnJS(updateActiveCombo)(combo.value);
 				
 				if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.vibrate) {
 					navigator.vibrate([25, 45, 25]);
@@ -302,11 +559,19 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 				
 				pointsEarned += linesBroken * boardLength * (combo.value / 2) * pieceBlockCount;
 				score.value += pointsEarned;
+
+				// Garbage Attack
+				const currentComboVal = combo.value;
+				const attackLines = Math.min(4, (linesBroken - 1) + (currentComboVal >= 2 ? currentComboVal - 1 : 0));
+				if (attackLines > 0) {
+					runOnJS(sendGarbageAttack)(attackLines);
+				}
 			} else {
 				score.value += pointsEarned;
 				lastBrokenLine.value++;
 				if (lastBrokenLine.value >= handSize) {
 					combo.value = 0;
+					runOnJS(updateActiveCombo)(0);
 				}
 			}
 			
@@ -323,7 +588,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 			
 			let nextHand;
 			if (empty) {
-				nextHand = createRandomHandWorklet(handSize);
+				nextHand = createRandomHandWorklet(handSize, gameMode);
 			} else {
 				nextHand = newHand;
 			}
@@ -341,6 +606,9 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 				}
 			}, 300);
 			
+		} else {
+			board.value = clearHoverBlocks([...board.value]);
+			runOnJS(playSfx)('invalidPlacement');
 		}
 		
 		draggingPiece.value = null;
@@ -379,6 +647,11 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
 		const dropIdStr = droppableActiveId.toString();
 		const {x: dropX, y: dropY} = decodeDndId(dropIdStr);
+		if (isNaN(dropX) || isNaN(dropY)) {
+			board.value = clearHoverBlocks([...board.value]);
+			runOnJS(broadcastHoverState)(draggingPiece.value, null, null);
+			return;
+		}
 		const piece: PieceData = hand.value[draggingPiece.value!]!;
 
 		const newBoard = clearHoverBlocks([...board.value]);
@@ -391,6 +664,60 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
     const handleExit = () => {
         setAppState(MenuStateType.MENU);
+    };
+
+    const renderSpectatorBoard = (
+        name: string,
+        elo: number | null,
+        boardData: Board,
+        handData: Hand,
+        scoreVal: number,
+        isOver: boolean,
+        hoverData: any,
+        roleKey: 'player1' | 'player2'
+    ) => {
+        const badge = elo !== null ? getEloBadge(elo) : null;
+        const emotesList = roleKey === 'player1' ? p1Emotes : p2Emotes;
+        return (
+            <View style={styles.spectatorBoardCol}>
+                <View style={styles.opponentHeader}>
+                    <Text style={[styles.opponentNameText, { color: currentTheme.textPrimary }]}>
+                        {name} {badge ? `[${badge.tier} - ${elo}]` : ""} {isOver && "(GameOver)"}
+                    </Text>
+                    <Text style={[styles.opponentScoreText, { color: currentTheme.accent }]}>
+                        Score: {scoreVal}
+                    </Text>
+                </View>
+                <View style={styles.spectatorGridWrapper}>
+                    <ReadOnlyBlockGrid 
+                        board={boardData} 
+                        gridBlockSize={isLargeScreen ? GRID_BLOCK_SIZE * 0.8 : 14} 
+                        hoverIndex={hoverData.index}
+                        hoverX={hoverData.x}
+                        hoverY={hoverData.y}
+                        hand={handData}
+                    />
+                    <View style={styles.emotesOverlay}>
+                        {emotesList.map(e => (
+                            <FloatingEmote 
+                                key={e.id} 
+                                text={e.text} 
+                                onComplete={() => {
+                                    if (roleKey === 'player1') {
+                                        setP1Emotes(prev => prev.filter(x => x.id !== e.id));
+                                    } else {
+                                        setP2Emotes(prev => prev.filter(x => x.id !== e.id));
+                                    }
+                                }} 
+                            />
+                        ))}
+                    </View>
+                </View>
+                <View style={{ marginTop: 10, alignItems: 'center' }}>
+                    <ReadOnlyHandPieces hand={handData} boardSize={boardLength} scale={isLargeScreen ? 0.65 : 0.5} />
+                </View>
+            </View>
+        );
     };
 
     const showWinnerOverlay = (isGameOver && opponentIsGameOver) || opponentDisconnected;
@@ -408,8 +735,11 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         }
     }
 
+    const myBadge = getEloBadge(playerElo);
+    const oppBadge = opponentElo !== null ? getEloBadge(opponentElo) : null;
+
 	return (        
-		<SafeAreaView style={[styles.root, { backgroundColor: currentTheme.background }]}>
+		<SafeAreaView style={[styles.root, { backgroundColor: 'transparent' }]}>
 			<GestureHandlerRootView style={styles.root}>
                 <StickyGameHud gameMode={gameMode} score={score}></StickyGameHud>
 				
@@ -418,32 +748,19 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                         <View style={styles.liveContainer}>
                             <LiveDot />
                             <Text style={[styles.spectatorTitle, { color: currentTheme.accent }]}>
-                                Watching {opponentName}
+                                Live Spectator Mode
                             </Text>
                         </View>
-						<Text style={[styles.spectatorScore, { color: currentTheme.textPrimary }]}>
-							Score: {opponentScore}
-						</Text>
-						
-						<View style={{ marginVertical: 10 }}>
-							<ReadOnlyBlockGrid 
-								board={opponentBoard} 
-								gridBlockSize={GRID_BLOCK_SIZE} 
-								hoverIndex={opponentHover.index}
-								hoverX={opponentHover.x}
-								hoverY={opponentHover.y}
-								hand={opponentHand}
-							/>
-						</View>
+                        <Text style={[styles.spectatorRoomTitle, { color: currentTheme.textSecondary }]}>
+                            Watching: {opponentName}
+                        </Text>
 
-						<View style={{ marginTop: 10, alignItems: 'center' }}>
-							<Text style={{ fontFamily: 'Silkscreen', color: currentTheme.textSecondary, fontSize: 14, marginBottom: 5 }}>
-								Opponent's Hand:
-							</Text>
-							<ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} />
-						</View>
+                        <ScrollView contentContainerStyle={isLargeScreen ? styles.spectatorRow : styles.spectatorStack} style={{ width: '100%', flex: 1 }} nestedScrollEnabled={true}>
+                            {renderSpectatorBoard(player1Name, player1Elo, player1Board, player1Hand, player1Score, player1IsGameOver, player1Hover, 'player1')}
+                            {renderSpectatorBoard(player2Name, player2Elo, player2Board, player2Hand, player2Score, player2IsGameOver, player2Hover, 'player2')}
+                        </ScrollView>
 
-						<View style={{ marginTop: 20 }}>
+						<View style={{ marginVertical: 15 }}>
 							<StylizedButton text="Exit to Lobby" onClick={handleExit} backgroundColor={cssColors.spaceGray} />
 						</View>
 					</View>
@@ -455,7 +772,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 							<View style={[styles.opponentMiniRow, isShortScreen && { padding: 4, marginTop: 5, gap: 5 }]}>
 								<View style={[styles.opponentHeader, isShortScreen && { marginBottom: 0 }]}>
 									<Text style={[styles.opponentNameText, { color: currentTheme.textSecondary }, isShortScreen && { fontSize: 13 }]}>
-										{opponentName} {opponentIsGameOver && "(GameOver)"}
+										{opponentName} {oppBadge ? `[${oppBadge.tier} - ${opponentElo}]` : ""} {opponentIsGameOver && "(GameOver)"}
 									</Text>
 									<Text style={[styles.opponentScoreText, { color: currentTheme.accent }, isShortScreen && { fontSize: 15 }]}>
 										Score: {opponentScore}
@@ -471,6 +788,21 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 										hoverY={opponentHover.y}
 										hand={opponentHand}
 									/>
+									<View style={styles.emotesOverlay}>
+										{(myRole === 'player1' ? p2Emotes : p1Emotes).map(e => (
+											<FloatingEmote 
+												key={e.id} 
+												text={e.text} 
+												onComplete={() => {
+													if (myRole === 'player1') {
+														setP2Emotes(prev => prev.filter(x => x.id !== e.id));
+													} else {
+														setP1Emotes(prev => prev.filter(x => x.id !== e.id));
+													}
+												}} 
+											/>
+										))}
+									</View>
 								</View>
 
 								<View style={{ alignItems: 'center', marginLeft: isShortScreen ? 4 : 10 }}>
@@ -481,10 +813,31 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
 						{/* Local Player's board */}
 						<View style={styles.gameColumn}>
-							{isLargeScreen && <Text style={[styles.playerNameText, { color: currentTheme.textPrimary }]}>You</Text>}
+							{isLargeScreen && (
+                                <Text style={[styles.playerNameText, { color: currentTheme.textPrimary }]}>
+                                    You [{myBadge.tier} - {playerElo}]
+                                </Text>
+                            )}
 							<DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
 								<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand}></StatsGameHud>
-								<BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
+								<View style={{ position: 'relative' }}>
+                                    <BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
+                                    <View style={styles.emotesOverlay}>
+                                        {(myRole === 'player1' ? p1Emotes : p2Emotes).map(e => (
+                                            <FloatingEmote 
+                                                key={e.id} 
+                                                text={e.text} 
+                                                onComplete={() => {
+                                                    if (myRole === 'player1') {
+                                                        setP1Emotes(prev => prev.filter(x => x.id !== e.id));
+                                                    } else {
+                                                        setP2Emotes(prev => prev.filter(x => x.id !== e.id));
+                                                    }
+                                                }} 
+                                            />
+                                        ))}
+                                    </View>
+                                </View>
 								<View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
 									{scorePopups.map(popup => (
 										<ScorePopup 
@@ -496,7 +849,21 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 										/>
 									))}
 								</View>
-								<HandPieces hand={hand} boardSize={boardLength}></HandPieces>
+                                
+                                <View style={styles.emoteButtonsRow}>
+                                    <StylizedButton text="Oops" onClick={() => sendEmote("Oops")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
+                                    <StylizedButton text="OMG" onClick={() => sendEmote("OMG")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
+                                    <StylizedButton text="EZ" onClick={() => sendEmote("EZ")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
+                                    <StylizedButton text="GG" onClick={() => sendEmote("GG")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
+                                </View>
+
+								<HandPieces 
+									hand={hand} 
+									boardSize={boardLength}
+									onHandChange={(newHand) => {
+										broadcastState(board.value, newHand, score.value, combo.value, lastBrokenLine.value, false);
+									}}
+								/>
 							</DndProvider>
 						</View>
 
@@ -505,14 +872,14 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 							<View style={styles.opponentColumn}>
 								<View style={styles.opponentHeader}>
 									<Text style={[styles.opponentNameText, { color: currentTheme.textSecondary }]}>
-										{opponentName} {opponentIsGameOver && "(GameOver)"}
+										{opponentName} {oppBadge ? `[${oppBadge.tier} - ${opponentElo}]` : ""} {opponentIsGameOver && "(GameOver)"}
 									</Text>
 									<Text style={[styles.opponentScoreText, { color: currentTheme.accent }]}>
 										Score: {opponentScore}
 									</Text>
 								</View>
 
-								<View>
+								<View style={{ position: 'relative' }}>
 									<ReadOnlyBlockGrid 
 										board={opponentBoard} 
 										gridBlockSize={GRID_BLOCK_SIZE} 
@@ -521,6 +888,21 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 										hoverY={opponentHover.y}
 										hand={opponentHand}
 									/>
+                                    <View style={styles.emotesOverlay}>
+                                        {(myRole === 'player1' ? p2Emotes : p1Emotes).map(e => (
+                                            <FloatingEmote 
+                                                key={e.id} 
+                                                text={e.text} 
+                                                onComplete={() => {
+                                                    if (myRole === 'player1') {
+                                                        setP2Emotes(prev => prev.filter(x => x.id !== e.id));
+                                                    } else {
+                                                        setP1Emotes(prev => prev.filter(x => x.id !== e.id));
+                                                    }
+                                                }} 
+                                            />
+                                        ))}
+                                    </View>
 								</View>
 
 								<View style={{ marginTop: 20, alignItems: 'center' }}>
@@ -655,23 +1037,24 @@ const styles = StyleSheet.create({
         gap: 12
     },
     miniGridScale: {
-        transform: [{ scale: 1.0 }]
+        transform: [{ scale: 1.0 }],
+        position: 'relative'
     },
     opponentHeader: {
         alignItems: 'center',
         marginBottom: 10
     },
     playerNameText: {
-        fontSize: 22,
+        fontSize: 18,
         fontFamily: 'Silkscreen',
         marginBottom: 5
     },
     opponentNameText: {
-        fontSize: 16,
+        fontSize: 15,
         fontFamily: 'Silkscreen',
     },
     opponentScoreText: {
-        fontSize: 18,
+        fontSize: 16,
         fontFamily: 'Silkscreen',
         fontWeight: 'bold'
     },
@@ -728,7 +1111,7 @@ const styles = StyleSheet.create({
         textAlign: 'center'
     },
     spectatorScore: {
-        fontSize: 20,
+        fontSize: 18,
         fontFamily: 'Silkscreen',
         marginBottom: 15,
         fontWeight: 'bold',
@@ -746,5 +1129,78 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 5
+    },
+    emoteButtonsRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginVertical: 6,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    emoteBtn: {
+        minWidth: 50,
+        height: 28,
+        paddingHorizontal: 6,
+    },
+    emotesOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+        pointerEvents: 'none',
+        zIndex: 50
+    },
+    emoteBubble: {
+        position: 'absolute',
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        borderColor: '#ff00ff',
+        borderWidth: 1.5,
+        borderRadius: 15,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        alignSelf: 'center',
+    },
+    emoteText: {
+        color: '#fff',
+        fontFamily: 'Silkscreen',
+        fontSize: 14,
+        fontWeight: 'bold'
+    },
+    spectatorRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+        gap: 30,
+        paddingVertical: 10
+    },
+    spectatorStack: {
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 20,
+        paddingVertical: 10
+    },
+    spectatorBoardCol: {
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        padding: 10,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#333',
+    },
+    spectatorGridWrapper: {
+        position: 'relative',
+        marginVertical: 8
+    },
+    spectatorRoomTitle: {
+        fontFamily: 'Silkscreen',
+        fontSize: 14,
+        marginBottom: 10
+    },
+    handRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        width: '100%',
+        gap: 15,
+        marginTop: 10,
     }
 });

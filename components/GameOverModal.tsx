@@ -136,7 +136,9 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
                     color: currentTheme.id === ThemeType.BLUE ? 'rgb(0, 153, 255)' : currentTheme.textSecondary
                 }
             ]}>
-                No more space for blocks on the board.
+                {gameMode === GameModeType.TimeAttack 
+                    ? "Time ran out!" 
+                    : "No more space for blocks on the board."}
             </Text>
 
             <View style={styles.buttonContainer}>

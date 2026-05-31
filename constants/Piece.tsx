@@ -470,6 +470,22 @@ export function getBlockCount(piece: PieceData): number {
 	return count;
 }
 
+export const bombPiecesData = [
+	{
+		matrix: [
+			[2],
+		],
+		distributionPoints: 1.0,
+	},
+	{
+		matrix: [
+			[2, 2],
+			[2, 2],
+		],
+		distributionPoints: 0.5,
+	}
+];
+
 const totalDistributionPoints = piecesData.reduce((sum, piece) => sum + piece.distributionPoints, 0);
 
 export function getRandomPieceColor(): Color {
@@ -481,7 +497,7 @@ export function getRandomPieceColorWorklet(): Color {
 	return pieceColors[Math.floor(Math.random() * pieceColors.length)];
 }
 
-export function getRandomPiece(): PieceData {
+export function getRandomPiece(gameMode?: string): PieceData {
 	let position = Math.random() * totalDistributionPoints;
 	let piece: PieceDataSaved;
 	for (let i = 0; i < piecesData.length; i++) {
@@ -498,7 +514,7 @@ export function getRandomPiece(): PieceData {
 	};
 }
 
-export function getRandomPieceWorklet(): PieceData {
+export function getRandomPieceWorklet(gameMode?: string): PieceData {
 	"worklet";
 	let position = Math.random() * totalDistributionPoints;
 	let piece: PieceDataSaved;
@@ -562,7 +578,7 @@ export function createEmptyBlockStyle(borderColor: string = 'rgb(40, 40, 40)'): 
 		borderRightColor: borderColor,
 		borderBottomColor: borderColor,
 		opacity: 1,
-		borderWidth: 0.25,
+		borderWidth: 0.5,
 		borderRadius: 0,
 		boxSizing: 'border-box',
 		boxShadow: 'none',
