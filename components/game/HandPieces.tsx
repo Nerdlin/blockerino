@@ -128,6 +128,80 @@ export default function HandPieces({ hand, boardSize }: HandProps) {
 	}]}>{handPieces}</View>
 }
 
+export function ReadOnlyHandPieces({ hand, boardSize, scale = 1 }: { hand: Hand; boardSize: number; scale?: number }) {
+	const { GRID_BLOCK_SIZE, HAND_BLOCK_SIZE } = useGameSizes(boardSize);
+	const size = HAND_BLOCK_SIZE * scale;
+	const blockSize = size;
+
+	const handSize = hand ? hand.length : 0;
+	const handPieces = [];
+
+	for (let i = 0; i < handSize; i++) {
+		const piece = hand[i];
+		if (piece == null) {
+			handPieces.push(
+				<View key={"v" + i} style={[styles.piece, { width: size * 5, height: size * 5 }]} />
+			);
+			continue;
+		}
+
+		const pieceHeight = piece.matrix.length;
+		const pieceWidth = piece.matrix[0].length;
+		const pieceBlocks = [];
+
+		for (let y = 0; y < pieceHeight; y++) {
+			for (let x = 0; x < pieceWidth; x++) {
+				if (piece.matrix[y][x] === 1) {
+					pieceBlocks.push(
+						<View 
+							key={`p${x},${y}`} 
+							style={[
+								styles.emptyBlock, 
+								{
+									top: y * blockSize,
+									left: x * blockSize,
+									width: blockSize,
+									height: blockSize,
+									...createFilledBlockStyle(piece.color, Math.max(1, Math.round(blockSize * 0.15))),
+									opacity: 1
+								}
+							]} 
+						/>
+					);
+				}
+			}
+		}
+
+		handPieces.push(
+			<View key={"v" + i} style={[styles.piece, { width: size * 5, height: size * 5 }]}>
+				<View style={{
+					width: pieceWidth * blockSize,
+					height: pieceHeight * blockSize,
+					position: 'relative'
+				}}>
+					{pieceBlocks}
+				</View>
+			</View>
+		);
+	}
+
+	return (
+		<View style={[styles.hand, { 
+			maxWidth: size * 15, 
+			maxHeight: size * 10,
+			height: size * 6,
+			marginTop: 10,
+			alignSelf: 'center',
+			flexDirection: 'row',
+			flexWrap: 'wrap',
+			justifyContent: 'center',
+			alignItems: 'center'
+		}]}>
+			{handPieces}
+		</View>
+	);
+}
+
 interface PieceDraggableProps {
 	children: any,
 	id: string,

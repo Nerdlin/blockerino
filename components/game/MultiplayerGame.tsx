@@ -8,8 +8,8 @@ import * as Haptics from 'expo-haptics';
 import { Board, BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes } from '@/constants/Board';
 import { StatsGameHud, StickyGameHud } from '@/components/game/GameHud';
 import BlockGrid, { ReadOnlyBlockGrid } from '@/components/game/BlockGrid';
-import { createRandomHand, createRandomHandWorklet } from '@/constants/Hand';
-import HandPieces from '@/components/game/HandPieces';
+import { Hand, createRandomHand, createRandomHandWorklet } from '@/constants/Hand';
+import HandPieces, { ReadOnlyHandPieces } from '@/components/game/HandPieces';
 import { GameModeType, MenuStateType, useAppState } from '@/hooks/useAppState';
 import { supabase, submitGlobalHighScore } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
@@ -70,6 +70,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     
     // Opponent states
     const [opponentBoard, setOpponentBoard] = useState<Board>(newEmptyBoard(boardLength));
+    const [opponentHand, setOpponentHand] = useState<Hand>([]);
+    const [opponentHover, setOpponentHover] = useState<{ index: number | null, x: number | null, y: number | null }>({ index: null, x: null, y: null });
     const [opponentScore, setOpponentScore] = useState(0);
     const [opponentIsGameOver, setOpponentIsGameOver] = useState(false);
     const [opponentDisconnected, setOpponentDisconnected] = useState(false);
@@ -78,6 +80,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const [setAppState] = useAppState()[1] ? [useAppState()[1]] : [() => {}];
     const { currentTheme } = useTheme();
     const channelRef = useRef<any>(null);
+    const lastSentHover = useRef<{ index: number | null, x: number | null, y: number | null }>({ index: null, x: null, y: null });
     const [playerName, setPlayerName] = useState("Anonymous");
     const [scorePopups, setScorePopups] = useState<{id: number, points: number, x: number, y: number}[]>([]);
     const scorePopupIdCounter = useRef(0);
@@ -105,8 +108,13 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
             .on('broadcast', { event: 'game_state' }, (payload) => {
                 const data = payload.payload;
                 if (data.board) setOpponentBoard(data.board);
+                if (data.hand) setOpponentHand(data.hand);
                 if (typeof data.score === 'number') setOpponentScore(data.score);
                 if (typeof data.isGameOver === 'boolean') setOpponentIsGameOver(data.isGameOver);
+            })
+            .on('broadcast', { event: 'hover_state' }, (payload) => {
+                const data = payload.payload;
+                setOpponentHover(data);
             })
             .on('presence', { event: 'leave' }, () => {
                 setOpponentDisconnected(true);
@@ -141,9 +149,29 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 event: 'game_state',
                 payload: {
                     board: currentBoard,
+                    hand: currentHand,
                     score: currentScore,
                     isGameOver: currentIsGameOver
                 }
+            });
+        }
+    };
+
+    const broadcastHoverState = (index: number | null, x: number | null, y: number | null) => {
+        if (
+            lastSentHover.current.index === index &&
+            lastSentHover.current.x === x &&
+            lastSentHover.current.y === y
+        ) {
+            return;
+        }
+        lastSentHover.current = { index, x, y };
+
+        if (channelRef.current) {
+            channelRef.current.send({
+                type: 'broadcast',
+                event: 'hover_state',
+                payload: { index, x, y }
             });
         }
     };
@@ -278,6 +306,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 		
 		draggingPiece.value = null;
 		possibleBoardDropSpots.value = emptyPossibleBoardSpots(boardLength);
+		runOnJS(broadcastHoverState)(null, null, null);
 	};
 
 	const handleBegin: DndProviderProps["onBegin"] = (event, meta) => {
@@ -293,6 +322,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 		"worklet";
 		if (state !== State.END) {
 			draggingPiece.value = null;
+			runOnJS(broadcastHoverState)(null, null, null);
 		}
 	};
 
@@ -300,6 +330,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 		"worklet";
 		if (!droppableActiveId) {
 			board.value = clearHoverBlocks([...board.value]);
+			runOnJS(broadcastHoverState)(draggingPiece.value, null, null);
 			return;
 		}
 
@@ -315,6 +346,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 		updateHoveredBreaks(newBoard, piece, dropX, dropY);
 
 		board.value = newBoard;
+
+		runOnJS(broadcastHoverState)(draggingPiece.value, dropX, dropY);
 	};
 
     const handleExit = () => {
@@ -378,8 +411,25 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                             <ReadOnlyBlockGrid 
                                 board={opponentBoard} 
                                 gridBlockSize={isLargeScreen ? GRID_BLOCK_SIZE : 15} 
+                                hoverIndex={opponentHover.index}
+                                hoverX={opponentHover.x}
+                                hoverY={opponentHover.y}
+                                hand={opponentHand}
                             />
                         </View>
+
+                        {isLargeScreen && (
+                            <View style={{ marginTop: 20, alignItems: 'center' }}>
+                                <Text style={{ fontFamily: 'Silkscreen', color: currentTheme.textSecondary, fontSize: 14, marginBottom: 5 }}>Opponent's Hand:</Text>
+                                <ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} />
+                            </View>
+                        )}
+
+                        {!isLargeScreen && (
+                            <View style={{ alignItems: 'center', marginLeft: 10 }}>
+                                <ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} scale={0.5} />
+                            </View>
+                        )}
                     </View>
 
 				</View>

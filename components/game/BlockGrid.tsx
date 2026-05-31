@@ -368,12 +368,44 @@ const styles = StyleSheet.create({
 interface ReadOnlyBlockGridProps {
 	board: Board;
 	gridBlockSize: number;
+	hoverIndex?: number | null;
+	hoverX?: number | null;
+	hoverY?: number | null;
+	hand?: Hand;
 }
 
-export function ReadOnlyBlockGrid({ board, gridBlockSize }: ReadOnlyBlockGridProps) {
+export function ReadOnlyBlockGrid({ board, gridBlockSize, hoverIndex, hoverX, hoverY, hand }: ReadOnlyBlockGridProps) {
 	const blockElements: any[] = [];
 	const boardLength = board.length;
 	const { currentTheme } = useTheme();
+
+	// Calculate which cells are covered by the opponent's dragging piece
+	const hoverCells = new Set<string>();
+	let hoverColor = { r: 255, g: 255, b: 255 }; // default color
+	if (
+		hoverIndex !== null && hoverIndex !== undefined &&
+		hoverX !== null && hoverX !== undefined &&
+		hoverY !== null && hoverY !== undefined &&
+		hand
+	) {
+		const piece = hand[hoverIndex];
+		if (piece) {
+			hoverColor = piece.color;
+			const pieceHeight = piece.matrix.length;
+			const pieceWidth = piece.matrix[0].length;
+			for (let py = 0; py < pieceHeight; py++) {
+				for (let px = 0; px < pieceWidth; px++) {
+					if (piece.matrix[py][px] === 1) {
+						const bx = hoverX + px;
+						const by = hoverY + py;
+						if (bx >= 0 && bx < boardLength && by >= 0 && by < boardLength) {
+							hoverCells.add(`${bx},${by}`);
+						}
+					}
+				}
+			}
+		}
+	}
 
 	forEachBoardBlock(board, (block, x, y) => {
 		const blockPositionStyle = {
@@ -387,6 +419,14 @@ export function ReadOnlyBlockGrid({ board, gridBlockSize }: ReadOnlyBlockGridPro
 		let blockStyle: any;
 		if (block.blockType === BoardBlockType.FILLED || block.blockType === BoardBlockType.HOVERED_BREAK_FILLED) {
 			blockStyle = createFilledBlockStyle(block.color, Math.max(1, Math.round(gridBlockSize * 0.15)));
+		} else if (hoverCells.has(`${x},${y}`)) {
+			// Render ghost preview for opponent's drag
+			blockStyle = {
+				...createFilledBlockStyle(hoverColor, Math.max(1, Math.round(gridBlockSize * 0.15))),
+				opacity: 0.35,
+				borderWidth: 1,
+				borderColor: 'rgba(255, 255, 255, 0.8)'
+			};
 		} else {
 			blockStyle = createEmptyBlockStyle(currentTheme.emptyBlockBorder);
 		}
