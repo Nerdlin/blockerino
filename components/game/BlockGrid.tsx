@@ -50,6 +50,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 	const placedBlockDirectionY = useSharedValue(0);
 	const placedBlockRotation = useSharedValue(0);
 	const waveEffect = useSharedValue(0);
+	const flashOpacity = useSharedValue(0);
 	const { currentTheme } = useTheme();
 
 	// Реакция на изменение состояния блока
@@ -58,6 +59,11 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 	}, (cur, prev) => {
 		// Анимация при удалении блока
 		if (cur === BoardBlockType.EMPTY && (prev === BoardBlockType.FILLED || prev === BoardBlockType.HOVERED_BREAK_EMPTY || prev === BoardBlockType.HOVERED_BREAK_FILLED)) {
+			flashOpacity.value = withSequence(
+				withTiming(1, { duration: 100 }),
+				withTiming(0, { duration: 250 })
+			);
+
 			const angle = Math.random() * Math.PI * 2;
 			const distance = 50 + Math.random() * 100;
 			placedBlockDirectionX.value = Math.cos(angle) * distance;
@@ -175,10 +181,24 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 		return { opacity: 0, width: 0, height: 0, position: 'absolute' };
 	});
 
+	const flashStyle = useAnimatedStyle(() => {
+		return {
+			opacity: flashOpacity.value,
+			backgroundColor: 'white',
+			position: 'absolute',
+			top: 0,
+			left: 0,
+			width: gridBlockSize,
+			height: gridBlockSize,
+			borderRadius: 4,
+		};
+	});
+
 	return (
 		<>
 			<Animated.View style={[staticStyle, { width: gridBlockSize, height: gridBlockSize }]} />
 			<Animated.View style={fallingStyle} />
+			<Animated.View pointerEvents="none" style={flashStyle} />
 		</>
 	);
 }

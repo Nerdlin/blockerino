@@ -9,6 +9,33 @@ import Animated, {
 	runOnJS,
 } from "react-native-reanimated";
 
+function getEncouragingText(points: number): string {
+	if (points >= 500) {
+		const spectaculars = ["Incredible!", "Spectacular!", "Unbelievable!", "LEGENDARY!", "GODLIKE!"];
+		return spectaculars[Math.floor(Math.random() * spectaculars.length)];
+	}
+	if (points >= 150) {
+		const awesomes = ["Amazing!", "Awesome!", "Fantastic!", "Superb!", "KABOOM!"];
+		return awesomes[Math.floor(Math.random() * awesomes.length)];
+	}
+	if (points >= 50) {
+		const goods = ["Great!", "Good!", "Nice!", "Super!", "Sweet!"];
+		return goods[Math.floor(Math.random() * goods.length)];
+	}
+	if (points > 5) {
+		const nices = ["Nice!", "Cool!", "Combo!", "Sweet!"];
+		return nices[Math.floor(Math.random() * nices.length)];
+	}
+	return "";
+}
+
+function getEncouragingColor(points: number): string {
+	if (points >= 500) return "#FF1493"; // Deep pink
+	if (points >= 150) return "#FF00FF"; // Magenta / Orange
+	if (points >= 50) return "#00FFFF"; // Cyan
+	return "#32CD32"; // Lime green
+}
+
 interface ScorePopupProps {
 	points: number;
 	x: number;
@@ -56,6 +83,9 @@ export function ScorePopup({ points, x, y, onComplete }: ScorePopupProps) {
 		};
 	});
 
+	const encourages = getEncouragingText(points);
+	const encourageColor = getEncouragingColor(points);
+
 	return (
 		<Animated.View
 			style={[
@@ -68,6 +98,9 @@ export function ScorePopup({ points, x, y, onComplete }: ScorePopupProps) {
 			]}
 		>
 			<Text style={styles.text}>+{points}</Text>
+			{encourages !== "" && (
+				<Text style={[styles.subText, { color: encourageColor }]}>{encourages}</Text>
+			)}
 		</Animated.View>
 	);
 }
@@ -76,12 +109,31 @@ const styles = StyleSheet.create({
 	container: {
 		position: "absolute",
 		zIndex: 1000,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	text: {
 		color: "#FFD700",
 		fontFamily: "SilkscreenBold",
 		fontSize: 32,
 		fontWeight: "bold",
+		...Platform.select({
+			web: {
+				textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)"
+			},
+			default: {
+				textShadowColor: "rgba(0, 0, 0, 0.8)",
+				textShadowOffset: { width: 2, height: 2 },
+				textShadowRadius: 4,
+			}
+		}),
+	},
+	subText: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 22,
+		fontWeight: "bold",
+		marginTop: 4,
+		textAlign: 'center',
 		...Platform.select({
 			web: {
 				textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)"

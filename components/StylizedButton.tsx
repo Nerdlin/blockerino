@@ -56,8 +56,10 @@ export default function StylizedButton({
 
 const styles = StyleSheet.create({
 	stylizedButton: {
-		width: 160,
-		height: 30,
+		minWidth: 160,
+		minHeight: 38,
+		paddingVertical: 6,
+		paddingHorizontal: 16,
 		borderRadius: 10,
 		justifyContent: 'center',
 		alignItems: 'center',
@@ -67,6 +69,7 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		color: 'white',
 		fontFamily: 'Silkscreen',
-        fontWeight: '100'
+        fontWeight: '100',
+        textAlign: 'center'
 	}
 });

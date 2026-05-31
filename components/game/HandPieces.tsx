@@ -2,7 +2,7 @@ import { useGameSizes } from "@/constants/Board";
 import { Hand } from "@/constants/Hand";
 import { createFilledBlockStyle } from "@/constants/Piece";
 import { SharedPoint, useDraggable } from "@mgcrea/react-native-dnd";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 import Animated, { SharedValue, runOnJS, useAnimatedStyle, withSequence, withTiming, useAnimatedReaction } from "react-native-reanimated";
 
 interface HandProps {
@@ -117,10 +117,14 @@ export default function HandPieces({ hand, boardSize }: HandProps) {
 		)
 	}
 
+	const { width } = useWindowDimensions();
+	const isMobile = width < 600;
+
 	return <View style={[styles.hand, { 
 		maxWidth: HAND_BLOCK_SIZE * 15, 
 		maxHeight: HAND_BLOCK_SIZE * 10,
-		height: HAND_BLOCK_SIZE * 6 
+		height: HAND_BLOCK_SIZE * 6,
+		marginTop: isMobile ? 15 : 40
 	}]}>{handPieces}</View>
 }
 

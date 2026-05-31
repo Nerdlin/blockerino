@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Pressable, StyleSheet, Text, View, Platform } from "react-native"
+import { Pressable, StyleSheet, Text, View, Platform, useWindowDimensions } from "react-native"
 import Animated, { SharedValue, interpolateColor, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated"
 import { Hand } from "@/constants/Hand";
 import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
@@ -19,6 +19,8 @@ interface GameHudProps {
 export function StatsGameHud({ score, combo, lastBrokenLine, hand}: GameHudProps) {
 	const [scoreText, setScoreText] = useState("0");
 	const scoreAnimValue = useSharedValue(0); // stores the score, used to interpolate the number for animation
+	const { width } = useWindowDimensions();
+	const isMobile = width < 600;
 
 	useAnimatedReaction(() => {
 		return score.value;
@@ -33,12 +35,12 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand}: GameHudProps
 	})
 
 	return <>
-		<View style={styles.hudContainer}>
-			<View style={styles.scoreContainer}>
+		<View style={[styles.hudContainer, isMobile && { height: 90 }]}>
+			<View style={[styles.scoreContainer, isMobile && { height: 44, marginTop: 5, marginBottom: 5 }]}>
 				<Text style={{
 					color: 'white',
 					fontFamily: 'Silkscreen',
-					fontSize: 50,
+					fontSize: isMobile ? 38 : 50,
 					fontWeight: '100',
 					...Platform.select({
 						web: {
@@ -108,6 +110,8 @@ function ComboBar({ lastBrokenLine, handSize }: ComboBarProps) {
 export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score: SharedValue<number>}) {
 	const [ highestScore, setHighestScore ] = useState(0);
 	const [ scoreState, setScoreState ] = useState(score.value);
+	const { width } = useWindowDimensions();
+	const isMobile = width < 600;
 
 	useEffect(() => {
 		getHighScores(gameMode, true, true).then((highScores) => {
@@ -124,16 +128,40 @@ export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score:
 	});
 
 	return <>
-		<Text style={styles.highScoreLabel}>{"👑" + Math.max(scoreState, highestScore)}</Text>
-		<SettingsButton></SettingsButton>
+		<Text style={[
+			styles.highScoreLabel,
+			isMobile && {
+				fontSize: 22,
+				top: 15,
+				left: 15
+			}
+		]}>{"👑" + Math.max(scoreState, highestScore)}</Text>
+		<SettingsButton isMobile={isMobile}></SettingsButton>
 	</>
 }
 
-function SettingsButton() {
+function SettingsButton({ isMobile }: { isMobile?: boolean }) {
 	const [_appState, _setAppState, appendAppState ] = useAppState();
 
-	return <Pressable onPress={() => {appendAppState(MenuStateType.OPTIONS)}} style={styles.settingsButton}>
-		<Text style={styles.settingsEmoji}>
+	return <Pressable 
+		onPress={() => {appendAppState(MenuStateType.OPTIONS)}} 
+		style={[
+			styles.settingsButton,
+			isMobile && {
+				width: 40,
+				height: 40,
+				borderRadius: 12,
+				top: 15,
+				right: 15
+			}
+		]}
+	>
+		<Text style={[
+			styles.settingsEmoji,
+			isMobile && {
+				fontSize: 22
+			}
+		]}>
 			{"⚙️"}
 		</Text>
 	</Pressable>

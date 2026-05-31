@@ -11,10 +11,12 @@ import BlockGrid, { ReadOnlyBlockGrid } from '@/components/game/BlockGrid';
 import { createRandomHand, createRandomHandWorklet } from '@/constants/Hand';
 import HandPieces from '@/components/game/HandPieces';
 import { GameModeType, MenuStateType, useAppState } from '@/hooks/useAppState';
-import { supabase } from '@/constants/Supabase';
+import { supabase, submitGlobalHighScore } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ScorePopup } from './ScorePopup';
 
 interface MultiplayerGameProps {
     roomId: string;
@@ -76,9 +78,27 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const [setAppState] = useAppState()[1] ? [useAppState()[1]] : [() => {}];
     const { currentTheme } = useTheme();
     const channelRef = useRef<any>(null);
+    const [playerName, setPlayerName] = useState("Anonymous");
+    const [scorePopups, setScorePopups] = useState<{id: number, points: number, x: number, y: number}[]>([]);
+    const scorePopupIdCounter = useRef(0);
+
+    const addScorePopup = (points: number, x: number, y: number) => {
+        const id = scorePopupIdCounter.current++;
+        setScorePopups(prev => [...prev, { id, points, x, y }]);
+    };
+
+    const removeScorePopup = (id: number) => {
+        setScorePopups(prev => prev.filter(p => p.id !== id));
+    };
 
     // Setup networking
     useEffect(() => {
+        AsyncStorage.getItem('PLAYER_NAME').then((val) => {
+            if (val) {
+                setPlayerName(val);
+            }
+        });
+
         const channel = supabase.channel(`room:${roomId}`);
         
         channel
@@ -167,6 +187,9 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         
         // Write winner to database if both finished
         checkAndSaveWinner(score.value, opponentScore, true, opponentIsGameOver);
+
+        // Submit high score to database
+        submitGlobalHighScore(playerName, score.value, gameMode);
     };
 
     const checkAndSaveWinner = async (myScore: number, oppScore: number, myOver: boolean, oppOver: boolean) => {
@@ -244,6 +267,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
             // Broadcast changes to opponent
             runOnJS(broadcastState)(newBoard, nextHand, score.value, combo.value, lastBrokenLine.value, false);
+			runOnJS(addScorePopup)(pointsEarned, dropX * GRID_BLOCK_SIZE, dropY * GRID_BLOCK_SIZE);
 			
 			runOnJS(setTimeout)(() => {
 				const hasPossibleMoves = checkForPossibleMoves();
@@ -317,15 +341,26 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 	return (        
 		<SafeAreaView style={[styles.root, { backgroundColor: currentTheme.background }]}>
 			<GestureHandlerRootView style={styles.root}>
+                <StickyGameHud gameMode={gameMode} score={score}></StickyGameHud>
 				<View style={isLargeScreen ? styles.sideBySideContainer : styles.stackedContainer}>
                     
                     {/* Local Player's board */}
                     <View style={styles.gameColumn}>
                         <Text style={[styles.playerNameText, { color: currentTheme.textPrimary }]}>You</Text>
-                        <StickyGameHud gameMode={gameMode} score={score}></StickyGameHud>
                         <DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
                             <StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand}></StatsGameHud>
                             <BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
+                            <View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
+                                {scorePopups.map(popup => (
+                                    <ScorePopup 
+                                        key={popup.id} 
+                                        points={popup.points} 
+                                        x={popup.x + 30} 
+                                        y={popup.y + 100} 
+                                        onComplete={() => removeScorePopup(popup.id)} 
+                                    />
+                                ))}
+                            </View>
                             <HandPieces hand={hand} boardSize={boardLength}></HandPieces>
                         </DndProvider>
                     </View>

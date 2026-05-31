@@ -347,6 +347,106 @@ export const piecesData: PieceDataSaved[] = [
 		],
 		distributionPoints: 1.5,
 	},
+	// Big T-shape 3x3 (5 blocks)
+	{
+		matrix: [
+			[1, 1, 1],
+			[0, 1, 0],
+			[0, 1, 0],
+		],
+		distributionPoints: 1.0,
+	},
+	{
+		matrix: [
+			[0, 1, 0],
+			[0, 1, 0],
+			[1, 1, 1],
+		],
+		distributionPoints: 1.0,
+	},
+	{
+		matrix: [
+			[1, 0, 0],
+			[1, 1, 1],
+			[1, 0, 0],
+		],
+		distributionPoints: 1.0,
+	},
+	{
+		matrix: [
+			[0, 0, 1],
+			[1, 1, 1],
+			[0, 0, 1],
+		],
+		distributionPoints: 1.0,
+	},
+	// C-shape/Bracket 3x3 (5 blocks)
+	{
+		matrix: [
+			[1, 1, 1],
+			[1, 0, 0],
+			[1, 1, 1],
+		],
+		distributionPoints: 1.0,
+	},
+	{
+		matrix: [
+			[1, 1, 1],
+			[0, 0, 1],
+			[1, 1, 1],
+		],
+		distributionPoints: 1.0,
+	},
+	{
+		matrix: [
+			[1, 1, 1],
+			[1, 0, 1],
+			[1, 0, 1],
+		],
+		distributionPoints: 1.0,
+	},
+	{
+		matrix: [
+			[1, 0, 1],
+			[1, 0, 1],
+			[1, 1, 1],
+		],
+		distributionPoints: 1.0,
+	},
+	// Diagonal / stairs (3 blocks)
+	{
+		matrix: [
+			[1, 0, 0],
+			[0, 1, 0],
+			[0, 0, 1],
+		],
+		distributionPoints: 1.5,
+	},
+	{
+		matrix: [
+			[0, 0, 1],
+			[0, 1, 0],
+			[1, 0, 0],
+		],
+		distributionPoints: 1.5,
+	},
+	// Diagonal Z-shape (5 blocks)
+	{
+		matrix: [
+			[1, 1, 0],
+			[0, 1, 0],
+			[0, 1, 1],
+		],
+		distributionPoints: 1.0,
+	},
+	{
+		matrix: [
+			[0, 1, 1],
+			[0, 1, 0],
+			[1, 1, 0],
+		],
+		distributionPoints: 1.0,
+	},
 ];
 
 export const pieceColors = [
