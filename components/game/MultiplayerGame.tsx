@@ -88,17 +88,15 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 if (typeof data.score === 'number') setOpponentScore(data.score);
                 if (typeof data.isGameOver === 'boolean') setOpponentIsGameOver(data.isGameOver);
             })
+            .on('presence', { event: 'leave' }, () => {
+                setOpponentDisconnected(true);
+            })
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
                     // Send initial state
                     broadcastState(board.value, hand.value, score.value, combo.value, lastBrokenLine.value, false);
                 }
             });
-
-        // Set up presence or channel close to track disconnects
-        channel.on('presence', { event: 'leave' }, () => {
-            setOpponentDisconnected(true);
-        });
 
         channelRef.current = channel;
 
