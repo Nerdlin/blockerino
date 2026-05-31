@@ -229,19 +229,17 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         setLobbyState('joining');
 
         try {
-            // Find room by ID prefix
+            // Find room by ID prefix (since id is UUID, we fetch waiting rooms and filter client-side)
             const { data, error } = await supabase
                 .from('matchmaking_rooms')
                 .select('*')
-                .ilike('id', `${code}%`)
-                .eq('status', 'waiting')
-                .limit(1);
+                .eq('status', 'waiting');
 
             if (error) throw error;
 
-            if (data && data.length > 0) {
-                const room = data[0];
-                
+            const room = data?.find(r => r.id.substring(0, 6).toLowerCase() === code);
+
+            if (room) {
                 // Join room
                 const { data: updatedRoom, error: updateError } = await supabase
                     .from('matchmaking_rooms')
