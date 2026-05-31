@@ -188,6 +188,24 @@ export async function submitEloRating(playerName: string, elo: number): Promise<
     }
 }
 
+export async function getPlayerElo(playerName: string): Promise<number | null> {
+    try {
+        const { data, error } = await supabase
+            .from('elo_ratings')
+            .select('elo')
+            .ilike('player_name', playerName.replace(/[%_]/g, '\\$&'))
+            .limit(1);
+
+        if (error || !data || data.length === 0) {
+            return null;
+        }
+        return data[0].elo;
+    } catch (error) {
+        console.error('Error fetching player elo:', error);
+        return null;
+    }
+}
+
 export async function getTopEloRatings(limit: number = 100): Promise<EloRating[]> {
     try {
         const { data, error } = await supabase

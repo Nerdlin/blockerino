@@ -4,7 +4,7 @@ import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
-import { supabase, getTopEloRatings, EloRating } from "@/constants/Supabase";
+import { supabase, getTopEloRatings, getPlayerElo, EloRating } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { cssColors } from "@/constants/Color";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
@@ -87,16 +87,30 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             }
         });
 
-        // Load player ELO
-        AsyncStorage.getItem('PLAYER_ELO').then((val) => {
-            if (isMounted.current) {
-                if (val) {
-                    setPlayerElo(parseInt(val, 10) || 1000);
+        // Load player ELO — sync from Supabase first, fallback to local
+        Promise.all([
+            AsyncStorage.getItem('PLAYER_NAME'),
+            AsyncStorage.getItem('PLAYER_ELO')
+        ]).then(([nameVal, localEloVal]) => {
+            if (!isMounted.current) return;
+            const currentName = (nameVal || 'Anonymous').trim() || 'Anonymous';
+
+            getPlayerElo(currentName).then((serverElo) => {
+                if (!isMounted.current) return;
+                if (serverElo !== null) {
+                    // Server has a value — use it and update local
+                    setPlayerElo(serverElo);
+                    AsyncStorage.setItem('PLAYER_ELO', serverElo.toString());
+                } else if (localEloVal) {
+                    // No server record yet — use local
+                    const parsed = parseInt(localEloVal, 10) || 1000;
+                    setPlayerElo(parsed);
                 } else {
+                    // Nothing at all — set default
                     AsyncStorage.setItem('PLAYER_ELO', '1000');
                     setPlayerElo(1000);
                 }
-            }
+            });
         });
 
         // Initial fetch of public rooms
@@ -540,6 +554,12 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         onPress={() => {
                             setLoadingLeaderboard(true);
                             setShowEloLeaderboard(true);
+                            getPlayerElo(playerName).then((serverElo) => {
+                                if (serverElo !== null && isMounted.current) {
+                                    setPlayerElo(serverElo);
+                                    AsyncStorage.setItem('PLAYER_ELO', serverElo.toString());
+                                }
+                            });
                             getTopEloRatings(100).then((list) => {
                                 setTopEloList(list);
                                 setLoadingLeaderboard(false);
