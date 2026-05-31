@@ -31,7 +31,9 @@ export function hslToRgb({ h, s, l }: HSLColor): Color {
 
 export function rgbToHsl({ r, g, b }: Color): HSLColor {
     'worklet';
-    r /= 255, g /= 255, b /= 255;
+    r /= 255;
+    g /= 255;
+    b /= 255;
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
     let h = 0, s, l = (max + min) / 2;
 
@@ -53,7 +55,7 @@ export function rgbToHsl({ r, g, b }: Color): HSLColor {
 
 export function colorToHex(color: Color | null): string {
     'worklet';
-    if (color == null) {
+    if (color === null) {
         return '#000000';
     }
 
@@ -75,5 +77,3 @@ export function colorLerp(a: Color, b: Color, t: number): Color {
       b: lerp(a.b, b.b, t),
     };
   }
-  
-  

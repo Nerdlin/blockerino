@@ -15,7 +15,6 @@ import { useTheme } from "@/constants/Theme";
 import { useDroppable } from "@mgcrea/react-native-dnd";
 import { useEffect } from "react";
 import { StyleSheet, Platform, View } from "react-native";
-import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import Animated, {
 	SharedValue,
 	interpolateColor,
@@ -100,7 +99,7 @@ function SparkParticle({ sparkProgress, index, x, y, gridBlockSize, board }: Spa
 		};
 	});
 
-	return <Animated.View pointerEvents="none" style={animatedStyle} />;
+	return <Animated.View style={[styles.pointerEventsNone, animatedStyle]} />;
 }
 
 interface GridBlockProps {
@@ -284,7 +283,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 		<>
 			<Animated.View style={[staticStyle, { width: gridBlockSize, height: gridBlockSize, justifyContent: 'center', alignItems: 'center' }]} />
 			<Animated.View style={fallingStyle} />
-			<Animated.View pointerEvents="none" style={flashStyle} />
+			<Animated.View style={[styles.pointerEventsNone, flashStyle]} />
 			{[...Array(8)].map((_, i) => (
 				<SparkParticle
 					key={`spark-${i}`}
@@ -387,7 +386,7 @@ function BlockDroppable({
 	...otherProps
 }: BlockDroppableProps) {
 	const id = `${x},${y}`;
-	const { props, activeId } = useDroppable({
+	const { props } = useDroppable({
 		id,
 	});
 
@@ -460,6 +459,9 @@ const styles = StyleSheet.create({
 	},
 	hitbox: {
 		position: "absolute",
+	},
+	pointerEventsNone: {
+		pointerEvents: 'none',
 	},
 });
 

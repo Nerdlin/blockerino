@@ -53,6 +53,31 @@ export async function getGlobalHighScores(
 }
 
 // Добавить новый рекорд в глобальную таблицу (с защитой от дубликатов)
+export async function getPlayerGlobalHighScore(
+    playerName: string,
+    gameMode: string
+): Promise<number | null> {
+    try {
+        const escapedName = playerName.replace(/[%_]/g, '\\$&');
+        const { data, error } = await supabase
+            .from('high_scores')
+            .select('score')
+            .ilike('player_name', escapedName)
+            .eq('game_mode', gameMode)
+            .order('score', { ascending: false })
+            .limit(1);
+
+        if (error || !data || data.length === 0) {
+            return null;
+        }
+
+        return data[0].score;
+    } catch (error) {
+        console.error('Error fetching player global high score:', error);
+        return null;
+    }
+}
+
 export async function submitGlobalHighScore(
     playerName: string,
     score: number,

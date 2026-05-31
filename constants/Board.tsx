@@ -152,7 +152,7 @@ export function createPossibleBoardSpots(
         for (let pieceX = 0; pieceX < pieceWidth; pieceX++) {
           if (
             piece.matrix[pieceY][pieceX] === 1 &&
-            board[boardY + pieceY][boardX + pieceX].blockType ==
+            board[boardY + pieceY][boardX + pieceX].blockType ===
               BoardBlockType.FILLED
           ) {
             canFit = false;
@@ -178,11 +178,11 @@ export function clearHoverBlocks(board: Board): Board {
     for (let x = 0; x < boardLength; x++) {
       const blockType = board[y][x].blockType;
       if (
-        blockType == BoardBlockType.HOVERED ||
-        blockType == BoardBlockType.HOVERED_BREAK_EMPTY
+        blockType === BoardBlockType.HOVERED ||
+        blockType === BoardBlockType.HOVERED_BREAK_EMPTY
       ) {
         board[y][x].blockType = BoardBlockType.EMPTY;
-      } else if (blockType == BoardBlockType.HOVERED_BREAK_FILLED) {
+      } else if (blockType === BoardBlockType.HOVERED_BREAK_FILLED) {
         board[y][x].blockType = BoardBlockType.FILLED;
       }
     }
@@ -226,8 +226,8 @@ export function updateHoveredBreaks(
     if (
       tempBoard[row].every(
         (cell) =>
-          cell.blockType == BoardBlockType.FILLED ||
-          cell.blockType == BoardBlockType.HOVERED,
+          cell.blockType === BoardBlockType.FILLED ||
+          cell.blockType === BoardBlockType.HOVERED,
       )
     ) {
       rowsToClear.add(row);
@@ -238,8 +238,8 @@ export function updateHoveredBreaks(
     if (
       tempBoard.every(
         (row) =>
-          row[col].blockType == BoardBlockType.FILLED ||
-          row[col].blockType == BoardBlockType.HOVERED,
+          row[col].blockType === BoardBlockType.FILLED ||
+          row[col].blockType === BoardBlockType.HOVERED,
       )
     ) {
       colsToClear.add(col);
@@ -251,7 +251,7 @@ export function updateHoveredBreaks(
   if (count > 0) {
     rowsToClear.forEach((row) => {
       for (let col = 0; col < boardLength; col++) {
-        if (board[row][col].blockType == BoardBlockType.FILLED) {
+        if (board[row][col].blockType === BoardBlockType.FILLED) {
           board[row][col].blockType = BoardBlockType.HOVERED_BREAK_FILLED;
           board[row][col].hoveredBreakColor = piece.color;
         } else {
@@ -262,7 +262,7 @@ export function updateHoveredBreaks(
 
     colsToClear.forEach((col) => {
       for (let row = 0; row < boardLength; row++) {
-        if (board[row][col].blockType == BoardBlockType.FILLED) {
+        if (board[row][col].blockType === BoardBlockType.FILLED) {
           board[row][col].blockType = BoardBlockType.HOVERED_BREAK_FILLED;
           board[row][col].hoveredBreakColor = piece.color;
         } else {
@@ -280,13 +280,13 @@ export function breakLines(board: Board): number {
   const colsToClear = new Set<number>();
 
   for (let row = 0; row < boardLength; row++) {
-    if (board[row].every((cell) => cell.blockType == BoardBlockType.FILLED)) {
+    if (board[row].every((cell) => cell.blockType === BoardBlockType.FILLED)) {
       rowsToClear.add(row);
     }
   }
 
   for (let col = 0; col < boardLength; col++) {
-    if (board.every((row) => row[col].blockType == BoardBlockType.FILLED)) {
+    if (board.every((row) => row[col].blockType === BoardBlockType.FILLED)) {
       colsToClear.add(col);
     }
   }

@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View, TextInput, Alert, Platform } from "react-native";
+import { StyleSheet, Text, View, Platform } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { GameModeType, MenuStateType, useSetAppState } from "@/hooks/useAppState";
 import { useSoundSettings } from "@/constants/Sound";
 import { useTheme, ThemeType } from "@/constants/Theme";
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
-import { submitGlobalHighScore, isTopScore } from "@/constants/Supabase";
+import { submitGlobalHighScore } from "@/constants/Supabase";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PLAYER_NAME_KEY = 'PLAYER_NAME';

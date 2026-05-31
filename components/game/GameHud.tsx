@@ -4,7 +4,10 @@ import Animated, { SharedValue, interpolateColor, runOnJS, useAnimatedReaction, 
 import { Hand } from "@/constants/Hand";
 import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
 import { getHighScores } from "@/constants/Storage";
-import { Color, colorLerp, colorToHex } from "@/constants/Color";
+import { colorToHex } from "@/constants/Color";
+import { getPlayerGlobalHighScore } from "@/constants/Supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 const comboBarGoodColor = colorToHex({r: 0, g: 255, b: 0});
 const comboBarBadColor = colorToHex({r: 255, g: 51, b: 51});
@@ -165,17 +168,35 @@ function ComboBar({ lastBrokenLine, handSize }: ComboBarProps) {
 
 export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score: SharedValue<number>}) {
 	const [ highestScore, setHighestScore ] = useState(0);
+	const [ globalPlayerBest, setGlobalPlayerBest ] = useState(0);
 	const [ scoreState, setScoreState ] = useState(score.value);
 	const { width, height } = useWindowDimensions();
 	const isMobile = width < 600 || height < 700;
 
 	useEffect(() => {
-		getHighScores(gameMode, true, true).then((highScores) => {
-			if (highScores.length == 0)
-				return;
-			setHighestScore(highScores[0].score);
-		});
-	}, [setHighestScore]);
+		let isMounted = true;
+
+		const refreshBestScores = async () => {
+			const highScores = await getHighScores(gameMode, true, true);
+			if (isMounted && highScores.length > 0) {
+				setHighestScore(highScores[0].score);
+			}
+
+			const playerName = (await AsyncStorage.getItem('PLAYER_NAME'))?.trim() || 'Anonymous';
+			const serverBest = await getPlayerGlobalHighScore(playerName, gameMode);
+			if (isMounted && serverBest !== null) {
+				setGlobalPlayerBest(serverBest);
+			}
+		};
+
+		refreshBestScores();
+		const timer = setInterval(refreshBestScores, 10000);
+
+		return () => {
+			isMounted = false;
+			clearInterval(timer);
+		};
+	}, [gameMode]);
 	
 	useAnimatedReaction(() => {
 		return score.value;
@@ -191,16 +212,19 @@ export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score:
 				top: 15,
 				left: 15
 			}
-		]}>{"👑" + Math.max(scoreState, highestScore)}</Text>
+		]}>{"👑" + Math.max(scoreState, highestScore, globalPlayerBest)}</Text>
 		<SettingsButton isMobile={isMobile}></SettingsButton>
 	</>
 }
 
 function SettingsButton({ isMobile }: { isMobile?: boolean }) {
-	const [_appState, _setAppState, appendAppState ] = useAppState();
+	const [, , appendAppState ] = useAppState();
+	const openSettings = () => { appendAppState(MenuStateType.OPTIONS); };
+
+	useEscapeKey(openSettings);
 
 	return <Pressable 
-		onPress={() => {appendAppState(MenuStateType.OPTIONS)}} 
+		onPress={openSettings} 
 		style={[
 			styles.settingsButton,
 			isMobile && {

@@ -1,14 +1,15 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { StyleSheet, Text, View, TextInput, ActivityIndicator, Clipboard, useWindowDimensions, ScrollView, Pressable } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
-import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
+import { GameModeType, useAppState } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
 import { supabase, getTopEloRatings, getPlayerElo, EloRating } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { cssColors } from "@/constants/Color";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import * as Crypto from "expo-crypto";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 interface MultiplayerMenuProps {
     onStartGame: (roomId: string, role: 'player1' | 'player2' | 'spectator', opponentName: string, gameMode: GameModeType) => void;
@@ -42,7 +43,7 @@ function getEloDetails(elo: number) {
 
 export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const { currentTheme } = useTheme();
-    const [, setAppState, , popAppState] = useAppState();
+    const [, , , popAppState] = useAppState();
     const { width } = useWindowDimensions();
     const isMobile = width < 600;
     
@@ -64,6 +65,44 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const currentRoomId = useRef<string | null>(null);
     const subscriptionRef = useRef<any>(null);
     const isMounted = useRef(true);
+    const playerNameRef = useRef(playerName);
+
+    playerNameRef.current = playerName;
+
+    const syncPlayerElo = useCallback(async (name: string = playerNameRef.current, localFallback?: string | null) => {
+        const currentName = name.trim() || 'Anonymous';
+        const serverElo = await getPlayerElo(currentName);
+
+        if (!isMounted.current || (playerNameRef.current.trim() || 'Anonymous') !== currentName) {
+            return;
+        }
+
+        if (serverElo !== null) {
+            setPlayerElo(serverElo);
+            AsyncStorage.setItem('PLAYER_ELO', serverElo.toString());
+            return;
+        }
+
+        if (localFallback) {
+            const parsed = parseInt(localFallback, 10) || 1000;
+            setPlayerElo(parsed);
+        } else {
+            AsyncStorage.setItem('PLAYER_ELO', '1000');
+            setPlayerElo(1000);
+        }
+    }, []);
+
+    useEscapeKey(() => {
+        if (showEloLeaderboard) {
+            setShowEloLeaderboard(false);
+        } else if (showEloScreen) {
+            setShowEloScreen(false);
+        } else if (lobbyState === 'searching' || lobbyState === 'hosting') {
+            cleanupLobby();
+        } else {
+            popAppState();
+        }
+    });
 
     useEffect(() => {
         isMounted.current = true;
@@ -94,23 +133,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         ]).then(([nameVal, localEloVal]) => {
             if (!isMounted.current) return;
             const currentName = (nameVal || 'Anonymous').trim() || 'Anonymous';
-
-            getPlayerElo(currentName).then((serverElo) => {
-                if (!isMounted.current) return;
-                if (serverElo !== null) {
-                    // Server has a value — use it and update local
-                    setPlayerElo(serverElo);
-                    AsyncStorage.setItem('PLAYER_ELO', serverElo.toString());
-                } else if (localEloVal) {
-                    // No server record yet — use local
-                    const parsed = parseInt(localEloVal, 10) || 1000;
-                    setPlayerElo(parsed);
-                } else {
-                    // Nothing at all — set default
-                    AsyncStorage.setItem('PLAYER_ELO', '1000');
-                    setPlayerElo(1000);
-                }
-            });
+            syncPlayerElo(currentName, localEloVal);
         });
 
         // Initial fetch of public rooms
@@ -126,7 +149,27 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             clearInterval(timer);
             cleanupLobby();
         };
-    }, []);
+    }, [syncPlayerElo]);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            syncPlayerElo();
+        }, 10000);
+
+        return () => {
+            clearInterval(timer);
+        };
+    }, [syncPlayerElo]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            syncPlayerElo();
+        }, 500);
+
+        return () => {
+            clearTimeout(timer);
+        };
+    }, [playerName, syncPlayerElo]);
 
     const fetchPublicRooms = async () => {
         try {

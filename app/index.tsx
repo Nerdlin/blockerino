@@ -1,7 +1,6 @@
 import {
 	StyleSheet,
 	LogBox,
-	View,
 } from "react-native";
 import { useFonts } from "expo-font";
 import Animated, {
@@ -75,6 +74,8 @@ export default function App() {
 
 	const gameModeSearch = appState?.containsGameMode();
 	const gameMode = gameModeSearch ? gameModeSearch.current as GameModeType : undefined;
+	const isMainMenuVisible = appState.current === MenuStateType.MENU && !gameMode;
+	const savedGameForCurrentMode = gameMode && savedGame?.gameMode === gameMode ? savedGame : undefined;
 
 	// Once the game starts, clear the savedGame ref in index.tsx state
 	// so it does not get passed to future games.
@@ -112,8 +113,8 @@ export default function App() {
 				<PieceParticle key={`particle${i}`} />
 			))}
 
-			{ (appState.containsState(MenuStateType.MENU) && !gameMode && !appState.containsState(MenuStateType.MULTIPLAYER) && !appState.containsState(MenuStateType.MULTIPLAYER_GAME) && !appState.containsState(MenuStateType.DAILY_CHALLENGES)) && <MainMenu></MainMenu> }
-			{ gameMode && <Game gameMode={gameMode} initialState={savedGame || undefined}></Game> }
+			{ isMainMenuVisible && <MainMenu></MainMenu> }
+			{ gameMode && <Game gameMode={gameMode} initialState={savedGameForCurrentMode || undefined}></Game> }
 			{ appState.containsState(MenuStateType.OPTIONS) && <OptionsMenu></OptionsMenu> }
 			{ appState.containsState(MenuStateType.HIGH_SCORES) && <HighScores></HighScores>}
 			

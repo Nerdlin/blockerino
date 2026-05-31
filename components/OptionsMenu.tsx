@@ -2,12 +2,13 @@ import { MenuStateType, useAppState } from "@/hooks/useAppState";
 import { StyleSheet, Switch, Text, View, useWindowDimensions } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useSoundSettings } from "@/constants/Sound";
 import { Theme, ThemeType, useTheme } from "@/constants/Theme";
 import Animated, { FadeIn } from "react-native-reanimated";
 import Slider from "@react-native-community/slider";
 import { clearActiveGame } from "@/constants/Storage";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 export default function OptionsMenu() {
 	const [ appState, setAppState, , popAppState ] = useAppState();
@@ -33,10 +34,12 @@ export default function OptionsMenu() {
 		loadTheme();
 	}, [initialize, loadTheme]);
 
-	const handleButtonPress = () => {
+	const handleButtonPress = useCallback(() => {
 		playSfx('menuClick');
 		popAppState();
-	};
+	}, [playSfx, popAppState]);
+
+	useEscapeKey(handleButtonPress);
 
 	const handleQuitPress = () => {
 		playSfx('menuClick');

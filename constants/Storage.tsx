@@ -2,7 +2,7 @@ import { GameModeType } from '@/hooks/useAppState';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { Board } from './Board';
-import { Hand } from './Hand';
+import { getDailyPuzzleKey, Hand } from './Hand';
 
 const highScoresKey = "HIGH_SCORES";
 
@@ -35,7 +35,7 @@ export async function getHighScores(gameMode: GameModeType, filterZeroes: boolea
         if (!entry)
             continue;
         const score = JSON.parse(entry) as HighScore;
-        if (gameMode == score.type && (!filterZeroes || score.score != 0))
+        if (gameMode === score.type && (!filterZeroes || score.score !== 0))
             scores.push(score);
     }
     if (sort)
@@ -69,6 +69,7 @@ export interface SavedGameState {
     lastBrokenLine: number;
     scoreStorageId: string | undefined;
     recyclesUsed?: number;
+    dailyKey?: string;
 }
 
 export async function saveActiveGame(state: SavedGameState): Promise<void> {
@@ -82,7 +83,17 @@ export async function saveActiveGame(state: SavedGameState): Promise<void> {
 export async function getActiveGame(): Promise<SavedGameState | null> {
     try {
         const val = await AsyncStorage.getItem(ACTIVE_GAME_KEY);
-        return val ? (JSON.parse(val) as SavedGameState) : null;
+        if (!val) {
+            return null;
+        }
+
+        const state = JSON.parse(val) as SavedGameState;
+        if (state.gameMode === GameModeType.DailyPuzzle && state.dailyKey !== getDailyPuzzleKey()) {
+            await AsyncStorage.removeItem(ACTIVE_GAME_KEY);
+            return null;
+        }
+
+        return state;
     } catch (e) {
         console.error("Error getting active game:", e);
         return null;

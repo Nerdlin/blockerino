@@ -1,9 +1,9 @@
-import { PieceData, getBlockCount, getRandomPieceWorklet } from '@/constants/Piece';
+import { PieceData, getBlockCount } from '@/constants/Piece';
 import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-dnd';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, SafeAreaView, StyleSheet, Text, View, useWindowDimensions, ActivityIndicator, ScrollView } from 'react-native';
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
-import Animated, { ReduceMotion, runOnJS, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, useAnimatedReaction } from 'react-native-reanimated';
+import Animated, { ReduceMotion, runOnJS, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Board, BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes } from '@/constants/Board';
 import { StatsGameHud, StickyGameHud } from '@/components/game/GameHud';
@@ -121,11 +121,11 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const { width, height } = useWindowDimensions();
     const isLargeScreen = width >= 768;
     const isShortScreen = height < 700;
-    const boardLength = gameMode == GameModeType.Chaos ? 10 : 8;
+    const boardLength = gameMode === GameModeType.Chaos ? 10 : 8;
 	
     // Game sizes
 	const { GRID_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardLength);
-    const handSize = gameMode == GameModeType.Chaos ? 5 : 3;
+    const handSize = gameMode === GameModeType.Chaos ? 5 : 3;
 	
     // Local player states
 	const board = useSharedValue(newEmptyBoard(boardLength));
@@ -174,7 +174,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const emoteCounter = useRef(0);
 
     // End game variables
-    const [setAppState] = useAppState()[1] ? [useAppState()[1]] : [() => {}];
+    const [, setAppState] = useAppState();
     const { currentTheme } = useTheme();
     const channelRef = useRef<any>(null);
     const lastSentHover = useRef<{ index: number | null, x: number | null, y: number | null }>({ index: null, x: null, y: null });
@@ -450,7 +450,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
 	const pieceOverlapsRectangle = (layout: Rectangle, other: Rectangle) => {
 		"worklet";
-		if (other.width == 0 && other.height == 0) {
+		if (other.width === 0 && other.height === 0) {
 			return false;
 		}
 
@@ -525,7 +525,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 			}
 			const piece: PieceData = hand.value[draggingPiece.value!]!;
 
-			if (Platform.OS != 'web') {
+			if (Platform.OS !== 'web') {
 				runPiecePlacedHaptic();
 			} else {
 				if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -1077,9 +1077,16 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 32,
         fontFamily: 'Silkscreen',
-        textShadowColor: 'rgba(0, 0, 0, 0.75)',
-        textShadowOffset: { width: 2, height: 2 },
-        textShadowRadius: 3
+        ...Platform.select({
+            web: {
+                textShadow: "2px 2px 3px rgba(0, 0, 0, 0.75)"
+            },
+            default: {
+                textShadowColor: 'rgba(0, 0, 0, 0.75)',
+                textShadowOffset: { width: 2, height: 2 },
+                textShadowRadius: 3
+            }
+        })
     },
     modalMessage: {
         fontSize: 18,

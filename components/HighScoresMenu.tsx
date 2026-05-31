@@ -1,7 +1,7 @@
 import { getHighScores, HighScore } from "@/constants/Storage";
 import { getGlobalHighScores, GlobalHighScore } from "@/constants/Supabase";
 import SimplePopupView from "./SimplePopupView";
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { StyleSheet, Text, View, ActivityIndicator, TextInput } from "react-native";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
@@ -9,6 +9,7 @@ import { GameModeType, useSetAppState } from "@/hooks/useAppState";
 import { submitGlobalHighScore } from "@/constants/Supabase";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from "@/constants/Theme";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 export default function HighScores() {
     const { currentTheme } = useTheme();
@@ -18,9 +19,13 @@ export default function HighScores() {
     const [ gameMode, setGameMode ] = useState(GameModeType.Classic);
     const [ loading, setLoading ] = useState(false);
     const [ syncing, setSyncing ] = useState(false);
-    const [ syncMessage, setSyncMessage ] = useState('');
     const [ playerName, setPlayerName ] = useState('Anonymous');
     const syncInProgress = useRef(false);
+    const handleBack = useCallback(() => {
+        popAppState();
+    }, [popAppState]);
+
+    useEscapeKey(handleBack);
 
     useEffect(() => {
         AsyncStorage.getItem('PLAYER_NAME').then((val) => {
@@ -67,23 +72,42 @@ export default function HighScores() {
     };
 
     useEffect(() => {
-        // Load local high scores to enable syncing
-        getHighScores(gameMode, true, true, 10).then((value) => {
-            setHighScores(value);
-        });
+        let isMounted = true;
 
-        // Load global high scores
-        setLoading(true);
-        getGlobalHighScores(gameMode, 10).then((value) => {
-            setGlobalHighScores(value);
-            setLoading(false);
-        });
+        const refreshScores = async (showLoader: boolean = false) => {
+            if (showLoader) {
+                setLoading(true);
+            }
+
+            const [localScores, remoteScores] = await Promise.all([
+                getHighScores(gameMode, true, true, 10),
+                getGlobalHighScores(gameMode, 10)
+            ]);
+
+            if (!isMounted) {
+                return;
+            }
+
+            setHighScores(localScores);
+            setGlobalHighScores(remoteScores);
+            if (showLoader) {
+                setLoading(false);
+            }
+        };
+
+        refreshScores(true);
+        const timer = setInterval(() => refreshScores(false), 10000);
+
+        return () => {
+            isMounted = false;
+            clearInterval(timer);
+        };
     }, [gameMode]);
 
     const hasScores = globalHighScores.length > 0;
 
     return <SimplePopupView style={[{justifyContent: 'flex-start', backgroundColor: currentTheme.menuBackground}]}>
-        <StylizedButton text="Back" onClick={popAppState} backgroundColor={cssColors.spaceGray}></StylizedButton>
+        <StylizedButton text="Back" onClick={handleBack} backgroundColor={cssColors.spaceGray}></StylizedButton>
 
         <View style={styles.nicknameContainer}>
             <Text style={[styles.subHeader, { color: currentTheme.textSecondary, fontSize: 18, marginBottom: 5 }]}>

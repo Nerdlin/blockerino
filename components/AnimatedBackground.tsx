@@ -6,7 +6,6 @@ import Animated, {
 	useAnimatedStyle,
 	withRepeat,
 	withTiming,
-	withSequence,
 	Easing,
 	interpolateColor,
 } from "react-native-reanimated";
@@ -17,7 +16,6 @@ export default function AnimatedBackground() {
 	const { currentTheme } = useTheme();
 	const progress = useSharedValue(0);
 	const activeCombo = useAtomValue(activeComboAtom);
-	const pulse = useSharedValue(1);
 
 	useEffect(() => {
 		// Speed up based on combo: base is 8000ms, speed increases with combo

@@ -1,19 +1,18 @@
-import { PieceData, getBlockCount, getRandomPieceWorklet } from '@/constants/Piece';
+import { PieceData, getBlockCount } from '@/constants/Piece';
 import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-dnd';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, SafeAreaView, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
-import { ReduceMotion, runOnJS, useSharedValue, useAnimatedReaction } from 'react-native-reanimated';
+import { ReduceMotion, runOnJS, useSharedValue } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes, createSeededBoard } from '@/constants/Board';
 import { StatsGameHud, StickyGameHud } from '@/components/game/GameHud';
 import BlockGrid from '@/components/game/BlockGrid';
-import { createRandomHand, createRandomHandWorklet, createSeededHand, getNumericSeedFromDate } from '@/constants/Hand';
+import { createRandomHand, createRandomHandWorklet, createSeededHand, getDailyPuzzleKey, getNumericSeedFromDate } from '@/constants/Hand';
 import HandPieces from '@/components/game/HandPieces';
 import { GameModeType, activeComboAtom } from '@/hooks/useAppState';
 import { createHighScore, HighScoreId, updateHighScore, SavedGameState, saveActiveGame, clearActiveGame } from '@/constants/Storage';
 import { useSoundSettings } from '@/constants/Sound';
-import { useTheme } from '@/constants/Theme';
 import GameOverModal from '../GameOverModal';
 import { ScorePopup } from './ScorePopup';
 import { useAtom } from 'jotai';
@@ -48,33 +47,35 @@ function runPiecePlacedHaptic() {
 }
 
 export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initialState?: SavedGameState}) => {
-	const boardLength = gameMode == GameModeType.Chaos ? 10 : 8;
+	const boardLength = gameMode === GameModeType.Chaos ? 10 : 8;
 	const { GRID_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardLength);
-	const handSize = gameMode == GameModeType.Chaos ? 5 : 3;
+	const handSize = gameMode === GameModeType.Chaos ? 5 : 3;
 
 	const isDaily = gameMode === GameModeType.DailyPuzzle;
-	const dailySeed = isDaily ? getNumericSeedFromDate(new Date().toDateString()) : 0;
-	const handCount = useSharedValue(initialState ? (initialState as any).handCount || 0 : 0);
+	const dailyKey = isDaily ? getDailyPuzzleKey() : undefined;
+	const dailySeed = isDaily ? getNumericSeedFromDate(`${dailyKey}:daily-puzzle-v2`) : 0;
+	const canUseInitialState = initialState && (!isDaily || initialState.dailyKey === dailyKey);
+	const handCount = useSharedValue(canUseInitialState ? (initialState as any).handCount || 0 : 0);
 
 	const board = useSharedValue(
-		initialState 
+		canUseInitialState 
 			? initialState.board 
 			: (isDaily ? createSeededBoard(boardLength, dailySeed) : newEmptyBoard(boardLength))
 	);
 	const draggingPiece = useSharedValue<number | null>(null);
 	const possibleBoardDropSpots = useSharedValue<PossibleBoardSpots>(JS_emptyPossibleBoardSpots(boardLength));
 	const hand = useSharedValue(
-		initialState 
+		canUseInitialState 
 			? initialState.hand 
 			: (isDaily ? createSeededHand(handSize, dailySeed + 1 + handCount.value) : createRandomHand(handSize, gameMode))
 	);
-	const score = useSharedValue(initialState ? initialState.score : 0);
-	const combo = useSharedValue(initialState ? initialState.combo : 0);
+	const score = useSharedValue(canUseInitialState ? initialState.score : 0);
+	const combo = useSharedValue(canUseInitialState ? initialState.combo : 0);
 	// How many moves ago was the last broken line?
-	const lastBrokenLine = useSharedValue(initialState ? initialState.lastBrokenLine : 0);
+	const lastBrokenLine = useSharedValue(canUseInitialState ? initialState.lastBrokenLine : 0);
 
 	// Time Attack mode timer remaining state
-	const timeRemaining = useSharedValue(initialState ? (initialState as any).timeRemaining || 60 : 60);
+	const timeRemaining = useSharedValue(canUseInitialState ? (initialState as any).timeRemaining || 60 : 60);
 
 	// Состояние для отображения модального окна проигрыша
 	const [isGameOver, setIsGameOver] = useState(false);
@@ -94,8 +95,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		setScorePopups(prev => prev.filter(p => p.id !== id));
 	};
 
-	const scoreStorageId = useSharedValue<HighScoreId | undefined>(initialState ? initialState.scoreStorageId : undefined);
-	const { currentTheme } = useTheme();
+	const scoreStorageId = useSharedValue<HighScoreId | undefined>(canUseInitialState ? initialState.scoreStorageId : undefined);
 	const { playSfx, playComboSound, initialize } = useSoundSettings();
 
 	const [, setActiveCombo] = useAtom(activeComboAtom);
@@ -105,7 +105,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 
 	const pieceOverlapsRectangle = (layout: Rectangle, other: Rectangle) => {
 		"worklet";
-		if (other.width == 0 && other.height == 0) {
+		if (other.width === 0 && other.height === 0) {
 			return false;
 		}
 
@@ -190,7 +190,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 
 			// the block is gonna fit, let's place the block
 			// we'll do the haptics now
-			if (Platform.OS != 'web') {
+			if (Platform.OS !== 'web') {
 				runPiecePlacedHaptic();
 			} else {
 				if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -291,7 +291,8 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				lastBrokenLine: lastBrokenLine.value,
 				scoreStorageId: scoreStorageId.value,
 				timeRemaining: timeRemaining.value,
-				handCount: handCount.value
+				handCount: handCount.value,
+				dailyKey
 			} as any);
 			
 			// Проверка игры на окончание после обновления руки
@@ -392,7 +393,8 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 									lastBrokenLine: lastBrokenLine.value,
 									scoreStorageId: scoreStorageId.value,
 									timeRemaining: timeRemaining.value,
-									handCount: handCount.value
+									handCount: handCount.value,
+									dailyKey
 								} as any);
 							}}
 						/>

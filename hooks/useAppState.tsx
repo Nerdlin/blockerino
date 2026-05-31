@@ -1,4 +1,4 @@
-import { SetStateAction, atom, useAtom, useAtomValue, useSetAtom } from "jotai";
+import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 
 export enum MenuStateType {
 	MENU = 'menu',
@@ -37,7 +37,7 @@ export class AppState {
 	}
 
 	public containsState(type: AppStateType): AppState | undefined {
-		return this.containsStateComparator((val: AppStateType) => { return val == type; })
+		return this.containsStateComparator((val: AppStateType) => { return val === type; })
 	}
 
 	public containsStateComparator(comparator: (type: AppStateType) => boolean): AppState | undefined {
@@ -62,11 +62,11 @@ const appStateAtom = atom<AppState>(new AppState(MenuStateType.MENU));
 
 function createAppStateFunctions(setAppStateAtom: (...args: any) => void): [SetAppState, AppendAppState, PopAppState] {
 	const setAppState = (value: AppStateType | AppState) => {
-		setAppStateAtom(typeof value == typeof AppState ? value as AppState : new AppState(value as AppStateType));
+		setAppStateAtom(value instanceof AppState ? value : new AppState(value));
 	}
 	const appendAppState = (value: AppStateType) => {
 		setAppStateAtom((current: AppState) => {
-			if (value == current.current) {
+			if (value === current.current) {
 				console.warn("Bug? - appending the same state type onto itself.");
 			}
 			return new AppState(value, current);
@@ -78,6 +78,7 @@ function createAppStateFunctions(setAppStateAtom: (...args: any) => void): [SetA
 				return current.prev;
 			} else {
 				console.warn("Tried to pop app state with no previous state!");
+				return current;
 			}
 		});
 	}

@@ -1,6 +1,5 @@
 import { Alert, Linking, Platform } from 'react-native';
 import * as Application from 'expo-application';
-import Constants from 'expo-constants';
 import { supabase } from './Supabase';
 
 export interface AppVersionConfig {

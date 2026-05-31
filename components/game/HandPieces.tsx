@@ -2,12 +2,8 @@ import { useGameSizes } from "@/constants/Board";
 import { Hand } from "@/constants/Hand";
 import { createFilledBlockStyle } from "@/constants/Piece";
 import { SharedPoint, useDraggable } from "@mgcrea/react-native-dnd";
-import { StyleSheet, View, useWindowDimensions, Pressable, Platform } from "react-native";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 import Animated, { SharedValue, runOnJS, useAnimatedStyle, useAnimatedReaction } from "react-native-reanimated";
-import { useState } from "react";
-import { Ionicons, FontAwesome } from "@expo/vector-icons";
-import { useSoundSettings } from "@/constants/Sound";
-import * as Haptics from "expo-haptics";
 
 interface HandProps {
 	hand: SharedValue<Hand>;
@@ -73,7 +69,6 @@ function HandBlock({
 
 export default function HandPieces({ hand, boardSize, onHandChange }: HandProps) {
 	const { GRID_BLOCK_SIZE, HAND_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardSize);
-	const { playSfx } = useSoundSettings();
 	const handSize = hand.value.length;
 	const handPieces = [];
 
@@ -197,7 +192,7 @@ export default function HandPieces({ hand, boardSize, onHandChange }: HandProps)
 }
 
 export function ReadOnlyHandPieces({ hand, boardSize, scale = 1 }: { hand: Hand; boardSize: number; scale?: number }) {
-	const { GRID_BLOCK_SIZE, HAND_BLOCK_SIZE } = useGameSizes(boardSize);
+	const { HAND_BLOCK_SIZE } = useGameSizes(boardSize);
 	const size = HAND_BLOCK_SIZE * scale;
 	const blockSize = size;
 

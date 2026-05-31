@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
-import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
+import { GameModeType, useAppState } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
-import { getHighScores, HighScore } from "@/constants/Storage";
+import { getHighScores } from "@/constants/Storage";
 import { cssColors } from "@/constants/Color";
 import Animated, { FadeIn } from "react-native-reanimated";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 export default function DailyChallengesMenu() {
     const { currentTheme } = useTheme();
@@ -16,6 +17,11 @@ export default function DailyChallengesMenu() {
 
     const [dailyBest, setDailyBest] = useState<number>(0);
     const [speedBest, setSpeedBest] = useState<number>(0);
+    const handleBack = useCallback(() => {
+        popAppState();
+    }, [popAppState]);
+
+    useEscapeKey(handleBack);
 
     useEffect(() => {
         // Load best scores
@@ -45,7 +51,7 @@ export default function DailyChallengesMenu() {
             isMobile && { width: '92%', height: '90%', paddingHorizontal: 10 }
         ]}>
             <Animated.View entering={FadeIn} style={styles.contentContainer}>
-                <StylizedButton text="Back" onClick={popAppState} backgroundColor={cssColors.spaceGray} style={styles.backBtn} />
+                <StylizedButton text="Back" onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.backBtn} />
 
                 <Text style={[styles.header, { color: currentTheme.textPrimary }]}>Challenges</Text>
                 <Text style={[styles.subHeader, { color: currentTheme.textSecondary }]}>Daily tests of skill & speed</Text>

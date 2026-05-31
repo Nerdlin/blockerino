@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { useTheme } from "@/constants/Theme";
@@ -73,9 +73,16 @@ const styles = StyleSheet.create({
         fontFamily: 'Silkscreen',
         marginBottom: 20,
         textAlign: 'center',
-        textShadowColor: 'rgba(0, 0, 0, 0.75)',
-        textShadowOffset: { width: 2, height: 2 },
-        textShadowRadius: 3
+        ...Platform.select({
+            web: {
+                textShadow: "2px 2px 3px rgba(0, 0, 0, 0.75)"
+            },
+            default: {
+                textShadowColor: 'rgba(0, 0, 0, 0.75)',
+                textShadowOffset: { width: 2, height: 2 },
+                textShadowRadius: 3
+            }
+        })
     },
     detailsText: {
         fontSize: 18,
