@@ -2,9 +2,8 @@ import {
 	Board,
 	BoardBlockType,
 	forEachBoardBlock,
-	GRID_BLOCK_SIZE,
-	HITBOX_SIZE,
 	PossibleBoardSpots,
+	useGameSizes
 } from "@/constants/Board";
 import { colorToHex } from "@/constants/Color";
 import { Hand } from "@/constants/Hand";
@@ -15,7 +14,7 @@ import {
 import { useTheme } from "@/constants/Theme";
 import { useDroppable } from "@mgcrea/react-native-dnd";
 import { useEffect } from "react";
-import { StyleSheet, Platform } from "react-native";
+import { StyleSheet, Platform, View } from "react-native";
 import Animated, {
 	SharedValue,
 	interpolateColor,
@@ -41,9 +40,10 @@ interface GridBlockProps {
 	y: number;
 	board: SharedValue<Board>;
 	boardSize: number;
+	gridBlockSize: number;
 }
 
-function GridBlock({ x, y, board, boardSize }: GridBlockProps) {
+function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 	const loadBlockFlash = useSharedValue(0);
 	const placedBlockFall = useSharedValue(0);
 	const placedBlockDirectionX = useSharedValue(0);
@@ -167,8 +167,8 @@ function GridBlock({ x, y, board, boardSize }: GridBlockProps) {
 				position: 'absolute',
 				top: 0,
 				left: 0,
-				width: GRID_BLOCK_SIZE,
-				height: GRID_BLOCK_SIZE,
+				width: gridBlockSize,
+				height: gridBlockSize,
 				zIndex: 20
 			};
 		}
@@ -177,7 +177,7 @@ function GridBlock({ x, y, board, boardSize }: GridBlockProps) {
 
 	return (
 		<>
-			<Animated.View style={[staticStyle, { width: GRID_BLOCK_SIZE, height: GRID_BLOCK_SIZE }]} />
+			<Animated.View style={[staticStyle, { width: gridBlockSize, height: gridBlockSize }]} />
 			<Animated.View style={fallingStyle} />
 		</>
 	);
@@ -192,6 +192,7 @@ export default function BlockGrid({
 	const blockElements: any[] = [];
 	const boardLength = board.value.length;
 	const { currentTheme } = useTheme();
+	const { GRID_BLOCK_SIZE, HITBOX_SIZE } = useGameSizes(boardLength);
 
 	forEachBoardBlock(board.value, (_block, x, y) => {
 		const blockPositionStyle = {
@@ -204,12 +205,14 @@ export default function BlockGrid({
 
 		blockElements.push(
 			<Animated.View key={`${x},${y}`} style={blockPositionStyle}>
-				<GridBlock x={x} y={y} board={board} boardSize={boardLength} />
+				<GridBlock x={x} y={y} board={board} boardSize={boardLength} gridBlockSize={GRID_BLOCK_SIZE} />
 				<BlockDroppable
 					x={x}
 					y={y}
 					style={styles.hitbox}
 					possibleBoardDropSpots={possibleBoardDropSpots}
+					hitboxSize={HITBOX_SIZE}
+					gridBlockSize={GRID_BLOCK_SIZE}
 				></BlockDroppable>
 			</Animated.View>
 		);
@@ -252,6 +255,8 @@ interface BlockDroppableProps {
 	y: number;
 	style: any;
 	possibleBoardDropSpots: SharedValue<PossibleBoardSpots>;
+	hitboxSize: number;
+	gridBlockSize: number;
 }
 
 function BlockDroppable({
@@ -260,6 +265,8 @@ function BlockDroppable({
 	y,
 	style,
 	possibleBoardDropSpots,
+	hitboxSize,
+	gridBlockSize,
 	...otherProps
 }: BlockDroppableProps) {
 	const id = `${x},${y}`;
@@ -291,10 +298,10 @@ function BlockDroppable({
 		if (active) {
 			// use a smaller size droppable than the block so that detection does not overlap with other blocks.
 			return {
-				width: HITBOX_SIZE,
-				height: HITBOX_SIZE,
-				top: (GRID_BLOCK_SIZE - HITBOX_SIZE) / 2,
-				left: (GRID_BLOCK_SIZE - HITBOX_SIZE) / 2,
+				width: hitboxSize,
+				height: hitboxSize,
+				top: (gridBlockSize - hitboxSize) / 2,
+				left: (gridBlockSize - hitboxSize) / 2,
 			};
 		} else {
 			return {
@@ -337,3 +344,51 @@ const styles = StyleSheet.create({
 		position: "absolute",
 	},
 });
+
+interface ReadOnlyBlockGridProps {
+	board: Board;
+	gridBlockSize: number;
+}
+
+export function ReadOnlyBlockGrid({ board, gridBlockSize }: ReadOnlyBlockGridProps) {
+	const blockElements: any[] = [];
+	const boardLength = board.length;
+	const { currentTheme } = useTheme();
+
+	forEachBoardBlock(board, (block, x, y) => {
+		const blockPositionStyle = {
+			position: "absolute" as const,
+			top: y * gridBlockSize + 3,
+			left: x * gridBlockSize + 3,
+			width: gridBlockSize,
+			height: gridBlockSize,
+		};
+
+		let blockStyle: any;
+		if (block.blockType === BoardBlockType.FILLED || block.blockType === BoardBlockType.HOVERED_BREAK_FILLED) {
+			blockStyle = createFilledBlockStyle(block.color, Math.max(1, Math.round(gridBlockSize * 0.15)));
+		} else {
+			blockStyle = createEmptyBlockStyle(currentTheme.emptyBlockBorder);
+		}
+
+		blockElements.push(
+			<View key={`${x},${y}`} style={[blockPositionStyle, blockStyle, { width: gridBlockSize, height: gridBlockSize }]} />
+		);
+	});
+
+	return (
+		<View
+			style={[
+				styles.grid,
+				{
+					width: gridBlockSize * boardLength + 6,
+					height: gridBlockSize * boardLength + 6,
+					backgroundColor: currentTheme.gridBackground,
+					borderColor: currentTheme.gridBorder,
+				}
+			]}
+		>
+			{blockElements}
+		</View>
+	);
+}

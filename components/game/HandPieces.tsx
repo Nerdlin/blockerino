@@ -1,4 +1,4 @@
-import { DRAG_JUMP_LENGTH, GRID_BLOCK_SIZE, HAND_BLOCK_SIZE } from "@/constants/Board";
+import { useGameSizes } from "@/constants/Board";
 import { Hand } from "@/constants/Hand";
 import { createFilledBlockStyle } from "@/constants/Piece";
 import { SharedPoint, useDraggable } from "@mgcrea/react-native-dnd";
@@ -6,10 +6,12 @@ import { StyleSheet, View } from "react-native";
 import Animated, { SharedValue, runOnJS, useAnimatedStyle, withSequence, withTiming, useAnimatedReaction } from "react-native-reanimated";
 
 interface HandProps {
-	hand: SharedValue<Hand>
+	hand: SharedValue<Hand>;
+	boardSize: number;
 }
 
-export default function HandPieces({ hand }: HandProps) {
+export default function HandPieces({ hand, boardSize }: HandProps) {
+	const { GRID_BLOCK_SIZE, HAND_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardSize);
 	const handSize = hand.value.length;
 	const handPieces = [];
 	for (let i = 0; i < handSize; i++) {
@@ -47,7 +49,7 @@ export default function HandPieces({ hand }: HandProps) {
 
 					return style;
 				})
-				pieceBlocks.push(<Animated.View key={`p${x},${y}`} style={[styles.emptyBlock, animatedStyle]}></Animated.View>)
+				pieceBlocks.push(<Animated.View key={`p${x},${y}`} style={[styles.emptyBlock, {width: GRID_BLOCK_SIZE, height: GRID_BLOCK_SIZE}, animatedStyle]}></Animated.View>)
 			}
 		}
 
@@ -107,7 +109,7 @@ export default function HandPieces({ hand }: HandProps) {
 		};
 
 		handPieces.push(
-			<View key={"v" + i} style={styles.piece}>
+			<View key={"v" + i} style={[styles.piece, { width: HAND_BLOCK_SIZE * 5, height: HAND_BLOCK_SIZE * 5 }]}>
 				<PieceDraggable id={id} key={`${i}`} createStyle={animatedStyle} hand={hand}>
 					{pieceBlocks}
 				</PieceDraggable>
@@ -115,7 +117,11 @@ export default function HandPieces({ hand }: HandProps) {
 		)
 	}
 
-	return <View style={styles.hand}>{handPieces}</View>
+	return <View style={[styles.hand, { 
+		maxWidth: HAND_BLOCK_SIZE * 15, 
+		maxHeight: HAND_BLOCK_SIZE * 10,
+		height: HAND_BLOCK_SIZE * 6 
+	}]}>{handPieces}</View>
 }
 
 interface PieceDraggableProps {
@@ -160,8 +166,6 @@ function PieceDraggable({ children, id, createStyle, hand, ...otherProps }: Piec
 
 const styles = StyleSheet.create({
 	emptyBlock: {
-		width: GRID_BLOCK_SIZE,
-		height: GRID_BLOCK_SIZE,
 		margin: 0,
 		borderWidth: 1,
 		borderRadius: 0,
@@ -175,16 +179,11 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		position: 'relative',
 		marginTop: 40,
-		maxWidth: HAND_BLOCK_SIZE * 5 * 3,
-		maxHeight: HAND_BLOCK_SIZE * 5 * 2,
-		height: HAND_BLOCK_SIZE * 6,
 		flexWrap: 'wrap',
 		alignSelf: 'center',
 		flex: 1,
 	},
 	piece: {
-		width: HAND_BLOCK_SIZE * 5,
-		height: HAND_BLOCK_SIZE * 5,
 		position: 'relative',
 		justifyContent: 'center',
 		alignItems: 'center'

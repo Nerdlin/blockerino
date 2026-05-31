@@ -1,6 +1,8 @@
 import { GameModeType } from '@/hooks/useAppState';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
+import { Board } from './Board';
+import { Hand } from './Hand';
 
 const highScoresKey = "HIGH_SCORES";
 
@@ -54,4 +56,42 @@ export async function createHighScore(score: HighScore): Promise<HighScoreId> {
     AsyncStorage.setItem(highScoresKey, JSON.stringify(highScoreKeys));
     AsyncStorage.setItem(id, JSON.stringify(score));
     return id;
+}
+
+const ACTIVE_GAME_KEY = "ACTIVE_GAME";
+
+export interface SavedGameState {
+    gameMode: GameModeType;
+    board: Board;
+    hand: Hand;
+    score: number;
+    combo: number;
+    lastBrokenLine: number;
+    scoreStorageId: string | undefined;
+}
+
+export async function saveActiveGame(state: SavedGameState): Promise<void> {
+    try {
+        await AsyncStorage.setItem(ACTIVE_GAME_KEY, JSON.stringify(state));
+    } catch (e) {
+        console.error("Error saving active game:", e);
+    }
+}
+
+export async function getActiveGame(): Promise<SavedGameState | null> {
+    try {
+        const val = await AsyncStorage.getItem(ACTIVE_GAME_KEY);
+        return val ? (JSON.parse(val) as SavedGameState) : null;
+    } catch (e) {
+        console.error("Error getting active game:", e);
+        return null;
+    }
+}
+
+export async function clearActiveGame(): Promise<void> {
+    try {
+        await AsyncStorage.removeItem(ACTIVE_GAME_KEY);
+    } catch (e) {
+        console.error("Error clearing active game:", e);
+    }
 }

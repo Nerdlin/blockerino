@@ -1,7 +1,7 @@
 import { getHighScores, HighScore } from "@/constants/Storage";
 import { getGlobalHighScores, GlobalHighScore } from "@/constants/Supabase";
 import SimplePopupView from "./SimplePopupView";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { StyleSheet, Text, View, ActivityIndicator, TextInput } from "react-native";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
@@ -20,6 +20,7 @@ export default function HighScores() {
     const [ syncing, setSyncing ] = useState(false);
     const [ syncMessage, setSyncMessage ] = useState('');
     const [ playerName, setPlayerName ] = useState('Anonymous');
+    const syncInProgress = useRef(false);
 
     useEffect(() => {
         AsyncStorage.getItem('PLAYER_NAME').then((val) => {
@@ -34,23 +35,34 @@ export default function HighScores() {
     };
 
     const handlePlayerNameBlur = async () => {
-        const trimmedName = playerName.trim();
-        const finalName = trimmedName || 'Anonymous';
+        if (syncInProgress.current) return;
+        syncInProgress.current = true;
         
-        await AsyncStorage.setItem('PLAYER_NAME', finalName);
-        
-        // Auto-sync best local score if they have one
-        if (highScores.length > 0) {
-            setSyncing(true);
-            const bestScore = highScores[0].score;
-            await submitGlobalHighScore(finalName, bestScore, gameMode);
-            setSyncing(false);
+        try {
+            const trimmedName = playerName.trim();
+            const finalName = trimmedName || 'Anonymous';
             
-            // Refresh global leaderboard
-            setLoading(true);
-            const updatedScores = await getGlobalHighScores(gameMode, 10);
-            setGlobalHighScores(updatedScores);
+            await AsyncStorage.setItem('PLAYER_NAME', finalName);
+            
+            // Auto-sync best local score if they have one
+            if (highScores.length > 0) {
+                setSyncing(true);
+                const bestScore = highScores[0].score;
+                await submitGlobalHighScore(finalName, bestScore, gameMode);
+                setSyncing(false);
+                
+                // Refresh global leaderboard
+                setLoading(true);
+                const updatedScores = await getGlobalHighScores(gameMode, 10);
+                setGlobalHighScores(updatedScores);
+                setLoading(false);
+            }
+        } catch (error) {
+            console.error('Error syncing score:', error);
+            setSyncing(false);
             setLoading(false);
+        } finally {
+            syncInProgress.current = false;
         }
     };
 

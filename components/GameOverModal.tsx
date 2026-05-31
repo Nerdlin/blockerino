@@ -31,7 +31,9 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
             -1,
             true
         );
+    }, []);
 
+    useEffect(() => {
         // Автоматическая отправка рекорда на Supabase
         const autoSubmit = async () => {
             setSubmitStatus('submitting');
@@ -53,7 +55,7 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
         };
 
         autoSubmit();
-    }, [score, gameMode, playSfx, scale]);
+    }, [score, gameMode]);
 
     const animatedTextStyle = useAnimatedStyle(() => {
         return {

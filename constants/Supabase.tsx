@@ -59,11 +59,14 @@ export async function submitGlobalHighScore(
     gameMode: string
 ): Promise<boolean> {
     try {
-        // Проверяем, существует ли уже запись для этого игрока в этом режиме
+        // Экранируем спецсимволы в имени для case-insensitive LIKE поиска
+        const escapedName = playerName.replace(/[%_]/g, '\\$&');
+
+        // Проверяем, существует ли уже запись для этого игрока в этом режиме (без учета регистра)
         const { data, error: fetchError } = await supabase
             .from('high_scores')
-            .select('id, score')
-            .eq('player_name', playerName)
+            .select('id, score, player_name')
+            .ilike('player_name', escapedName)
             .eq('game_mode', gameMode)
             .limit(1);
 
@@ -75,11 +78,12 @@ export async function submitGlobalHighScore(
         const existingRecord = data && data[0];
 
         if (existingRecord) {
-            // Если новый результат лучше, обновляем его
+            // Если новый результат лучше, обновляем его и имя (вдруг изменился регистр)
             if (score > existingRecord.score) {
                 const { error: updateError } = await supabase
                     .from('high_scores')
                     .update({
+                        player_name: playerName,
                         score: score,
                         created_at: new Date().toISOString()
                     })
@@ -87,6 +91,19 @@ export async function submitGlobalHighScore(
 
                 if (updateError) {
                     console.error('Error updating high score:', updateError);
+                    return false;
+                }
+            } else if (playerName !== existingRecord.player_name) {
+                // Если счет не лучше, но изменился регистр/написание имени, обновляем имя в БД
+                const { error: updateError } = await supabase
+                    .from('high_scores')
+                    .update({
+                        player_name: playerName
+                    })
+                    .eq('id', existingRecord.id);
+
+                if (updateError) {
+                    console.error('Error updating player name:', updateError);
                     return false;
                 }
             }

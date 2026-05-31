@@ -11,13 +11,17 @@ import Animated, {
 } from "react-native-reanimated";
 import Game from "@/components/game/Game";
 import { GameModeType } from '@/hooks/useAppState';
-import React from "react";
+import React, { useState, useEffect } from "react";
 import OptionsMenu from "@/components/OptionsMenu";
 import { MenuStateType, useAppState } from "@/hooks/useAppState";
 import MainMenu from "@/components/MainMenu";
 import HighScores from "@/components/HighScoresMenu";
 import { PieceParticle } from "@/components/PieceParticle";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import { getActiveGame, clearActiveGame, SavedGameState } from "@/constants/Storage";
+import ContinueGameModal from "@/components/ContinueGameModal";
+import MultiplayerMenu from "@/components/MultiplayerMenu";
+import MultiplayerGame from "@/components/game/MultiplayerGame";
 
 // Suppress noisy library-specific deprecation warnings in developer tools
 LogBox.ignoreLogs([
@@ -39,12 +43,59 @@ export default function App() {
 		SilkscreenBold: require("../assets/fonts/Silkscreen-Bold.ttf"),
 	});
 
-	const [ appState ] = useAppState();
+	const [ appState, setAppState ] = useAppState();
+	const [ savedGame, setSavedGame ] = useState<SavedGameState | null>(null);
+	const [ showContinueModal, setShowContinueModal ] = useState(false);
+
+	// Multiplayer States
+	const [ multiplayerRoomId, setMultiplayerRoomId ] = useState<string | null>(null);
+	const [ multiplayerRole, setMultiplayerRole ] = useState<'player1' | 'player2'>('player1');
+	const [ opponentName, setOpponentName ] = useState('');
+	const [ multiplayerGameMode, setMultiplayerGameMode ] = useState<GameModeType>(GameModeType.Classic);
+
+	useEffect(() => {
+		// On startup, check for active saved game
+		getActiveGame().then((game) => {
+			if (game) {
+				setSavedGame(game);
+				setShowContinueModal(true);
+			}
+		});
+	}, []);
 
 	if (!loaded) return null;
 
 	const gameModeSearch = appState?.containsGameMode();
 	const gameMode = gameModeSearch ? gameModeSearch.current as GameModeType : undefined;
+
+	// Once the game starts, clear the savedGame ref in index.tsx state
+	// so it does not get passed to future games.
+	if (gameMode && savedGame) {
+		setTimeout(() => {
+			setSavedGame(null);
+		}, 0);
+	}
+
+	const handleContinue = () => {
+		if (savedGame) {
+			setAppState(savedGame.gameMode);
+			setShowContinueModal(false);
+		}
+	};
+
+	const handleStartOver = async () => {
+		await clearActiveGame();
+		setSavedGame(null);
+		setShowContinueModal(false);
+	};
+
+	const handleStartGame = (roomId: string, role: 'player1' | 'player2', oppName: string, mode: GameModeType) => {
+		setMultiplayerRoomId(roomId);
+		setMultiplayerRole(role);
+		setOpponentName(oppName);
+		setMultiplayerGameMode(mode);
+		setAppState(MenuStateType.MULTIPLAYER_GAME);
+	};
 	
 	return (
 		<Animated.View entering={FadeIn} exiting={FadeOut} style={styles.container}>
@@ -53,10 +104,32 @@ export default function App() {
 				<PieceParticle key={`particle${i}`} />
 			))}
 
-			{ (appState.containsState(MenuStateType.MENU) && !gameMode) && <MainMenu></MainMenu> }
-			{ gameMode && <Game gameMode={gameMode}></Game> }
+			{ (appState.containsState(MenuStateType.MENU) && !gameMode && !appState.containsState(MenuStateType.MULTIPLAYER) && !appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && <MainMenu></MainMenu> }
+			{ gameMode && <Game gameMode={gameMode} initialState={savedGame || undefined}></Game> }
 			{ appState.containsState(MenuStateType.OPTIONS) && <OptionsMenu></OptionsMenu> }
 			{ appState.containsState(MenuStateType.HIGH_SCORES) && <HighScores></HighScores>}
+			
+			{ appState.containsState(MenuStateType.MULTIPLAYER) && (
+				<MultiplayerMenu onStartGame={handleStartGame} />
+			)}
+
+			{ appState.containsState(MenuStateType.MULTIPLAYER_GAME) && multiplayerRoomId && (
+				<MultiplayerGame
+					roomId={multiplayerRoomId}
+					myRole={multiplayerRole}
+					opponentName={opponentName}
+					gameMode={multiplayerGameMode}
+				/>
+			)}
+
+			{ showContinueModal && savedGame && (
+				<ContinueGameModal
+					score={savedGame.score}
+					gameMode={savedGame.gameMode}
+					onContinue={handleContinue}
+					onStartOver={handleStartOver}
+				/>
+			)}
 		</Animated.View>
 	);
 }

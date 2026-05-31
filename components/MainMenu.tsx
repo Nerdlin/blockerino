@@ -68,6 +68,14 @@ export default function MainMenu() {
 			textStyle={{ color: "white" }}
 			idleBounceRotate={true}
 		/>
+		<MainButton
+			onClick={() => {
+				appendAppState(MenuStateType.MULTIPLAYER);
+			}}
+			backgroundColor={cssColors.versusBlue}
+			title={"Versus 1v1"}
+			flavorText={"real-time duel"}
+		/>
 		<MainButton onClick = {() => {
 			appendAppState(MenuStateType.HIGH_SCORES)
 		}} backgroundColor={cssColors.pink} title={"High Scores"} />

@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import Head from "expo-router/head";
 import { useEffect } from "react";
 import { LogBox } from "react-native";
 import { updateService } from "@/constants/UpdateService";
@@ -28,5 +29,20 @@ export default function RootLayout() {
 		updateService.checkForUpdates();
 	}, []);
 
-	return <Stack screenOptions={{headerShown: false, autoHideHomeIndicator: true}} />;
+	return (
+		<>
+			<Head>
+				<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+				<style>{`
+					body {
+						touch-action: none;
+						user-select: none;
+						-webkit-user-select: none;
+						overscroll-behavior: none;
+					}
+				`}</style>
+			</Head>
+			<Stack screenOptions={{headerShown: false, autoHideHomeIndicator: true}} />
+		</>
+	);
 }

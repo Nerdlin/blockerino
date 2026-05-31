@@ -7,6 +7,7 @@ import { useSoundSettings } from "@/constants/Sound";
 import { Theme, ThemeType, useTheme } from "@/constants/Theme";
 import Animated, { FadeIn } from "react-native-reanimated";
 import Slider from "@react-native-community/slider";
+import { clearActiveGame } from "@/constants/Storage";
 
 export default function OptionsMenu() {
 	const [ appState, setAppState, , popAppState ] = useAppState();
@@ -37,6 +38,7 @@ export default function OptionsMenu() {
 
 	const handleQuitPress = () => {
 		playSfx('menuClick');
+		clearActiveGame();
 		setAppState(MenuStateType.MENU);
 	};
 

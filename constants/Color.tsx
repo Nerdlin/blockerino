@@ -3,7 +3,8 @@ export const cssColors = {
     pink: "#FF00FF",
     green: "#00FF00",
     pitchBlack: "#000000",
-    spaceGray: "rgb(90, 90, 90)"
+    spaceGray: "rgb(90, 90, 90)",
+    versusBlue: "#1FA5DE"
 }
 
 export interface Color {

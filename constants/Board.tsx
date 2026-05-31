@@ -1,10 +1,25 @@
 import { Color } from "./Color";
 import { getRandomPieceColor, PieceData } from "./Piece";
 
-export const GRID_BLOCK_SIZE = 46;
-export const HAND_BLOCK_SIZE = 22;
-export const HITBOX_SIZE = 12;
-export const DRAG_JUMP_LENGTH = 116;
+import { useWindowDimensions } from 'react-native';
+
+export function useGameSizes(boardLength: number) {
+  const { width } = useWindowDimensions();
+  
+  const maxGridWidth = width - 10; // 5px padding on each side
+  const idealBlockSize = 46;
+  const calculatedBlockSize = Math.floor(maxGridWidth / boardLength);
+  const gridBlockSize = Math.min(idealBlockSize, calculatedBlockSize);
+  
+  const scaleRatio = gridBlockSize / 46;
+  
+  return {
+    GRID_BLOCK_SIZE: gridBlockSize,
+    HAND_BLOCK_SIZE: 22 * scaleRatio,
+    HITBOX_SIZE: Math.max(8, 12 * scaleRatio),
+    DRAG_JUMP_LENGTH: 116 * scaleRatio
+  };
+}
 
 export interface XYPoint {
   x: number;

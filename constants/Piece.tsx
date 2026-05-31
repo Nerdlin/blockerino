@@ -221,6 +221,132 @@ export const piecesData: PieceDataSaved[] = [
 		],
 		distributionPoints: 2,
 	},
+	// 1x1 (Single block)
+	{
+		matrix: [
+			[1],
+		],
+		distributionPoints: 6,
+	},
+	// Corner 2x2 (L-shape with 3 blocks)
+	{
+		matrix: [
+			[1, 1],
+			[1, 0],
+		],
+		distributionPoints: 4,
+	},
+	{
+		matrix: [
+			[1, 1],
+			[0, 1],
+		],
+		distributionPoints: 4,
+	},
+	{
+		matrix: [
+			[1, 0],
+			[1, 1],
+		],
+		distributionPoints: 4,
+	},
+	{
+		matrix: [
+			[0, 1],
+			[1, 1],
+		],
+		distributionPoints: 4,
+	},
+	// Big L-shape 3x3 (5 blocks)
+	{
+		matrix: [
+			[1, 0, 0],
+			[1, 0, 0],
+			[1, 1, 1],
+		],
+		distributionPoints: 2,
+	},
+	{
+		matrix: [
+			[1, 1, 1],
+			[1, 0, 0],
+			[1, 0, 0],
+		],
+		distributionPoints: 2,
+	},
+	{
+		matrix: [
+			[1, 1, 1],
+			[0, 0, 1],
+			[0, 0, 1],
+		],
+		distributionPoints: 2,
+	},
+	{
+		matrix: [
+			[0, 0, 1],
+			[0, 0, 1],
+			[1, 1, 1],
+		],
+		distributionPoints: 2,
+	},
+	// U-shape 3x2 (5 blocks)
+	{
+		matrix: [
+			[1, 0, 1],
+			[1, 1, 1],
+		],
+		distributionPoints: 1.5,
+	},
+	{
+		matrix: [
+			[1, 1, 1],
+			[1, 0, 1],
+		],
+		distributionPoints: 1.5,
+	},
+	{
+		matrix: [
+			[1, 1],
+			[1, 0],
+			[1, 1],
+		],
+		distributionPoints: 1.5,
+	},
+	{
+		matrix: [
+			[1, 1],
+			[0, 1],
+			[1, 1],
+		],
+		distributionPoints: 1.5,
+	},
+	// Plus/Cross shape 3x3 (5 blocks)
+	{
+		matrix: [
+			[0, 1, 0],
+			[1, 1, 1],
+			[0, 1, 0],
+		],
+		distributionPoints: 1.5,
+	},
+	// 5x1 and 1x5 long lines
+	{
+		matrix: [
+			[1],
+			[1],
+			[1],
+			[1],
+			[1],
+		],
+		distributionPoints: 1.5,
+	},
+	{
+		matrix: [
+			[1, 1, 1, 1, 1],
+		],
+		distributionPoints: 1.5,
+	},
 ];
 
 export const pieceColors = [

@@ -5,32 +5,18 @@ import { Platform, SafeAreaView, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
 import { ReduceMotion, runOnJS, useSharedValue } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { BoardBlockType, GRID_BLOCK_SIZE, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks } from '@/constants/Board';
+import { BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes } from '@/constants/Board';
 import { StatsGameHud, StickyGameHud } from '@/components/game/GameHud';
 import BlockGrid from '@/components/game/BlockGrid';
 import { createRandomHand, createRandomHandWorklet } from '@/constants/Hand';
 import HandPieces from '@/components/game/HandPieces';
 import { GameModeType } from '@/hooks/useAppState';
-import { createHighScore, HighScoreId, updateHighScore } from '@/constants/Storage';
+import { createHighScore, HighScoreId, updateHighScore, SavedGameState, saveActiveGame, clearActiveGame } from '@/constants/Storage';
 import { useSoundSettings } from '@/constants/Sound';
 import { useTheme } from '@/constants/Theme';
 import GameOverModal from '../GameOverModal';
 import { ScorePopup } from './ScorePopup';
 
-// layout = active/dragging
-const pieceOverlapsRectangle = (layout: Rectangle, other: Rectangle) => {
-	"worklet";
-	if (other.width == 0 && other.height == 0) {
-		return false;
-	}
-
-	return (
-		layout.x < other.x + other.width &&
-		layout.x + GRID_BLOCK_SIZE > other.x &&
-		layout.y < other.y + other.height &&
-		layout.y + GRID_BLOCK_SIZE > other.y
-	);
-};
 
 const SPRING_CONFIG_MISSED_DRAG = {
 	mass: 1,
@@ -56,17 +42,18 @@ function runPiecePlacedHaptic() {
 	runOnJS(impactAsyncHelper)(Haptics.ImpactFeedbackStyle.Light);
 }
 
-export const Game = (({gameMode}: {gameMode: GameModeType}) => {
+export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initialState?: SavedGameState}) => {
 	const boardLength = gameMode == GameModeType.Chaos ? 10 : 8;
+	const { GRID_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardLength);
 	const handSize = gameMode == GameModeType.Chaos ? 5 : 3;
-	const board = useSharedValue(newEmptyBoard(boardLength));
+	const board = useSharedValue(initialState ? initialState.board : newEmptyBoard(boardLength));
 	const draggingPiece = useSharedValue<number | null>(null);
 	const possibleBoardDropSpots = useSharedValue<PossibleBoardSpots>(JS_emptyPossibleBoardSpots(boardLength));
-	const hand = useSharedValue(createRandomHand(handSize));
-	const score = useSharedValue(0);
-	const combo = useSharedValue(0);
+	const hand = useSharedValue(initialState ? initialState.hand : createRandomHand(handSize));
+	const score = useSharedValue(initialState ? initialState.score : 0);
+	const combo = useSharedValue(initialState ? initialState.combo : 0);
 	// How many moves ago was the last broken line?
-	const lastBrokenLine = useSharedValue(0);
+	const lastBrokenLine = useSharedValue(initialState ? initialState.lastBrokenLine : 0);
 	// Состояние для отображения модального окна проигрыша
 	const [isGameOver, setIsGameOver] = useState(false);
 	const [scorePopups, setScorePopups] = useState<{id: number, points: number, x: number, y: number}[]>([]);
@@ -78,12 +65,30 @@ export const Game = (({gameMode}: {gameMode: GameModeType}) => {
 	};
 	
 	const removeScorePopup = (id: number) => {
+		removeScorePopupHelper(id);
+	};
+
+	const removeScorePopupHelper = (id: number) => {
 		setScorePopups(prev => prev.filter(p => p.id !== id));
 	};
 
-	const scoreStorageId = useSharedValue<HighScoreId | undefined>(undefined);
+	const scoreStorageId = useSharedValue<HighScoreId | undefined>(initialState ? initialState.scoreStorageId : undefined);
 	const { currentTheme } = useTheme();
 	const { playSfx, playComboSound, initialize } = useSoundSettings();
+
+	const pieceOverlapsRectangle = (layout: Rectangle, other: Rectangle) => {
+		"worklet";
+		if (other.width == 0 && other.height == 0) {
+			return false;
+		}
+
+		return (
+			layout.x < other.x + other.width &&
+			layout.x + GRID_BLOCK_SIZE > other.x &&
+			layout.y - DRAG_JUMP_LENGTH < other.y + other.height &&
+			layout.y - DRAG_JUMP_LENGTH + GRID_BLOCK_SIZE > other.y
+		);
+	};
 
 	useEffect(() => {
 		initialize();
@@ -188,13 +193,26 @@ export const Game = (({gameMode}: {gameMode: GameModeType}) => {
 				}
 			}
 			
+			let nextHand;
 			if (empty) {
-				hand.value = createRandomHandWorklet(handSize);
+				nextHand = createRandomHandWorklet(handSize);
 			} else {
-				hand.value = newHand;
+				nextHand = newHand;
 			}
+			hand.value = nextHand;
 			
 			board.value = newBoard;
+
+			// Сохраняем состояние текущей игры
+			runOnJS(saveActiveGame)({
+				gameMode,
+				board: newBoard,
+				hand: nextHand,
+				score: score.value,
+				combo: combo.value,
+				lastBrokenLine: lastBrokenLine.value,
+				scoreStorageId: scoreStorageId.value
+			});
 			
 			// Проверка игры на окончание после обновления руки
 			runOnJS(setTimeout)(() => {
@@ -202,6 +220,7 @@ export const Game = (({gameMode}: {gameMode: GameModeType}) => {
 				const hasPossibleMoves = checkForPossibleMoves();
 				if (!hasPossibleMoves) {
 					setIsGameOver(true);
+					clearActiveGame(); // Очищаем сохраненную игру, так как она окончена
 				}
 			}, 300);
 			
@@ -271,7 +290,7 @@ export const Game = (({gameMode}: {gameMode: GameModeType}) => {
 								/>
 							))}
 						</View>
-						<HandPieces hand={hand}></HandPieces>
+						<HandPieces hand={hand} boardSize={boardLength}></HandPieces>
 					</DndProvider>
 					
 					{isGameOver && (
