@@ -55,6 +55,8 @@ export class AppState {
 
 const appStateAtom = atom<AppState>(new AppState(MenuStateType.MENU));
 
+export const activeComboAtom = atom<number>(0);
+
 function createAppStateFunctions(setAppStateAtom: (...args: any) => void): [SetAppState, AppendAppState, PopAppState] {
 	const setAppState = (value: AppStateType | AppState) => {
 		setAppStateAtom(typeof value == typeof AppState ? value as AppState : new AppState(value as AppStateType));

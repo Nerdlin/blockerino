@@ -3,23 +3,24 @@ import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-d
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, SafeAreaView, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
-import { ReduceMotion, runOnJS, useSharedValue } from 'react-native-reanimated';
+import { ReduceMotion, runOnJS, useSharedValue, useAnimatedReaction } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes } from '@/constants/Board';
 import { StatsGameHud, StickyGameHud } from '@/components/game/GameHud';
 import BlockGrid from '@/components/game/BlockGrid';
 import { createRandomHand, createRandomHandWorklet } from '@/constants/Hand';
 import HandPieces from '@/components/game/HandPieces';
-import { GameModeType } from '@/hooks/useAppState';
+import { GameModeType, activeComboAtom } from '@/hooks/useAppState';
 import { createHighScore, HighScoreId, updateHighScore, SavedGameState, saveActiveGame, clearActiveGame } from '@/constants/Storage';
 import { useSoundSettings } from '@/constants/Sound';
 import { useTheme } from '@/constants/Theme';
 import GameOverModal from '../GameOverModal';
 import { ScorePopup } from './ScorePopup';
+import { useAtom } from 'jotai';
 
 
 const SPRING_CONFIG_MISSED_DRAG = {
-	mass: 1,
+	max: 1,
 	damping: 1,
 	stiffness: 500,
 	overshootClamping: true,
@@ -76,6 +77,15 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const { currentTheme } = useTheme();
 	const { playSfx, playComboSound, initialize } = useSoundSettings();
 
+	// Sync active combo with global atom
+	const [activeCombo, setActiveCombo] = useAtom(activeComboAtom);
+
+	useAnimatedReaction(() => {
+		return combo.value;
+	}, (curCombo) => {
+		runOnJS(setActiveCombo)(curCombo);
+	});
+
 	const pieceOverlapsRectangle = (layout: Rectangle, other: Rectangle) => {
 		"worklet";
 		if (other.width == 0 && other.height == 0) {
@@ -92,6 +102,9 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 
 	useEffect(() => {
 		initialize();
+		return () => {
+			setActiveCombo(0);
+		};
 	}, []);
 
 	useEffect(() => {

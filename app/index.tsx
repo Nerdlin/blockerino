@@ -22,6 +22,7 @@ import { getActiveGame, clearActiveGame, SavedGameState } from "@/constants/Stor
 import ContinueGameModal from "@/components/ContinueGameModal";
 import MultiplayerMenu from "@/components/MultiplayerMenu";
 import MultiplayerGame from "@/components/game/MultiplayerGame";
+import { useSoundSettings } from "@/constants/Sound";
 
 // Suppress noisy library-specific deprecation warnings in developer tools
 LogBox.ignoreLogs([
@@ -53,7 +54,13 @@ export default function App() {
 	const [ opponentName, setOpponentName ] = useState('');
 	const [ multiplayerGameMode, setMultiplayerGameMode ] = useState<GameModeType>(GameModeType.Classic);
 
+	// Preload sound settings hook
+	const { initialize: initializeSounds } = useSoundSettings();
+
 	useEffect(() => {
+		// Initialize all sounds and settings immediately on startup
+		initializeSounds().catch(err => console.log("Failed to initialize sounds at startup", err));
+
 		// On startup, check for active saved game
 		getActiveGame().then((game) => {
 			if (game) {

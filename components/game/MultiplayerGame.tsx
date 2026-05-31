@@ -3,20 +3,22 @@ import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-d
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, SafeAreaView, StyleSheet, Text, View, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
-import Animated, { ReduceMotion, runOnJS, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { ReduceMotion, runOnJS, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, useAnimatedReaction } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Board, BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes } from '@/constants/Board';
 import { StatsGameHud, StickyGameHud } from '@/components/game/GameHud';
 import BlockGrid, { ReadOnlyBlockGrid } from '@/components/game/BlockGrid';
 import { Hand, createRandomHand, createRandomHandWorklet } from '@/constants/Hand';
 import HandPieces, { ReadOnlyHandPieces } from '@/components/game/HandPieces';
-import { GameModeType, MenuStateType, useAppState } from '@/hooks/useAppState';
+import { GameModeType, MenuStateType, useAppState, activeComboAtom } from '@/hooks/useAppState';
 import { supabase, submitGlobalHighScore } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScorePopup } from './ScorePopup';
+import { useSoundSettings } from '@/constants/Sound';
+import { useAtom } from 'jotai';
 
 interface MultiplayerGameProps {
     roomId: string;
@@ -89,6 +91,15 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const [scorePopups, setScorePopups] = useState<{id: number, points: number, x: number, y: number}[]>([]);
     const scorePopupIdCounter = useRef(0);
 
+    const { playSfx, playComboSound, initialize } = useSoundSettings();
+    const [activeCombo, setActiveCombo] = useAtom(activeComboAtom);
+
+    useAnimatedReaction(() => {
+        return combo.value;
+    }, (curCombo) => {
+        runOnJS(setActiveCombo)(curCombo);
+    });
+
     const addScorePopup = (points: number, x: number, y: number) => {
         const id = scorePopupIdCounter.current++;
         setScorePopups(prev => [...prev, { id, points, x, y }]);
@@ -98,8 +109,10 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         setScorePopups(prev => prev.filter(p => p.id !== id));
     };
 
-    // Setup networking
+    // Setup networking and sounds
     useEffect(() => {
+        initialize();
+
         AsyncStorage.getItem('PLAYER_NAME').then((val) => {
             if (val) {
                 setPlayerName(val);
@@ -133,6 +146,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         channelRef.current = channel;
 
         return () => {
+            setActiveCombo(0);
             if (hoverThrottleTimer.current) {
                 clearInterval(hoverThrottleTimer.current);
             }
@@ -246,6 +260,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
         // Submit high score to database
         submitGlobalHighScore(playerName, score.value, gameMode);
+        
+        runOnJS(playSfx)('gameOver');
     };
 
     const checkAndSaveWinner = async (myScore: number, oppScore: number, myOver: boolean, oppOver: boolean) => {
@@ -285,6 +301,9 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 				}
 			}
 
+			// Play placement sound
+			runOnJS(playSfx)('placeBlock');
+
 			const newBoard = clearHoverBlocks([...board.value]);
 			placePieceOntoBoard(newBoard, piece, dropX, dropY, BoardBlockType.FILLED);
 			const linesBroken = breakLines(newBoard);
@@ -296,6 +315,9 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 				lastBrokenLine.value = 0;
 				combo.value += linesBroken;
 				
+				// Play combo line break sound
+				runOnJS(playComboSound)(combo.value);
+
 				if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.vibrate) {
 					navigator.vibrate([25, 45, 25]);
 				}
@@ -341,6 +363,10 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 				}
 			}, 300);
 			
+		} else {
+			board.value = clearHoverBlocks([...board.value]);
+			// Play invalid drop sound
+			runOnJS(playSfx)('invalidPlacement');
 		}
 		
 		draggingPiece.value = null;

@@ -43,6 +43,77 @@ interface GridBlockProps {
 	gridBlockSize: number;
 }
 
+interface SparkProps {
+	index: number;
+	progress: SharedValue<number>;
+	board: SharedValue<Board>;
+	bx: number;
+	by: number;
+	gridBlockSize: number;
+}
+
+function Spark({ index, progress, board, bx, by, gridBlockSize }: SparkProps) {
+	// Deterministic angles and speeds per index so they explode in all directions
+	const angle = (index * (Math.PI * 2)) / 8 + (index * 0.17) % 0.5;
+	const speed = 25 + (index * 7) % 30; // max distance from center
+
+	const animatedStyle = useAnimatedStyle(() => {
+		const p = progress.value;
+		if (p === 0 || p >= 1) {
+			return {
+				opacity: 0,
+				transform: [{ scale: 0 }],
+			};
+		}
+
+		// Ease out quad for natural friction feel
+		const easedP = p * (2 - p);
+		const distance = easedP * speed;
+
+		const translateX = Math.cos(angle) * distance;
+		// Downward gravity drift as particles travel
+		const translateY = Math.sin(angle) * distance + (p * p * 20);
+
+		// Shrink and fade as time progresses
+		const scale = (1 - p) * 1.5;
+		const opacity = 1 - p;
+
+		// Access board block color dynamically on the UI thread
+		const color = board.value[by][bx].color;
+		const colorHex = colorToHex(color);
+
+		return {
+			position: 'absolute',
+			width: 6,
+			height: 6,
+			borderRadius: 3,
+			backgroundColor: colorHex,
+			opacity: opacity,
+			transform: [
+				{ translateX: translateX + (gridBlockSize / 2) - 3 },
+				{ translateY: translateY + (gridBlockSize / 2) - 3 },
+				{ scale },
+			],
+			...Platform.select({
+				ios: {
+					shadowColor: colorHex,
+					shadowOffset: { width: 0, height: 0 },
+					shadowOpacity: 0.9,
+					shadowRadius: 5,
+				},
+				android: {
+					elevation: 4,
+				},
+				web: {
+					boxShadow: `0 0 8px ${colorHex}`,
+				} as any
+			})
+		};
+	});
+
+	return <Animated.View style={animatedStyle} pointerEvents="none" />;
+}
+
 function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 	const loadBlockFlash = useSharedValue(0);
 	const placedBlockFall = useSharedValue(0);
@@ -51,6 +122,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 	const placedBlockRotation = useSharedValue(0);
 	const waveEffect = useSharedValue(0);
 	const flashOpacity = useSharedValue(0);
+	const sparkProgress = useSharedValue(1);
 	const { currentTheme } = useTheme();
 
 	// Реакция на изменение состояния блока
@@ -74,6 +146,10 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 				withTiming(1, { duration: 600 }),
 				withTiming(0, { duration: 16 })
 			);
+
+			// Trigger neon sparks animation
+			sparkProgress.value = 0;
+			sparkProgress.value = withTiming(1, { duration: 550 });
 		}
 		// Сброс анимации при размещении нового блока
 		else if (cur === BoardBlockType.FILLED && prev === BoardBlockType.EMPTY) {
@@ -199,6 +275,17 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 			<Animated.View style={[staticStyle, { width: gridBlockSize, height: gridBlockSize }]} />
 			<Animated.View style={fallingStyle} />
 			<Animated.View pointerEvents="none" style={flashStyle} />
+			{[...Array(8)].map((_, i) => (
+				<Spark
+					key={i}
+					index={i}
+					progress={sparkProgress}
+					board={board}
+					bx={x}
+					by={y}
+					gridBlockSize={gridBlockSize}
+				/>
+			))}
 		</>
 	);
 }
