@@ -20,7 +20,7 @@ import { useAtom } from 'jotai';
 
 
 const SPRING_CONFIG_MISSED_DRAG = {
-	max: 1,
+	mass: 1,
 	damping: 1,
 	stiffness: 500,
 	overshootClamping: true,
