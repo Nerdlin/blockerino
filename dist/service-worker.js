@@ -1,3 +1,5 @@
+/* eslint-env serviceworker, browser */
+
 const CACHE_NAME = 'blockerino-v1';
 
 // Install event: cache initial assets if any
