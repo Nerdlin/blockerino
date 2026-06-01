@@ -170,6 +170,8 @@ export default function OptionsMenu() {
 					onClick={handleButtonPress} 
 					text="Back" 
 					backgroundColor={currentTheme.buttonSecondary}
+					style={isMobile && styles.mobileBottomButton}
+					textStyle={isMobile && styles.mobileBottomButtonText}
 				/>
 				
 				{(appState.containsGameMode() || appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
@@ -179,12 +181,16 @@ export default function OptionsMenu() {
 								onClick={handleRestartPress} 
 								text="Restart" 
 								backgroundColor={currentTheme.buttonPrimary}
+								style={isMobile && styles.mobileBottomButton}
+								textStyle={isMobile && styles.mobileBottomButtonText}
 							/>
 						)}
 						<StylizedButton 
 							onClick={handleQuitPress} 
 							text="End Game" 
 							backgroundColor={currentTheme.buttonPrimary}
+							style={isMobile && styles.mobileBottomButton}
+							textStyle={isMobile && styles.mobileBottomButtonText}
 						/>
 					</>
 				)}
@@ -297,7 +303,21 @@ const styles = StyleSheet.create({
 	},
 	buttonsContainer: {
 		flexDirection: 'row',
+		flexWrap: 'wrap',
 		justifyContent: 'center',
+		width: '100%',
+		gap: 6,
 		marginTop: 20,
-	}
+		paddingBottom: 10,
+	},
+	mobileBottomButton: {
+		minWidth: 118,
+		flexGrow: 1,
+		flexBasis: 118,
+		maxWidth: 150,
+		paddingHorizontal: 8,
+	},
+	mobileBottomButtonText: {
+		fontSize: 13,
+	},
 });

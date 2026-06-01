@@ -8,6 +8,7 @@ import { colorToHex } from "@/constants/Color";
 import { getPlayerGlobalHighScore } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
+import { normalizePlayerName } from "@/constants/Multiplayer";
 
 const comboBarGoodColor = colorToHex({r: 0, g: 255, b: 0});
 const comboBarBadColor = colorToHex({r: 255, g: 51, b: 51});
@@ -182,10 +183,12 @@ export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score:
 				setHighestScore(highScores[0].score);
 			}
 
-			const playerName = (await AsyncStorage.getItem('PLAYER_NAME'))?.trim() || 'Anonymous';
-			const serverBest = await getPlayerGlobalHighScore(playerName, gameMode);
-			if (isMounted && serverBest !== null) {
-				setGlobalPlayerBest(serverBest);
+			const playerName = normalizePlayerName((await AsyncStorage.getItem('PLAYER_NAME')) || '');
+			if (playerName) {
+				const serverBest = await getPlayerGlobalHighScore(playerName, gameMode);
+				if (isMounted && serverBest !== null) {
+					setGlobalPlayerBest(serverBest);
+				}
 			}
 		};
 

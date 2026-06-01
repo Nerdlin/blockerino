@@ -10,6 +10,7 @@ import { submitGlobalHighScore } from "@/constants/Supabase";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from "@/constants/Theme";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
+import { normalizePlayerName } from "@/constants/Multiplayer";
 
 export default function HighScores() {
     const { width, height } = useWindowDimensions();
@@ -21,7 +22,7 @@ export default function HighScores() {
     const [ gameMode, setGameMode ] = useState(GameModeType.Classic);
     const [ loading, setLoading ] = useState(false);
     const [ syncing, setSyncing ] = useState(false);
-    const [ playerName, setPlayerName ] = useState('Anonymous');
+    const [ playerName, setPlayerName ] = useState('');
     const syncInProgress = useRef(false);
     const handleBack = useCallback(() => {
         popAppState();
@@ -46,9 +47,14 @@ export default function HighScores() {
         syncInProgress.current = true;
         
         try {
-            const trimmedName = playerName.trim();
-            const finalName = trimmedName || 'Anonymous';
+            const finalName = normalizePlayerName(playerName);
             
+            if (!finalName) {
+                await AsyncStorage.removeItem('PLAYER_NAME');
+                return;
+            }
+
+            setPlayerName(finalName);
             await AsyncStorage.setItem('PLAYER_NAME', finalName);
             
             // Auto-sync best local score if they have one
@@ -136,42 +142,47 @@ export default function HighScores() {
             )}
         </View>
 
-        { hasScores &&
-            <>
-                <Text style={[styles.subHeader, { color: currentTheme.textSecondary }, isMobile && { fontSize: 18 }]}>
-                    {"Select a game mode..."}
-                </Text>
-                <View style={{flexDirection: 'row', gap: 10}}>
-                    <StylizedButton
-                        text="Classic"
-                        onClick={() => { setGameMode(GameModeType.Classic) }}
-                        backgroundColor={gameMode === GameModeType.Classic ? currentTheme.buttonPrimary : cssColors.spaceGray}
-                    />
-                    <StylizedButton
-                        text="Chaos"
-                        onClick={() => { setGameMode(GameModeType.Chaos) }}
-                        backgroundColor={gameMode === GameModeType.Chaos ? cssColors.pitchBlack : cssColors.spaceGray}
-                        borderColor={gameMode === GameModeType.Chaos ? "white" : undefined}
-                    />
-                </View>
-                <Text style={[styles.header, { color: currentTheme.textPrimary }, isMobile && { fontSize: 22 }]}>
-                    {"Global Leaderboard (Top 10)"}
-                </Text>
-                <Text style={[styles.subHeader, { color: currentTheme.textSecondary }, isMobile && { fontSize: 16 }]}>
-                    {"Sorted from high to low."}
-                </Text>
+        <Text style={[styles.subHeader, { color: currentTheme.textSecondary }, isMobile && { fontSize: 18 }]}>
+            {"Select a game mode..."}
+        </Text>
+        <View style={styles.modeRow}>
+            <StylizedButton
+                text="Classic"
+                onClick={() => { setGameMode(GameModeType.Classic) }}
+                backgroundColor={gameMode === GameModeType.Classic ? currentTheme.buttonPrimary : cssColors.spaceGray}
+                style={styles.modeButton}
+                textStyle={isMobile && styles.mobileButtonText}
+            />
+            <StylizedButton
+                text="Chaos"
+                onClick={() => { setGameMode(GameModeType.Chaos) }}
+                backgroundColor={gameMode === GameModeType.Chaos ? cssColors.pitchBlack : cssColors.spaceGray}
+                borderColor={gameMode === GameModeType.Chaos ? "white" : undefined}
+                style={styles.modeButton}
+                textStyle={isMobile && styles.mobileButtonText}
+            />
+        </View>
+        <Text style={[styles.header, { color: currentTheme.textPrimary }, isMobile && { fontSize: 22 }]}>
+            {"Global Leaderboard (Top 10)"}
+        </Text>
+        <Text style={[styles.subHeader, { color: currentTheme.textSecondary }, isMobile && { fontSize: 16 }]}>
+            {"Sorted from high to low."}
+        </Text>
 
-                {loading && <ActivityIndicator size="large" color={currentTheme.textPrimary} />}
+        {loading && <ActivityIndicator size="large" color={currentTheme.textPrimary} />}
 
-                {!loading && globalHighScores.map((score, idx) => {
-                    return <GlobalScore key={idx} rank={idx + 1} score={score}/>
+        {!loading && hasScores && (
+            <View style={styles.scoreList}>
+                {globalHighScores.map((score, idx) => {
+                    return <GlobalScore key={score.id || idx} rank={idx + 1} score={score}/>
                 })}
-            </>
-        }
+            </View>
+        )}
+
         { !hasScores && !loading &&
             <>
                 <Text style={[styles.noScoresText, { color: currentTheme.textPrimary }, isMobile && { fontSize: 20 }]}>
-                    {"No global scores yet. Be the first!"}
+                    {"No global scores for this mode yet."}
                 </Text>
                 <StylizedButton text="Play Classic" onClick={() => {
                     setAppState(GameModeType.Classic)
@@ -188,14 +199,24 @@ function GlobalScore({score, rank}: {score: GlobalHighScore, rank: number}) {
     const { currentTheme } = useTheme();
     const { width, height } = useWindowDimensions();
     const isMobile = width < 600 || height < 700;
-    return <>
-        <Text style={[styles.scoreValueText, { color: currentTheme.textPrimary }, isMobile && { fontSize: 20 }]} numberOfLines={1} adjustsFontSizeToFit>
-            {"#" + String(rank) + " - " + score.player_name + " - " + String(score.score)}
-        </Text>
-        <Text style={[styles.scoreTimeText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 12 }]}>
-            {score.created_at ? createTimeAgoString(new Date(score.created_at).getTime()) : 'Unknown time'}
-        </Text>
-    </>
+    return (
+        <View style={[styles.scoreRow, isMobile && styles.mobileScoreRow]}>
+            <Text style={[styles.scoreRankText, { color: currentTheme.textPrimary }, isMobile && styles.mobileScoreRankText]}>
+                #{rank}
+            </Text>
+            <View style={styles.scoreNameColumn}>
+                <Text style={[styles.scoreNameText, { color: currentTheme.textPrimary }, isMobile && styles.mobileScoreNameText]} numberOfLines={1}>
+                    {score.player_name}
+                </Text>
+                <Text style={[styles.scoreTimeText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 10 }]} numberOfLines={1}>
+                    {score.created_at ? createTimeAgoString(new Date(score.created_at).getTime()) : 'Unknown time'}
+                </Text>
+            </View>
+            <Text style={[styles.scoreNumberText, { color: currentTheme.textPrimary }, isMobile && styles.mobileScoreNumberText]} numberOfLines={1} adjustsFontSizeToFit>
+                {score.score}
+            </Text>
+        </View>
+    );
 }
 
 function createTimeAgoString(date: number): string {
@@ -230,14 +251,9 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 20
     },
-    scoreValueText: {
-        color: 'white',
-        fontSize: 30,
-        fontFamily: 'Silkscreen'
-    },
     scoreTimeText: {
         color: 'rgb(150, 150, 150)',
-        fontSize: 15,
+        fontSize: 11,
         fontFamily: 'Silkscreen'
     },
     header: {
@@ -264,5 +280,71 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderRadius: 5,
         textAlign: 'center',
-    }
+    },
+    modeRow: {
+        flexDirection: 'row',
+        gap: 10,
+        justifyContent: 'center',
+        width: '90%',
+    },
+    modeButton: {
+        flex: 1,
+        minWidth: 120,
+        maxWidth: 180,
+    },
+    mobileButtonText: {
+        fontSize: 14,
+    },
+    scoreList: {
+        width: '94%',
+        gap: 6,
+        marginTop: 4,
+    },
+    scoreRow: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingVertical: 7,
+        paddingHorizontal: 10,
+        borderRadius: 6,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        minHeight: 48,
+    },
+    mobileScoreRow: {
+        gap: 6,
+        paddingHorizontal: 7,
+        minHeight: 44,
+    },
+    scoreRankText: {
+        width: 52,
+        fontSize: 20,
+        fontFamily: 'Silkscreen',
+        textAlign: 'left',
+    },
+    mobileScoreRankText: {
+        width: 38,
+        fontSize: 15,
+    },
+    scoreNameColumn: {
+        flex: 1,
+        minWidth: 0,
+    },
+    scoreNameText: {
+        fontSize: 18,
+        fontFamily: 'Silkscreen',
+    },
+    mobileScoreNameText: {
+        fontSize: 14,
+    },
+    scoreNumberText: {
+        width: 110,
+        fontSize: 18,
+        fontFamily: 'Silkscreen',
+        textAlign: 'right',
+    },
+    mobileScoreNumberText: {
+        width: 78,
+        fontSize: 14,
+    },
 });

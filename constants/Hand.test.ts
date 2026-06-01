@@ -1,5 +1,5 @@
 import { GameModeType } from "@/hooks/useAppState";
-import { createRandomHand, getDailyPuzzleKey } from "./Hand";
+import { createRandomHand, createSeededHand, getDailyPuzzleKey } from "./Hand";
 import { isClassicComplexPiece, isClassicRescuePiece } from "./Piece";
 
 describe("hand generation", () => {
@@ -9,13 +9,21 @@ describe("hand generation", () => {
 		Math.random = originalRandom;
 	});
 
-	it("keeps classic hands fair even when randomness keeps asking for hard pieces", () => {
+	it("keeps classic hands free of complex pieces even when randomness asks for hard pieces", () => {
 		Math.random = jest.fn(() => 0.99);
 
 		const hand = createRandomHand(3, GameModeType.Classic);
 
 		expect(hand.some((piece) => piece !== null && isClassicRescuePiece(piece))).toBe(true);
-		expect(hand.filter((piece) => piece !== null && isClassicComplexPiece(piece)).length).toBeLessThanOrEqual(1);
+		expect(hand.some((piece) => piece !== null && isClassicComplexPiece(piece))).toBe(false);
+	});
+
+	it("keeps daily seeded hands free of complex pieces", () => {
+		for (let seed = 1; seed <= 200; seed++) {
+			const hand = createSeededHand(3, seed);
+
+			expect(hand.some((piece) => piece !== null && isClassicComplexPiece(piece))).toBe(false);
+		}
 	});
 
 	it("leaves chaos hands unrestricted", () => {

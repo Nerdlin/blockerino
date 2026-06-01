@@ -58,7 +58,10 @@ export async function getPlayerGlobalHighScore(
     gameMode: string
 ): Promise<number | null> {
     try {
-        const escapedName = playerName.replace(/[%_]/g, '\\$&');
+        const finalPlayerName = playerName.trim();
+        if (!finalPlayerName) return null;
+
+        const escapedName = finalPlayerName.replace(/[%_]/g, '\\$&');
         const { data, error } = await supabase
             .from('high_scores')
             .select('score')
@@ -85,7 +88,10 @@ export async function submitGlobalHighScore(
 ): Promise<boolean> {
     try {
         // Экранируем спецсимволы в имени для case-insensitive LIKE поиска
-        const escapedName = playerName.replace(/[%_]/g, '\\$&');
+        const finalPlayerName = playerName.trim();
+        if (!finalPlayerName || score <= 0) return false;
+
+        const escapedName = finalPlayerName.replace(/[%_]/g, '\\$&');
 
         // Проверяем, существует ли уже запись для этого игрока в этом режиме (без учета регистра)
         const { data, error: fetchError } = await supabase
@@ -108,7 +114,7 @@ export async function submitGlobalHighScore(
                 const { error: updateError } = await supabase
                     .from('high_scores')
                     .update({
-                        player_name: playerName,
+                        player_name: finalPlayerName,
                         score: score,
                         created_at: new Date().toISOString()
                     })
@@ -118,12 +124,12 @@ export async function submitGlobalHighScore(
                     console.error('Error updating high score:', updateError);
                     return false;
                 }
-            } else if (playerName !== existingRecord.player_name) {
+            } else if (finalPlayerName !== existingRecord.player_name) {
                 // Если счет не лучше, но изменился регистр/написание имени, обновляем имя в БД
                 const { error: updateError } = await supabase
                     .from('high_scores')
                     .update({
-                        player_name: playerName
+                        player_name: finalPlayerName
                     })
                     .eq('id', existingRecord.id);
 
@@ -139,7 +145,7 @@ export async function submitGlobalHighScore(
                 .from('high_scores')
                 .insert([
                     {
-                        player_name: playerName,
+                        player_name: finalPlayerName,
                         score: score,
                         game_mode: gameMode
                     }
@@ -167,7 +173,10 @@ export interface EloRating {
 
 export async function submitEloRating(playerName: string, elo: number): Promise<boolean> {
     try {
-        const escapedName = playerName.replace(/[%_]/g, '\\$&');
+        const finalPlayerName = playerName.trim();
+        if (!finalPlayerName) return false;
+
+        const escapedName = finalPlayerName.replace(/[%_]/g, '\\$&');
 
         const { data, error: fetchError } = await supabase
             .from('elo_ratings')
@@ -186,7 +195,7 @@ export async function submitEloRating(playerName: string, elo: number): Promise<
             const { error: updateError } = await supabase
                 .from('elo_ratings')
                 .update({
-                    player_name: playerName,
+                    player_name: finalPlayerName,
                     elo: elo,
                     updated_at: new Date().toISOString()
                 })
@@ -199,7 +208,7 @@ export async function submitEloRating(playerName: string, elo: number): Promise<
         } else {
             const { error: insertError } = await supabase
                 .from('elo_ratings')
-                .insert([{ player_name: playerName, elo: elo }]);
+                .insert([{ player_name: finalPlayerName, elo: elo }]);
 
             if (insertError) {
                 console.error('Error inserting elo rating:', insertError);
@@ -215,10 +224,13 @@ export async function submitEloRating(playerName: string, elo: number): Promise<
 
 export async function getPlayerElo(playerName: string): Promise<number | null> {
     try {
+        const finalPlayerName = playerName.trim();
+        if (!finalPlayerName) return null;
+
         const { data, error } = await supabase
             .from('elo_ratings')
             .select('elo')
-            .ilike('player_name', playerName.replace(/[%_]/g, '\\$&'))
+            .ilike('player_name', finalPlayerName.replace(/[%_]/g, '\\$&'))
             .limit(1);
 
         if (error || !data || data.length === 0) {

@@ -108,7 +108,7 @@ export default function App() {
 		setAppState(MenuStateType.MULTIPLAYER_GAME);
 	};
 	
-	const isGameplayActive = gameMode !== undefined || appState.containsState(MenuStateType.MULTIPLAYER_GAME);
+	const isGameplayActive = gameMode !== undefined || !!appState.containsState(MenuStateType.MULTIPLAYER_GAME);
 
 	return (
 		<Animated.View entering={FadeIn} exiting={FadeOut} style={styles.container}>

@@ -36,14 +36,39 @@ export function getDailyPuzzleKey(date: Date = new Date()): string {
 	return `${year}-${month}-${day}`;
 }
 
+function chooseSeededPiece(prng: ReturnType<typeof makeSeededPrng>, excludeComplex: boolean = true): typeof piecesData[number] {
+	"worklet";
+	let total = 0;
+	for (let i = 0; i < piecesData.length; i++) {
+		const piece = piecesData[i];
+		if (excludeComplex && isClassicComplexPiece(piece)) {
+			continue;
+		}
+		total += piece.distributionPoints;
+	}
+
+	let position = prng.next() * total;
+	for (let i = 0; i < piecesData.length; i++) {
+		const piece = piecesData[i];
+		if (excludeComplex && isClassicComplexPiece(piece)) {
+			continue;
+		}
+		position -= piece.distributionPoints;
+		if (position < 0) {
+			return piece;
+		}
+	}
+
+	return piecesData[0];
+}
+
 export function createSeededHand(size: number, seedNum: number): Hand {
 	"worklet";
 	const prng = makeSeededPrng(seedNum);
 	const hand = new Array<PieceData | null>(size);
 	for (let i = 0; i < size; i++) {
-		const pieceIdx = prng.nextInt(0, piecesData.length - 1);
 		const colorIdx = prng.nextInt(0, pieceColors.length - 1);
-		const basePiece = piecesData[pieceIdx];
+		const basePiece = chooseSeededPiece(prng, true);
 		hand[i] = {
 			matrix: basePiece.matrix.map(row => [...row]),
 			color: pieceColors[colorIdx],

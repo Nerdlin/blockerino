@@ -2,6 +2,8 @@ import {
 	getJoinRoomUpdate,
 	getOpponentPlayerRole,
 	getWinnerNameForRole,
+	isPlayerNameReady,
+	normalizePlayerName,
 } from "./Multiplayer";
 
 describe("multiplayer room helpers", () => {
@@ -14,8 +16,15 @@ describe("multiplayer room helpers", () => {
 		});
 	});
 
-	it("uses Anonymous when the joining player name is blank", () => {
-		expect(getJoinRoomUpdate("   ", "player-2").player2_name).toBe("Anonymous");
+	it("trims player names without assigning Anonymous", () => {
+		expect(normalizePlayerName("  Nerdlin  ")).toBe("Nerdlin");
+		expect(normalizePlayerName("   ")).toBe("");
+	});
+
+	it("rejects blank player names before joining rooms", () => {
+		expect(isPlayerNameReady("Nerdlin")).toBe(true);
+		expect(isPlayerNameReady("   ")).toBe(false);
+		expect(() => getJoinRoomUpdate("   ", "player-2")).toThrow("Player name is required");
 	});
 
 	it("awards a forfeit win to the other active player", () => {

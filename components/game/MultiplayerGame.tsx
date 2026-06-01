@@ -1,6 +1,6 @@
 import { PieceData, getBlockCount } from '@/constants/Piece';
 import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-dnd';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, SafeAreaView, StyleSheet, Text, View, useWindowDimensions, ActivityIndicator, ScrollView } from 'react-native';
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
 import Animated, { ReduceMotion, runOnJS, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
@@ -11,7 +11,7 @@ import BlockGrid, { ReadOnlyBlockGrid } from '@/components/game/BlockGrid';
 import { Hand, createRandomHand, createRandomHandWorklet } from '@/constants/Hand';
 import HandPieces, { ReadOnlyHandPieces } from '@/components/game/HandPieces';
 import { GameModeType, MenuStateType, useAppState, activeComboAtom } from '@/hooks/useAppState';
-import { supabase, submitGlobalHighScore, submitEloRating } from '@/constants/Supabase';
+import { supabase, submitGlobalHighScore, submitEloRating, getPlayerElo } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
@@ -20,6 +20,14 @@ import { ScorePopup } from './ScorePopup';
 import { useSoundSettings } from '@/constants/Sound';
 import { useAtom } from 'jotai';
 import { getEloBadge } from '@/components/MultiplayerMenu';
+import {
+    ActivePlayerRole,
+    MatchWinnerRole,
+    getOpponentPlayerRole,
+    getWinnerNameForRole,
+    getWinnerRoleByScore,
+    normalizePlayerName,
+} from '@/constants/Multiplayer';
 
 interface MultiplayerGameProps {
     roomId: string;
@@ -120,7 +128,7 @@ const addGarbageLines = (currentBoard: Board, lines: number): Board => {
 
 export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode, initialPlayerElo }: MultiplayerGameProps) {
     const { width, height } = useWindowDimensions();
-    const isLargeScreen = width >= 768;
+    const isLargeScreen = width >= 980;
     const isShortScreen = height < 700;
     const boardLength = gameMode === GameModeType.Chaos ? 10 : 8;
 	
@@ -182,7 +190,13 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const lastSentHover = useRef<{ index: number | null, x: number | null, y: number | null }>({ index: null, x: null, y: null });
     const hoverThrottleTimer = useRef<any>(null);
     const pendingHover = useRef<{ index: number | null, x: number | null, y: number | null } | null>(null);
-    const [playerName, setPlayerName] = useState("Anonymous");
+    const disconnectGraceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const roomResultSavedRef = useRef(false);
+    const opponentDisconnectedRef = useRef(false);
+    const playerNameRef = useRef("");
+    const opponentNameRef = useRef(opponentName);
+    const opponentEloRef = useRef<number | null>(null);
+    const [playerName, setPlayerName] = useState("");
     const [scorePopups, setScorePopups] = useState<{id: number, points: number, x: number, y: number}[]>([]);
     const scorePopupIdCounter = useRef(0);
 
@@ -200,6 +214,104 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const updateActiveCombo = (val: number) => {
         setActiveCombo(val);
     };
+
+    const isActivePlayerRole = (role: MultiplayerGameProps['myRole']): role is ActivePlayerRole => {
+        return role === 'player1' || role === 'player2';
+    };
+
+    useEffect(() => {
+        playerNameRef.current = playerName;
+    }, [playerName]);
+
+    useEffect(() => {
+        opponentNameRef.current = opponentName;
+    }, [opponentName]);
+
+    useEffect(() => {
+        opponentEloRef.current = opponentElo;
+    }, [opponentElo]);
+
+    const getPersistentPlayerName = useCallback(() => {
+        return normalizePlayerName(playerNameRef.current);
+    }, []);
+
+    const getWinnerDisplayName = useCallback((winnerRole: MatchWinnerRole) => {
+        if (winnerRole === 'draw') return 'Draw';
+
+        if (isActivePlayerRole(myRole)) {
+            if (winnerRole === myRole) {
+                return getPersistentPlayerName() || getWinnerNameForRole(winnerRole);
+            }
+
+            if (winnerRole === getOpponentPlayerRole(myRole)) {
+                return normalizePlayerName(opponentNameRef.current) || getWinnerNameForRole(winnerRole);
+            }
+        }
+
+        return getWinnerNameForRole(winnerRole);
+    }, [getPersistentPlayerName, myRole]);
+
+    const submitOpponentForfeitLoss = useCallback(async () => {
+        const normalizedOpponentName = normalizePlayerName(opponentNameRef.current);
+        if (!normalizedOpponentName || normalizedOpponentName === 'Opponent') return;
+
+        const fetchedOpponentElo = opponentEloRef.current ?? (await getPlayerElo(normalizedOpponentName));
+        const currentOpponentElo = fetchedOpponentElo ?? 1000;
+        await submitEloRating(normalizedOpponentName, Math.max(0, currentOpponentElo - 10));
+    }, []);
+
+    const persistRoomResult = useCallback(async (winnerRole: MatchWinnerRole) => {
+        if (roomResultSavedRef.current) return;
+
+        roomResultSavedRef.current = true;
+        const { error } = await supabase
+            .from('matchmaking_rooms')
+            .update({
+                status: 'finished',
+                winner_name: getWinnerDisplayName(winnerRole),
+            })
+            .eq('id', roomId);
+
+        if (error) {
+            roomResultSavedRef.current = false;
+            console.error('Error saving multiplayer result:', error);
+        }
+    }, [getWinnerDisplayName, roomId]);
+
+    const markOpponentDisconnected = useCallback(() => {
+        if (!isActivePlayerRole(myRole) || opponentDisconnectedRef.current) return;
+
+        opponentDisconnectedRef.current = true;
+        setOpponentDisconnected(true);
+        persistRoomResult(myRole);
+    }, [myRole, persistRoomResult]);
+
+    const scheduleOpponentPresenceLeave = useCallback(() => {
+        if (disconnectGraceTimer.current) return;
+
+        disconnectGraceTimer.current = setTimeout(() => {
+            disconnectGraceTimer.current = null;
+            markOpponentDisconnected();
+        }, 2500);
+    }, [markOpponentDisconnected]);
+
+    const clearOpponentPresenceLeave = useCallback(() => {
+        if (!disconnectGraceTimer.current) return;
+
+        clearTimeout(disconnectGraceTimer.current);
+        disconnectGraceTimer.current = null;
+    }, []);
+
+    const leaveRoomAsForfeit = useCallback(async () => {
+        if (!isActivePlayerRole(myRole) || roomResultSavedRef.current || opponentDisconnectedRef.current) return;
+
+        await channelRef.current?.send({
+            type: 'broadcast',
+            event: 'player_left',
+            payload: { role: myRole }
+        });
+        await persistRoomResult(getOpponentPlayerRole(myRole));
+    }, [myRole, persistRoomResult]);
 
     const sendGarbageAttack = (lines: number) => {
         if (myRole === 'spectator') return;
@@ -236,11 +348,25 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         Promise.all([
             AsyncStorage.getItem('PLAYER_NAME')
         ]).then(([nameVal]) => {
-            const loadedName = nameVal || 'Anonymous';
+            const loadedName = normalizePlayerName(nameVal || '');
+            if (!loadedName && isActivePlayerRole(myRole)) {
+                setAppState(MenuStateType.MULTIPLAYER);
+                return;
+            }
             
-            if (nameVal) setPlayerName(nameVal);
+            if (loadedName) {
+                playerNameRef.current = loadedName;
+                setPlayerName(loadedName);
+            }
 
-            const channel = supabase.channel(`room:${roomId}`);
+            const presenceKey = isActivePlayerRole(myRole) ? myRole : `spectator-${Date.now()}`;
+            const channel = supabase.channel(`room:${roomId}`, {
+                config: {
+                    presence: {
+                        key: presenceKey,
+                    },
+                },
+            });
             
             channel
                 .on('broadcast', { event: 'game_state' }, (payload) => {
@@ -329,27 +455,51 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 .on('broadcast', { event: 'restart_decline' }, (payload) => {
                     handleExit();
                 })
-                .on('presence', { event: 'leave' }, () => {
-                    setOpponentDisconnected(true);
+                .on('broadcast', { event: 'player_left' }, (payload) => {
+                    const data = payload.payload;
+                    if (isActivePlayerRole(myRole) && data.role === getOpponentPlayerRole(myRole)) {
+                        markOpponentDisconnected();
+                    }
+                })
+                .on('presence', { event: 'join' }, (payload) => {
+                    const joinedPresences = payload.newPresences || [];
+                    if (
+                        isActivePlayerRole(myRole) &&
+                        joinedPresences.some((presence: any) => presence.role === getOpponentPlayerRole(myRole))
+                    ) {
+                        clearOpponentPresenceLeave();
+                    }
+                })
+                .on('presence', { event: 'leave' }, (payload) => {
+                    const leftPresences = payload.leftPresences || [];
+                    if (
+                        isActivePlayerRole(myRole) &&
+                        leftPresences.some((presence: any) => presence.role === getOpponentPlayerRole(myRole))
+                    ) {
+                        scheduleOpponentPresenceLeave();
+                    }
                 })
                 .subscribe((status) => {
                     if (status === 'SUBSCRIBED') {
                         if (myRole !== 'spectator') {
-                            if (channelRef.current) {
-                                channelRef.current.send({
-                                    type: 'broadcast',
-                                    event: 'game_state',
-                                    payload: {
-                                        board: board.value,
-                                        hand: hand.value,
-                                        score: score.value,
-                                        isGameOver: false,
-                                        elo: initialPlayerElo,
-                                        playerName: loadedName,
-                                        role: myRole
-                                    }
-                                });
-                            }
+                            channel.track({
+                                role: myRole,
+                                playerName: loadedName,
+                                onlineAt: new Date().toISOString(),
+                            });
+                            channel.send({
+                                type: 'broadcast',
+                                event: 'game_state',
+                                payload: {
+                                    board: board.value,
+                                    hand: hand.value,
+                                    score: score.value,
+                                    isGameOver: false,
+                                    elo: initialPlayerElo,
+                                    playerName: loadedName,
+                                    role: myRole
+                                }
+                            });
                         }
                     }
                 });
@@ -362,11 +512,12 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
             if (hoverThrottleTimer.current) {
                 clearInterval(hoverThrottleTimer.current);
             }
+            if (disconnectGraceTimer.current) {
+                clearTimeout(disconnectGraceTimer.current);
+            }
             if (channelRef.current) {
                 supabase.removeChannel(channelRef.current);
             }
-            // End room in database when either player exits
-            supabase.from('matchmaking_rooms').update({ status: 'finished' }).eq('id', roomId).then();
         };
     }, []);
 
@@ -378,7 +529,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         currentLastBrokenLine: number,
         currentIsGameOver: boolean
     ) => {
-        if (channelRef.current && myRole !== 'spectator') {
+        const persistentName = getPersistentPlayerName();
+        if (channelRef.current && myRole !== 'spectator' && persistentName) {
             channelRef.current.send({
                 type: 'broadcast',
                 event: 'game_state',
@@ -388,7 +540,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                     score: currentScore,
                     isGameOver: currentIsGameOver,
                     elo: playerElo,
-                    playerName: playerName,
+                    playerName: persistentName,
                     role: myRole
                 }
             });
@@ -434,6 +586,18 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         const isGameComplete = (isGameOver && opponentIsGameOver) || opponentDisconnected;
         if (isGameComplete) {
             eloUpdatedRef.current = true;
+            const persistentName = getPersistentPlayerName();
+            if (isActivePlayerRole(myRole)) {
+                if (opponentDisconnected) {
+                    persistRoomResult(myRole);
+                    if (persistentName) {
+                        submitGlobalHighScore(persistentName, score.value, gameMode);
+                    }
+                    submitOpponentForfeitLoss();
+                } else {
+                    persistRoomResult(getWinnerRoleByScore(myRole, score.value, opponentScore));
+                }
+            }
 
             AsyncStorage.getItem('PLAYER_ELO').then((val) => {
                 const currentElo = parseInt(val || '1000', 10);
@@ -441,18 +605,6 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
                 if (opponentDisconnected) {
                     eloDiff = 10;
-                    if (!isGameOver) {
-                        const winnerRole = myRole === 'player1' ? 'player1' : 'player2';
-                        const winnerNameStr = winnerRole === 'player1' ? 'Player 1' : 'Player 2';
-                        supabase
-                            .from('matchmaking_rooms')
-                            .update({
-                                status: 'finished',
-                                winner_name: winnerNameStr
-                            })
-                            .eq('id', roomId)
-                            .then();
-                    }
                 } else if (isGameOver && opponentIsGameOver) {
                     if (score.value > opponentScore) {
                         eloDiff = 10;
@@ -466,14 +618,16 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 const newElo = Math.max(0, currentElo + eloDiff);
                 AsyncStorage.setItem('PLAYER_ELO', newElo.toString());
                 setPlayerElo(newElo);
-                submitEloRating(playerName, newElo);
+                if (persistentName) {
+                    submitEloRating(persistentName, newElo);
+                }
             });
         }
-    }, [isGameOver, opponentIsGameOver, opponentDisconnected]);
+    }, [gameMode, getPersistentPlayerName, isGameOver, myRole, opponentDisconnected, opponentIsGameOver, opponentScore, persistRoomResult, score.value, submitOpponentForfeitLoss]);
 
     const resetGameLocal = () => {
         board.value = newEmptyBoard(boardLength);
-        hand.value = createRandomHandWorklet(handSize, GameModeType.Classic);
+        hand.value = createRandomHandWorklet(handSize, gameMode);
         score.value = 0;
         combo.value = 0;
         lastBrokenLine.value = 0;
@@ -561,24 +715,17 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         checkAndSaveWinner(score.value, opponentScore, true, opponentIsGameOver);
 
         // Submit high score to database
-        submitGlobalHighScore(playerName, score.value, gameMode);
+        const persistentName = getPersistentPlayerName();
+        if (persistentName) {
+            submitGlobalHighScore(persistentName, score.value, gameMode);
+        }
     };
 
     const checkAndSaveWinner = async (myScore: number, oppScore: number, myOver: boolean, oppOver: boolean) => {
         if (myOver && oppOver) {
-            let winner = 'Draw';
-            if (myScore > oppScore) winner = myRole === 'player1' ? 'player1' : 'player2';
-            else if (oppScore > myScore) winner = myRole === 'player1' ? 'player2' : 'player1';
-
-            const winnerName = winner === 'player1' ? 'Player 1' : winner === 'player2' ? 'Player 2' : 'Draw';
-            
-            await supabase
-                .from('matchmaking_rooms')
-                .update({
-                    status: 'finished',
-                    winner_name: winnerName
-                })
-                .eq('id', roomId);
+            if (isActivePlayerRole(myRole)) {
+                await persistRoomResult(getWinnerRoleByScore(myRole, myScore, oppScore));
+            }
         }
     };
 
@@ -735,28 +882,21 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 		runOnJS(broadcastHoverState)(draggingPiece.value, dropX, dropY);
 	};
 
-    const handleExit = () => {
-        if (myRole !== 'spectator' && !isGameOver) {
+    const handleExit = async () => {
+        if (myRole !== 'spectator' && !isGameOver && !opponentDisconnected && !roomResultSavedRef.current) {
+            await leaveRoomAsForfeit();
+
             // Apply -10 ELO penalty for leaving early
             AsyncStorage.getItem('PLAYER_ELO').then((val) => {
                 const currentElo = parseInt(val || '1000', 10);
                 const newElo = Math.max(0, currentElo - 10);
                 AsyncStorage.setItem('PLAYER_ELO', newElo.toString());
                 setPlayerElo(newElo);
-                submitEloRating(playerName, newElo);
+                const persistentName = getPersistentPlayerName();
+                if (persistentName) {
+                    submitEloRating(persistentName, newElo);
+                }
             });
-
-            // Mark opponent as winner in database
-            const winnerRole = myRole === 'player1' ? 'player2' : 'player1';
-            const winnerNameStr = winnerRole === 'player1' ? 'Player 1' : 'Player 2';
-            supabase
-                .from('matchmaking_rooms')
-                .update({
-                    status: 'finished',
-                    winner_name: winnerNameStr
-                })
-                .eq('id', roomId)
-                .then();
         }
 
         setAppState(MenuStateType.MENU);

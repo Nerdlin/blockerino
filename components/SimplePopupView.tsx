@@ -1,11 +1,21 @@
+import React from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
 
-export default function SimplePopupView({children, style}: {children: any, style?: any[]}) {
+export default function SimplePopupView({
+	children,
+	style,
+	scrollRef,
+}: {
+	children: React.ReactNode,
+	style?: any[],
+	scrollRef?: React.RefObject<ScrollView>
+}) {
 	if (style === undefined)
 		style = [];
     return (
 		<View style={[styles.popupContainer, ...style]}>
 			<ScrollView
+				ref={scrollRef}
 				style={styles.scrollView}
 				contentContainerStyle={styles.scrollContent}
 				showsVerticalScrollIndicator={true}

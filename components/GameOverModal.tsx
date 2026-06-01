@@ -8,6 +8,7 @@ import { useTheme, ThemeType } from "@/constants/Theme";
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { submitGlobalHighScore } from "@/constants/Supabase";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { normalizePlayerName } from "@/constants/Multiplayer";
 
 const PLAYER_NAME_KEY = 'PLAYER_NAME';
 
@@ -16,8 +17,8 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
     const { playSfx } = useSoundSettings();
     const { currentTheme } = useTheme();
     const scale = useSharedValue(1);
-    const [playerName, setPlayerName] = useState('Anonymous');
-    const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'failed'>('idle');
+    const [playerName, setPlayerName] = useState('');
+    const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'failed' | 'needs_name'>('idle');
 
     useEffect(() => {
         playSfx('gameOver');
@@ -34,10 +35,17 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
     }, [playSfx, scale]);
 
     const doSubmit = React.useCallback(async (nameToSubmit: string) => {
+        const normalizedName = normalizePlayerName(nameToSubmit);
+        if (!normalizedName) {
+            setSubmitStatus('needs_name');
+            return;
+        }
+
         setSubmitStatus('submitting');
+        setPlayerName(normalizedName);
         try {
-            await AsyncStorage.setItem(PLAYER_NAME_KEY, nameToSubmit);
-            const success = await submitGlobalHighScore(nameToSubmit, score, gameMode);
+            await AsyncStorage.setItem(PLAYER_NAME_KEY, normalizedName);
+            const success = await submitGlobalHighScore(normalizedName, score, gameMode);
             if (success) {
                 setSubmitStatus('success');
             } else {
@@ -53,10 +61,10 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
         const checkAndSubmit = async () => {
             try {
                 let savedName = await AsyncStorage.getItem(PLAYER_NAME_KEY);
-                const name = savedName ? savedName.trim() : 'Anonymous';
+                const name = savedName ? normalizePlayerName(savedName) : '';
                 setPlayerName(name);
                 
-                if (name !== 'Anonymous' && name !== '') {
+                if (name !== '') {
                     // Auto submit for returning players
                     await doSubmit(name);
                 }
@@ -69,9 +77,7 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
     }, [score, gameMode, doSubmit]);
 
     const handleManualSubmit = () => {
-        const nameToSubmit = playerName.trim() || 'Anonymous';
-        setPlayerName(nameToSubmit);
-        doSubmit(nameToSubmit);
+        doSubmit(playerName);
     };
 
     const animatedTextStyle = useAnimatedStyle(() => {
@@ -80,9 +86,11 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
         };
     });
 
+    const canEditNickname = submitStatus === 'idle' || submitStatus === 'needs_name';
+
     const handlePlayAgain = () => {
-        if (submitStatus === 'idle') {
-            doSubmit(playerName.trim() || 'Anonymous');
+        if (submitStatus === 'idle' && normalizePlayerName(playerName)) {
+            doSubmit(playerName);
         }
         playSfx('menuClick');
         // Сбрасываем состояние до главного меню, а затем запускаем новую игру
@@ -95,8 +103,8 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
     };
 
     const handleMainMenu = () => {
-        if (submitStatus === 'idle') {
-            doSubmit(playerName.trim() || 'Anonymous');
+        if (submitStatus === 'idle' && normalizePlayerName(playerName)) {
+            doSubmit(playerName);
         }
         playSfx('menuClick');
         setAppState(MenuStateType.MENU);
@@ -136,7 +144,7 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
             </Text>
 
             <View style={styles.statusContainer}>
-                {submitStatus === 'idle' && (
+                {canEditNickname && (
                     <View style={{ width: '100%', alignItems: 'center', gap: 10 }}>
                         <Text style={[styles.messageText, { color: currentTheme.textSecondary, marginBottom: 5, paddingHorizontal: 0 }]}>
                             Enter a nickname to save your score!
@@ -144,11 +152,16 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
                         <TextInput
                             style={[styles.nicknameInput, {
                                 color: currentTheme.textPrimary,
-                                borderColor: currentTheme.textSecondary,
+                                borderColor: submitStatus === 'needs_name' ? 'rgb(255, 80, 80)' : currentTheme.textSecondary,
                                 backgroundColor: 'rgba(0, 0, 0, 0.4)'
                             }]}
-                            value={playerName === 'Anonymous' ? '' : playerName}
-                            onChangeText={setPlayerName}
+                            value={playerName}
+                            onChangeText={(name) => {
+                                setPlayerName(name);
+                                if (submitStatus === 'needs_name' && normalizePlayerName(name)) {
+                                    setSubmitStatus('idle');
+                                }
+                            }}
                             placeholder="Your Nickname"
                             placeholderTextColor="gray"
                             maxLength={15}
@@ -173,6 +186,11 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
                 {submitStatus === 'failed' && (
                     <Text style={[styles.statusText, { color: 'rgb(255, 80, 80)' }]}>
                         Could not sync score to leaderboard.
+                    </Text>
+                )}
+                {submitStatus === 'needs_name' && (
+                    <Text style={[styles.statusText, { color: 'rgb(255, 80, 80)' }]}>
+                        Enter a nickname first.
                     </Text>
                 )}
             </View>

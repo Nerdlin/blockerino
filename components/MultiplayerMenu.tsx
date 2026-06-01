@@ -10,10 +10,14 @@ import { cssColors } from "@/constants/Color";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import * as Crypto from "expo-crypto";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
+import { getJoinRoomUpdate, isPlayerNameReady, normalizePlayerName } from "@/constants/Multiplayer";
 
 interface MultiplayerMenuProps {
     onStartGame: (roomId: string, role: 'player1' | 'player2' | 'spectator', opponentName: string, gameMode: GameModeType, playerElo: number) => void;
 }
+
+const NAME_REQUIRED_MESSAGE = "Enter a nickname to play multiplayer.";
+const NAME_READY_MESSAGE = "Nickname set. You can play now!";
 
 export function getEloBadge(elo: number): { tier: string; color: string } {
     if (elo < 800) return { tier: "Bronze", color: "#CD7F32" };
@@ -67,6 +71,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const subscriptionRef = useRef<any>(null);
     const isMounted = useRef(true);
     const playerNameRef = useRef(playerName);
+    const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const lobbyScrollRef = useRef<ScrollView>(null);
 
     playerNameRef.current = playerName;
     const nicknameInputRef = useRef<TextInput>(null);
@@ -154,6 +160,9 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         return () => {
             isMounted.current = false;
             clearInterval(timer);
+            if (feedbackTimerRef.current) {
+                clearTimeout(feedbackTimerRef.current);
+            }
             cleanupLobby();
         };
     }, [syncPlayerElo]);
@@ -270,15 +279,52 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         }
     };
 
+    const clearFeedbackTimer = () => {
+        if (feedbackTimerRef.current) {
+            clearTimeout(feedbackTimerRef.current);
+            feedbackTimerRef.current = null;
+        }
+    };
+
+    const showTemporarySuccess = (message: string) => {
+        clearFeedbackTimer();
+        setSuccessMessage(message);
+        feedbackTimerRef.current = setTimeout(() => {
+            if (isMounted.current) setSuccessMessage("");
+            feedbackTimerRef.current = null;
+        }, 3000);
+    };
+
+    const promptForPlayerName = () => {
+        clearFeedbackTimer();
+        setMatchError(NAME_REQUIRED_MESSAGE);
+        setSuccessMessage("");
+        lobbyScrollRef.current?.scrollTo({ y: 0, animated: true });
+        setTimeout(() => nicknameInputRef.current?.focus(), 120);
+    };
+
+    const getRequiredPlayerName = () => {
+        const normalizedName = normalizePlayerName(playerName);
+        if (!isPlayerNameReady(normalizedName)) {
+            promptForPlayerName();
+            return null;
+        }
+        return normalizedName;
+    };
+
     const handlePlayerNameChange = (name: string) => {
         setPlayerName(name);
-        AsyncStorage.setItem('PLAYER_NAME', name.trim());
-        if (name.trim().length > 0 && matchError === "Please enter a nickname first!") {
+        const normalizedName = normalizePlayerName(name);
+        if (normalizedName) {
+            AsyncStorage.setItem('PLAYER_NAME', normalizedName);
+        } else {
+            AsyncStorage.removeItem('PLAYER_NAME');
+            AsyncStorage.setItem('PLAYER_ELO', '1000');
+            setPlayerElo(1000);
+        }
+        if (normalizedName && matchError === NAME_REQUIRED_MESSAGE) {
             setMatchError("");
-            setSuccessMessage("You can play now!");
-            setTimeout(() => {
-                if (isMounted.current) setSuccessMessage("");
-            }, 3000);
+            showTemporarySuccess(NAME_READY_MESSAGE);
         }
     };
 
@@ -329,9 +375,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     };
 
     const handleQuickMatch = async (mode: GameModeType) => {
-        if (!playerName.trim()) {
-            setMatchError("Please enter a nickname first!");
-            nicknameInputRef.current?.focus();
+        const normalizedName = getRequiredPlayerName();
+        if (!normalizedName) {
             return;
         }
 
@@ -369,11 +414,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                 const room = data[0];
                 const { data: updatedData, error: updateError } = await supabase
                     .from('matchmaking_rooms')
-                    .update({
-                        player2_name: playerName.trim() || 'Anonymous',
-                        player2_id: activePlayerId,
-                        status: 'playing'
-                    })
+                    .update(getJoinRoomUpdate(normalizedName, activePlayerId))
                     .eq('id', room.id)
                     .is('player2_name', null) // Avoid race condition
                     .select();
@@ -393,7 +434,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                 const { data: newRoom, error: insertError } = await supabase
                     .from('matchmaking_rooms')
                     .insert({
-                        player1_name: playerName.trim() || 'Anonymous',
+                        player1_name: normalizedName,
                         player1_id: activePlayerId,
                         game_mode: mode,
                         status: 'waiting',
@@ -417,9 +458,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     };
 
     const handleCreateRoom = async (mode: GameModeType) => {
-        if (!playerName.trim()) {
-            setMatchError("Please enter a nickname first!");
-            nicknameInputRef.current?.focus();
+        const normalizedName = getRequiredPlayerName();
+        if (!normalizedName) {
             return;
         }
 
@@ -439,7 +479,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             const { data: newRoom, error } = await supabase
                 .from('matchmaking_rooms')
                 .insert({
-                    player1_name: playerName.trim() || 'Anonymous',
+                    player1_name: normalizedName,
                     player1_id: activePlayerId,
                     game_mode: mode,
                     status: 'waiting',
@@ -464,9 +504,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     };
 
     const handleJoinRoom = async () => {
-        if (!playerName.trim()) {
-            setMatchError("Please enter a nickname first!");
-            nicknameInputRef.current?.focus();
+        const normalizedName = getRequiredPlayerName();
+        if (!normalizedName) {
             return;
         }
 
@@ -509,11 +548,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                 // Join room
                 const { data: updatedRoom, error: updateError } = await supabase
                     .from('matchmaking_rooms')
-                    .update({
-                        player2_name: playerName.trim() || 'Anonymous',
-                        player2_id: activePlayerId,
-                        status: 'playing'
-                    })
+                    .update(getJoinRoomUpdate(normalizedName, activePlayerId))
                     .eq('id', room.id)
                     .is('player2_name', null)
                     .select();
@@ -539,9 +574,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     };
 
     const handleJoinSpecificRoom = async (room: any) => {
-        if (!playerName.trim()) {
-            setMatchError("Please enter a nickname first!");
-            nicknameInputRef.current?.focus();
+        const normalizedName = getRequiredPlayerName();
+        if (!normalizedName) {
             return;
         }
 
@@ -560,11 +594,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             // Join room
             const { data: updatedRoom, error: updateError } = await supabase
                 .from('matchmaking_rooms')
-                .update({
-                    player2_name: playerName.trim() || 'Anonymous',
-                    player2_id: activePlayerId,
-                    status: 'playing'
-                })
+                .update(getJoinRoomUpdate(normalizedName, activePlayerId))
                 .eq('id', room.id)
                 .is('player2_name', null)
                 .select();
@@ -595,10 +625,13 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     };
 
     return (
-        <SimplePopupView style={[
-            { justifyContent: 'flex-start', backgroundColor: currentTheme.menuBackground },
-            isMobile && { width: '92%', height: '90%', paddingHorizontal: 10 }
-        ]}>
+        <SimplePopupView
+            scrollRef={lobbyScrollRef}
+            style={[
+                { justifyContent: 'flex-start', backgroundColor: currentTheme.menuBackground },
+                isMobile && { width: '92%', height: '90%', paddingHorizontal: 10 }
+            ]}
+        >
             {lobbyState === 'idle' && !showEloScreen && !showEloLeaderboard && (
                 <Animated.View entering={FadeIn} style={styles.contentContainer}>
                     
@@ -611,8 +644,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                 ref={nicknameInputRef}
                                 style={[styles.nicknameInput, {
                                     color: currentTheme.textPrimary,
-                                    borderColor: matchError === "Please enter a nickname first!" ? cssColors.brightNiceRed : currentTheme.textSecondary,
-                                    borderWidth: matchError === "Please enter a nickname first!" ? 2 : 1,
+                                    borderColor: matchError === NAME_REQUIRED_MESSAGE ? cssColors.brightNiceRed : currentTheme.textSecondary,
+                                    borderWidth: matchError === NAME_REQUIRED_MESSAGE ? 2 : 1,
                                     backgroundColor: 'rgba(0, 0, 0, 0.4)',
                                     fontSize: 16,
                                     padding: 6
@@ -694,14 +727,14 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             backgroundColor={selectedMode === GameModeType.Chaos ? cssColors.pitchBlack : currentTheme.buttonPrimary} 
                             borderColor={selectedMode === GameModeType.Chaos ? "white" : undefined}
                             style={{ flex: 1, minWidth: 100, height: 36 }}
-                            textStyle={{ fontSize: 13 }}
+                            textStyle={{ fontSize: isMobile ? 11 : 13 }}
                         />
                         <StylizedButton 
                             text="Create Room" 
                             onClick={() => handleCreateRoom(selectedMode)} 
                             backgroundColor={cssColors.pink} 
                             style={{ flex: 1, minWidth: 100, height: 36 }}
-                            textStyle={{ fontSize: 13 }}
+                            textStyle={{ fontSize: isMobile ? 11 : 13 }}
                         />
                     </View>
 
