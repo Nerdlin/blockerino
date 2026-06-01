@@ -26,6 +26,7 @@ interface MultiplayerGameProps {
     myRole: 'player1' | 'player2' | 'spectator';
     opponentName: string;
     gameMode: GameModeType;
+    initialPlayerElo: number;
 }
 
 const SPRING_CONFIG_MISSED_DRAG = {
@@ -117,7 +118,7 @@ const addGarbageLines = (currentBoard: Board, lines: number): Board => {
     return nextBoard;
 };
 
-export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode }: MultiplayerGameProps) {
+export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode, initialPlayerElo }: MultiplayerGameProps) {
     const { width, height } = useWindowDimensions();
     const isLargeScreen = width >= 768;
     const isShortScreen = height < 700;
@@ -140,7 +141,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const [isSpectating, setIsSpectating] = useState(myRole === 'spectator');
     
     // ELO states
-    const [playerElo, setPlayerElo] = useState<number>(1000);
+    const [playerElo, setPlayerElo] = useState<number>(initialPlayerElo);
     const [opponentElo, setOpponentElo] = useState<number | null>(null);
 
     // Opponent states
@@ -232,14 +233,11 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         setActiveCombo(0);
 
         Promise.all([
-            AsyncStorage.getItem('PLAYER_NAME'),
-            AsyncStorage.getItem('PLAYER_ELO')
-        ]).then(([nameVal, eloVal]) => {
+            AsyncStorage.getItem('PLAYER_NAME')
+        ]).then(([nameVal]) => {
             const loadedName = nameVal || 'Anonymous';
-            const loadedElo = parseInt(eloVal || '1000', 10);
             
             if (nameVal) setPlayerName(nameVal);
-            setPlayerElo(loadedElo);
 
             const channel = supabase.channel(`room:${roomId}`);
             
@@ -333,7 +331,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                                         hand: hand.value,
                                         score: score.value,
                                         isGameOver: false,
-                                        elo: loadedElo,
+                                        elo: initialPlayerElo,
                                         playerName: loadedName,
                                         role: myRole
                                     }
@@ -782,7 +780,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 									<View style={styles.miniGridScale}>
 										<ReadOnlyBlockGrid 
 											board={opponentBoard} 
-											gridBlockSize={isShortScreen ? 12 : 14} 
+											gridBlockSize={isShortScreen ? 16 : 20} 
 											hoverIndex={opponentHover.index}
 											hoverX={opponentHover.x}
 											hoverY={opponentHover.y}
@@ -805,8 +803,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 										</View>
 									</View>
 
-									<View style={{ alignItems: 'center' }}>
-										<ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} scale={isShortScreen ? 0.5 : 0.6} />
+									<View style={{ alignItems: 'center', marginTop: 8 }}>
+										<ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} scale={isShortScreen ? 0.6 : 0.8} />
 									</View>
 								</View>
 							</View>
@@ -1046,11 +1044,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10
     },
     opponentMiniBottomRow: {
-        flexDirection: 'row',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         width: '100%',
-        gap: 15
+        gap: 5
     },
     miniGridScale: {
         transform: [{ scale: 1.0 }],

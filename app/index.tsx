@@ -56,6 +56,7 @@ export default function App() {
 	const [ multiplayerRole, setMultiplayerRole ] = useState<'player1' | 'player2' | 'spectator'>('player1');
 	const [ opponentName, setOpponentName ] = useState('');
 	const [ multiplayerGameMode, setMultiplayerGameMode ] = useState<GameModeType>(GameModeType.Classic);
+	const [ multiplayerPlayerElo, setMultiplayerPlayerElo ] = useState(1000);
 
 	useEffect(() => {
 		// Initialize sounds at app startup
@@ -98,11 +99,12 @@ export default function App() {
 		setShowContinueModal(false);
 	};
 
-	const handleStartGame = (roomId: string, role: 'player1' | 'player2' | 'spectator', oppName: string, mode: GameModeType) => {
+	const handleStartGame = (roomId: string, role: 'player1' | 'player2' | 'spectator', oppName: string, mode: GameModeType, playerElo: number) => {
 		setMultiplayerRoomId(roomId);
 		setMultiplayerRole(role);
 		setOpponentName(oppName);
 		setMultiplayerGameMode(mode);
+		setMultiplayerPlayerElo(playerElo);
 		setAppState(MenuStateType.MULTIPLAYER_GAME);
 	};
 	
@@ -132,6 +134,7 @@ export default function App() {
 					myRole={multiplayerRole}
 					opponentName={opponentName}
 					gameMode={multiplayerGameMode}
+					initialPlayerElo={multiplayerPlayerElo}
 				/>
 			)}
 

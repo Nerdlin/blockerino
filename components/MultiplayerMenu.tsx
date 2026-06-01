@@ -12,7 +12,7 @@ import * as Crypto from "expo-crypto";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 interface MultiplayerMenuProps {
-    onStartGame: (roomId: string, role: 'player1' | 'player2' | 'spectator', opponentName: string, gameMode: GameModeType) => void;
+    onStartGame: (roomId: string, role: 'player1' | 'player2' | 'spectator', opponentName: string, gameMode: GameModeType, playerElo: number) => void;
 }
 
 export function getEloBadge(elo: number): { tier: string; color: string } {
@@ -289,7 +289,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         // Game starts!
                         cleanupLobby();
                         const opponentName = myRole === 'player1' ? room.player2_name : room.player1_name;
-                        onStartGame(roomId, myRole, opponentName || 'Opponent', room.game_mode as GameModeType);
+                        onStartGame(roomId, myRole, opponentName || 'Opponent', room.game_mode as GameModeType, playerElo);
                     }
                 }
             )
@@ -305,7 +305,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             if (data && data.status === 'playing') {
                                 cleanupLobby();
                                 const opponentName = myRole === 'player1' ? data.player2_name : data.player1_name;
-                                onStartGame(roomId, myRole, opponentName || 'Opponent', data.game_mode as GameModeType);
+                                onStartGame(roomId, myRole, opponentName || 'Opponent', data.game_mode as GameModeType, playerElo);
                             }
                         });
                 }
@@ -362,7 +362,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                 if (updatedData && updatedData.length > 0) {
                     // Join successful!
                     const finalRoom = updatedData[0];
-                    onStartGame(finalRoom.id, 'player2', finalRoom.player1_name, mode);
+                    onStartGame(finalRoom.id, 'player2', finalRoom.player1_name, mode, playerElo);
                 } else {
                     // Somebody else joined first. Try again.
                     handleQuickMatch(mode);
@@ -487,7 +487,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
 
                 if (updatedRoom && updatedRoom.length > 0) {
                     const finalRoom = updatedRoom[0];
-                    onStartGame(finalRoom.id, 'player2', finalRoom.player1_name, finalRoom.game_mode as GameModeType);
+                    onStartGame(finalRoom.id, 'player2', finalRoom.player1_name, finalRoom.game_mode as GameModeType, playerElo);
                 } else {
                     setMatchError("Room is already full or closed");
                     setLobbyState('idle');
@@ -531,7 +531,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
 
             if (updatedRoom && updatedRoom.length > 0) {
                 const finalRoom = updatedRoom[0];
-                onStartGame(finalRoom.id, 'player2', finalRoom.player1_name, finalRoom.game_mode as GameModeType);
+                onStartGame(finalRoom.id, 'player2', finalRoom.player1_name, finalRoom.game_mode as GameModeType, playerElo);
             } else {
                 setMatchError("Room is already full or closed");
                 setLobbyState('idle');
@@ -545,7 +545,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
 
     const handleSpectateRoom = (room: any) => {
         cleanupLobby();
-        onStartGame(room.id, 'spectator', `${room.player1_name} vs ${room.player2_name || 'Opponent'}`, room.game_mode as GameModeType);
+        onStartGame(room.id, 'spectator', `${room.player1_name} vs ${room.player2_name || 'Opponent'}`, room.game_mode as GameModeType, playerElo);
     };
 
     const copyToClipboard = () => {
