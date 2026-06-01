@@ -768,44 +768,46 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 						
 						{/* On mobile, render opponent's board at the top */}
 						{!isLargeScreen && (
-							<View style={[styles.opponentMiniRow, isShortScreen && { padding: 4, marginTop: 5, gap: 5 }]}>
-								<View style={[styles.opponentHeader, isShortScreen && { marginBottom: 0 }]}>
-									<Text style={[styles.opponentNameText, { color: currentTheme.textSecondary }, isShortScreen && { fontSize: 13 }]}>
-										{opponentName} {oppBadge ? `[${oppBadge.tier} - ${opponentElo}]` : ""} {opponentIsGameOver && "(GameOver)"}
+							<View style={[styles.opponentMiniContainer, isShortScreen && { padding: 4, marginTop: 5 }]}>
+								<View style={[styles.opponentMiniTopRow, isShortScreen && { marginBottom: 2 }]}>
+									<Text style={[styles.opponentNameText, { color: currentTheme.textSecondary }, isShortScreen && { fontSize: 12 }]} numberOfLines={1}>
+										{opponentName} {oppBadge ? `[${oppBadge.tier}]` : ""} {opponentIsGameOver && "(Dead)"}
 									</Text>
-									<Text style={[styles.opponentScoreText, { color: currentTheme.accent }, isShortScreen && { fontSize: 15 }]}>
-										Score: {opponentScore}
+									<Text style={[styles.opponentScoreText, { color: currentTheme.accent }, isShortScreen && { fontSize: 14 }]}>
+										{opponentScore} pts
 									</Text>
 								</View>
 
-								<View style={styles.miniGridScale}>
-									<ReadOnlyBlockGrid 
-										board={opponentBoard} 
-										gridBlockSize={isShortScreen ? 11 : 14} 
-										hoverIndex={opponentHover.index}
-										hoverX={opponentHover.x}
-										hoverY={opponentHover.y}
-										hand={opponentHand}
-									/>
-									<View style={styles.emotesOverlay}>
-										{(myRole === 'player1' ? p2Emotes : p1Emotes).map(e => (
-											<FloatingEmote 
-												key={e.id} 
-												text={e.text} 
-												onComplete={() => {
-													if (myRole === 'player1') {
-														setP2Emotes(prev => prev.filter(x => x.id !== e.id));
-													} else {
-														setP1Emotes(prev => prev.filter(x => x.id !== e.id));
-													}
-												}} 
-											/>
-										))}
+								<View style={styles.opponentMiniBottomRow}>
+									<View style={styles.miniGridScale}>
+										<ReadOnlyBlockGrid 
+											board={opponentBoard} 
+											gridBlockSize={isShortScreen ? 10 : 12} 
+											hoverIndex={opponentHover.index}
+											hoverX={opponentHover.x}
+											hoverY={opponentHover.y}
+											hand={opponentHand}
+										/>
+										<View style={styles.emotesOverlay}>
+											{(myRole === 'player1' ? p2Emotes : p1Emotes).map(e => (
+												<FloatingEmote 
+													key={e.id} 
+													text={e.text} 
+													onComplete={() => {
+														if (myRole === 'player1') {
+															setP2Emotes(prev => prev.filter(x => x.id !== e.id));
+														} else {
+															setP1Emotes(prev => prev.filter(x => x.id !== e.id));
+														}
+													}} 
+												/>
+											))}
+										</View>
 									</View>
-								</View>
 
-								<View style={{ alignItems: 'center', marginLeft: isShortScreen ? 4 : 10 }}>
-									<ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} scale={isShortScreen ? 0.4 : 0.5} />
+									<View style={{ alignItems: 'center' }}>
+										<ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} scale={isShortScreen ? 0.35 : 0.45} />
+									</View>
 								</View>
 							</View>
 						)}
@@ -1021,19 +1023,34 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         opacity: 0.8
     },
-    opponentMiniRow: {
-        flexDirection: 'row',
+    opponentMiniContainer: {
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'rgba(0,0,0,0.6)',
         width: '95%',
-        padding: 8,
+        padding: 6,
         borderRadius: 8,
         borderWidth: 1,
         borderColor: '#333',
         marginTop: 10,
         marginBottom: 5,
-        gap: 12
+        gap: 6,
+		maxWidth: 400
+    },
+    opponentMiniTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        paddingHorizontal: 10
+    },
+    opponentMiniBottomRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        gap: 15
     },
     miniGridScale: {
         transform: [{ scale: 1.0 }],

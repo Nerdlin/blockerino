@@ -2,7 +2,7 @@ import { getHighScores, HighScore } from "@/constants/Storage";
 import { getGlobalHighScores, GlobalHighScore } from "@/constants/Supabase";
 import SimplePopupView from "./SimplePopupView";
 import { useCallback, useEffect, useState, useRef } from "react";
-import { StyleSheet, Text, View, ActivityIndicator, TextInput } from "react-native";
+import { StyleSheet, Text, View, ActivityIndicator, TextInput, useWindowDimensions } from "react-native";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { GameModeType, useSetAppState } from "@/hooks/useAppState";
@@ -12,6 +12,8 @@ import { useTheme } from "@/constants/Theme";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 export default function HighScores() {
+    const { width, height } = useWindowDimensions();
+    const isMobile = width < 600 || height < 700;
     const { currentTheme } = useTheme();
     const [ setAppState, , popAppState ] = useSetAppState();
     const [ highScores, setHighScores ] = useState<HighScore[]>([]);
@@ -110,7 +112,7 @@ export default function HighScores() {
         <StylizedButton text="Back" onClick={handleBack} backgroundColor={cssColors.spaceGray}></StylizedButton>
 
         <View style={styles.nicknameContainer}>
-            <Text style={[styles.subHeader, { color: currentTheme.textSecondary, fontSize: 18, marginBottom: 5 }]}>
+            <Text style={[styles.subHeader, { color: currentTheme.textSecondary, fontSize: 18, marginBottom: 5 }, isMobile && { fontSize: 14 }]}>
                 {"Your Nickname:"}
             </Text>
             <TextInput
@@ -118,7 +120,7 @@ export default function HighScores() {
                     color: currentTheme.textPrimary,
                     borderColor: currentTheme.textSecondary,
                     backgroundColor: 'rgba(0, 0, 0, 0.4)'
-                }]}
+                }, isMobile && { fontSize: 16, padding: 6 }]}
                 value={playerName}
                 onChangeText={handlePlayerNameChange}
                 onBlur={handlePlayerNameBlur}
@@ -136,7 +138,7 @@ export default function HighScores() {
 
         { hasScores &&
             <>
-                <Text style={[styles.subHeader, { color: currentTheme.textSecondary }]}>
+                <Text style={[styles.subHeader, { color: currentTheme.textSecondary }, isMobile && { fontSize: 18 }]}>
                     {"Select a game mode..."}
                 </Text>
                 <View style={{flexDirection: 'row', gap: 10}}>
@@ -152,10 +154,10 @@ export default function HighScores() {
                         borderColor={gameMode === GameModeType.Chaos ? "white" : undefined}
                     />
                 </View>
-                <Text style={[styles.header, { color: currentTheme.textPrimary }]}>
+                <Text style={[styles.header, { color: currentTheme.textPrimary }, isMobile && { fontSize: 22 }]}>
                     {"Global Leaderboard (Top 10)"}
                 </Text>
-                <Text style={[styles.subHeader, { color: currentTheme.textSecondary }]}>
+                <Text style={[styles.subHeader, { color: currentTheme.textSecondary }, isMobile && { fontSize: 16 }]}>
                     {"Sorted from high to low."}
                 </Text>
 
@@ -168,7 +170,7 @@ export default function HighScores() {
         }
         { !hasScores && !loading &&
             <>
-                <Text style={[styles.noScoresText, { color: currentTheme.textPrimary }]}>
+                <Text style={[styles.noScoresText, { color: currentTheme.textPrimary }, isMobile && { fontSize: 20 }]}>
                     {"No global scores yet. Be the first!"}
                 </Text>
                 <StylizedButton text="Play Classic" onClick={() => {
@@ -184,11 +186,13 @@ export default function HighScores() {
 
 function GlobalScore({score, rank}: {score: GlobalHighScore, rank: number}) {
     const { currentTheme } = useTheme();
+    const { width, height } = useWindowDimensions();
+    const isMobile = width < 600 || height < 700;
     return <>
-        <Text style={[styles.scoreValueText, { color: currentTheme.textPrimary }]}>
+        <Text style={[styles.scoreValueText, { color: currentTheme.textPrimary }, isMobile && { fontSize: 20 }]} numberOfLines={1} adjustsFontSizeToFit>
             {"#" + String(rank) + " - " + score.player_name + " - " + String(score.score)}
         </Text>
-        <Text style={[styles.scoreTimeText, { color: currentTheme.textSecondary }]}>
+        <Text style={[styles.scoreTimeText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 12 }]}>
             {score.created_at ? createTimeAgoString(new Date(score.created_at).getTime()) : 'Unknown time'}
         </Text>
     </>

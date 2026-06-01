@@ -52,6 +52,17 @@ export default function RootLayout() {
 				<link rel="manifest" href="/manifest.json" />
 				<meta name="mobile-web-app-capable" content="yes" />
 				<style>{`
+					html, body, #root {
+						height: 100%;
+						width: 100%;
+						margin: 0;
+						padding: 0;
+						overflow: hidden;
+						position: fixed;
+						top: 0;
+						left: 0;
+					}
+					
 					body {
 						touch-action: none;
 						user-select: none;
