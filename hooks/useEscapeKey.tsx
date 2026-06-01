@@ -1,5 +1,5 @@
 import { useEffect, useRef, type MutableRefObject } from "react";
-import { Platform } from "react-native";
+import { Platform, BackHandler } from "react-native";
 
 type EscapeHandler = () => void;
 
@@ -42,12 +42,30 @@ function handleEscapeKey(event: KeyboardEvent) {
 	}
 }
 
-function ensureEscapeListener() {
-	if (Platform.OS !== "web" || typeof window === "undefined" || isListening) {
+function handleBackPress() {
+	for (let i = escapeHandlers.length - 1; i >= 0; i--) {
+		const entry = escapeHandlers[i];
+		if (!entry.enabledRef.current) {
+			continue;
+		}
+
+		entry.handlerRef.current();
+		return true; // prevent default (app exit)
+	}
+	return false; // no handler caught it, allow default
+}
+
+function ensureListeners() {
+	if (isListening) {
 		return;
 	}
 
-	window.addEventListener("keydown", handleEscapeKey, true);
+	if (Platform.OS === "web" && typeof window !== "undefined") {
+		window.addEventListener("keydown", handleEscapeKey, true);
+	} else if (Platform.OS === "android") {
+		BackHandler.addEventListener("hardwareBackPress", handleBackPress);
+	}
+	
 	isListening = true;
 }
 
@@ -59,11 +77,7 @@ export function useEscapeKey(handler: EscapeHandler, enabled: boolean = true) {
 	enabledRef.current = enabled;
 
 	useEffect(() => {
-		if (Platform.OS !== "web" || typeof window === "undefined") {
-			return;
-		}
-
-		ensureEscapeListener();
+		ensureListeners();
 		const entry = { handlerRef, enabledRef };
 		escapeHandlers.push(entry);
 

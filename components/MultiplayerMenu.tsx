@@ -904,8 +904,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     <Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>Room Created</Text>
                     <Text style={[styles.waitingSub, { color: currentTheme.textSecondary }]}>Share code with a friend:</Text>
                     
-                    <View style={styles.codeDisplayContainer}>
-                        <Text style={[styles.codeText, { color: currentTheme.accent }]}>{roomCode}</Text>
+                    <View style={[styles.codeDisplayContainer, isMobile && { width: '95%' }]}>
+                        <Text style={[styles.codeText, { color: currentTheme.accent }, isMobile && { fontSize: 24 }]} adjustsFontSizeToFit numberOfLines={1}>{roomCode}</Text>
                         <StylizedButton text="Copy" onClick={copyToClipboard} backgroundColor={currentTheme.buttonPrimary} style={{ width: 100 }} />
                     </View>
 
@@ -1086,6 +1086,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        flexWrap: 'wrap',
         gap: 15,
         backgroundColor: 'rgba(0,0,0,0.5)',
         padding: 15,

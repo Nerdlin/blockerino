@@ -768,12 +768,12 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 						
 						{/* On mobile, render opponent's board at the top */}
 						{!isLargeScreen && (
-							<View style={[styles.opponentMiniContainer, isShortScreen && { padding: 4, marginTop: 5 }]}>
+							<View style={[styles.opponentMiniContainer, isShortScreen && { padding: 6, marginTop: 15 }]}>
 								<View style={[styles.opponentMiniTopRow, isShortScreen && { marginBottom: 2 }]}>
-									<Text style={[styles.opponentNameText, { color: currentTheme.textSecondary }, isShortScreen && { fontSize: 12 }]} numberOfLines={1}>
+									<Text style={[styles.opponentNameText, { color: currentTheme.textSecondary }, isShortScreen && { fontSize: 14 }]} numberOfLines={1}>
 										{opponentName} {oppBadge ? `[${oppBadge.tier}]` : ""} {opponentIsGameOver && "(Dead)"}
 									</Text>
-									<Text style={[styles.opponentScoreText, { color: currentTheme.accent }, isShortScreen && { fontSize: 14 }]}>
+									<Text style={[styles.opponentScoreText, { color: currentTheme.accent }, isShortScreen && { fontSize: 16 }]}>
 										{opponentScore} pts
 									</Text>
 								</View>
@@ -782,7 +782,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 									<View style={styles.miniGridScale}>
 										<ReadOnlyBlockGrid 
 											board={opponentBoard} 
-											gridBlockSize={isShortScreen ? 10 : 12} 
+											gridBlockSize={isShortScreen ? 12 : 14} 
 											hoverIndex={opponentHover.index}
 											hoverX={opponentHover.x}
 											hoverY={opponentHover.y}
@@ -806,7 +806,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 									</View>
 
 									<View style={{ alignItems: 'center' }}>
-										<ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} scale={isShortScreen ? 0.35 : 0.45} />
+										<ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} scale={isShortScreen ? 0.5 : 0.6} />
 									</View>
 								</View>
 							</View>
@@ -1029,11 +1029,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         backgroundColor: 'rgba(0,0,0,0.6)',
         width: '95%',
-        padding: 6,
+        padding: 8,
         borderRadius: 8,
         borderWidth: 1,
         borderColor: '#333',
-        marginTop: 10,
+        marginTop: 20,
         marginBottom: 5,
         gap: 6,
 		maxWidth: 400

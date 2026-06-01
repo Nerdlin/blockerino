@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View, Platform } from "react-native";
+import { StyleSheet, Text, View, Platform, TextInput } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { GameModeType, MenuStateType, useSetAppState } from "@/hooks/useAppState";
@@ -34,28 +34,45 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
     }, []);
 
     useEffect(() => {
-        // Автоматическая отправка рекорда на Supabase
-        const autoSubmit = async () => {
-            setSubmitStatus('submitting');
+        const checkAndSubmit = async () => {
             try {
                 let savedName = await AsyncStorage.getItem(PLAYER_NAME_KEY);
-                const nameToSubmit = savedName ? savedName.trim() : 'Anonymous';
-                setPlayerName(nameToSubmit);
+                const name = savedName ? savedName.trim() : 'Anonymous';
+                setPlayerName(name);
                 
-                const success = await submitGlobalHighScore(nameToSubmit, score, gameMode);
-                if (success) {
-                    setSubmitStatus('success');
-                } else {
-                    setSubmitStatus('failed');
+                if (name !== 'Anonymous' && name !== '') {
+                    // Auto submit for returning players
+                    await doSubmit(name);
                 }
             } catch (err) {
-                console.error('Error auto-submitting high score:', err);
-                setSubmitStatus('failed');
+                console.error(err);
             }
         };
 
-        autoSubmit();
+        checkAndSubmit();
     }, [score, gameMode]);
+
+    const doSubmit = async (nameToSubmit: string) => {
+        setSubmitStatus('submitting');
+        try {
+            await AsyncStorage.setItem(PLAYER_NAME_KEY, nameToSubmit);
+            const success = await submitGlobalHighScore(nameToSubmit, score, gameMode);
+            if (success) {
+                setSubmitStatus('success');
+            } else {
+                setSubmitStatus('failed');
+            }
+        } catch (err) {
+            console.error('Error submitting high score:', err);
+            setSubmitStatus('failed');
+        }
+    };
+
+    const handleManualSubmit = () => {
+        const nameToSubmit = playerName.trim() || 'Anonymous';
+        setPlayerName(nameToSubmit);
+        doSubmit(nameToSubmit);
+    };
 
     const animatedTextStyle = useAnimatedStyle(() => {
         return {
@@ -64,6 +81,9 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
     });
 
     const handlePlayAgain = () => {
+        if (submitStatus === 'idle') {
+            doSubmit(playerName.trim() || 'Anonymous');
+        }
         playSfx('menuClick');
         // Сбрасываем состояние до главного меню, а затем запускаем новую игру
         setTimeout(() => {
@@ -75,6 +95,9 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
     };
 
     const handleMainMenu = () => {
+        if (submitStatus === 'idle') {
+            doSubmit(playerName.trim() || 'Anonymous');
+        }
         playSfx('menuClick');
         setAppState(MenuStateType.MENU);
     };
@@ -113,6 +136,30 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
             </Text>
 
             <View style={styles.statusContainer}>
+                {submitStatus === 'idle' && (
+                    <View style={{ width: '100%', alignItems: 'center', gap: 10 }}>
+                        <Text style={[styles.messageText, { color: currentTheme.textSecondary, marginBottom: 5, paddingHorizontal: 0 }]}>
+                            Enter a nickname to save your score!
+                        </Text>
+                        <TextInput
+                            style={[styles.nicknameInput, {
+                                color: currentTheme.textPrimary,
+                                borderColor: currentTheme.textSecondary,
+                                backgroundColor: 'rgba(0, 0, 0, 0.4)'
+                            }]}
+                            value={playerName === 'Anonymous' ? '' : playerName}
+                            onChangeText={setPlayerName}
+                            placeholder="Your Nickname"
+                            placeholderTextColor="gray"
+                            maxLength={15}
+                        />
+                        <StylizedButton
+                            text="Save Score"
+                            onClick={handleManualSubmit}
+                            backgroundColor={currentTheme.buttonPrimary}
+                        />
+                    </View>
+                )}
                 {submitStatus === 'submitting' && (
                     <Text style={[styles.statusText, { color: currentTheme.textSecondary }]}>
                         Saving score to global leaderboard...
@@ -192,6 +239,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         alignItems: 'center',
         paddingHorizontal: 20,
+        width: '100%'
     },
     statusText: {
         fontSize: 18,
@@ -211,5 +259,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         width: '100%',
         gap: 15
+    },
+    nicknameInput: {
+        width: '80%',
+        maxWidth: 300,
+        height: 45,
+        borderWidth: 2,
+        borderRadius: 8,
+        paddingHorizontal: 15,
+        fontSize: 18,
+        fontFamily: 'Silkscreen',
+        textAlign: 'center',
     }
 });
