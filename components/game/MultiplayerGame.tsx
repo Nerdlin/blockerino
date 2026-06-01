@@ -441,6 +441,18 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
                 if (opponentDisconnected) {
                     eloDiff = 10;
+                    if (!isGameOver) {
+                        const winnerRole = myRole === 'player1' ? 'player1' : 'player2';
+                        const winnerNameStr = winnerRole === 'player1' ? 'Player 1' : 'Player 2';
+                        supabase
+                            .from('matchmaking_rooms')
+                            .update({
+                                status: 'finished',
+                                winner_name: winnerNameStr
+                            })
+                            .eq('id', roomId)
+                            .then();
+                    }
                 } else if (isGameOver && opponentIsGameOver) {
                     if (score.value > opponentScore) {
                         eloDiff = 10;
@@ -724,6 +736,29 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 	};
 
     const handleExit = () => {
+        if (myRole !== 'spectator' && !isGameOver) {
+            // Apply -10 ELO penalty for leaving early
+            AsyncStorage.getItem('PLAYER_ELO').then((val) => {
+                const currentElo = parseInt(val || '1000', 10);
+                const newElo = Math.max(0, currentElo - 10);
+                AsyncStorage.setItem('PLAYER_ELO', newElo.toString());
+                setPlayerElo(newElo);
+                submitEloRating(playerName, newElo);
+            });
+
+            // Mark opponent as winner in database
+            const winnerRole = myRole === 'player1' ? 'player2' : 'player1';
+            const winnerNameStr = winnerRole === 'player1' ? 'Player 1' : 'Player 2';
+            supabase
+                .from('matchmaking_rooms')
+                .update({
+                    status: 'finished',
+                    winner_name: winnerNameStr
+                })
+                .eq('id', roomId)
+                .then();
+        }
+
         setAppState(MenuStateType.MENU);
     };
 
@@ -913,13 +948,6 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 									))}
 								</View>
                                 
-                                <View style={styles.emoteButtonsRow}>
-                                    <StylizedButton text="Oops" onClick={() => sendEmote("Oops")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
-                                    <StylizedButton text="OMG" onClick={() => sendEmote("OMG")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
-                                    <StylizedButton text="EZ" onClick={() => sendEmote("EZ")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
-                                    <StylizedButton text="GG" onClick={() => sendEmote("GG")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
-                                </View>
-
 								<HandPieces 
 									hand={hand} 
 									boardSize={boardLength}
@@ -927,6 +955,13 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 										broadcastState(board.value, newHand, score.value, combo.value, lastBrokenLine.value, false);
 									}}
 								/>
+
+                                <View style={styles.emoteButtonsRow}>
+                                    <StylizedButton text="Oops" onClick={() => sendEmote("Oops")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
+                                    <StylizedButton text="OMG" onClick={() => sendEmote("OMG")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
+                                    <StylizedButton text="EZ" onClick={() => sendEmote("EZ")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
+                                    <StylizedButton text="GG" onClick={() => sendEmote("GG")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
+                                </View>
 							</DndProvider>
 						</View>
 
