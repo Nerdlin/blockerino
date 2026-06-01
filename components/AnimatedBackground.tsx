@@ -1,9 +1,10 @@
 import { useTheme } from "@/constants/Theme";
 import { useEffect } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Animated, {
 	useSharedValue,
 	useAnimatedStyle,
+	cancelAnimation,
 	withRepeat,
 	withTiming,
 	Easing,
@@ -12,15 +13,25 @@ import Animated, {
 import { useAtomValue } from "jotai";
 import { activeComboAtom } from "@/hooks/useAppState";
 
-export default function AnimatedBackground() {
+type AnimatedBackgroundProps = {
+	isGameplayActive?: boolean;
+};
+
+export default function AnimatedBackground({ isGameplayActive = false }: AnimatedBackgroundProps) {
 	const { currentTheme } = useTheme();
 	const progress = useSharedValue(0);
 	const activeCombo = useAtomValue(activeComboAtom);
+	const animationCombo = isGameplayActive ? 0 : activeCombo;
 
 	useEffect(() => {
-		// Speed up based on combo: base is 8000ms, speed increases with combo
-		const baseDuration = 8000;
-		const speedMultiplier = 1 + activeCombo * 0.45; // 45% faster per combo point
+		if (isGameplayActive) {
+			cancelAnimation(progress);
+			progress.value = withTiming(0, { duration: 350 });
+			return;
+		}
+
+		const baseDuration = 10000;
+		const speedMultiplier = 1 + animationCombo * 0.25;
 		const duration = baseDuration / speedMultiplier;
 
 		progress.value = withRepeat(
@@ -31,7 +42,7 @@ export default function AnimatedBackground() {
 			-1,
 			true
 		);
-	}, [progress, activeCombo]);
+	}, [progress, animationCombo, isGameplayActive]);
 
 	const animatedStyle = useAnimatedStyle(() => {
 		const backgroundColor = interpolateColor(
@@ -60,9 +71,8 @@ export default function AnimatedBackground() {
 			]
 		);
 
-		// Increase background glow intensity during combos
 		const baseOpacity = 0.5;
-		const comboBonus = activeCombo > 0 ? Math.min(0.4, activeCombo * 0.12) : 0;
+		const comboBonus = !isGameplayActive && activeCombo > 0 ? Math.min(0.25, activeCombo * 0.08) : 0;
 
 		return {
 			backgroundColor,
@@ -74,6 +84,7 @@ export default function AnimatedBackground() {
 		<>
 			<Animated.View style={[styles.background, animatedStyle]} />
 			<Animated.View style={[styles.background, styles.overlay, animatedStyle2]} />
+			{isGameplayActive && <View style={styles.gameplayScrim} />}
 		</>
 	);
 }
@@ -89,5 +100,11 @@ const styles = StyleSheet.create({
 	},
 	overlay: {
 		opacity: 0.5,
+	},
+	gameplayScrim: {
+		...StyleSheet.absoluteFillObject,
+		backgroundColor: "rgba(0, 0, 0, 0.35)",
+		pointerEvents: "none",
+		zIndex: 0,
 	},
 });

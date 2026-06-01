@@ -11,7 +11,7 @@ import { clearActiveGame } from "@/constants/Storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 export default function OptionsMenu() {
-	const [ appState, setAppState, , popAppState ] = useAppState();
+	const [ appState, setAppState, appendAppState, popAppState ] = useAppState();
 	const { width } = useWindowDimensions();
 	const isMobile = width < 600;
 	const { 
@@ -45,6 +45,20 @@ export default function OptionsMenu() {
 		playSfx('menuClick');
 		clearActiveGame();
 		setAppState(MenuStateType.MENU);
+	};
+
+	const handleRestartPress = () => {
+		playSfx('menuClick');
+		clearActiveGame();
+		
+		const modeSearch = appState.containsGameMode();
+		const mode = modeSearch ? modeSearch.current : undefined;
+		if (mode) {
+			setAppState(MenuStateType.MENU);
+			setTimeout(() => {
+				appendAppState(mode);
+			}, 50);
+		}
 	};
 
 	const handleMusicToggle = (value: boolean) => {
@@ -159,11 +173,20 @@ export default function OptionsMenu() {
 				/>
 				
 				{(appState.containsGameMode() || appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
-					<StylizedButton 
-						onClick={handleQuitPress} 
-						text="End Game" 
-						backgroundColor={currentTheme.buttonPrimary}
-					/>
+					<>
+						{(appState.containsGameMode() && !appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
+							<StylizedButton 
+								onClick={handleRestartPress} 
+								text="Restart" 
+								backgroundColor={currentTheme.buttonPrimary}
+							/>
+						)}
+						<StylizedButton 
+							onClick={handleQuitPress} 
+							text="End Game" 
+							backgroundColor={currentTheme.buttonPrimary}
+						/>
+					</>
 				)}
 			</View>
 		</SimplePopupView>

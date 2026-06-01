@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
 		width: '90%',
 		height: '80%',
 		maxWidth: 480,
-		maxHeight: 650,
+		maxHeight: 760,
 		backgroundColor: 'rgba(5, 5, 5, 0.95)',
 		borderRadius: 20,
 		borderColor: 'rgb(90, 90, 90)',

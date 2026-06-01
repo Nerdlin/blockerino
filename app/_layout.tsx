@@ -11,16 +11,34 @@ LogBox.ignoreLogs([
 	'`new NativeEventEmitter()` was called with a non-null argument'
 ]);
 
-// Additional suppression for NativeEventEmitter warning
+const ignoredConsoleFragments = [
+	'new NativeEventEmitter',
+	'pointerEvents is deprecated',
+	'props.pointerEvents is deprecated',
+	'findDOMNode is deprecated'
+];
+
+const shouldIgnoreConsoleMessage = (args: unknown[]) => {
+	const firstArg = args[0];
+	return typeof firstArg === 'string' &&
+		ignoredConsoleFragments.some((fragment) => firstArg.includes(fragment));
+};
+
+// Additional suppression for noisy third-party web/native warnings.
 const originalWarn = console.warn;
 console.warn = (...args) => {
-	if (
-		typeof args[0] === 'string' &&
-		args[0].includes('new NativeEventEmitter')
-	) {
+	if (shouldIgnoreConsoleMessage(args)) {
 		return;
 	}
 	originalWarn.apply(console, args);
+};
+
+const originalError = console.error;
+console.error = (...args) => {
+	if (shouldIgnoreConsoleMessage(args)) {
+		return;
+	}
+	originalError.apply(console, args);
 };
 
 export default function RootLayout() {

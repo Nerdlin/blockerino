@@ -175,6 +175,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const emoteCounter = useRef(0);
 
     // End game variables
+    const [restartRequestStatus, setRestartRequestStatus] = useState<'idle' | 'waiting_for_opponent' | 'received_request'>('idle');
     const [, setAppState] = useAppState();
     const { currentTheme } = useTheme();
     const channelRef = useRef<any>(null);
@@ -316,6 +317,18 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                         }, 300);
                     }
                 })
+                .on('broadcast', { event: 'restart_request' }, (payload) => {
+                    const data = payload.payload;
+                    if (data.role !== myRole) {
+                        setRestartRequestStatus('received_request');
+                    }
+                })
+                .on('broadcast', { event: 'restart_accept' }, () => {
+                    resetGameLocal();
+                })
+                .on('broadcast', { event: 'restart_decline' }, (payload) => {
+                    handleExit();
+                })
                 .on('presence', { event: 'leave' }, () => {
                     setOpponentDisconnected(true);
                 })
@@ -445,6 +458,57 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
             });
         }
     }, [isGameOver, opponentIsGameOver, opponentDisconnected]);
+
+    const resetGameLocal = () => {
+        board.value = newEmptyBoard(boardLength);
+        hand.value = createRandomHandWorklet(handSize, GameModeType.Classic);
+        score.value = 0;
+        combo.value = 0;
+        lastBrokenLine.value = 0;
+        setIsGameOver(false);
+
+        setOpponentBoard(newEmptyBoard(boardLength));
+        setOpponentHand([]);
+        setOpponentScore(0);
+        setOpponentIsGameOver(false);
+        setRestartRequestStatus('idle');
+        eloUpdatedRef.current = false;
+
+        broadcastState(board.value, hand.value, 0, 0, 0, false);
+    };
+
+    const handleRestartRequest = () => {
+        if (channelRef.current) {
+            channelRef.current.send({
+                type: 'broadcast',
+                event: 'restart_request',
+                payload: { role: myRole }
+            });
+            setRestartRequestStatus('waiting_for_opponent');
+        }
+    };
+
+    const handleRestartAccept = () => {
+        if (channelRef.current) {
+            channelRef.current.send({
+                type: 'broadcast',
+                event: 'restart_accept',
+                payload: { role: myRole }
+            });
+            resetGameLocal();
+        }
+    };
+
+    const handleRestartDecline = () => {
+        if (channelRef.current) {
+            channelRef.current.send({
+                type: 'broadcast',
+                event: 'restart_decline',
+                payload: { role: myRole }
+            });
+            handleExit();
+        }
+    };
 
 	const pieceOverlapsRectangle = (layout: Rectangle, other: Rectangle) => {
 		"worklet";
@@ -930,11 +994,55 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                                 </Text>
                             </View>
 
-                            <StylizedButton 
-                                text="Multiplayer Lobby" 
-                                onClick={handleExit} 
-                                backgroundColor={currentTheme.buttonPrimary} 
-                            />
+                            {restartRequestStatus === 'idle' && !opponentDisconnected && (
+                                <>
+                                    <StylizedButton 
+                                        text="Restart Game" 
+                                        onClick={handleRestartRequest} 
+                                        backgroundColor={currentTheme.buttonPrimary} 
+                                        style={{ marginBottom: 10 }}
+                                    />
+                                    <StylizedButton 
+                                        text="Exit to Lobby" 
+                                        onClick={handleExit} 
+                                        backgroundColor={cssColors.spaceGray} 
+                                    />
+                                </>
+                            )}
+                            {(restartRequestStatus === 'idle' && opponentDisconnected) && (
+                                <StylizedButton 
+                                    text="Exit to Lobby" 
+                                    onClick={handleExit} 
+                                    backgroundColor={currentTheme.buttonPrimary} 
+                                />
+                            )}
+                            {restartRequestStatus === 'waiting_for_opponent' && (
+                                <>
+                                    <Text style={[styles.modalMessage, { color: currentTheme.accent, marginBottom: 10 }]}>Waiting for opponent to accept...</Text>
+                                    <StylizedButton 
+                                        text="Cancel" 
+                                        onClick={handleRestartDecline} 
+                                        backgroundColor={cssColors.spaceGray} 
+                                    />
+                                </>
+                            )}
+                            {restartRequestStatus === 'received_request' && (
+                                <>
+                                    <Text style={[styles.modalMessage, { color: currentTheme.accent, marginBottom: 10 }]}>Opponent wants to play again!</Text>
+                                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                                        <StylizedButton 
+                                            text="Accept" 
+                                            onClick={handleRestartAccept} 
+                                            backgroundColor={currentTheme.buttonPrimary} 
+                                        />
+                                        <StylizedButton 
+                                            text="Decline" 
+                                            onClick={handleRestartDecline} 
+                                            backgroundColor={cssColors.spaceGray} 
+                                        />
+                                    </View>
+                                </>
+                            )}
                         </View>
                     </View>
                 )}

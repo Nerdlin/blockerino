@@ -31,7 +31,23 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
             -1,
             true
         );
-    }, []);
+    }, [playSfx, scale]);
+
+    const doSubmit = React.useCallback(async (nameToSubmit: string) => {
+        setSubmitStatus('submitting');
+        try {
+            await AsyncStorage.setItem(PLAYER_NAME_KEY, nameToSubmit);
+            const success = await submitGlobalHighScore(nameToSubmit, score, gameMode);
+            if (success) {
+                setSubmitStatus('success');
+            } else {
+                setSubmitStatus('failed');
+            }
+        } catch (err) {
+            console.error('Error submitting high score:', err);
+            setSubmitStatus('failed');
+        }
+    }, [score, gameMode]);
 
     useEffect(() => {
         const checkAndSubmit = async () => {
@@ -50,23 +66,7 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
         };
 
         checkAndSubmit();
-    }, [score, gameMode]);
-
-    const doSubmit = async (nameToSubmit: string) => {
-        setSubmitStatus('submitting');
-        try {
-            await AsyncStorage.setItem(PLAYER_NAME_KEY, nameToSubmit);
-            const success = await submitGlobalHighScore(nameToSubmit, score, gameMode);
-            if (success) {
-                setSubmitStatus('success');
-            } else {
-                setSubmitStatus('failed');
-            }
-        } catch (err) {
-            console.error('Error submitting high score:', err);
-            setSubmitStatus('failed');
-        }
-    };
+    }, [score, gameMode, doSubmit]);
 
     const handleManualSubmit = () => {
         const nameToSubmit = playerName.trim() || 'Anonymous';

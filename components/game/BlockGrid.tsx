@@ -131,7 +131,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 			-1,
 			true
 		);
-	}, []);
+	}, [pulseAnim]);
 
 	// Реакция на изменение состояния блока
 	useAnimatedReaction(() => {

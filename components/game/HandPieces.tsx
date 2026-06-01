@@ -180,7 +180,7 @@ export default function HandPieces({ hand, boardSize, onHandChange }: HandProps)
 					maxWidth: HAND_BLOCK_SIZE * 5 * handSize,
 					maxHeight: HAND_BLOCK_SIZE * 5,
 					height: HAND_BLOCK_SIZE * 5,
-					marginTop: isMobile ? (isShortScreen ? 20 : 30) : 45,
+					marginTop: isMobile ? (isShortScreen ? 36 : 30) : 45,
 					flexWrap: 'nowrap',
 					flex: 0
 				}

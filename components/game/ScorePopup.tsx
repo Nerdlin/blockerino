@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { StyleSheet, Text, Platform } from "react-native";
 import Animated, {
 	useSharedValue,
@@ -48,14 +48,19 @@ export function ScorePopup({ points, x, y, onComplete }: ScorePopupProps) {
 	const translateY = useSharedValue(0);
 	const scale = useSharedValue(0.5);
 
+	const onCompleteRef = useRef(onComplete);
+	useEffect(() => {
+		onCompleteRef.current = onComplete;
+	}, [onComplete]);
+
 	useEffect(() => {
 		// Анимация появления и исчезновения
 		opacity.value = withSequence(
 			withTiming(1, { duration: 100 }),
 			withTiming(1, { duration: 800 }),
 			withTiming(0, { duration: 300 }, (isFinished) => {
-				if (isFinished && onComplete) {
-					runOnJS(onComplete)();
+				if (isFinished && onCompleteRef.current) {
+					runOnJS(onCompleteRef.current)();
 				}
 			})
 		);
@@ -71,7 +76,7 @@ export function ScorePopup({ points, x, y, onComplete }: ScorePopupProps) {
 			withTiming(1.5, { duration: 200, easing: Easing.out(Easing.back(2)) }),
 			withTiming(1, { duration: 100 })
 		);
-	}, [opacity, translateY, scale, onComplete]);
+	}, [opacity, translateY, scale]);
 
 	const animatedStyle = useAnimatedStyle(() => {
 		return {

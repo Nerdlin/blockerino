@@ -47,7 +47,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const { width } = useWindowDimensions();
     const isMobile = width < 600;
     
-    const [playerName, setPlayerName] = useState("Anonymous");
+    const [playerName, setPlayerName] = useState("");
     const [playerId, setPlayerId] = useState("");
     const [playerElo, setPlayerElo] = useState<number>(1000);
     const [publicRooms, setPublicRooms] = useState<any[]>([]);
@@ -57,6 +57,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const [roomCode, setRoomCode] = useState("");
     const [joinCode, setJoinCode] = useState("");
     const [matchError, setMatchError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
     const [showEloScreen, setShowEloScreen] = useState(false);
     const [showEloLeaderboard, setShowEloLeaderboard] = useState(false);
     const [topEloList, setTopEloList] = useState<EloRating[]>([]);
@@ -68,12 +69,18 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const playerNameRef = useRef(playerName);
 
     playerNameRef.current = playerName;
+    const nicknameInputRef = useRef<TextInput>(null);
 
     const syncPlayerElo = useCallback(async (name: string = playerNameRef.current, localFallback?: string | null) => {
-        const currentName = name.trim() || 'Anonymous';
+        const currentName = name.trim();
+        if (!currentName) {
+            setPlayerElo(1000);
+            return;
+        }
+        
         const serverElo = await getPlayerElo(currentName);
 
-        if (!isMounted.current || (playerNameRef.current.trim() || 'Anonymous') !== currentName) {
+        if (!isMounted.current || playerNameRef.current.trim() !== currentName) {
             return;
         }
 
@@ -132,7 +139,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             AsyncStorage.getItem('PLAYER_ELO')
         ]).then(([nameVal, localEloVal]) => {
             if (!isMounted.current) return;
-            const currentName = (nameVal || 'Anonymous').trim() || 'Anonymous';
+            const currentName = (nameVal || '').trim();
             syncPlayerElo(currentName, localEloVal);
         });
 
@@ -265,7 +272,14 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
 
     const handlePlayerNameChange = (name: string) => {
         setPlayerName(name);
-        AsyncStorage.setItem('PLAYER_NAME', name.trim() || 'Anonymous');
+        AsyncStorage.setItem('PLAYER_NAME', name.trim());
+        if (name.trim().length > 0 && matchError === "Please enter a nickname first!") {
+            setMatchError("");
+            setSuccessMessage("You can play now!");
+            setTimeout(() => {
+                if (isMounted.current) setSuccessMessage("");
+            }, 3000);
+        }
     };
 
     const subscribeToRoom = (roomId: string, myRole: 'player1' | 'player2') => {
@@ -315,9 +329,16 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     };
 
     const handleQuickMatch = async (mode: GameModeType) => {
+        if (!playerName.trim()) {
+            setMatchError("Please enter a nickname first!");
+            nicknameInputRef.current?.focus();
+            return;
+        }
+
         setLobbyState('searching');
         setGameMode(mode);
         setMatchError("");
+        setSuccessMessage("");
 
         let activePlayerId = playerId;
         if (!activePlayerId) {
@@ -396,9 +417,16 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     };
 
     const handleCreateRoom = async (mode: GameModeType) => {
+        if (!playerName.trim()) {
+            setMatchError("Please enter a nickname first!");
+            nicknameInputRef.current?.focus();
+            return;
+        }
+
         setLobbyState('hosting');
         setGameMode(mode);
         setMatchError("");
+        setSuccessMessage("");
 
         let activePlayerId = playerId;
         if (!activePlayerId) {
@@ -436,6 +464,12 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     };
 
     const handleJoinRoom = async () => {
+        if (!playerName.trim()) {
+            setMatchError("Please enter a nickname first!");
+            nicknameInputRef.current?.focus();
+            return;
+        }
+
         const code = joinCode.trim().toLowerCase();
         if (code.length < 6) {
             setMatchError("Room code must be 6 characters");
@@ -443,6 +477,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         }
 
         setMatchError("");
+        setSuccessMessage("");
         setLobbyState('joining');
 
         let activePlayerId = playerId;
@@ -504,7 +539,14 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     };
 
     const handleJoinSpecificRoom = async (room: any) => {
+        if (!playerName.trim()) {
+            setMatchError("Please enter a nickname first!");
+            nicknameInputRef.current?.focus();
+            return;
+        }
+
         setMatchError("");
+        setSuccessMessage("");
         setLobbyState('joining');
 
         let activePlayerId = playerId;
@@ -566,9 +608,11 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         <View style={{ flex: 1 }}>
                             <Text style={[styles.label, { color: currentTheme.textSecondary, fontSize: 13 }]}>Nickname:</Text>
                             <TextInput
+                                ref={nicknameInputRef}
                                 style={[styles.nicknameInput, {
                                     color: currentTheme.textPrimary,
-                                    borderColor: currentTheme.textSecondary,
+                                    borderColor: matchError === "Please enter a nickname first!" ? cssColors.brightNiceRed : currentTheme.textSecondary,
+                                    borderWidth: matchError === "Please enter a nickname first!" ? 2 : 1,
                                     backgroundColor: 'rgba(0, 0, 0, 0.4)',
                                     fontSize: 16,
                                     padding: 6
@@ -590,7 +634,10 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     </View>
 
                     {matchError !== "" && (
-                        <Text style={[styles.errorText, { color: cssColors.brightNiceRed }]}>{matchError}</Text>
+                        <Text style={[styles.errorText, { color: cssColors.brightNiceRed, marginTop: 4 }]}>{matchError}</Text>
+                    )}
+                    {successMessage !== "" && (
+                        <Text style={[styles.errorText, { color: currentTheme.accent, marginTop: 4 }]}>{successMessage}</Text>
                     )}
 
                     <Pressable

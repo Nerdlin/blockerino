@@ -69,7 +69,7 @@ export default function App() {
 				setShowContinueModal(true);
 			}
 		});
-	}, []);
+	}, [initSounds]);
 
 	if (!loaded) return null;
 
@@ -108,10 +108,12 @@ export default function App() {
 		setAppState(MenuStateType.MULTIPLAYER_GAME);
 	};
 	
+	const isGameplayActive = gameMode !== undefined || appState.containsState(MenuStateType.MULTIPLAYER_GAME);
+
 	return (
 		<Animated.View entering={FadeIn} exiting={FadeOut} style={styles.container}>
-			<AnimatedBackground />
-			{[...Array(25)].map((_, i) => (
+			<AnimatedBackground isGameplayActive={isGameplayActive} />
+			{!isGameplayActive && [...Array(25)].map((_, i) => (
 				<PieceParticle key={`particle${i}`} />
 			))}
 

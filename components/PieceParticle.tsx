@@ -54,7 +54,7 @@ function PieceParticleComponent() {
             ),
             -1,
         );
-    }, [opacity, translateYOffset, randomDelay]);
+    }, [opacity, translateYOffset, translateXOffset, randomDelay, randomTargetY]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         opacity: opacity.value,
@@ -72,6 +72,7 @@ function PieceParticleComponent() {
                     position: "absolute",
                     left: randomX,
                     top: randomY,
+                    pointerEvents: "none",
                 },
                 animatedStyle,
             ]}
