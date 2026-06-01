@@ -55,18 +55,14 @@ export function createSeededHand(size: number, seedNum: number): Hand {
 
 export function createRandomHand(size: number, gameMode?: string): Hand {
 	const hand = new Array<PieceData | null>(size);
-	if (gameMode === 'classic') {
+	if (gameMode !== 'chaos') {
 		const { getRandomPiece } = require("./Piece");
 		const rescueIndex = Math.floor(Math.random() * size);
-		let complexPieceUsed = false;
 
 		for (let i = 0; i < size; i++) {
 			const rescueOnly = i === rescueIndex;
-			const excludeComplex = !rescueOnly && complexPieceUsed;
+			const excludeComplex = true;
 			hand[i] = getRandomPiece(gameMode, rescueOnly, excludeComplex);
-			if (!rescueOnly && hand[i] && isClassicComplexPiece(hand[i]!)) {
-				complexPieceUsed = true;
-			}
 		}
 		return hand;
 	}
@@ -81,18 +77,14 @@ export function createRandomHand(size: number, gameMode?: string): Hand {
 export function createRandomHandWorklet(size: number, gameMode?: string): Hand {
 	"worklet";
 	const hand = new Array<PieceData | null>(size);
-	if (gameMode === 'classic') {
-		const { getRandomPieceWorklet, isClassicComplexPiece } = require("./Piece");
+	if (gameMode !== 'chaos') {
+		const { getRandomPieceWorklet } = require("./Piece");
 		const rescueIndex = Math.floor(Math.random() * size);
-		let complexPieceUsed = false;
 
 		for (let i = 0; i < size; i++) {
 			const rescueOnly = i === rescueIndex;
-			const excludeComplex = !rescueOnly && complexPieceUsed;
+			const excludeComplex = true;
 			hand[i] = getRandomPieceWorklet(gameMode, rescueOnly, excludeComplex);
-			if (!rescueOnly && hand[i] && isClassicComplexPiece(hand[i]!)) {
-				complexPieceUsed = true;
-			}
 		}
 		return hand;
 	}
