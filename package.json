@@ -66,6 +66,7 @@
     "@types/react": "~18.3.12",
     "@types/react-test-renderer": "^19.0.0",
     "babel-plugin-transform-import-meta": "^2.3.3",
+    "babel-preset-expo": "^56.0.14",
     "cross-env": "^10.1.0",
     "eslint": "^8.57.0",
     "eslint-config-expo": "~8.0.1",
