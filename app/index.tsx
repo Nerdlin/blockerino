@@ -25,6 +25,7 @@ import MultiplayerGame from "@/components/game/MultiplayerGame";
 import DailyChallengesMenu from "@/components/DailyChallengesMenu";
 import { useSoundSettings } from "@/constants/Sound";
 import MultiplayerConnectionGate from "@/components/MultiplayerConnectionGate";
+import AchievementsMenu from "@/components/AchievementsMenu";
 
 // Suppress noisy library-specific deprecation warnings in developer tools
 LogBox.ignoreLogs([
@@ -118,7 +119,8 @@ export default function App() {
 		setAppState(MenuStateType.MULTIPLAYER_GAME);
 	};
 	
-	const isGameplayActive = gameMode !== undefined || currentAppState === MenuStateType.MULTIPLAYER_GAME;
+	const isMultiplayerGameVisible = !!appState.containsState(MenuStateType.MULTIPLAYER_GAME) && !!multiplayerRoomId;
+	const isGameplayActive = gameMode !== undefined || isMultiplayerGameVisible;
 
 	return (
 		<Animated.View entering={FadeIn} exiting={FadeOut} style={styles.container}>
@@ -135,6 +137,7 @@ export default function App() {
 			{ gameMode && <Game gameMode={gameMode} initialState={savedGameForCurrentMode || undefined}></Game> }
 			{ appState.containsState(MenuStateType.OPTIONS) && <OptionsMenu></OptionsMenu> }
 			{ appState.containsState(MenuStateType.HIGH_SCORES) && <HighScores></HighScores>}
+			{ appState.containsState(MenuStateType.ACHIEVEMENTS) && <AchievementsMenu />}
 			
 			{ isMultiplayerMenuVisible && (
 				multiplayerConnectionReady ? (
@@ -151,7 +154,7 @@ export default function App() {
 				<DailyChallengesMenu />
 			)}
 
-			{ currentAppState === MenuStateType.MULTIPLAYER_GAME && multiplayerRoomId && (
+			{ isMultiplayerGameVisible && (
 				<MultiplayerGame
 					roomId={multiplayerRoomId}
 					myRole={multiplayerRole}

@@ -1,5 +1,50 @@
 export type ActivePlayerRole = "player1" | "player2";
 export type MatchWinnerRole = ActivePlayerRole | "draw";
+export type MatchmakingRoomStatus = "waiting" | "playing" | "finished";
+
+export const ROOM_CLEANUP_RPC = "cleanup_matchmaking_rooms";
+
+export const ROOM_RETENTION_MS = {
+	publicWaiting: 5 * 60 * 1000,
+	privateWaiting: 30 * 60 * 1000,
+	playing: 90 * 60 * 1000,
+	finished: 2 * 60 * 60 * 1000,
+	absolute: 24 * 60 * 60 * 1000,
+} as const;
+
+export interface MatchmakingRoomSummary {
+	created_at?: string | null;
+	is_private?: boolean | null;
+	status?: MatchmakingRoomStatus | string | null;
+}
+
+export function getStaleRoomCutoffs(nowMs: number = Date.now()) {
+	return {
+		publicWaiting: new Date(nowMs - ROOM_RETENTION_MS.publicWaiting).toISOString(),
+		privateWaiting: new Date(nowMs - ROOM_RETENTION_MS.privateWaiting).toISOString(),
+		playing: new Date(nowMs - ROOM_RETENTION_MS.playing).toISOString(),
+		finished: new Date(nowMs - ROOM_RETENTION_MS.finished).toISOString(),
+		absolute: new Date(nowMs - ROOM_RETENTION_MS.absolute).toISOString(),
+	};
+}
+
+export function isVisiblePublicRoom(room: MatchmakingRoomSummary, nowMs: number = Date.now()): boolean {
+	if (room.is_private) return false;
+	if (!room.created_at) return false;
+
+	const createdAt = new Date(room.created_at).getTime();
+	if (!Number.isFinite(createdAt)) return false;
+
+	if (room.status === "waiting") {
+		return nowMs - createdAt <= ROOM_RETENTION_MS.publicWaiting;
+	}
+
+	if (room.status === "playing") {
+		return nowMs - createdAt <= ROOM_RETENTION_MS.playing;
+	}
+
+	return false;
+}
 
 export function normalizePlayerName(playerName: string): string {
 	return playerName.trim();

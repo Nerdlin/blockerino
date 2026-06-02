@@ -33,6 +33,7 @@ export default function StylizedButton({
 
     return (
         <Pressable 
+            hitSlop={disabled ? undefined : 6}
             onPress={() => {
                 if (!disabled && onClick) {
                     onClick();

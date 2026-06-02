@@ -24,11 +24,42 @@ export default function HighScores() {
     const [ syncing, setSyncing ] = useState(false);
     const [ playerName, setPlayerName ] = useState('');
     const syncInProgress = useRef(false);
+    const isMounted = useRef(true);
     const handleBack = useCallback(() => {
         popAppState();
     }, [popAppState]);
 
     useEscapeKey(handleBack);
+
+    const refreshScores = useCallback(async (showLoader: boolean = false) => {
+        if (showLoader) {
+            setLoading(true);
+        }
+
+        try {
+            const [localScores, remoteScores] = await Promise.all([
+                getHighScores(gameMode, true, true, 10),
+                getGlobalHighScores(gameMode, 10)
+            ]);
+
+            if (!isMounted.current) return;
+
+            setHighScores(localScores);
+            setGlobalHighScores(remoteScores);
+        } finally {
+            if (showLoader && isMounted.current) {
+                setLoading(false);
+            }
+        }
+    }, [gameMode]);
+
+    useEffect(() => {
+        isMounted.current = true;
+
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
 
     useEffect(() => {
         AsyncStorage.getItem('PLAYER_NAME').then((val) => {
@@ -64,11 +95,7 @@ export default function HighScores() {
                 await submitGlobalHighScoreOrQueue(finalName, bestScore, gameMode);
                 setSyncing(false);
                 
-                // Refresh global leaderboard
-                setLoading(true);
-                const updatedScores = await getGlobalHighScores(gameMode, 10);
-                setGlobalHighScores(updatedScores);
-                setLoading(false);
+                await refreshScores(true);
             }
         } catch (error) {
             console.error('Error syncing score:', error);
@@ -80,37 +107,13 @@ export default function HighScores() {
     };
 
     useEffect(() => {
-        let isMounted = true;
-
-        const refreshScores = async (showLoader: boolean = false) => {
-            if (showLoader) {
-                setLoading(true);
-            }
-
-            const [localScores, remoteScores] = await Promise.all([
-                getHighScores(gameMode, true, true, 10),
-                getGlobalHighScores(gameMode, 10)
-            ]);
-
-            if (!isMounted) {
-                return;
-            }
-
-            setHighScores(localScores);
-            setGlobalHighScores(remoteScores);
-            if (showLoader) {
-                setLoading(false);
-            }
-        };
-
         refreshScores(true);
         const timer = setInterval(() => refreshScores(false), 10000);
 
         return () => {
-            isMounted = false;
             clearInterval(timer);
         };
-    }, [gameMode]);
+    }, [refreshScores]);
 
     const hasScores = globalHighScores.length > 0;
 
@@ -165,9 +168,19 @@ export default function HighScores() {
         <Text style={[styles.header, { color: currentTheme.textPrimary }, isMobile && { fontSize: 22 }]}>
             {"Global Leaderboard (Top 10)"}
         </Text>
-        <Text style={[styles.subHeader, { color: currentTheme.textSecondary }, isMobile && { fontSize: 16 }]}>
-            {"Sorted from high to low."}
-        </Text>
+        <View style={styles.leaderboardMetaRow}>
+            <Text style={[styles.subHeader, styles.leaderboardSortText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 16 }]}>
+                {"Sorted from high to low."}
+            </Text>
+            <StylizedButton
+                text={loading ? "..." : "Refresh"}
+                onClick={() => refreshScores(true)}
+                backgroundColor={currentTheme.buttonSecondary}
+                disabled={loading}
+                style={styles.refreshLeaderboardButton}
+                textStyle={styles.refreshLeaderboardButtonText}
+            />
+        </View>
 
         {loading && <ActivityIndicator size="large" color={currentTheme.textPrimary} />}
 
@@ -291,6 +304,30 @@ const styles = StyleSheet.create({
         flex: 1,
         minWidth: 120,
         maxWidth: 180,
+    },
+    leaderboardMetaRow: {
+        width: '94%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
+        marginTop: 2,
+        marginBottom: 6,
+    },
+    leaderboardSortText: {
+        flex: 1,
+        marginBottom: 0,
+    },
+    refreshLeaderboardButton: {
+        minWidth: 92,
+        minHeight: 32,
+        height: 32,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        margin: 0,
+    },
+    refreshLeaderboardButtonText: {
+        fontSize: 10,
     },
     mobileButtonText: {
         fontSize: 14,

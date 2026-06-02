@@ -70,6 +70,7 @@ export interface SavedGameState {
     scoreStorageId: string | undefined;
     recyclesUsed?: number;
     dailyKey?: string;
+    secondChancesUsed?: number;
 }
 
 export async function saveActiveGame(state: SavedGameState): Promise<void> {

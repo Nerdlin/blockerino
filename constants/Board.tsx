@@ -17,7 +17,7 @@ export function useGameSizes(boardLength: number) {
   
   // Calculate grid block size based on height to prevent vertical scrolling
   // For multiplayer, we need extra reserved height for opponent's mini board
-  const reservedHeight = isMultiplayer ? (isMobile ? 310 : 380) : (isMobile ? 210 : 280);
+  const reservedHeight = isMultiplayer ? (isMobile ? 370 : 380) : (isMobile ? 210 : 280);
   const maxGridHeight = height - reservedHeight;
   const calculatedBlockSizeHeight = Math.floor(maxGridHeight / boardLength);
   

@@ -4,13 +4,13 @@ import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { GameModeType, useAppState } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
-import { supabase, getTopEloRatings, getPlayerElo, EloRating } from "@/constants/Supabase";
+import { supabase, getTopEloRatings, getPlayerElo, EloRating, cleanupMatchmakingRooms } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { cssColors } from "@/constants/Color";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import * as Crypto from "expo-crypto";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { getJoinRoomUpdate, isPlayerNameReady, normalizePlayerName } from "@/constants/Multiplayer";
+import { getJoinRoomUpdate, isPlayerNameReady, isVisiblePublicRoom, normalizePlayerName } from "@/constants/Multiplayer";
 
 interface MultiplayerMenuProps {
     onStartGame: (roomId: string, role: 'player1' | 'player2' | 'spectator', opponentName: string, gameMode: GameModeType, playerElo: number) => void;
@@ -66,6 +66,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const [showEloLeaderboard, setShowEloLeaderboard] = useState(false);
     const [topEloList, setTopEloList] = useState<EloRating[]>([]);
     const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+    const [refreshingPublicRooms, setRefreshingPublicRooms] = useState(false);
     
     const currentRoomId = useRef<string | null>(null);
     const subscriptionRef = useRef<any>(null);
@@ -73,6 +74,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const playerNameRef = useRef(playerName);
     const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lobbyScrollRef = useRef<ScrollView>(null);
+    const lastRoomCleanupAt = useRef(0);
 
     playerNameRef.current = playerName;
     const nicknameInputRef = useRef<TextInput>(null);
@@ -104,6 +106,60 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             setPlayerElo(1000);
         }
     }, []);
+
+    const cleanupRoomsIfNeeded = useCallback(async (force: boolean = false) => {
+        const now = Date.now();
+        if (!force && now - lastRoomCleanupAt.current < 30000) {
+            return;
+        }
+
+        lastRoomCleanupAt.current = now;
+        await cleanupMatchmakingRooms();
+    }, []);
+
+    const loadEloLeaderboard = useCallback(async () => {
+        setLoadingLeaderboard(true);
+
+        try {
+            const currentName = playerNameRef.current;
+            const [serverElo, list] = await Promise.all([
+                getPlayerElo(currentName),
+                getTopEloRatings(100),
+            ]);
+
+            if (!isMounted.current) return;
+
+            if (serverElo !== null) {
+                setPlayerElo(serverElo);
+                AsyncStorage.setItem('PLAYER_ELO', serverElo.toString());
+            }
+            setTopEloList(list);
+        } finally {
+            if (isMounted.current) {
+                setLoadingLeaderboard(false);
+            }
+        }
+    }, []);
+
+    const fetchPublicRooms = useCallback(async () => {
+        try {
+            await cleanupRoomsIfNeeded();
+
+            const { data, error } = await supabase
+                .from('matchmaking_rooms')
+                .select('*')
+                .eq('is_private', false)
+                .in('status', ['waiting', 'playing'])
+                .order('created_at', { ascending: false })
+                .limit(100);
+            if (error) throw error;
+            if (data && isMounted.current) {
+                setPublicRooms(data.filter((room) => isVisiblePublicRoom(room)).slice(0, 50));
+            }
+        } catch (e) {
+            console.error("Error fetching public rooms:", e);
+        }
+    }, [cleanupRoomsIfNeeded]);
 
     useEscapeKey(() => {
         if (showEloLeaderboard) {
@@ -165,7 +221,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             }
             cleanupLobby();
         };
-    }, [syncPlayerElo]);
+    }, [fetchPublicRooms, syncPlayerElo]);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -187,42 +243,17 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         };
     }, [playerName, syncPlayerElo]);
 
-    const fetchPublicRooms = async () => {
+    const handleRefreshPublicRooms = async () => {
+        if (refreshingPublicRooms) return;
+
+        setRefreshingPublicRooms(true);
         try {
-            // Cleanup stale public rooms
-            const waitingCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-            const playingCutoff = new Date(Date.now() - 20 * 60 * 1000).toISOString();
-
-            try {
-                await supabase
-                    .from('matchmaking_rooms')
-                    .delete()
-                    .eq('status', 'waiting')
-                    .eq('is_private', false)
-                    .lt('created_at', waitingCutoff);
-
-                await supabase
-                    .from('matchmaking_rooms')
-                    .delete()
-                    .eq('status', 'playing')
-                    .eq('is_private', false)
-                    .lt('created_at', playingCutoff);
-            } catch (cleanupErr) {
-                console.error("Error cleaning up stale rooms:", cleanupErr);
+            await cleanupRoomsIfNeeded(true);
+            await fetchPublicRooms();
+        } finally {
+            if (isMounted.current) {
+                setRefreshingPublicRooms(false);
             }
-
-            const { data, error } = await supabase
-                .from('matchmaking_rooms')
-                .select('*')
-                .eq('is_private', false)
-                .in('status', ['waiting', 'playing'])
-                .order('created_at', { ascending: false });
-            if (error) throw error;
-            if (data && isMounted.current) {
-                setPublicRooms(data);
-            }
-        } catch (e) {
-            console.error("Error fetching public rooms:", e);
         }
     };
 
@@ -254,29 +285,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     };
 
     const cleanupOldQuickMatchRooms = async () => {
-        try {
-            const cutoff = new Date(Date.now() - 60000).toISOString(); // 1 minute ago
-            await supabase
-                .from('matchmaking_rooms')
-                .delete()
-                .eq('status', 'waiting')
-                .eq('is_private', false)
-                .lt('created_at', cutoff);
-        } catch (e) {
-            console.error("Error cleaning up old quick match rooms:", e);
-        }
-
-        try {
-            const privateCutoff = new Date(Date.now() - 1800000).toISOString(); // 30 minutes ago
-            await supabase
-                .from('matchmaking_rooms')
-                .delete()
-                .eq('status', 'waiting')
-                .eq('is_private', true)
-                .lt('created_at', privateCutoff);
-        } catch (e) {
-            console.error("Error cleaning up old private rooms:", e);
-        }
+        await cleanupRoomsIfNeeded(true);
     };
 
     const clearFeedbackTimer = () => {
@@ -675,18 +684,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
 
                     <Pressable
                         onPress={() => {
-                            setLoadingLeaderboard(true);
                             setShowEloLeaderboard(true);
-                            getPlayerElo(playerName).then((serverElo) => {
-                                if (serverElo !== null && isMounted.current) {
-                                    setPlayerElo(serverElo);
-                                    AsyncStorage.setItem('PLAYER_ELO', serverElo.toString());
-                                }
-                            });
-                            getTopEloRatings(100).then((list) => {
-                                setTopEloList(list);
-                                setLoadingLeaderboard(false);
-                            });
+                            loadEloLeaderboard();
                         }}
                         style={({ pressed }) => [
                             styles.eloLeaderboardBtn,
@@ -758,7 +757,23 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         <StylizedButton text="Join" onClick={handleJoinRoom} backgroundColor={currentTheme.buttonPrimary} style={{ minWidth: 100, height: 32 }} textStyle={{ fontSize: 13 }} />
                     </View>
 
-                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary, marginTop: 8 }]}>Public Rooms:</Text>
+                    <View style={styles.publicRoomsHeaderRow}>
+                        <Text style={[
+                            styles.subHeader,
+                            styles.publicRoomsHeaderText,
+                            { color: currentTheme.textSecondary }
+                        ]}>
+                            Public Rooms:
+                        </Text>
+                        <StylizedButton
+                            text={refreshingPublicRooms ? "..." : "Refresh"}
+                            onClick={handleRefreshPublicRooms}
+                            backgroundColor={currentTheme.buttonSecondary}
+                            disabled={refreshingPublicRooms}
+                            style={styles.refreshRoomsButton}
+                            textStyle={styles.refreshRoomsButtonText}
+                        />
+                    </View>
                     <ScrollView style={[styles.publicRoomsList, { borderColor: currentTheme.textSecondary }]} nestedScrollEnabled={true}>
                         {publicRooms.length === 0 ? (
                             <Text style={[styles.noRoomsText, { color: currentTheme.textSecondary }]}>No public rooms active.</Text>
@@ -915,9 +930,19 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             {lobbyState === 'idle' && showEloLeaderboard && (
                 <Animated.View entering={FadeIn} style={styles.contentContainer}>
                     <Text style={[styles.header, { color: currentTheme.textPrimary, marginBottom: 8 }]}>ELO Leaderboard</Text>
-                    <Text style={[styles.eloLeaderboardSub, { color: currentTheme.textSecondary }]}>
-                        Top 100 Players
-                    </Text>
+                    <View style={styles.eloLeaderboardTopRow}>
+                        <Text style={[styles.eloLeaderboardSub, { color: currentTheme.textSecondary }]}>
+                            Top 100 Players
+                        </Text>
+                        <StylizedButton
+                            text={loadingLeaderboard ? "..." : "Refresh"}
+                            onClick={loadEloLeaderboard}
+                            backgroundColor={currentTheme.buttonSecondary}
+                            disabled={loadingLeaderboard}
+                            style={styles.refreshEloButton}
+                            textStyle={styles.refreshEloButtonText}
+                        />
+                    </View>
 
                     <View style={styles.eloLeaderboardHeader}>
                         <Text style={[styles.eloLBHText, { color: currentTheme.textSecondary, flex: 0.4 }]}>#</Text>
@@ -1075,6 +1100,33 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         padding: 5,
         marginTop: 5,
+    },
+    publicRoomsHeaderRow: {
+        width: '95%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
+        marginTop: 8,
+        marginBottom: 2,
+    },
+    publicRoomsHeaderText: {
+        alignSelf: 'center',
+        marginLeft: 0,
+        marginTop: 0,
+        marginBottom: 0,
+        flex: 1,
+    },
+    refreshRoomsButton: {
+        minWidth: 84,
+        minHeight: 32,
+        height: 32,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        margin: 0,
+    },
+    refreshRoomsButtonText: {
+        fontSize: 10,
     },
     noRoomsText: {
         fontFamily: 'Silkscreen',
@@ -1325,7 +1377,27 @@ const styles = StyleSheet.create({
     eloLeaderboardSub: {
         fontSize: 13,
         fontFamily: 'Silkscreen',
+        flex: 1,
+        marginBottom: 0,
+    },
+    eloLeaderboardTopRow: {
+        width: '92%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
         marginBottom: 10,
+    },
+    refreshEloButton: {
+        minWidth: 92,
+        minHeight: 32,
+        height: 32,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        margin: 0,
+    },
+    refreshEloButtonText: {
+        fontSize: 10,
     },
     eloLeaderboardHeader: {
         flexDirection: 'row',

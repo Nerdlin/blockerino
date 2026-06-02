@@ -62,6 +62,13 @@ export default function MainMenu() {
 	
 	return <View style={styles.container}>
 
+		<Pressable
+			onPress={() => appendAppState(MenuStateType.ACHIEVEMENTS)}
+			style={styles.achievementsButton}
+		>
+			<Text style={styles.achievementsIcon}>🏅</Text>
+		</Pressable>
+
 		<BlockerinoLogo style={{position: 'absolute', bottom: 10, left: 10}} blockSize={5}></BlockerinoLogo>
 		<Animated.Text entering={BounceInUp.duration(800)} style={[styles.logo, isShortScreen && { fontSize: 32, marginBottom: 20 }]}>
 			blockerino
@@ -308,5 +315,23 @@ const styles = StyleSheet.create({
 		color: "#555",
 		position: "absolute",
 		bottom: 20,
+	},
+	achievementsButton: {
+		position: "absolute",
+		top: 24,
+		right: 24,
+		width: 46,
+		height: 46,
+		borderRadius: 12,
+		backgroundColor: "rgba(20, 20, 20, 0.82)",
+		borderWidth: 2,
+		borderColor: "rgba(255, 255, 255, 0.22)",
+		justifyContent: "center",
+		alignItems: "center",
+		zIndex: 20,
+	},
+	achievementsIcon: {
+		fontSize: 24,
+		textAlign: "center",
 	},
 });

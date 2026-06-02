@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getStaleRoomCutoffs, ROOM_CLEANUP_RPC } from './Multiplayer';
 
 // Supabase configuration
 const SUPABASE_URL = 'https://ptcglecvavdvpxadqfqd.supabase.co';
@@ -263,6 +264,65 @@ export async function getTopEloRatings(limit: number = 100): Promise<EloRating[]
 }
 
 // Проверить, попал ли счет в топ N
+export async function cleanupMatchmakingRooms(): Promise<boolean> {
+    try {
+        const { error } = await supabase.rpc(ROOM_CLEANUP_RPC);
+        if (!error) return true;
+
+        const message = `${error.code || ''} ${error.message || ''}`;
+        const isMissingCleanupRpc = message.includes('PGRST202') ||
+            message.includes(ROOM_CLEANUP_RPC) ||
+            message.includes('Could not find the function');
+        if (!isMissingCleanupRpc) {
+            console.error('Error running matchmaking cleanup RPC:', error);
+        }
+    } catch (error) {
+        console.error('Error calling matchmaking cleanup RPC:', error);
+    }
+
+    const cutoffs = getStaleRoomCutoffs();
+    let success = true;
+
+    const cleanupQueries = [
+        supabase
+            .from('matchmaking_rooms')
+            .delete()
+            .eq('status', 'waiting')
+            .eq('is_private', false)
+            .lt('created_at', cutoffs.publicWaiting),
+        supabase
+            .from('matchmaking_rooms')
+            .delete()
+            .eq('status', 'waiting')
+            .eq('is_private', true)
+            .lt('created_at', cutoffs.privateWaiting),
+        supabase
+            .from('matchmaking_rooms')
+            .delete()
+            .eq('status', 'playing')
+            .lt('created_at', cutoffs.playing),
+        supabase
+            .from('matchmaking_rooms')
+            .delete()
+            .eq('status', 'finished')
+            .lt('created_at', cutoffs.finished),
+        supabase
+            .from('matchmaking_rooms')
+            .delete()
+            .lt('created_at', cutoffs.absolute),
+    ];
+
+    for (const query of cleanupQueries) {
+        const { error } = await query;
+        if (error) {
+            success = false;
+            console.error('Error cleaning up matchmaking rooms:', error);
+        }
+    }
+
+    return success;
+}
+
 export async function isTopScore(
     score: number,
     gameMode: string,

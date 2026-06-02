@@ -21,6 +21,7 @@ import { ScorePopup } from './ScorePopup';
 import { useSoundSettings } from '@/constants/Sound';
 import { useAtom } from 'jotai';
 import { getEloBadge } from '@/components/MultiplayerMenu';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     ActivePlayerRole,
     MatchWinnerRole,
@@ -91,46 +92,12 @@ function FloatingEmote({ text, onComplete }: { text: string; onComplete: () => v
     );
 }
 
-const addGarbageLines = (currentBoard: Board, lines: number): Board => {
-    const boardLength = currentBoard.length;
-    const nextBoard = currentBoard.map(row => row.map(cell => ({ ...cell })));
-    
-    // Shift rows up by lines
-    for (let y = 0; y < boardLength - lines; y++) {
-        nextBoard[y] = nextBoard[y + lines];
-    }
-    
-    // Insert new garbage rows at the bottom
-    for (let y = boardLength - lines; y < boardLength; y++) {
-        const randomHoleX = Math.floor(Math.random() * boardLength);
-        const garbageRow = [];
-        for (let x = 0; x < boardLength; x++) {
-            if (x === randomHoleX) {
-                garbageRow.push({
-                    blockType: BoardBlockType.EMPTY,
-                    color: { r: 0, g: 0, b: 0 },
-                    hoveredBreakColor: { r: 0, g: 0, b: 0 },
-                    isBomb: false,
-                });
-            } else {
-                garbageRow.push({
-                    blockType: BoardBlockType.FILLED,
-                    color: { r: 100, g: 100, b: 100 }, // Gray color
-                    hoveredBreakColor: { r: 0, g: 0, b: 0 },
-                    isBomb: false,
-                });
-            }
-        }
-        nextBoard[y] = garbageRow;
-    }
-    
-    return nextBoard;
-};
-
 export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode, initialPlayerElo }: MultiplayerGameProps) {
     const { width, height } = useWindowDimensions();
+    const safeAreaInsets = useSafeAreaInsets();
     const isLargeScreen = width >= 980;
     const isShortScreen = height < 700;
+    const mobileBottomPadding = !isLargeScreen ? Math.max(safeAreaInsets.bottom, Platform.OS === 'web' ? 42 : 22) : 0;
     const boardLength = gameMode === GameModeType.Chaos ? 10 : 8;
 	
     // Game sizes
@@ -314,16 +281,32 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         await persistRoomResult(getOpponentPlayerRole(myRole));
     }, [myRole, persistRoomResult]);
 
-    const sendGarbageAttack = (lines: number) => {
-        if (myRole === 'spectator') return;
-        if (channelRef.current) {
-            channelRef.current.send({
-                type: 'broadcast',
-                event: 'garbage_attack',
-                payload: { lines, role: myRole }
-            });
-        }
-    };
+    const applyForfeitPenalty = useCallback(() => {
+        AsyncStorage.getItem('PLAYER_ELO').then((val) => {
+            const currentElo = parseInt(val || '1000', 10);
+            const newElo = Math.max(0, currentElo - 10);
+            AsyncStorage.setItem('PLAYER_ELO', newElo.toString());
+            setPlayerElo(newElo);
+            const persistentName = getPersistentPlayerName();
+            if (persistentName) {
+                submitEloRatingOrQueue(persistentName, newElo);
+            }
+        });
+    }, [getPersistentPlayerName]);
+
+    const shouldForfeitOnLeave = useCallback(() => {
+        return isActivePlayerRole(myRole) &&
+            !roomResultSavedRef.current &&
+            !opponentDisconnectedRef.current;
+    }, [myRole]);
+
+    const forfeitMatch = useCallback(async () => {
+        if (!shouldForfeitOnLeave()) return false;
+
+        await leaveRoomAsForfeit();
+        applyForfeitPenalty();
+        return true;
+    }, [applyForfeitPenalty, leaveRoomAsForfeit, shouldForfeitOnLeave]);
 
     const sendEmote = (text: string) => {
         if (myRole === 'spectator') return;
@@ -417,33 +400,6 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                         setP2Emotes(prev => [...prev, { id, text: data.text }]);
                     }
                 })
-                .on('broadcast', { event: 'garbage_attack' }, (payload) => {
-                    const data = payload.payload;
-                    // apply garbage attack if we are an active player
-                    if (myRole !== 'spectator' && !isGameOver) {
-                        const nextBoard = addGarbageLines(board.value, data.lines);
-                        board.value = nextBoard;
-
-                        if (Platform.OS === 'web') {
-                            if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                                navigator.vibrate([100, 50, 100]);
-                            }
-                        } else {
-                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                        }
-
-                        playSfx('invalidPlacement');
-
-                        broadcastState(nextBoard, hand.value, score.value, combo.value, lastBrokenLine.value, false);
-
-                        setTimeout(() => {
-                            const hasPossibleMoves = checkForPossibleMoves();
-                            if (!hasPossibleMoves) {
-                                handleGameOver();
-                            }
-                        }, 300);
-                    }
-                })
                 .on('broadcast', { event: 'restart_request' }, (payload) => {
                     const data = payload.payload;
                     if (data.role !== myRole) {
@@ -516,9 +472,16 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
             if (disconnectGraceTimer.current) {
                 clearTimeout(disconnectGraceTimer.current);
             }
-            if (channelRef.current) {
-                supabase.removeChannel(channelRef.current);
-            }
+            const channelToRemove = channelRef.current;
+            void (async () => {
+                if (shouldForfeitOnLeave()) {
+                    await leaveRoomAsForfeit();
+                    applyForfeitPenalty();
+                }
+                if (channelToRemove) {
+                    supabase.removeChannel(channelToRemove);
+                }
+            })();
         };
     }, []);
 
@@ -781,12 +744,6 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 				pointsEarned += linesBroken * boardLength * (combo.value / 2) * pieceBlockCount;
 				score.value += pointsEarned;
 
-				// Garbage Attack
-				const currentComboVal = combo.value;
-				const attackLines = Math.min(4, (linesBroken - 1) + (currentComboVal >= 2 ? currentComboVal - 1 : 0));
-				if (attackLines > 0) {
-					runOnJS(sendGarbageAttack)(attackLines);
-				}
 			} else {
 				score.value += pointsEarned;
 				lastBrokenLine.value++;
@@ -884,21 +841,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 	};
 
     const handleExit = async () => {
-        if (myRole !== 'spectator' && !isGameOver && !opponentDisconnected && !roomResultSavedRef.current) {
-            await leaveRoomAsForfeit();
-
-            // Apply -10 ELO penalty for leaving early
-            AsyncStorage.getItem('PLAYER_ELO').then((val) => {
-                const currentElo = parseInt(val || '1000', 10);
-                const newElo = Math.max(0, currentElo - 10);
-                AsyncStorage.setItem('PLAYER_ELO', newElo.toString());
-                setPlayerElo(newElo);
-                const persistentName = getPersistentPlayerName();
-                if (persistentName) {
-                    submitEloRatingOrQueue(persistentName, newElo);
-                }
-            });
-        }
+        await forfeitMatch();
 
         setAppState(MenuStateType.MENU);
     };
@@ -1002,7 +945,10 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 						</View>
 					</View>
 				) : (
-					<View style={isLargeScreen ? styles.sideBySideContainer : styles.stackedContainer}>
+					<View style={[
+                        isLargeScreen ? styles.sideBySideContainer : styles.stackedContainer,
+                        !isLargeScreen && { paddingBottom: mobileBottomPadding }
+                    ]}>
 						
 						{/* On mobile, render opponent's board at the top */}
 						{!isLargeScreen && (
@@ -1096,14 +1042,13 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 										broadcastState(board.value, newHand, score.value, combo.value, lastBrokenLine.value, false);
 									}}
 								/>
-
-                                <View style={styles.emoteButtonsRow}>
-                                    <StylizedButton text="Oops" onClick={() => sendEmote("Oops")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
-                                    <StylizedButton text="OMG" onClick={() => sendEmote("OMG")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
-                                    <StylizedButton text="EZ" onClick={() => sendEmote("EZ")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
-                                    <StylizedButton text="GG" onClick={() => sendEmote("GG")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={{ fontSize: 10 }} />
-                                </View>
 							</DndProvider>
+                            <View style={styles.emoteButtonsRow}>
+                                <StylizedButton text="Oops" onClick={() => sendEmote("Oops")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={styles.emoteBtnText} />
+                                <StylizedButton text="OMG" onClick={() => sendEmote("OMG")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={styles.emoteBtnText} />
+                                <StylizedButton text="EZ" onClick={() => sendEmote("EZ")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={styles.emoteBtnText} />
+                                <StylizedButton text="GG" onClick={() => sendEmote("GG")} backgroundColor="rgba(0,0,0,0.4)" style={styles.emoteBtn} textStyle={styles.emoteBtnText} />
+                            </View>
 						</View>
 
 						{/* On desktop, render opponent's board on the right */}
@@ -1437,15 +1382,24 @@ const styles = StyleSheet.create({
     },
     emoteButtonsRow: {
         flexDirection: 'row',
-        gap: 8,
-        marginVertical: 6,
+        gap: 6,
+        marginTop: 4,
+        marginBottom: 0,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        width: '100%',
+        paddingHorizontal: 12,
     },
     emoteBtn: {
-        minWidth: 50,
-        height: 28,
-        paddingHorizontal: 6,
+        minWidth: 62,
+        minHeight: 44,
+        height: 44,
+        paddingHorizontal: 8,
+        paddingVertical: 8,
+        margin: 0,
+    },
+    emoteBtnText: {
+        fontSize: 11,
     },
     emotesOverlay: {
         ...StyleSheet.absoluteFillObject,

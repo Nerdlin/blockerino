@@ -16,6 +16,10 @@ import { useSoundSettings } from '@/constants/Sound';
 import GameOverModal from '../GameOverModal';
 import { ScorePopup } from './ScorePopup';
 import { useAtom } from 'jotai';
+import SecondChanceModal from '../SecondChanceModal';
+import { applySecondChancePenalty, canUseSecondChance, getSecondChanceCost, SECOND_CHANCE_COSTS } from '@/constants/SecondChance';
+import { getRandomPieceColor } from '@/constants/Piece';
+import { recordAchievementProgress } from '@/constants/Achievements';
 
 
 const SPRING_CONFIG_MISSED_DRAG = {
@@ -27,6 +31,8 @@ const SPRING_CONFIG_MISSED_DRAG = {
 	restSpeedThreshold: 0.01,
 	reduceMotion: ReduceMotion.Never,
 }
+
+type SecondChanceReason = "moves" | "time";
 
 function decodeDndId(id: string): XYPoint {
 	"worklet";
@@ -79,6 +85,8 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 
 	// Состояние для отображения модального окна проигрыша
 	const [isGameOver, setIsGameOver] = useState(false);
+	const [secondChanceReason, setSecondChanceReason] = useState<SecondChanceReason | null>(null);
+	const [secondChancesUsed, setSecondChancesUsed] = useState(canUseInitialState ? (initialState as any).secondChancesUsed || 0 : 0);
 	const [scorePopups, setScorePopups] = useState<{id: number, points: number, x: number, y: number}[]>([]);
 	const scorePopupIdCounter = useRef(0);
 
@@ -101,6 +109,98 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const [, setActiveCombo] = useAtom(activeComboAtom);
 	const updateActiveCombo = (val: number) => {
 		setActiveCombo(val);
+	};
+
+	const createSecondChanceHand = () => {
+		const nextHand = createRandomHand(handSize, gameMode);
+		nextHand[0] = {
+			matrix: [[1]],
+			distributionPoints: 6,
+			color: getRandomPieceColor(),
+		};
+		return nextHand;
+	};
+
+	const createSecondChanceBoard = () => {
+		const nextBoard = board.value.map((row) => row.map((cell) => ({ ...cell })));
+		const start = Math.max(0, Math.floor(boardLength / 2) - 1);
+		const end = Math.min(boardLength, start + 3);
+
+		for (let y = start; y < end; y++) {
+			for (let x = start; x < end; x++) {
+				nextBoard[y][x] = {
+					...nextBoard[y][x],
+					blockType: BoardBlockType.EMPTY,
+					color: getRandomPieceColor(),
+					hoveredBreakColor: { r: 0, g: 0, b: 0 },
+				};
+			}
+		}
+
+		return nextBoard;
+	};
+
+	const saveCurrentGame = (nextBoard = board.value, nextHand = hand.value, nextSecondChancesUsed = secondChancesUsed) => {
+		saveActiveGame({
+			gameMode,
+			board: nextBoard,
+			hand: nextHand,
+			score: score.value,
+			combo: combo.value,
+			lastBrokenLine: lastBrokenLine.value,
+			scoreStorageId: scoreStorageId.value,
+			timeRemaining: timeRemaining.value,
+			handCount: handCount.value,
+			dailyKey,
+			secondChancesUsed: nextSecondChancesUsed,
+		} as any);
+	};
+
+	const finishGame = () => {
+		setSecondChanceReason(null);
+		setIsGameOver(true);
+		recordAchievementProgress({ soloGamesFinished: 1 });
+		clearActiveGame();
+	};
+
+	const startSecondChanceOrFinish = (reason: SecondChanceReason) => {
+		if (canUseSecondChance(secondChancesUsed)) {
+			setSecondChanceReason(reason);
+			return;
+		}
+
+		finishGame();
+	};
+
+	const acceptSecondChance = () => {
+		const nextSecondChancesUsed = secondChancesUsed + 1;
+		const nextScore = applySecondChancePenalty(score.value, secondChancesUsed);
+		const nextBoard = createSecondChanceBoard();
+		const nextHand = createSecondChanceHand();
+
+		score.value = nextScore;
+		board.value = nextBoard;
+		hand.value = nextHand;
+		combo.value = 0;
+		lastBrokenLine.value = 0;
+		if (gameMode === GameModeType.TimeAttack) {
+			timeRemaining.value = Math.max(timeRemaining.value, 15);
+		}
+
+		setActiveCombo(0);
+		setSecondChancesUsed(nextSecondChancesUsed);
+		setSecondChanceReason(null);
+		recordAchievementProgress({ secondChancesUsed: 1 });
+
+		if (scoreStorageId.value) {
+			updateHighScore(scoreStorageId.value, {
+				score: nextScore,
+				date: new Date().getTime(),
+				type: gameMode,
+			});
+		}
+
+		saveCurrentGame(nextBoard, nextHand, nextSecondChancesUsed);
 	};
 
 	const pieceOverlapsRectangle = (layout: Rectangle, other: Rectangle) => {
@@ -126,20 +226,19 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	}, []);
 
 	useEffect(() => {
-		if (gameMode !== GameModeType.TimeAttack || isGameOver) return;
+		if (gameMode !== GameModeType.TimeAttack || isGameOver || secondChanceReason) return;
 		
 		const timer = setInterval(() => {
 			if (timeRemaining.value > 0) {
 				timeRemaining.value = Math.max(0, timeRemaining.value - 1);
 				if (timeRemaining.value <= 0) {
-					runOnJS(setIsGameOver)(true);
-					runOnJS(clearActiveGame)();
+					startSecondChanceOrFinish("time");
 				}
 			}
 		}, 1000);
 
 		return () => clearInterval(timer);
-	}, [gameMode, isGameOver]);
+	}, [gameMode, isGameOver, secondChanceReason, secondChancesUsed]);
 
 	useEffect(() => {
 		if (scoreStorageId.value !== undefined) return;
@@ -243,6 +342,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			if (gameMode === GameModeType.TimeAttack) {
 				timeRemaining.value = Math.min(99, timeRemaining.value + Math.floor(pointsEarned / 15));
 			}
+			runOnJS(recordAchievementProgress)({ totalPiecesPlaced: 1, totalLinesCleared: linesBroken });
 			
 			runOnJS(addScorePopup)(pointsEarned, dropX * GRID_BLOCK_SIZE, dropY * GRID_BLOCK_SIZE);
 			
@@ -282,26 +382,14 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			board.value = newBoard;
 
 			// Сохраняем состояние текущей игры
-			runOnJS(saveActiveGame)({
-				gameMode,
-				board: newBoard,
-				hand: nextHand,
-				score: score.value,
-				combo: combo.value,
-				lastBrokenLine: lastBrokenLine.value,
-				scoreStorageId: scoreStorageId.value,
-				timeRemaining: timeRemaining.value,
-				handCount: handCount.value,
-				dailyKey
-			} as any);
+			runOnJS(saveCurrentGame)(newBoard, nextHand, secondChancesUsed);
 			
 			// Проверка игры на окончание после обновления руки
 			runOnJS(setTimeout)(() => {
 				// Исправлено: правильное использование runOnJS и проверка результата
 				const hasPossibleMoves = checkForPossibleMoves();
 				if (!hasPossibleMoves) {
-					setIsGameOver(true);
-					clearActiveGame(); // Очищаем сохраненную игру, так как она окончена
+					startSecondChanceOrFinish("moves");
 				}
 			}, 300);
 			
@@ -384,21 +472,20 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 							hand={hand} 
 							boardSize={boardLength}
 							onHandChange={(newHand) => {
-								saveActiveGame({
-									gameMode,
-									board: board.value,
-									hand: newHand,
-									score: score.value,
-									combo: combo.value,
-									lastBrokenLine: lastBrokenLine.value,
-									scoreStorageId: scoreStorageId.value,
-									timeRemaining: timeRemaining.value,
-									handCount: handCount.value,
-									dailyKey
-								} as any);
+								saveCurrentGame(board.value, newHand, secondChancesUsed);
 							}}
 						/>
 					</DndProvider>
+
+					{secondChanceReason && (
+						<SecondChanceModal
+							cost={getSecondChanceCost(secondChancesUsed)}
+							chancesRemaining={Math.max(0, SECOND_CHANCE_COSTS.length - secondChancesUsed - 1)}
+							reason={secondChanceReason}
+							onAccept={acceptSecondChance}
+							onDecline={finishGame}
+						/>
+					)}
 					
 					{isGameOver && (
 						<GameOverModal score={Math.floor(score.value)} gameMode={gameMode} />
