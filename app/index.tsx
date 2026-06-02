@@ -69,7 +69,7 @@ export default function App() {
 				setShowContinueModal(true);
 			}
 		});
-	}, [initSounds]);
+	}, []);
 
 	if (!loaded) return null;
 
