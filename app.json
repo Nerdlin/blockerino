@@ -56,8 +56,7 @@
       "expo-audio"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "baseUrl": "/blockerino"
+      "typedRoutes": true
     }
   }
 }
