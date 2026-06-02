@@ -480,6 +480,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 					{secondChanceReason && (
 						<SecondChanceModal
 							cost={getSecondChanceCost(secondChancesUsed)}
+							currentScore={Math.floor(score.value)}
 							chancesRemaining={Math.max(0, SECOND_CHANCE_COSTS.length - secondChancesUsed - 1)}
 							reason={secondChanceReason}
 							onAccept={acceptSecondChance}

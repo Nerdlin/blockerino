@@ -8,12 +8,14 @@ import { SECOND_CHANCE_DECISION_SECONDS } from "@/constants/SecondChance";
 
 export default function SecondChanceModal({
 	cost,
+	currentScore,
 	chancesRemaining,
 	reason,
 	onAccept,
 	onDecline,
 }: {
 	cost: number;
+	currentScore: number;
 	chancesRemaining: number;
 	reason: "moves" | "time";
 	onAccept: () => void;
@@ -21,6 +23,7 @@ export default function SecondChanceModal({
 }) {
 	const { currentTheme } = useTheme();
 	const [secondsLeft, setSecondsLeft] = useState(SECOND_CHANCE_DECISION_SECONDS);
+	const notEnoughPoints = currentScore < cost;
 
 	useEffect(() => {
 		setSecondsLeft(SECOND_CHANCE_DECISION_SECONDS);
@@ -46,7 +49,12 @@ export default function SecondChanceModal({
 			<Text style={[styles.message, { color: currentTheme.textSecondary }]}>
 				{reason === "time" ? "Time ran out." : "No moves left."}
 			</Text>
-			<Text style={[styles.cost, { color: cssColors.brightNiceRed }]}>-{cost} points</Text>
+			<Text style={[styles.cost, { color: notEnoughPoints ? cssColors.brightNiceRed : currentTheme.textSecondary }]}>-{cost} points</Text>
+			{notEnoughPoints && (
+				<Text style={[styles.message, { color: cssColors.brightNiceRed, marginTop: 4 }]}>
+					Not enough points!
+				</Text>
+			)}
 			<Text style={[styles.remaining, { color: currentTheme.textSecondary }]}>
 				Chances left: {chancesRemaining}
 			</Text>
@@ -56,6 +64,7 @@ export default function SecondChanceModal({
 					text="Continue"
 					onClick={onAccept}
 					backgroundColor={currentTheme.buttonPrimary}
+					disabled={notEnoughPoints}
 					style={styles.button}
 					textStyle={styles.buttonText}
 				/>
