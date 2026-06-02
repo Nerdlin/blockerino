@@ -1,4 +1,4 @@
-import { Audio } from 'expo-av';
+import { createAudioPlayer, AudioPlayer, setAudioModeAsync } from 'expo-audio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { atom, useAtom } from 'jotai';
 
@@ -65,8 +65,8 @@ const getSoundResource = (type: string) => {
 
 // Класс для управления звуковыми эффектами
 class SoundManager {
-  private sounds: Map<string, Audio.Sound> = new Map();
-  private backgroundMusic?: Audio.Sound;
+  private sounds: Map<string, AudioPlayer> = new Map();
+  private backgroundMusic?: AudioPlayer;
   private initialized = false;
 
   // Загрузка настроек
@@ -128,12 +128,7 @@ class SoundManager {
         return;
       }
 
-      const sound = new Audio.Sound();
-      await sound.loadAsync(soundResource)
-        .catch(err => {
-          console.log(`Failed to load sound "${key}": ${err.message}`);
-          return null;
-        });
+      const sound = createAudioPlayer(soundResource);
       if (sound) {
         this.sounds.set(key, sound);
       }
@@ -147,9 +142,9 @@ class SoundManager {
     if (this.initialized) return;
 
     try {
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
       }).catch(err => console.log('Error setting audio mode:', err));
 
       // Load all sound effects with safe loading
@@ -173,16 +168,9 @@ class SoundManager {
       try {
         const bgMusicResource = getSoundResource('backgroundMusic');
         if (bgMusicResource) {
-          this.backgroundMusic = new Audio.Sound();
-          await this.backgroundMusic.loadAsync(bgMusicResource)
-            .catch(() => {
-              console.log('Failed to load background music');
-              this.backgroundMusic = undefined;
-            });
-          
+          this.backgroundMusic = createAudioPlayer(bgMusicResource);
           if (this.backgroundMusic) {
-            await this.backgroundMusic.setIsLoopingAsync(true)
-              .catch(() => console.log('Failed to set background music looping'));
+            this.backgroundMusic.loop = true;
           }
         }
       } catch (error) {
@@ -215,8 +203,9 @@ class SoundManager {
       
       const sound = this.sounds.get(type);
       if (sound) {
-        await sound.setVolumeAsync(volume ?? 1).catch(() => {});
-        await sound.replayAsync().catch(() => {});
+        sound.volume = volume ?? 1;
+        sound.seekTo(0);
+        sound.play();
       } else {
         console.log('Sound not found:', type);
       }
@@ -233,8 +222,8 @@ class SoundManager {
         return;
       }
       
-      await this.backgroundMusic.setVolumeAsync(volume ?? 1).catch(() => {});
-      await this.backgroundMusic.playAsync().catch(() => {});
+      this.backgroundMusic.volume = volume ?? 1;
+      this.backgroundMusic.play();
     } catch (error) {
       console.error('Error playing background music:', error);
     }
@@ -244,7 +233,8 @@ class SoundManager {
   async stopMusic() {
     try {
       if (this.backgroundMusic) {
-        await this.backgroundMusic.stopAsync().catch(() => {});
+        this.backgroundMusic.pause();
+        this.backgroundMusic.seekTo(0);
       }
     } catch (error) {
       console.error('Error stopping background music:', error);
@@ -255,7 +245,7 @@ class SoundManager {
   async pauseMusic() {
     try {
       if (this.backgroundMusic) {
-        await this.backgroundMusic.pauseAsync().catch(() => {});
+        this.backgroundMusic.pause();
       }
     } catch (error) {
       console.error('Error pausing background music:', error);
@@ -266,7 +256,7 @@ class SoundManager {
   async updateMusicVolume(volume: number) {
     try {
       if (this.backgroundMusic) {
-        await this.backgroundMusic.setVolumeAsync(volume).catch(() => {});
+        this.backgroundMusic.volume = volume;
       }
     } catch (error) {
       console.error('Error updating background music volume:', error);
