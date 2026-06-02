@@ -32,7 +32,7 @@ export default function OptionsMenu() {
 	useEffect(() => {
 		initialize();
 		loadTheme();
-	}, [initialize, loadTheme]);
+	}, []);
 
 	const handleButtonPress = useCallback(() => {
 		playSfx('menuClick');
@@ -51,9 +51,10 @@ export default function OptionsMenu() {
 		playSfx('menuClick');
 		clearActiveGame();
 		
+		const isMultiplayer = appState.containsState(MenuStateType.MULTIPLAYER_GAME);
 		const modeSearch = appState.containsGameMode();
 		const mode = modeSearch ? modeSearch.current : undefined;
-		if (mode) {
+		if (mode && !isMultiplayer) {
 			setAppState(MenuStateType.MENU);
 			setTimeout(() => {
 				appendAppState(mode);
@@ -173,8 +174,7 @@ export default function OptionsMenu() {
 					style={isMobile && styles.mobileBottomButton}
 					textStyle={isMobile && styles.mobileBottomButtonText}
 				/>
-				
-				{(appState.containsGameMode() || appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
+
 					<>
 						{(appState.containsGameMode() && !appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
 							<StylizedButton 
@@ -188,7 +188,7 @@ export default function OptionsMenu() {
 						<StylizedButton 
 							onClick={handleQuitPress} 
 							text="End Game" 
-							backgroundColor={currentTheme.buttonPrimary}
+							backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(204, 51, 0)' : currentTheme.buttonPrimary}
 							style={isMobile && styles.mobileBottomButton}
 							textStyle={isMobile && styles.mobileBottomButtonText}
 						/>
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
 		width: '100%',
 		gap: 6,
 		marginTop: 20,
-		paddingBottom: 10,
+		paddingBottom: 20,
 	},
 	mobileBottomButton: {
 		minWidth: 118,

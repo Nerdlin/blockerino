@@ -9,6 +9,7 @@ import { getPlayerGlobalHighScore } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { normalizePlayerName } from "@/constants/Multiplayer";
+import { useGameSizes } from "@/constants/Board";
 
 const comboBarGoodColor = colorToHex({r: 0, g: 255, b: 0});
 const comboBarBadColor = colorToHex({r: 255, g: 51, b: 51});
@@ -56,6 +57,10 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, tim
 	const { width, height } = useWindowDimensions();
 	const isMobile = width < 600 || height < 700;
 	const isShortScreen = height < 700;
+	
+	const boardLength = gameMode === GameModeType.Chaos ? 10 : 8;
+	const { GRID_BLOCK_SIZE } = useGameSizes(boardLength);
+	const gridWidth = GRID_BLOCK_SIZE * boardLength + 6;
 
 	useAnimatedReaction(() => {
 		return score.value;
@@ -100,7 +105,7 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, tim
 			</View>
 			
 			{gameMode === GameModeType.TimeAttack && timeRemaining ? (
-				<View style={{ width: '90%', alignItems: 'center', marginVertical: 4 }}>
+				<View style={{ width: gridWidth, alignItems: 'center', marginVertical: 4 }}>
 					<Text style={{
 						fontFamily: 'Silkscreen',
 						color: '#FFD700',
@@ -112,7 +117,7 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, tim
 					<TimerBar timeRemaining={timeRemaining} />
 				</View>
 			) : (
-				<ComboBar lastBrokenLine={lastBrokenLine} handSize={hand.value.length}></ComboBar>
+				<ComboBar lastBrokenLine={lastBrokenLine} handSize={hand.value.length} gridWidth={gridWidth}></ComboBar>
 			)}
 		</View>
 	</>
@@ -120,10 +125,11 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, tim
 
 interface ComboBarProps {
 	lastBrokenLine: SharedValue<number>,
-	handSize: number
+	handSize: number,
+	gridWidth: number
 };
 
-function ComboBar({ lastBrokenLine, handSize }: ComboBarProps) {
+function ComboBar({ lastBrokenLine, handSize, gridWidth }: ComboBarProps) {
 	const fillPercentage = useSharedValue(100);
 	const scale = useSharedValue(1);
 	const { width, height } = useWindowDimensions();
@@ -161,7 +167,7 @@ function ComboBar({ lastBrokenLine, handSize }: ComboBarProps) {
 	});
 
 	return (
-		<View style={[styles.comboBarParent, isMobile && { height: 8, borderWidth: 1 }]}>
+		<View style={[styles.comboBarParent, { width: gridWidth }, isMobile && { height: 8, borderWidth: 1 }]}>
 			<Animated.View style={[styles.comboBar, isMobile && { height: 6 }, animatedStyle]} />
 		</View>
 	);
