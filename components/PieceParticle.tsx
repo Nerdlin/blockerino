@@ -5,7 +5,13 @@ import { Dimensions } from "react-native";
 import Animated, { useSharedValue, withRepeat, withSequence, withDelay, withTiming, useAnimatedStyle } from "react-native-reanimated";
 import { PieceView } from "./PieceView";
 
-function PieceParticleComponent() {
+function PieceParticleComponent({
+    blockSize = 28,
+    maxOpacity = 1,
+}: {
+    blockSize?: number;
+    maxOpacity?: number;
+}) {
     const [{width, height}, setWindowDimensions] = useState(Dimensions.get('window'));
     useEffect(() => {
         const handleResize = () => {
@@ -33,7 +39,7 @@ function PieceParticleComponent() {
     useEffect(() => {
         opacity.value = withRepeat(
             withSequence(
-                withDelay(randomDelay, withTiming(1, { duration: 1000 })),
+                withDelay(randomDelay, withTiming(maxOpacity, { duration: 1000 })),
                 withTiming(0, { duration: 1000 }),
             ),
             -1,
@@ -54,7 +60,7 @@ function PieceParticleComponent() {
             ),
             -1,
         );
-    }, [opacity, translateYOffset, translateXOffset, randomDelay, randomTargetY]);
+    }, [opacity, translateYOffset, translateXOffset, randomDelay, randomTargetY, maxOpacity]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         opacity: opacity.value,
@@ -77,7 +83,7 @@ function PieceParticleComponent() {
                 animatedStyle,
             ]}
         >
-            <PieceView piece={getRandomPiece()} blockSize={28}></PieceView>
+            <PieceView piece={getRandomPiece()} blockSize={blockSize}></PieceView>
         </Animated.View>
     );
 }

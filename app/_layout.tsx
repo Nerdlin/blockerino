@@ -3,6 +3,7 @@ import Head from "expo-router/head";
 import { useEffect } from "react";
 import { LogBox } from "react-native";
 import { updateService } from "@/constants/UpdateService";
+import { flushPendingEloRatings, flushPendingGlobalHighScores } from "@/constants/OfflineSync";
 
 // Suppress warnings from third-party libraries
 LogBox.ignoreLogs([
@@ -46,8 +47,26 @@ export default function RootLayout() {
 		// Check for updates on app startup
 		updateService.checkForUpdates();
 
+		let syncInProgress = false;
+		const syncPendingScores = async () => {
+			if (syncInProgress) return;
+			syncInProgress = true;
+			try {
+				await Promise.all([
+					flushPendingGlobalHighScores(),
+					flushPendingEloRatings(),
+				]);
+			} finally {
+				syncInProgress = false;
+			}
+		};
+
+		syncPendingScores();
+		const pendingScoreSyncTimer = setInterval(syncPendingScores, 15000);
+
 		// Register service worker on web platform
 		if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+			window.addEventListener('online', syncPendingScores);
 			window.addEventListener('load', () => {
 				const swPath = window.location.pathname.startsWith('/blockerino')
 					? '/blockerino/service-worker.js'
@@ -61,6 +80,13 @@ export default function RootLayout() {
 					});
 			});
 		}
+
+		return () => {
+			clearInterval(pendingScoreSyncTimer);
+			if (typeof window !== 'undefined') {
+				window.removeEventListener('online', syncPendingScores);
+			}
+		};
 	}, []);
 
 	return (

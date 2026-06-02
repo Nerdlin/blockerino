@@ -6,9 +6,9 @@ import { GameModeType, MenuStateType, useSetAppState } from "@/hooks/useAppState
 import { useSoundSettings } from "@/constants/Sound";
 import { useTheme, ThemeType } from "@/constants/Theme";
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
-import { submitGlobalHighScore } from "@/constants/Supabase";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { normalizePlayerName } from "@/constants/Multiplayer";
+import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
 
 const PLAYER_NAME_KEY = 'PLAYER_NAME';
 
@@ -18,7 +18,7 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
     const { currentTheme } = useTheme();
     const scale = useSharedValue(1);
     const [playerName, setPlayerName] = useState('');
-    const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'failed' | 'needs_name'>('idle');
+    const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'queued' | 'failed' | 'needs_name'>('idle');
 
     useEffect(() => {
         playSfx('gameOver');
@@ -45,9 +45,11 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
         setPlayerName(normalizedName);
         try {
             await AsyncStorage.setItem(PLAYER_NAME_KEY, normalizedName);
-            const success = await submitGlobalHighScore(normalizedName, score, gameMode);
-            if (success) {
+            const result = await submitGlobalHighScoreOrQueue(normalizedName, score, gameMode);
+            if (result === 'synced') {
                 setSubmitStatus('success');
+            } else if (result === 'queued') {
+                setSubmitStatus('queued');
             } else {
                 setSubmitStatus('failed');
             }
@@ -181,6 +183,11 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
                 {submitStatus === 'success' && (
                     <Text style={[styles.statusText, { color: 'rgb(0, 200, 80)' }]}>
                         🏆 Score saved under "{playerName}"!
+                    </Text>
+                )}
+                {submitStatus === 'queued' && (
+                    <Text style={[styles.statusText, { color: currentTheme.accent }]}>
+                        Score saved offline. It will sync when internet returns.
                     </Text>
                 )}
                 {submitStatus === 'failed' && (

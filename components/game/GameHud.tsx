@@ -5,10 +5,7 @@ import { Hand } from "@/constants/Hand";
 import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
 import { getHighScores } from "@/constants/Storage";
 import { colorToHex } from "@/constants/Color";
-import { getPlayerGlobalHighScore } from "@/constants/Supabase";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { normalizePlayerName } from "@/constants/Multiplayer";
 import { useGameSizes } from "@/constants/Board";
 
 const comboBarGoodColor = colorToHex({r: 0, g: 255, b: 0});
@@ -175,7 +172,6 @@ function ComboBar({ lastBrokenLine, handSize, gridWidth }: ComboBarProps) {
 
 export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score: SharedValue<number>}) {
 	const [ highestScore, setHighestScore ] = useState(0);
-	const [ globalPlayerBest, setGlobalPlayerBest ] = useState(0);
 	const [ scoreState, setScoreState ] = useState(score.value);
 	const { width, height } = useWindowDimensions();
 	const isMobile = width < 600 || height < 700;
@@ -189,21 +185,12 @@ export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score:
 				setHighestScore(highScores[0].score);
 			}
 
-			const playerName = normalizePlayerName((await AsyncStorage.getItem('PLAYER_NAME')) || '');
-			if (playerName) {
-				const serverBest = await getPlayerGlobalHighScore(playerName, gameMode);
-				if (isMounted && serverBest !== null) {
-					setGlobalPlayerBest(serverBest);
-				}
-			}
 		};
 
 		refreshBestScores();
-		const timer = setInterval(refreshBestScores, 10000);
 
 		return () => {
 			isMounted = false;
-			clearInterval(timer);
 		};
 	}, [gameMode]);
 	
@@ -221,7 +208,7 @@ export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score:
 				top: 15,
 				left: 15
 			}
-		]}>{"👑" + Math.max(scoreState, highestScore, globalPlayerBest)}</Text>
+		]}>{"👑" + Math.max(scoreState, highestScore)}</Text>
 		<SettingsButton isMobile={isMobile}></SettingsButton>
 	</>
 }

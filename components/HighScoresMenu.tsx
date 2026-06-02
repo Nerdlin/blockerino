@@ -6,11 +6,11 @@ import { StyleSheet, Text, View, ActivityIndicator, TextInput, useWindowDimensio
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { GameModeType, useSetAppState } from "@/hooks/useAppState";
-import { submitGlobalHighScore } from "@/constants/Supabase";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from "@/constants/Theme";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { normalizePlayerName } from "@/constants/Multiplayer";
+import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
 
 export default function HighScores() {
     const { width, height } = useWindowDimensions();
@@ -61,7 +61,7 @@ export default function HighScores() {
             if (highScores.length > 0) {
                 setSyncing(true);
                 const bestScore = highScores[0].score;
-                await submitGlobalHighScore(finalName, bestScore, gameMode);
+                await submitGlobalHighScoreOrQueue(finalName, bestScore, gameMode);
                 setSyncing(false);
                 
                 // Refresh global leaderboard

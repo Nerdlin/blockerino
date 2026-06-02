@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View, ViewStyle, useWindowDimensions } from "react-native";
 import Animated, { BounceInUp, Easing, FadeIn, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
@@ -6,6 +6,8 @@ import { cssColors } from "@/constants/Color";
 import { GameModeType } from '@/hooks/useAppState';
 import { PieceData } from "@/constants/Piece";
 import { PieceView } from "./PieceView";
+import { checkSupabaseConnection } from "@/constants/Connectivity";
+import OfflinePlayPrompt from "./OfflinePlayPrompt";
 
 const logoBPiece: PieceData = {
 	matrix: [
@@ -42,6 +44,21 @@ export default function MainMenu() {
 	const [ , appendAppState ] = useSetAppState();
 	const { height } = useWindowDimensions();
 	const isShortScreen = height < 700;
+	const [pendingOfflineMode, setPendingOfflineMode] = useState<GameModeType | null>(null);
+	const [checkingMode, setCheckingMode] = useState<GameModeType | null>(null);
+
+	const startSoloMode = async (mode: GameModeType) => {
+		if (checkingMode) return;
+		setCheckingMode(mode);
+		const online = await checkSupabaseConnection();
+		setCheckingMode(null);
+
+		if (online) {
+			appendAppState(mode);
+		} else {
+			setPendingOfflineMode(mode);
+		}
+	};
 	
 	return <View style={styles.container}>
 
@@ -52,19 +69,19 @@ export default function MainMenu() {
 
 		<MainButton
 			onClick={() => {
-				appendAppState(GameModeType.Classic);
+				startSoloMode(GameModeType.Classic);
 			}}
 			backgroundColor={cssColors.brightNiceRed}
-			title={"Classic ∞"}
+			title={checkingMode === GameModeType.Classic ? "Checking..." : "Classic ∞"}
 			flavorText={"classical line breaking"}
 			idleBounce={true}
 		/>
 		<MainButton
 			onClick={() => {
-				appendAppState(GameModeType.Chaos);
+				startSoloMode(GameModeType.Chaos);
 			}}
 			backgroundColor={cssColors.pitchBlack}
-			title={"Chaos !?"}
+			title={checkingMode === GameModeType.Chaos ? "Checking..." : "Chaos !?"}
 			flavorText={"10x10, 5 piece hand!?"}
 			style={{ borderWidth: 2, borderColor: "rgb(50, 50, 50)" }}
 			textStyle={{ color: "white" }}
@@ -96,6 +113,17 @@ export default function MainMenu() {
 		<Animated.Text entering={FadeIn} style={styles.footer}>
 			beta version
 		</Animated.Text>
+		{pendingOfflineMode && (
+			<OfflinePlayPrompt
+				gameMode={pendingOfflineMode}
+				onContinue={() => {
+					const mode = pendingOfflineMode;
+					setPendingOfflineMode(null);
+					appendAppState(mode);
+				}}
+				onCancel={() => setPendingOfflineMode(null)}
+			/>
+		)}
 	</View>
 }
 

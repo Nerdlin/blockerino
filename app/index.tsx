@@ -24,6 +24,7 @@ import MultiplayerMenu from "@/components/MultiplayerMenu";
 import MultiplayerGame from "@/components/game/MultiplayerGame";
 import DailyChallengesMenu from "@/components/DailyChallengesMenu";
 import { useSoundSettings } from "@/constants/Sound";
+import MultiplayerConnectionGate from "@/components/MultiplayerConnectionGate";
 
 // Suppress noisy library-specific deprecation warnings in developer tools
 LogBox.ignoreLogs([
@@ -47,9 +48,11 @@ export default function App() {
 		SilkscreenBold: require("../assets/fonts/Silkscreen-Bold.ttf"),
 	});
 
-	const [ appState, setAppState ] = useAppState();
+	const [ appState, setAppState, , popAppState ] = useAppState();
+	const currentAppState = appState.current;
 	const [ savedGame, setSavedGame ] = useState<SavedGameState | null>(null);
 	const [ showContinueModal, setShowContinueModal ] = useState(false);
+	const [ multiplayerConnectionReady, setMultiplayerConnectionReady ] = useState(false);
 
 	// Multiplayer States
 	const [ multiplayerRoomId, setMultiplayerRoomId ] = useState<string | null>(null);
@@ -71,11 +74,18 @@ export default function App() {
 		});
 	}, []);
 
+	useEffect(() => {
+		if (currentAppState !== MenuStateType.MULTIPLAYER) {
+			setMultiplayerConnectionReady(false);
+		}
+	}, [currentAppState]);
+
 	if (!loaded) return null;
 
 	const gameModeSearch = appState?.containsGameMode();
 	const gameMode = gameModeSearch ? gameModeSearch.current as GameModeType : undefined;
-	const isMainMenuVisible = appState.current === MenuStateType.MENU && !gameMode;
+	const isMainMenuVisible = currentAppState === MenuStateType.MENU && !gameMode;
+	const isMultiplayerMenuVisible = currentAppState === MenuStateType.MULTIPLAYER;
 	const savedGameForCurrentMode = gameMode && savedGame?.gameMode === gameMode ? savedGame : undefined;
 
 	// Once the game starts, clear the savedGame ref in index.tsx state
@@ -108,13 +118,17 @@ export default function App() {
 		setAppState(MenuStateType.MULTIPLAYER_GAME);
 	};
 	
-	const isGameplayActive = gameMode !== undefined || !!appState.containsState(MenuStateType.MULTIPLAYER_GAME);
+	const isGameplayActive = gameMode !== undefined || currentAppState === MenuStateType.MULTIPLAYER_GAME;
 
 	return (
 		<Animated.View entering={FadeIn} exiting={FadeOut} style={styles.container}>
 			<AnimatedBackground isGameplayActive={isGameplayActive} />
-			{!isGameplayActive && [...Array(25)].map((_, i) => (
-				<PieceParticle key={`particle${i}`} />
+			{[...Array(isGameplayActive ? 14 : 25)].map((_, i) => (
+				<PieceParticle
+					key={`particle${i}-${isGameplayActive ? 'game' : 'menu'}`}
+					blockSize={isGameplayActive ? 22 : 28}
+					maxOpacity={isGameplayActive ? 0.55 : 1}
+				/>
 			))}
 
 			{ isMainMenuVisible && <MainMenu></MainMenu> }
@@ -122,15 +136,22 @@ export default function App() {
 			{ appState.containsState(MenuStateType.OPTIONS) && <OptionsMenu></OptionsMenu> }
 			{ appState.containsState(MenuStateType.HIGH_SCORES) && <HighScores></HighScores>}
 			
-			{ appState.containsState(MenuStateType.MULTIPLAYER) && (
-				<MultiplayerMenu onStartGame={handleStartGame} />
+			{ isMultiplayerMenuVisible && (
+				multiplayerConnectionReady ? (
+					<MultiplayerMenu onStartGame={handleStartGame} />
+				) : (
+					<MultiplayerConnectionGate
+						onConnected={() => setMultiplayerConnectionReady(true)}
+						onBack={popAppState}
+					/>
+				)
 			)}
 
 			{ appState.containsState(MenuStateType.DAILY_CHALLENGES) && (
 				<DailyChallengesMenu />
 			)}
 
-			{ appState.containsState(MenuStateType.MULTIPLAYER_GAME) && multiplayerRoomId && (
+			{ currentAppState === MenuStateType.MULTIPLAYER_GAME && multiplayerRoomId && (
 				<MultiplayerGame
 					roomId={multiplayerRoomId}
 					myRole={multiplayerRole}

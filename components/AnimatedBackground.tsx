@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
 	},
 	gameplayScrim: {
 		...StyleSheet.absoluteFillObject,
-		backgroundColor: "rgba(0, 0, 0, 0.55)",
+		backgroundColor: "rgba(0, 0, 0, 0.16)",
 		pointerEvents: "none",
 		zIndex: 0,
 	},

@@ -11,10 +11,11 @@ import BlockGrid, { ReadOnlyBlockGrid } from '@/components/game/BlockGrid';
 import { Hand, createRandomHand, createRandomHandWorklet } from '@/constants/Hand';
 import HandPieces, { ReadOnlyHandPieces } from '@/components/game/HandPieces';
 import { GameModeType, MenuStateType, useAppState, activeComboAtom } from '@/hooks/useAppState';
-import { supabase, submitGlobalHighScore, submitEloRating, getPlayerElo } from '@/constants/Supabase';
+import { supabase, getPlayerElo } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
+import { submitEloRatingOrQueue, submitGlobalHighScoreOrQueue } from '@/constants/OfflineSync';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScorePopup } from './ScorePopup';
 import { useSoundSettings } from '@/constants/Sound';
@@ -257,7 +258,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
         const fetchedOpponentElo = opponentEloRef.current ?? (await getPlayerElo(normalizedOpponentName));
         const currentOpponentElo = fetchedOpponentElo ?? 1000;
-        await submitEloRating(normalizedOpponentName, Math.max(0, currentOpponentElo - 10));
+        await submitEloRatingOrQueue(normalizedOpponentName, Math.max(0, currentOpponentElo - 10));
     }, []);
 
     const persistRoomResult = useCallback(async (winnerRole: MatchWinnerRole) => {
@@ -591,7 +592,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 if (opponentDisconnected) {
                     persistRoomResult(myRole);
                     if (persistentName) {
-                        submitGlobalHighScore(persistentName, score.value, gameMode);
+                        submitGlobalHighScoreOrQueue(persistentName, score.value, gameMode);
                     }
                     submitOpponentForfeitLoss();
                 } else {
@@ -619,7 +620,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 AsyncStorage.setItem('PLAYER_ELO', newElo.toString());
                 setPlayerElo(newElo);
                 if (persistentName) {
-                    submitEloRating(persistentName, newElo);
+                    submitEloRatingOrQueue(persistentName, newElo);
                 }
             });
         }
@@ -717,7 +718,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         // Submit high score to database
         const persistentName = getPersistentPlayerName();
         if (persistentName) {
-            submitGlobalHighScore(persistentName, score.value, gameMode);
+            submitGlobalHighScoreOrQueue(persistentName, score.value, gameMode);
         }
     };
 
@@ -894,7 +895,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 setPlayerElo(newElo);
                 const persistentName = getPersistentPlayerName();
                 if (persistentName) {
-                    submitEloRating(persistentName, newElo);
+                    submitEloRatingOrQueue(persistentName, newElo);
                 }
             });
         }
