@@ -175,6 +175,7 @@ export default function OptionsMenu() {
 					textStyle={isMobile && styles.mobileBottomButtonText}
 				/>
 
+				{(appState.containsGameMode() || appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
 					<>
 						{(appState.containsGameMode() && !appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
 							<StylizedButton 
