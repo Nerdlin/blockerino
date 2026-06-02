@@ -53,7 +53,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     
     const [playerName, setPlayerName] = useState("");
     const [playerId, setPlayerId] = useState("");
-    const [playerElo, setPlayerElo] = useState<number>(1000);
+    const [playerElo, setPlayerElo] = useState<number>(0);
     const [publicRooms, setPublicRooms] = useState<any[]>([]);
     const [selectedMode, setSelectedMode] = useState<GameModeType>(GameModeType.Classic);
     const [lobbyState, setLobbyState] = useState<'idle' | 'searching' | 'hosting' | 'joining'>('idle');
@@ -82,7 +82,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const syncPlayerElo = useCallback(async (name: string = playerNameRef.current, localFallback?: string | null) => {
         const currentName = name.trim();
         if (!currentName) {
-            setPlayerElo(1000);
+            setPlayerElo(0);
             return;
         }
         
@@ -99,11 +99,11 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         }
 
         if (localFallback) {
-            const parsed = parseInt(localFallback, 10) || 1000;
-            setPlayerElo(parsed);
+            const parsed = parseInt(localFallback, 10);
+            setPlayerElo(isNaN(parsed) ? 0 : parsed);
         } else {
-            AsyncStorage.setItem('PLAYER_ELO', '1000');
-            setPlayerElo(1000);
+            AsyncStorage.setItem('PLAYER_ELO', '0');
+            setPlayerElo(0);
         }
     }, []);
 
@@ -328,8 +328,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             AsyncStorage.setItem('PLAYER_NAME', normalizedName);
         } else {
             AsyncStorage.removeItem('PLAYER_NAME');
-            AsyncStorage.setItem('PLAYER_ELO', '1000');
-            setPlayerElo(1000);
+            AsyncStorage.setItem('PLAYER_ELO', '0');
+            setPlayerElo(0);
         }
         if (normalizedName && matchError === NAME_REQUIRED_MESSAGE) {
             setMatchError("");
