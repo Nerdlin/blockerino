@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View, Platform, TextInput } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -9,6 +9,7 @@ import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withSeq
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { normalizePlayerName } from "@/constants/Multiplayer";
 import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
+import { useShopState } from "@/constants/Shop";
 
 const PLAYER_NAME_KEY = 'PLAYER_NAME';
 
@@ -19,6 +20,9 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
     const scale = useSharedValue(1);
     const [playerName, setPlayerName] = useState('');
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'queued' | 'failed' | 'needs_name'>('idle');
+    const [coinsAwarded, setCoinsAwarded] = useState(0);
+    const coinsAwardedRef = useRef(false);
+    const { awardCoins } = useShopState();
 
     useEffect(() => {
         playSfx('gameOver');
@@ -33,6 +37,12 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
             true
         );
     }, [playSfx, scale]);
+
+    useEffect(() => {
+        if (coinsAwardedRef.current) return;
+        coinsAwardedRef.current = true;
+        awardCoins(score).then(setCoinsAwarded);
+    }, [awardCoins, score]);
 
     const doSubmit = React.useCallback(async (nameToSubmit: string) => {
         const normalizedName = normalizePlayerName(nameToSubmit);
@@ -145,6 +155,12 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
                 {score}
             </Text>
 
+            {coinsAwarded > 0 && (
+                <Text style={[styles.coinsText, { color: currentTheme.accent }]}>
+                    +{coinsAwarded} shop coins
+                </Text>
+            )}
+
             <View style={styles.statusContainer}>
                 {canEditNickname && (
                     <View style={{ width: '100%', alignItems: 'center', gap: 10 }}>
@@ -256,9 +272,15 @@ const styles = StyleSheet.create({
     scoreValue: {
         fontSize: 42,
         fontFamily: 'Silkscreen',
-        marginBottom: 30,
+        marginBottom: 8,
         textAlign: 'center',
         fontWeight: 'bold',
+    },
+    coinsText: {
+        fontSize: 14,
+        fontFamily: 'Silkscreen',
+        marginBottom: 24,
+        textAlign: 'center',
     },
     statusContainer: {
         marginBottom: 20,

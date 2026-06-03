@@ -92,9 +92,18 @@ export function createRandomHand(size: number, gameMode?: string): Hand {
 		return hand;
 	}
 
+	const { getRandomPiece } = require("./Piece");
+	const rescueIndex = Math.floor(Math.random() * size);
+	const complexLimit = Math.max(1, Math.floor(size / 2));
+	let complexCount = 0;
 	for (let i = 0; i < size; i++) {
-		const { getRandomPiece } = require("./Piece");
-		hand[i] = getRandomPiece(gameMode);
+		const rescueOnly = i === rescueIndex;
+		const excludeComplex = !rescueOnly && complexCount >= complexLimit;
+		const piece = getRandomPiece(gameMode, rescueOnly, excludeComplex);
+		if (isClassicComplexPiece(piece)) {
+			complexCount++;
+		}
+		hand[i] = piece;
 	}
 	return hand;
 }
@@ -114,9 +123,18 @@ export function createRandomHandWorklet(size: number, gameMode?: string): Hand {
 		return hand;
 	}
 
+	const { getRandomPieceWorklet } = require("./Piece");
+	const rescueIndex = Math.floor(Math.random() * size);
+	const complexLimit = Math.max(1, Math.floor(size / 2));
+	let complexCount = 0;
 	for (let i = 0; i < size; i++) {
-		const { getRandomPieceWorklet } = require("./Piece");
-		hand[i] = getRandomPieceWorklet(gameMode);
+		const rescueOnly = i === rescueIndex;
+		const excludeComplex = !rescueOnly && complexCount >= complexLimit;
+		const piece = getRandomPieceWorklet(gameMode, rescueOnly, excludeComplex);
+		if (isClassicComplexPiece(piece)) {
+			complexCount++;
+		}
+		hand[i] = piece;
 	}
 	return hand;
 }

@@ -5,6 +5,7 @@ export enum MenuStateType {
 	OPTIONS = 'options', 
 	HIGH_SCORES = 'highscores',
 	ACHIEVEMENTS = 'achievements',
+	SHOP = 'shop',
 	MULTIPLAYER = 'multiplayer',
 	MULTIPLAYER_GAME = 'multiplayer_game',
 	DAILY_CHALLENGES = 'daily_challenges'

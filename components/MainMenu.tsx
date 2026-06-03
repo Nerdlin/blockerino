@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View, ViewStyle, useWindowDimensions } from "react-native";
 import Animated, { BounceInUp, Easing, FadeIn, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
@@ -6,8 +6,9 @@ import { cssColors } from "@/constants/Color";
 import { GameModeType } from '@/hooks/useAppState';
 import { PieceData } from "@/constants/Piece";
 import { PieceView } from "./PieceView";
-import { checkSupabaseConnection } from "@/constants/Connectivity";
-import OfflinePlayPrompt from "./OfflinePlayPrompt";
+import { shopStateAtom } from "@/constants/Shop";
+import { useAtomValue } from "jotai";
+import { shouldCheckConnectionBeforeStart } from "@/constants/GameStart";
 
 const logoBPiece: PieceData = {
 	matrix: [
@@ -44,23 +45,24 @@ export default function MainMenu() {
 	const [ , appendAppState ] = useSetAppState();
 	const { height } = useWindowDimensions();
 	const isShortScreen = height < 700;
-	const [pendingOfflineMode, setPendingOfflineMode] = useState<GameModeType | null>(null);
-	const [checkingMode, setCheckingMode] = useState<GameModeType | null>(null);
+	const shopBalance = useAtomValue(shopStateAtom).balance;
 
-	const startSoloMode = async (mode: GameModeType) => {
-		if (checkingMode) return;
-		setCheckingMode(mode);
-		const online = await checkSupabaseConnection();
-		setCheckingMode(null);
-
-		if (online) {
-			appendAppState(mode);
-		} else {
-			setPendingOfflineMode(mode);
+	const startSoloMode = (mode: GameModeType) => {
+		if (shouldCheckConnectionBeforeStart(mode)) {
+			return;
 		}
+		appendAppState(mode);
 	};
 	
 	return <View style={styles.container}>
+
+		<Pressable
+			onPress={() => appendAppState(MenuStateType.SHOP)}
+			style={styles.shopButton}
+		>
+			<Text style={styles.shopButtonText}>SHOP</Text>
+			<Text style={styles.shopBalanceText}>{shopBalance}</Text>
+		</Pressable>
 
 		<Pressable
 			onPress={() => appendAppState(MenuStateType.ACHIEVEMENTS)}
@@ -79,7 +81,7 @@ export default function MainMenu() {
 				startSoloMode(GameModeType.Classic);
 			}}
 			backgroundColor={cssColors.brightNiceRed}
-			title={checkingMode === GameModeType.Classic ? "Checking..." : "Classic ∞"}
+			title={"Classic ∞"}
 			flavorText={"classical line breaking"}
 			idleBounce={true}
 		/>
@@ -88,7 +90,7 @@ export default function MainMenu() {
 				startSoloMode(GameModeType.Chaos);
 			}}
 			backgroundColor={cssColors.pitchBlack}
-			title={checkingMode === GameModeType.Chaos ? "Checking..." : "Chaos !?"}
+			title={"Chaos !?"}
 			flavorText={"10x10, 5 piece hand!?"}
 			style={{ borderWidth: 2, borderColor: "rgb(50, 50, 50)" }}
 			textStyle={{ color: "white" }}
@@ -120,17 +122,6 @@ export default function MainMenu() {
 		<Animated.Text entering={FadeIn} style={styles.footer}>
 			beta version
 		</Animated.Text>
-		{pendingOfflineMode && (
-			<OfflinePlayPrompt
-				gameMode={pendingOfflineMode}
-				onContinue={() => {
-					const mode = pendingOfflineMode;
-					setPendingOfflineMode(null);
-					appendAppState(mode);
-				}}
-				onCancel={() => setPendingOfflineMode(null)}
-			/>
-		)}
 	</View>
 }
 
@@ -332,6 +323,33 @@ const styles = StyleSheet.create({
 	},
 	achievementsIcon: {
 		fontSize: 24,
+		textAlign: "center",
+	},
+	shopButton: {
+		position: "absolute",
+		top: 24,
+		left: 24,
+		minWidth: 76,
+		height: 46,
+		borderRadius: 12,
+		backgroundColor: "rgba(20, 20, 20, 0.82)",
+		borderWidth: 2,
+		borderColor: "rgba(255, 255, 255, 0.22)",
+		justifyContent: "center",
+		alignItems: "center",
+		zIndex: 20,
+		paddingHorizontal: 8,
+	},
+	shopButtonText: {
+		fontFamily: "Silkscreen",
+		fontSize: 12,
+		color: "white",
+		textAlign: "center",
+	},
+	shopBalanceText: {
+		fontFamily: "Silkscreen",
+		fontSize: 10,
+		color: "#F0AF0C",
 		textAlign: "center",
 	},
 });

@@ -1,11 +1,14 @@
 import { PieceData } from "@/constants/Piece";
 import { View } from "react-native";
 import { createFilledBlockStyle } from "@/constants/Piece";
+import { shopStateAtom } from "@/constants/Shop";
+import { useAtomValue } from "jotai";
 
 export function PieceView({piece, blockSize, style}: {piece: PieceData, blockSize: number, style?: any}) {
     const pieceHeight = piece.matrix.length;
     const pieceWidth = piece.matrix[0].length;
     const pieceBlocks = [];
+    const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
 
     for (let y = 0; y < pieceHeight; y++) {
         for (let x = 0; x < pieceWidth; x++) {
@@ -21,7 +24,7 @@ export function PieceView({piece, blockSize, style}: {piece: PieceData, blockSiz
                 pieceBlocks.push(
                     <View
                         key={`${x},${y}`}
-                        style={[createFilledBlockStyle(piece.color, blockSize / 4), blockStyle]}
+                        style={[createFilledBlockStyle(piece.color, blockSize / 4, pieceSkinId), blockStyle]}
                     ></View>,
                 );
             }

@@ -12,6 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useAtomValue } from "jotai";
 import { activeComboAtom } from "@/hooks/useAppState";
+import { getBackgroundGradient, shopStateAtom } from "@/constants/Shop";
 
 type AnimatedBackgroundProps = {
 	isGameplayActive?: boolean;
@@ -21,7 +22,12 @@ export default function AnimatedBackground({ isGameplayActive = false }: Animate
 	const { currentTheme } = useTheme();
 	const progress = useSharedValue(0);
 	const activeCombo = useAtomValue(activeComboAtom);
+	const shopState = useAtomValue(shopStateAtom);
 	const animationCombo = isGameplayActive ? 0 : activeCombo;
+	const backgroundGradient = getBackgroundGradient(shopState.equipped.background);
+	const gradient1 = backgroundGradient?.[0] ?? currentTheme.backgroundGradient1;
+	const gradient2 = backgroundGradient?.[1] ?? currentTheme.backgroundGradient2;
+	const gradient3 = backgroundGradient?.[2] ?? currentTheme.backgroundGradient3;
 
 	useEffect(() => {
 		if (isGameplayActive) {
@@ -49,9 +55,9 @@ export default function AnimatedBackground({ isGameplayActive = false }: Animate
 			progress.value,
 			[0, 0.5, 1],
 			[
-				currentTheme.backgroundGradient1,
-				currentTheme.backgroundGradient2,
-				currentTheme.backgroundGradient1,
+				gradient1,
+				gradient2,
+				gradient1,
 			]
 		);
 
@@ -65,9 +71,9 @@ export default function AnimatedBackground({ isGameplayActive = false }: Animate
 			progress.value,
 			[0, 0.5, 1],
 			[
-				currentTheme.backgroundGradient2,
-				currentTheme.backgroundGradient3,
-				currentTheme.backgroundGradient2,
+				gradient2,
+				gradient3,
+				gradient2,
 			]
 		);
 

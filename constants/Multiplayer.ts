@@ -1,4 +1,6 @@
 export type ActivePlayerRole = "player1" | "player2";
+export type MultiplayerRole = ActivePlayerRole | "spectator";
+export type MultiplayerGameViewMode = "active_player" | "opponent_watch" | "live_spectator";
 export type MatchWinnerRole = ActivePlayerRole | "draw";
 export type MatchmakingRoomStatus = "waiting" | "playing" | "finished";
 
@@ -73,6 +75,14 @@ export function getJoinRoomUpdate(playerName: string, playerId: string) {
 
 export function getOpponentPlayerRole(role: ActivePlayerRole): ActivePlayerRole {
 	return role === "player1" ? "player2" : "player1";
+}
+
+export function getMultiplayerViewMode(
+	role: MultiplayerRole,
+	isWatchingOpponent: boolean
+): MultiplayerGameViewMode {
+	if (role === "spectator") return "live_spectator";
+	return isWatchingOpponent ? "opponent_watch" : "active_player";
 }
 
 export function getWinnerRoleByScore(

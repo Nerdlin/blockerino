@@ -11,8 +11,10 @@ import {
 	createEmptyBlockStyle,
 	createFilledBlockStyle,
 } from "@/constants/Piece";
+import { shopStateAtom } from "@/constants/Shop";
 import { useTheme } from "@/constants/Theme";
 import { useDroppable } from "@mgcrea/react-native-dnd";
+import { useAtomValue } from "jotai";
 import { useEffect } from "react";
 import { StyleSheet, Platform, View } from "react-native";
 import Animated, {
@@ -120,6 +122,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 	const flashOpacity = useSharedValue(0);
 	const sparkProgress = useSharedValue(0);
 	const { currentTheme } = useTheme();
+	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
 
 	const pulseAnim = useSharedValue(1);
 	useEffect(() => {
@@ -202,7 +205,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 
 		if (block.blockType === BoardBlockType.EMPTY && loadBlockFlash.value !== 0) {
 			return {
-				...createFilledBlockStyle(block.color),
+				...createFilledBlockStyle(block.color, 7, pieceSkinId),
 				opacity: Math.min(1, loadBlockFlash.value * 10),
 				borderColor: currentTheme.emptyBlockBorder
 			};
@@ -211,7 +214,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 		let style: any = createEmptyBlockStyle(currentTheme.emptyBlockBorder);
 		if (block.blockType === BoardBlockType.FILLED || block.blockType === BoardBlockType.HOVERED) {
 			style = {
-				...createFilledBlockStyle(block.color),
+				...createFilledBlockStyle(block.color, 7, pieceSkinId),
 				opacity: block.blockType === BoardBlockType.HOVERED ? 0.3 : 1,
 				transform: []
 			};
@@ -224,7 +227,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 			const waveScale = 1 + (waveEffect.value * 0.1);
 
 			style = {
-				...createFilledBlockStyle(blockColor),
+				...createFilledBlockStyle(blockColor, 7, pieceSkinId),
 				borderWidth: 2,
 				borderColor: interpolateColor(
 					waveEffect.value,
@@ -247,7 +250,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 			let progress = placedBlockFall.value;
 			progress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress); // easeOutCirc
 			return {
-				...createFilledBlockStyle(block.color),
+				...createFilledBlockStyle(block.color, 7, pieceSkinId),
 				opacity: 1 - progress,
 				transform: [
 					{ scale: 1 - progress * 0.5 },
@@ -478,6 +481,7 @@ export function ReadOnlyBlockGrid({ board, gridBlockSize, hoverIndex, hoverX, ho
 	const blockElements: any[] = [];
 	const boardLength = board.length;
 	const { currentTheme } = useTheme();
+	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
 
 	// Calculate which cells are covered by the opponent's dragging piece
 	const hoverCells = new Set<string>();
@@ -521,11 +525,11 @@ export function ReadOnlyBlockGrid({ board, gridBlockSize, hoverIndex, hoverX, ho
 		const isHoverCell = hoverCells.has(`${x},${y}`);
 
 		if (isFilledOrHoveredBreak) {
-			blockStyle = createFilledBlockStyle(block.color, Math.max(1, Math.round(gridBlockSize * 0.15)));
+			blockStyle = createFilledBlockStyle(block.color, Math.max(1, Math.round(gridBlockSize * 0.15)), pieceSkinId);
 		} else if (isHoverCell) {
 			// Render ghost preview for opponent's drag
 			blockStyle = {
-				...createFilledBlockStyle(hoverColor, Math.max(1, Math.round(gridBlockSize * 0.15))),
+				...createFilledBlockStyle(hoverColor, Math.max(1, Math.round(gridBlockSize * 0.15)), pieceSkinId),
 				opacity: 0.35,
 				borderWidth: 1,
 				borderColor: 'rgba(255, 255, 255, 0.8)'

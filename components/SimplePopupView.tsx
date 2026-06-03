@@ -8,7 +8,7 @@ export default function SimplePopupView({
 }: {
 	children: React.ReactNode,
 	style?: any[],
-	scrollRef?: React.RefObject<ScrollView>
+	scrollRef?: React.RefObject<ScrollView | null>
 }) {
 	if (style === undefined)
 		style = [];

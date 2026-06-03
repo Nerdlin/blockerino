@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     ActivePlayerRole,
     MatchWinnerRole,
+    getMultiplayerViewMode,
     getOpponentPlayerRole,
     getWinnerNameForRole,
     getWinnerRoleByScore,
@@ -114,7 +115,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 	const lastBrokenLine = useSharedValue(0);
 
 	const [isGameOver, setIsGameOver] = useState(false);
-    const [isSpectating, setIsSpectating] = useState(myRole === 'spectator');
+    const [isWatchingOpponent, setIsWatchingOpponent] = useState(false);
     
     // ELO states
     const [playerElo, setPlayerElo] = useState<number>(initialPlayerElo);
@@ -355,7 +356,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
             channel
                 .on('broadcast', { event: 'game_state' }, (payload) => {
                     const data = payload.payload;
-                    if (myRole === 'spectator' || isSpectating) {
+                    if (myRole === 'spectator') {
                         if (data.role === 'player1') {
                             if (data.board) setPlayer1Board(data.board);
                             if (data.hand) setPlayer1Hand(data.hand);
@@ -371,7 +372,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                             if (typeof data.elo === 'number') setPlayer2Elo(data.elo);
                             if (data.playerName) setPlayer2Name(data.playerName);
                         }
-                    } else {
+                    } else if (isActivePlayerRole(myRole) && data.role === getOpponentPlayerRole(myRole)) {
                         if (data.board) setOpponentBoard(data.board);
                         if (data.hand) setOpponentHand(data.hand);
                         if (typeof data.score === 'number') setOpponentScore(data.score);
@@ -381,13 +382,13 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 })
                 .on('broadcast', { event: 'hover_state' }, (payload) => {
                     const data = payload.payload;
-                    if (myRole === 'spectator' || isSpectating) {
+                    if (myRole === 'spectator') {
                         if (data.role === 'player1') {
                             setPlayer1Hover({ index: data.index, x: data.x, y: data.y });
                         } else if (data.role === 'player2') {
                             setPlayer2Hover({ index: data.index, x: data.x, y: data.y });
                         }
-                    } else {
+                    } else if (isActivePlayerRole(myRole) && data.role === getOpponentPlayerRole(myRole)) {
                         setOpponentHover(data);
                     }
                 })
@@ -596,6 +597,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         combo.value = 0;
         lastBrokenLine.value = 0;
         setIsGameOver(false);
+        setIsWatchingOpponent(false);
 
         setOpponentBoard(newEmptyBoard(boardLength));
         setOpponentHand([]);
@@ -900,6 +902,79 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         );
     };
 
+    const renderOpponentWatch = () => {
+        const opponentEmotes = myRole === 'player1' ? p2Emotes : p1Emotes;
+
+        return (
+            <View style={styles.opponentWatchContainer}>
+                <ScrollView
+                    style={styles.opponentWatchScroll}
+                    contentContainerStyle={[
+                        styles.opponentWatchContent,
+                        !isLargeScreen && { paddingBottom: mobileBottomPadding + 12 },
+                    ]}
+                    nestedScrollEnabled={true}
+                >
+                    <View style={styles.liveContainer}>
+                        <LiveDot />
+                        <Text style={[styles.spectatorTitle, { color: currentTheme.accent }]}>
+                            Watching Opponent
+                        </Text>
+                    </View>
+
+                    <View style={styles.opponentHeader}>
+                        <Text style={[styles.opponentNameText, { color: currentTheme.textPrimary }]} numberOfLines={1}>
+                            {opponentName} {oppBadge ? `[${oppBadge.tier} - ${opponentElo}]` : ""} {opponentIsGameOver && "(GameOver)"}
+                        </Text>
+                        <Text style={[styles.opponentScoreText, { color: currentTheme.accent }]}>
+                            Score: {opponentScore}
+                        </Text>
+                        <Text style={[styles.finalScoreText, { color: currentTheme.textSecondary }]}>
+                            Your Score: {score.value}
+                        </Text>
+                    </View>
+
+                    <View style={styles.opponentWatchGridWrapper}>
+                        <ReadOnlyBlockGrid
+                            board={opponentBoard}
+                            gridBlockSize={GRID_BLOCK_SIZE}
+                            hoverIndex={opponentHover.index}
+                            hoverX={opponentHover.x}
+                            hoverY={opponentHover.y}
+                            hand={opponentHand}
+                        />
+                        <View style={styles.emotesOverlay}>
+                            {opponentEmotes.map(e => (
+                                <FloatingEmote
+                                    key={e.id}
+                                    text={e.text}
+                                    onComplete={() => {
+                                        if (myRole === 'player1') {
+                                            setP2Emotes(prev => prev.filter(x => x.id !== e.id));
+                                        } else {
+                                            setP1Emotes(prev => prev.filter(x => x.id !== e.id));
+                                        }
+                                    }}
+                                />
+                            ))}
+                        </View>
+                    </View>
+
+                    <View style={styles.opponentWatchHand}>
+                        <Text style={[styles.opponentHandLabel, { color: currentTheme.textSecondary }]}>Opponent's Hand:</Text>
+                        <ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} scale={isShortScreen ? 0.75 : 1} />
+                    </View>
+
+                    <StylizedButton
+                        text="Exit to Lobby"
+                        onClick={handleExit}
+                        backgroundColor={cssColors.spaceGray}
+                    />
+                </ScrollView>
+            </View>
+        );
+    };
+
     const showWinnerOverlay = (isGameOver && opponentIsGameOver) || opponentDisconnected;
     
     let winnerMessage = "";
@@ -917,13 +992,14 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
     const myBadge = getEloBadge(playerElo);
     const oppBadge = opponentElo !== null ? getEloBadge(opponentElo) : null;
+    const viewMode = getMultiplayerViewMode(myRole, isWatchingOpponent);
 
 	return (        
 		<SafeAreaView style={[styles.root, { backgroundColor: 'transparent' }]}>
 			<GestureHandlerRootView style={styles.root}>
                 <StickyGameHud gameMode={gameMode} score={score}></StickyGameHud>
 				
-				{isSpectating ? (
+				{viewMode === "live_spectator" ? (
 					<View style={styles.spectatorContainer}>
                         <View style={styles.liveContainer}>
                             <LiveDot />
@@ -944,6 +1020,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 							<StylizedButton text="Exit to Lobby" onClick={handleExit} backgroundColor={cssColors.spaceGray} />
 						</View>
 					</View>
+				) : viewMode === "opponent_watch" ? (
+                    renderOpponentWatch()
 				) : (
 					<View style={[
                         isLargeScreen ? styles.sideBySideContainer : styles.stackedContainer,
@@ -1169,7 +1247,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 )}
 
                 {/* Waiting for opponent to finish */}
-                {isGameOver && !opponentIsGameOver && !opponentDisconnected && !isSpectating && (
+                {isGameOver && !opponentIsGameOver && !opponentDisconnected && viewMode === "active_player" && (
                     <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
                         <View style={[styles.modalBox, { backgroundColor: currentTheme.menuBackground }]}>
                             <Text style={[styles.modalTitle, { color: currentTheme.accent }]}>Game Over</Text>
@@ -1180,7 +1258,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                             
                             <StylizedButton 
                                 text="Watch Opponent" 
-                                onClick={() => setIsSpectating(true)} 
+                                onClick={() => setIsWatchingOpponent(true)} 
                                 backgroundColor={currentTheme.buttonPrimary} 
                                 style={{ marginBottom: 5 }}
                             />
@@ -1249,6 +1327,38 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         opacity: 0.8
+    },
+    opponentWatchContainer: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    opponentWatchScroll: {
+        width: '100%',
+        flex: 1,
+    },
+    opponentWatchContent: {
+        minHeight: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: 18,
+    },
+    opponentWatchGridWrapper: {
+        position: 'relative',
+        marginTop: 8,
+    },
+    opponentWatchHand: {
+        alignItems: 'center',
+        marginTop: 18,
+        marginBottom: 16,
+    },
+    opponentHandLabel: {
+        fontFamily: 'Silkscreen',
+        fontSize: 14,
+        marginBottom: 5,
     },
     opponentMiniContainer: {
         flexDirection: 'column',

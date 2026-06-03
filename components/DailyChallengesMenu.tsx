@@ -8,8 +8,7 @@ import { getHighScores } from "@/constants/Storage";
 import { cssColors } from "@/constants/Color";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { checkSupabaseConnection } from "@/constants/Connectivity";
-import OfflinePlayPrompt from "./OfflinePlayPrompt";
+import { shouldCheckConnectionBeforeStart } from "@/constants/GameStart";
 
 export default function DailyChallengesMenu() {
     const { currentTheme } = useTheme();
@@ -19,7 +18,6 @@ export default function DailyChallengesMenu() {
 
     const [dailyBest, setDailyBest] = useState<number>(0);
     const [speedBest, setSpeedBest] = useState<number>(0);
-    const [pendingOfflineMode, setPendingOfflineMode] = useState<GameModeType | null>(null);
     const [checkingMode, setCheckingMode] = useState<GameModeType | null>(null);
     const handleBack = useCallback(() => {
         popAppState();
@@ -43,15 +41,12 @@ export default function DailyChallengesMenu() {
 
     const startMode = async (mode: GameModeType) => {
         if (checkingMode) return;
-        setCheckingMode(mode);
-        const online = await checkSupabaseConnection();
-        setCheckingMode(null);
-
-        if (online) {
+        if (!shouldCheckConnectionBeforeStart(mode)) {
             setAppState(mode);
-        } else {
-            setPendingOfflineMode(mode);
+            return;
         }
+        setCheckingMode(mode);
+        setCheckingMode(null);
     };
 
     const startDailyPuzzle = () => {
@@ -113,17 +108,6 @@ export default function DailyChallengesMenu() {
                     </View>
                 </View>
             </Animated.View>
-            {pendingOfflineMode && (
-                <OfflinePlayPrompt
-                    gameMode={pendingOfflineMode}
-                    onContinue={() => {
-                        const mode = pendingOfflineMode;
-                        setPendingOfflineMode(null);
-                        setAppState(mode);
-                    }}
-                    onCancel={() => setPendingOfflineMode(null)}
-                />
-            )}
         </SimplePopupView>
     );
 }

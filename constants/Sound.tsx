@@ -1,6 +1,8 @@
 import { createAudioPlayer, AudioPlayer, setAudioModeAsync } from 'expo-audio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { atom, useAtom } from 'jotai';
+import { atom, useAtom, useAtomValue } from 'jotai';
+import { shopStateAtom } from './Shop';
+import { useEffect } from 'react';
 
 // Ключи для сохранения настроек
 const MUSIC_VOLUME_KEY = 'MUSIC_VOLUME';
@@ -13,6 +15,17 @@ export const musicVolumeAtom = atom(0.5);
 export const sfxVolumeAtom = atom(0.7);
 export const musicEnabledAtom = atom(true);
 export const sfxEnabledAtom = atom(true);
+
+export function getAudioModeOptions() {
+  return {
+    playsInSilentMode: true,
+    shouldPlayInBackground: false,
+  };
+}
+
+export function shouldPauseMusicForAppState(appState: string): boolean {
+  return appState !== 'active';
+}
 
 // Словарь звуков
 export type SoundType = 
@@ -28,10 +41,101 @@ export type SoundType =
   | 'invalidPlacement'
   | 'buttonHover';
 
+export type MusicTrackKey =
+  | 'backgroundMusic'
+  | 'musicLofi'
+  | 'musicArcade'
+  | 'musicCave'
+  | 'musicSpace';
+
+type GeneratedSfxKey =
+  | 'sfxWoodPlace'
+  | 'sfxWoodClear'
+  | 'sfxWoodClick'
+  | 'sfxGlassPlace'
+  | 'sfxGlassClear'
+  | 'sfxGlassClick'
+  | 'sfxRetroPlace'
+  | 'sfxRetroClear'
+  | 'sfxRetroClick'
+  | 'sfxMetalPlace'
+  | 'sfxMetalClear'
+  | 'sfxMetalClick';
+
+type SfxAssetKey = SoundType | GeneratedSfxKey;
+type SoundAssetKey = SfxAssetKey | MusicTrackKey;
+
+function getMusicVolumeMultiplier(musicPackId: string): number {
+  switch (musicPackId) {
+    case 'music_lofi':
+      return 0.78;
+    case 'music_arcade':
+      return 1.08;
+    case 'music_cave':
+      return 0.72;
+    case 'music_space':
+      return 0.62;
+    default:
+      return 1;
+  }
+}
+
+function getSfxVolumeMultiplier(sfxPackId: string): number {
+  switch (sfxPackId) {
+    case 'sfx_glass':
+      return 0.92;
+    case 'sfx_retro':
+      return 1.05;
+    case 'sfx_metal':
+      return 1.12;
+    case 'sfx_wood':
+      return 0.98;
+    default:
+      return 1;
+  }
+}
+
+export function getMusicTrackKey(musicPackId: string): MusicTrackKey {
+  switch (musicPackId) {
+    case 'music_lofi':
+      return 'musicLofi';
+    case 'music_arcade':
+      return 'musicArcade';
+    case 'music_cave':
+      return 'musicCave';
+    case 'music_space':
+      return 'musicSpace';
+    default:
+      return 'backgroundMusic';
+  }
+}
+
+export function mapSfxForPack(type: SoundType, sfxPackId: string): SfxAssetKey {
+  if (sfxPackId === 'sfx_glass') {
+    if (type === 'placeBlock') return 'sfxGlassPlace';
+    if (type === 'breakLine' || type.startsWith('combo')) return 'sfxGlassClear';
+    if (type === 'menuClick' || type === 'buttonHover' || type === 'invalidPlacement') return 'sfxGlassClick';
+    if (type === 'gameOver') return 'sfxGlassClear';
+  } else if (sfxPackId === 'sfx_retro') {
+    if (type === 'placeBlock') return 'sfxRetroPlace';
+    if (type === 'breakLine' || type.startsWith('combo') || type === 'gameOver') return 'sfxRetroClear';
+    if (type === 'menuClick' || type === 'buttonHover' || type === 'invalidPlacement') return 'sfxRetroClick';
+  } else if (sfxPackId === 'sfx_metal') {
+    if (type === 'placeBlock') return 'sfxMetalPlace';
+    if (type === 'breakLine' || type.startsWith('combo') || type === 'gameOver') return 'sfxMetalClear';
+    if (type === 'menuClick' || type === 'buttonHover' || type === 'invalidPlacement') return 'sfxMetalClick';
+  } else if (sfxPackId === 'sfx_wood') {
+    if (type === 'placeBlock') return 'sfxWoodPlace';
+    if (type === 'breakLine' || type.startsWith('combo') || type === 'gameOver') return 'sfxWoodClear';
+    if (type === 'menuClick' || type === 'buttonHover' || type === 'invalidPlacement') return 'sfxWoodClick';
+  }
+  return type;
+}
+
 // Статичные импорты звуков вместо динамических
 // В React Native require() требует статических путей
 // Мы будем использовать функцию, которая выбирает правильный ресурс по имени
-const getSoundResource = (type: string) => {
+const getSoundResource = (type: SoundAssetKey) => {
   // Используем switch вместо динамического пути
   switch (type) {
     case 'placeBlock': 
@@ -58,6 +162,38 @@ const getSoundResource = (type: string) => {
       try { return require('../assets/sounds/button-hover.mp3'); } catch { return null; }
     case 'backgroundMusic': 
       try { return require('../assets/sounds/background-music.mp3'); } catch { return null; }
+    case 'musicLofi':
+      try { return require('../assets/sounds/generated/music-lofi.wav'); } catch { return null; }
+    case 'musicArcade':
+      try { return require('../assets/sounds/generated/music-arcade.wav'); } catch { return null; }
+    case 'musicCave':
+      try { return require('../assets/sounds/generated/music-cave.wav'); } catch { return null; }
+    case 'musicSpace':
+      try { return require('../assets/sounds/generated/music-space.wav'); } catch { return null; }
+    case 'sfxWoodPlace':
+      try { return require('../assets/sounds/generated/sfx-wood-place.wav'); } catch { return null; }
+    case 'sfxWoodClear':
+      try { return require('../assets/sounds/generated/sfx-wood-clear.wav'); } catch { return null; }
+    case 'sfxWoodClick':
+      try { return require('../assets/sounds/generated/sfx-wood-click.wav'); } catch { return null; }
+    case 'sfxGlassPlace':
+      try { return require('../assets/sounds/generated/sfx-glass-place.wav'); } catch { return null; }
+    case 'sfxGlassClear':
+      try { return require('../assets/sounds/generated/sfx-glass-clear.wav'); } catch { return null; }
+    case 'sfxGlassClick':
+      try { return require('../assets/sounds/generated/sfx-glass-click.wav'); } catch { return null; }
+    case 'sfxRetroPlace':
+      try { return require('../assets/sounds/generated/sfx-retro-place.wav'); } catch { return null; }
+    case 'sfxRetroClear':
+      try { return require('../assets/sounds/generated/sfx-retro-clear.wav'); } catch { return null; }
+    case 'sfxRetroClick':
+      try { return require('../assets/sounds/generated/sfx-retro-click.wav'); } catch { return null; }
+    case 'sfxMetalPlace':
+      try { return require('../assets/sounds/generated/sfx-metal-place.wav'); } catch { return null; }
+    case 'sfxMetalClear':
+      try { return require('../assets/sounds/generated/sfx-metal-clear.wav'); } catch { return null; }
+    case 'sfxMetalClick':
+      try { return require('../assets/sounds/generated/sfx-metal-click.wav'); } catch { return null; }
     default:
       return null;
   }
@@ -66,7 +202,8 @@ const getSoundResource = (type: string) => {
 // Класс для управления звуковыми эффектами
 class SoundManager {
   private sounds: Map<string, AudioPlayer> = new Map();
-  private backgroundMusic?: AudioPlayer;
+  private musicTracks: Map<MusicTrackKey, AudioPlayer> = new Map();
+  private currentMusicKey: MusicTrackKey = 'backgroundMusic';
   private initialized = false;
 
   // Загрузка настроек
@@ -120,7 +257,7 @@ class SoundManager {
   }
 
   // Safe load of sound file with error handling
-  private async loadSoundSafely(key: string): Promise<void> {
+  private async loadSoundSafely(key: SfxAssetKey): Promise<void> {
     try {
       const soundResource = getSoundResource(key);
       if (!soundResource) {
@@ -137,18 +274,33 @@ class SoundManager {
     }
   }
 
+  private async loadMusicSafely(key: MusicTrackKey): Promise<void> {
+    try {
+      const soundResource = getSoundResource(key);
+      if (!soundResource) {
+        console.log(`Resource not found for music "${key}"`);
+        return;
+      }
+
+      const music = createAudioPlayer(soundResource);
+      if (music) {
+        music.loop = true;
+        this.musicTracks.set(key, music);
+      }
+    } catch (error) {
+      console.log(`Error loading music "${key}": ${error}`);
+    }
+  }
+
   // Инициализация звуков
   async initialize() {
     if (this.initialized) return;
 
     try {
-      await setAudioModeAsync({
-        playsInSilentMode: true,
-        shouldPlayInBackground: true,
-      }).catch(err => console.log('Error setting audio mode:', err));
+      await setAudioModeAsync(getAudioModeOptions()).catch(err => console.log('Error setting audio mode:', err));
 
       // Load all sound effects with safe loading
-      const soundPromises = [
+      const sfxKeys: SfxAssetKey[] = [
         'placeBlock',
         'breakLine',
         'comboBreak',
@@ -159,24 +311,34 @@ class SoundManager {
         'gameOver',
         'menuClick',
         'invalidPlacement',
-        'buttonHover'
-      ].map(key => this.loadSoundSafely(key));
+        'buttonHover',
+        'sfxWoodPlace',
+        'sfxWoodClear',
+        'sfxWoodClick',
+        'sfxGlassPlace',
+        'sfxGlassClear',
+        'sfxGlassClick',
+        'sfxRetroPlace',
+        'sfxRetroClear',
+        'sfxRetroClick',
+        'sfxMetalPlace',
+        'sfxMetalClear',
+        'sfxMetalClick',
+      ];
+      const soundPromises = sfxKeys.map(key => this.loadSoundSafely(key));
 
       await Promise.all(soundPromises);
 
-      // Load background music separately
-      try {
-        const bgMusicResource = getSoundResource('backgroundMusic');
-        if (bgMusicResource) {
-          this.backgroundMusic = createAudioPlayer(bgMusicResource);
-          if (this.backgroundMusic) {
-            this.backgroundMusic.loop = true;
-          }
-        }
-      } catch (error) {
-        console.log(`Error loading background music: ${error}`);
-        this.backgroundMusic = undefined;
-      }
+      const musicKeys: MusicTrackKey[] = [
+        'backgroundMusic',
+        'musicLofi',
+        'musicArcade',
+        'musicCave',
+        'musicSpace',
+      ];
+      const musicPromises = musicKeys.map(key => this.loadMusicSafely(key));
+
+      await Promise.all(musicPromises);
 
       this.initialized = true;
     } catch (error) {
@@ -185,7 +347,7 @@ class SoundManager {
   }
 
   // Get appropriate combo sound based on combo count
-  getComboSound(comboCount: number): string {
+  getComboSound(comboCount: number): SoundType {
     if (comboCount >= 5) return 'comboX5';
     if (comboCount >= 4) return 'comboX4';
     if (comboCount >= 3) return 'comboX3';
@@ -194,7 +356,7 @@ class SoundManager {
   }
 
   // Воспроизведение звукового эффекта
-  async playSfx(type: SoundType, volume?: number) {
+  async playSfx(type: SfxAssetKey, volume?: number) {
     try {
       if (!this.initialized) {
         console.log('Sound system not initialized, skipping playback', type);
@@ -215,16 +377,29 @@ class SoundManager {
   }
 
   // Воспроизведение фоновой музыки
-  async playMusic(volume?: number) {
+  async playMusic(volume?: number, musicPackId: string = 'music_classic') {
     try {
-      if (!this.initialized || !this.backgroundMusic) {
+      const musicKey = getMusicTrackKey(musicPackId);
+      const nextMusic = this.musicTracks.get(musicKey);
+      if (!this.initialized || !nextMusic) {
         console.log('Background music not initialized, skipping playback');
         return;
       }
-      
-      this.backgroundMusic.volume = volume ?? 1;
-      this.backgroundMusic.play();
+
+      if (musicKey !== this.currentMusicKey) {
+        const previousMusic = this.musicTracks.get(this.currentMusicKey);
+        previousMusic?.pause();
+        previousMusic?.seekTo(0);
+        this.currentMusicKey = musicKey;
+      }
+
+      nextMusic.volume = volume ?? 1;
+      nextMusic.play();
     } catch (error) {
+      if (String(error).includes('NotAllowedError')) {
+        console.log('Background music will start after user interaction.');
+        return;
+      }
       console.error('Error playing background music:', error);
     }
   }
@@ -232,10 +407,10 @@ class SoundManager {
   // Остановка фоновой музыки
   async stopMusic() {
     try {
-      if (this.backgroundMusic) {
-        this.backgroundMusic.pause();
-        this.backgroundMusic.seekTo(0);
-      }
+      this.musicTracks.forEach((music) => {
+        music.pause();
+        music.seekTo(0);
+      });
     } catch (error) {
       console.error('Error stopping background music:', error);
     }
@@ -244,19 +419,19 @@ class SoundManager {
   // Пауза фоновой музыки
   async pauseMusic() {
     try {
-      if (this.backgroundMusic) {
-        this.backgroundMusic.pause();
-      }
+      this.musicTracks.get(this.currentMusicKey)?.pause();
     } catch (error) {
       console.error('Error pausing background music:', error);
     }
   }
 
   // Обновление громкости фоновой музыки
-  async updateMusicVolume(volume: number) {
+  async updateMusicVolume(volume: number, musicPackId: string = 'music_classic') {
     try {
-      if (this.backgroundMusic) {
-        this.backgroundMusic.volume = volume;
+      const musicKey = getMusicTrackKey(musicPackId);
+      const music = this.musicTracks.get(musicKey);
+      if (music) {
+        music.volume = volume;
       }
     } catch (error) {
       console.error('Error updating background music volume:', error);
@@ -273,11 +448,14 @@ export function useSoundSettings() {
   const [sfxVolume, setSfxVolume] = useAtom(sfxVolumeAtom);
   const [musicEnabled, setMusicEnabled] = useAtom(musicEnabledAtom);
   const [sfxEnabled, setSfxEnabled] = useAtom(sfxEnabledAtom);
+  const shopState = useAtomValue(shopStateAtom);
+  const musicPackId = shopState.equipped.music;
+  const sfxPackId = shopState.equipped.sfx;
 
   const updateMusicVolume = async (volume: number) => {
     setMusicVolume(volume);
     await soundManager.saveSettings({ musicVolume: volume });
-    await soundManager.updateMusicVolume(musicEnabled ? volume : 0);
+    await soundManager.updateMusicVolume(musicEnabled ? volume * getMusicVolumeMultiplier(musicPackId) : 0, musicPackId);
   };
 
   const updateSfxVolume = async (volume: number) => {
@@ -290,7 +468,7 @@ export function useSoundSettings() {
     await soundManager.saveSettings({ musicEnabled: enabled });
     
     if (enabled) {
-      await soundManager.playMusic(musicVolume);
+      await soundManager.playMusic(musicVolume * getMusicVolumeMultiplier(musicPackId), musicPackId);
     } else {
       await soundManager.pauseMusic();
     }
@@ -303,15 +481,15 @@ export function useSoundSettings() {
 
   const playSfx = async (type: SoundType) => {
     if (sfxEnabled) {
-      await soundManager.playSfx(type, sfxVolume);
+      await soundManager.playSfx(mapSfxForPack(type, sfxPackId), sfxVolume * getSfxVolumeMultiplier(sfxPackId));
     }
   };
 
   // Play combo sound based on combo count
   const playComboSound = async (comboCount: number) => {
     if (sfxEnabled) {
-      const soundType = soundManager.getComboSound(comboCount) as SoundType;
-      await soundManager.playSfx(soundType, sfxVolume);
+      const soundType = soundManager.getComboSound(comboCount);
+      await soundManager.playSfx(mapSfxForPack(soundType, sfxPackId), sfxVolume * getSfxVolumeMultiplier(sfxPackId));
     }
   };
 
@@ -326,9 +504,17 @@ export function useSoundSettings() {
     setSfxEnabled(settings.sfxEnabled);
     
     if (settings.musicEnabled) {
-      await soundManager.playMusic(settings.musicVolume);
+      await soundManager.playMusic(settings.musicVolume * getMusicVolumeMultiplier(musicPackId), musicPackId);
     }
   };
+
+  useEffect(() => {
+    if (musicEnabled) {
+      soundManager.playMusic(musicVolume * getMusicVolumeMultiplier(musicPackId), musicPackId);
+    } else {
+      soundManager.pauseMusic();
+    }
+  }, [musicEnabled, musicPackId, musicVolume]);
 
   return {
     musicVolume,

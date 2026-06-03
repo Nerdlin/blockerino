@@ -612,6 +612,73 @@ export function getRandomPieceWorklet(gameMode?: string, rescueOnly: boolean = f
 	};
 }
 
+function getPieceColorPaletteIndex(color: Color): number {
+	"worklet";
+	let closestIndex = 0;
+	let closestDistance = Number.MAX_SAFE_INTEGER;
+	for (let i = 0; i < pieceColors.length; i++) {
+		const candidate = pieceColors[i];
+		const distance =
+			Math.abs(candidate.r - color.r) +
+			Math.abs(candidate.g - color.g) +
+			Math.abs(candidate.b - color.b);
+		if (distance < closestDistance) {
+			closestDistance = distance;
+			closestIndex = i;
+		}
+	}
+	return closestIndex;
+}
+
+function getPieceSkinColor(color: Color, pieceSkinId: string = "piece_classic"): Color {
+	"worklet";
+	if (pieceSkinId === "piece_classic") {
+		return color;
+	}
+
+	const index = getPieceColorPaletteIndex(color);
+	const palettes: Record<string, Color[]> = {
+		piece_minecraft: [
+			{ r: 107, g: 191, b: 69 },
+			{ r: 138, g: 90, b: 43 },
+			{ r: 128, g: 128, b: 128 },
+			{ r: 44, g: 206, b: 210 },
+			{ r: 52, g: 111, b: 42 },
+			{ r: 217, g: 184, b: 93 },
+		],
+		piece_crystal: [
+			{ r: 125, g: 235, b: 255 },
+			{ r: 199, g: 125, b: 255 },
+			{ r: 255, g: 125, b: 221 },
+			{ r: 141, g: 255, b: 178 },
+			{ r: 116, g: 159, b: 255 },
+			{ r: 255, g: 245, b: 153 },
+		],
+		piece_lava: [
+			{ r: 255, g: 176, b: 0 },
+			{ r: 255, g: 77, b: 0 },
+			{ r: 139, g: 30, b: 0 },
+			{ r: 58, g: 11, b: 0 },
+			{ r: 255, g: 213, b: 74 },
+			{ r: 178, g: 48, b: 12 },
+		],
+		piece_circuit: [
+			{ r: 0, g: 255, b: 157 },
+			{ r: 0, g: 212, b: 255 },
+			{ r: 77, g: 91, b: 255 },
+			{ r: 213, g: 255, b: 63 },
+			{ r: 20, g: 255, b: 238 },
+			{ r: 255, g: 45, b: 214 },
+		],
+	};
+
+	const palette = palettes[pieceSkinId];
+	if (!palette) {
+		return color;
+	}
+	return palette[index % palette.length];
+}
+
 function getBorderColors(backgroundColor: Color) {
 	"worklet";
 	const { r, g, b } = backgroundColor;
@@ -637,14 +704,37 @@ function getBorderColors(backgroundColor: Color) {
 	};
 }
 
-export function createFilledBlockStyle(color: Color, borderWidth: number = 7): object {
+export function createFilledBlockStyle(color: Color, borderWidth: number = 7, pieceSkinId: string = "piece_classic"): object {
 	"worklet";
+	const skinColor = getPieceSkinColor(color, pieceSkinId);
+	let finalBorderWidth = borderWidth;
+	let borderRadius = 0;
+	let shadow = "none";
+
+	if (pieceSkinId === "piece_minecraft") {
+		finalBorderWidth = Math.max(1, Math.round(borderWidth * 0.75));
+		borderRadius = 1;
+	} else if (pieceSkinId === "piece_crystal") {
+		finalBorderWidth = Math.max(1, Math.round(borderWidth * 0.55));
+		borderRadius = 5;
+		shadow = `0 0 ${Math.max(4, Math.round(borderWidth * 1.2))}px ${colorToHex(skinColor)}`;
+	} else if (pieceSkinId === "piece_lava") {
+		finalBorderWidth = Math.max(1, Math.round(borderWidth * 0.9));
+		borderRadius = 2;
+		shadow = `0 0 ${Math.max(3, Math.round(borderWidth))}px rgba(255, 77, 0, 0.85)`;
+	} else if (pieceSkinId === "piece_circuit") {
+		finalBorderWidth = Math.max(1, Math.round(borderWidth * 0.45));
+		borderRadius = 1;
+		shadow = `inset 0 0 ${Math.max(2, Math.round(borderWidth))}px rgba(0, 255, 157, 0.55)`;
+	}
+
 	return {
-		backgroundColor: colorToHex(color), //'rgb(131, 83, 203)'
-		...getBorderColors(color),
-		borderWidth: borderWidth,
+		backgroundColor: colorToHex(skinColor), //'rgb(131, 83, 203)'
+		...getBorderColors(skinColor),
+		borderWidth: finalBorderWidth,
+		borderRadius,
 		boxSizing: 'border-box',
-		boxShadow: 'none',
+		boxShadow: shadow,
 	}
 }
 

@@ -28,70 +28,198 @@ export interface AchievementRow extends AchievementDefinition {
 
 const ACHIEVEMENT_STATS_KEY = "ACHIEVEMENT_STATS";
 
+function getBestScore(scores: HighScore[]): number {
+	return Math.max(0, ...scores.map((score) => score.score));
+}
+
+function getBestScoreForMode(scores: HighScore[], mode: GameModeType): number {
+	return getBestScore(scores.filter((score) => score.type === mode));
+}
+
+function getModeSamplerProgress(scores: HighScore[]): number {
+	const completedModes = new Set(
+		scores
+			.filter((score) => score.score > 0)
+			.map((score) => score.type)
+	);
+
+	return [
+		GameModeType.Classic,
+		GameModeType.Chaos,
+		GameModeType.DailyPuzzle,
+		GameModeType.TimeAttack,
+	].filter((mode) => completedModes.has(mode)).length;
+}
+
+function getBestScoreTotal(scores: HighScore[]): number {
+	return [
+		GameModeType.Classic,
+		GameModeType.Chaos,
+		GameModeType.DailyPuzzle,
+		GameModeType.TimeAttack,
+	].reduce((total, mode) => total + getBestScoreForMode(scores, mode), 0);
+}
+
 export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	{
 		id: "first_steps",
-		medal: "🥉",
+		medal: "\u{1F949}",
 		title: "First Steps",
 		target: 1,
 		howToUnlock: "Finish any solo game.",
 		getCurrent: (_scores, stats) => stats.soloGamesFinished,
 	},
 	{
+		id: "regular_player",
+		medal: "\u{1F3AE}",
+		title: "Regular Player",
+		target: 10,
+		howToUnlock: "Finish 10 solo games.",
+		getCurrent: (_scores, stats) => stats.soloGamesFinished,
+	},
+	{
+		id: "marathoner",
+		medal: "\u{1F3C1}",
+		title: "Marathoner",
+		target: 50,
+		howToUnlock: "Finish 50 solo games.",
+		getCurrent: (_scores, stats) => stats.soloGamesFinished,
+	},
+	{
 		id: "score_hunter",
-		medal: "🥈",
+		medal: "\u{1F948}",
 		title: "Score Hunter",
 		target: 1000,
 		howToUnlock: "Reach 1000 points in one solo game.",
-		getCurrent: (scores) => Math.max(0, ...scores.map((score) => score.score)),
+		getCurrent: (scores) => getBestScore(scores),
 	},
 	{
 		id: "block_master",
-		medal: "🥇",
+		medal: "\u{1F947}",
 		title: "Block Master",
 		target: 5000,
 		howToUnlock: "Reach 5000 points in one solo game.",
-		getCurrent: (scores) => Math.max(0, ...scores.map((score) => score.score)),
+		getCurrent: (scores) => getBestScore(scores),
+	},
+	{
+		id: "score_legend",
+		medal: "\u{1F48E}",
+		title: "Score Legend",
+		target: 10000,
+		howToUnlock: "Reach 10000 points in one solo game.",
+		getCurrent: (scores) => getBestScore(scores),
 	},
 	{
 		id: "line_breaker",
-		medal: "🏅",
+		medal: "\u{1F3C5}",
 		title: "Line Breaker",
 		target: 50,
 		howToUnlock: "Clear 50 rows or columns.",
 		getCurrent: (_scores, stats) => stats.totalLinesCleared,
 	},
 	{
+		id: "line_crusher",
+		medal: "\u{1F525}",
+		title: "Line Crusher",
+		target: 250,
+		howToUnlock: "Clear 250 rows or columns.",
+		getCurrent: (_scores, stats) => stats.totalLinesCleared,
+	},
+	{
 		id: "steady_hands",
-		medal: "🎖️",
+		medal: "\u{1F396}",
 		title: "Steady Hands",
 		target: 200,
 		howToUnlock: "Place 200 pieces.",
 		getCurrent: (_scores, stats) => stats.totalPiecesPlaced,
 	},
 	{
+		id: "piece_architect",
+		medal: "\u{1F9F1}",
+		title: "Piece Architect",
+		target: 1000,
+		howToUnlock: "Place 1000 pieces.",
+		getCurrent: (_scores, stats) => stats.totalPiecesPlaced,
+	},
+	{
 		id: "comeback",
-		medal: "🏆",
+		medal: "\u{1F3C6}",
 		title: "Comeback",
 		target: 1,
 		howToUnlock: "Use an extra chance once.",
 		getCurrent: (_scores, stats) => stats.secondChancesUsed,
 	},
 	{
+		id: "second_wind",
+		medal: "\u{1F300}",
+		title: "Second Wind",
+		target: 5,
+		howToUnlock: "Use 5 extra chances.",
+		getCurrent: (_scores, stats) => stats.secondChancesUsed,
+	},
+	{
+		id: "classic_riser",
+		medal: "\u{1F9E9}",
+		title: "Classic Riser",
+		target: 2500,
+		howToUnlock: "Reach 2500 points in Classic.",
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.Classic),
+	},
+	{
 		id: "chaos_tamer",
-		medal: "💎",
+		medal: "\u{1F52E}",
 		title: "Chaos Tamer",
 		target: 1500,
 		howToUnlock: "Reach 1500 points in Chaos.",
-		getCurrent: (scores) => Math.max(0, ...scores.filter((score) => score.type === GameModeType.Chaos).map((score) => score.score)),
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.Chaos),
+	},
+	{
+		id: "chaos_champion",
+		medal: "\u{1F30B}",
+		title: "Chaos Champion",
+		target: 5000,
+		howToUnlock: "Reach 5000 points in Chaos.",
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.Chaos),
 	},
 	{
 		id: "speed_spark",
-		medal: "⚡",
+		medal: "\u{26A1}",
 		title: "Speed Spark",
 		target: 1000,
 		howToUnlock: "Reach 1000 points in Speed mode.",
-		getCurrent: (scores) => Math.max(0, ...scores.filter((score) => score.type === GameModeType.TimeAttack).map((score) => score.score)),
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.TimeAttack),
+	},
+	{
+		id: "speed_streak",
+		medal: "\u{1F4A8}",
+		title: "Speed Streak",
+		target: 2500,
+		howToUnlock: "Reach 2500 points in Speed mode.",
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.TimeAttack),
+	},
+	{
+		id: "daily_solver",
+		medal: "\u{1F4C5}",
+		title: "Daily Solver",
+		target: 1000,
+		howToUnlock: "Reach 1000 points in Daily Puzzle.",
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.DailyPuzzle),
+	},
+	{
+		id: "mode_sampler",
+		medal: "\u{1F9ED}",
+		title: "Mode Sampler",
+		target: 4,
+		howToUnlock: "Score in every solo mode.",
+		getCurrent: (scores) => getModeSamplerProgress(scores),
+	},
+	{
+		id: "score_collector",
+		medal: "\u{1F4B0}",
+		title: "Score Collector",
+		target: 5000,
+		howToUnlock: "Build a 5000-point best-score total across modes.",
+		getCurrent: (scores) => getBestScoreTotal(scores),
 	},
 ];
 

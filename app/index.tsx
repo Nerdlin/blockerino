@@ -1,7 +1,9 @@
 import {
 	StyleSheet,
 	LogBox,
+	AppState,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import Animated, {
 	FadeIn,
@@ -23,9 +25,11 @@ import ContinueGameModal from "@/components/ContinueGameModal";
 import MultiplayerMenu from "@/components/MultiplayerMenu";
 import MultiplayerGame from "@/components/game/MultiplayerGame";
 import DailyChallengesMenu from "@/components/DailyChallengesMenu";
-import { useSoundSettings } from "@/constants/Sound";
+import { shouldPauseMusicForAppState, soundManager, useSoundSettings } from "@/constants/Sound";
 import MultiplayerConnectionGate from "@/components/MultiplayerConnectionGate";
 import AchievementsMenu from "@/components/AchievementsMenu";
+import ShopMenu from "@/components/ShopMenu";
+import { useShopBootstrap } from "@/constants/Shop";
 
 // Suppress noisy library-specific deprecation warnings in developer tools
 LogBox.ignoreLogs([
@@ -41,6 +45,7 @@ configureReanimatedLogger({
 
 export default function App() {
 	const { initialize: initSounds } = useSoundSettings();
+	useShopBootstrap();
 
 	const [loaded] = useFonts({
 		"Press-Start-2P": require("../assets/fonts/PressStart2P-Regular.ttf"),
@@ -73,6 +78,16 @@ export default function App() {
 				setShowContinueModal(true);
 			}
 		});
+	}, []);
+
+	useEffect(() => {
+		const subscription = AppState.addEventListener("change", (nextAppState) => {
+			if (shouldPauseMusicForAppState(nextAppState)) {
+				soundManager.pauseMusic();
+			}
+		});
+
+		return () => subscription.remove();
 	}, []);
 
 	useEffect(() => {
@@ -123,6 +138,8 @@ export default function App() {
 	const isGameplayActive = gameMode !== undefined || isMultiplayerGameVisible;
 
 	return (
+		<>
+		<StatusBar style="light" backgroundColor="#050510" translucent={false} />
 		<Animated.View entering={FadeIn} exiting={FadeOut} style={styles.container}>
 			<AnimatedBackground isGameplayActive={isGameplayActive} />
 			{[...Array(isGameplayActive ? 14 : 25)].map((_, i) => (
@@ -138,6 +155,7 @@ export default function App() {
 			{ appState.containsState(MenuStateType.OPTIONS) && <OptionsMenu></OptionsMenu> }
 			{ appState.containsState(MenuStateType.HIGH_SCORES) && <HighScores></HighScores>}
 			{ appState.containsState(MenuStateType.ACHIEVEMENTS) && <AchievementsMenu />}
+			{ appState.containsState(MenuStateType.SHOP) && <ShopMenu />}
 			
 			{ isMultiplayerMenuVisible && (
 				multiplayerConnectionReady ? (
@@ -173,6 +191,7 @@ export default function App() {
 				/>
 			)}
 		</Animated.View>
+		</>
 	);
 }
 

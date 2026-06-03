@@ -26,12 +26,13 @@ describe("hand generation", () => {
 		}
 	});
 
-	it("leaves chaos hands unrestricted", () => {
+	it("keeps chaos hands dangerous but not overloaded with complex pieces", () => {
 		Math.random = jest.fn(() => 0.99);
 
 		const hand = createRandomHand(5, GameModeType.Chaos);
 
-		expect(hand.filter((piece) => piece !== null && isClassicComplexPiece(piece)).length).toBeGreaterThan(1);
+		expect(hand.some((piece) => piece !== null && isClassicRescuePiece(piece))).toBe(true);
+		expect(hand.filter((piece) => piece !== null && isClassicComplexPiece(piece)).length).toBeLessThanOrEqual(2);
 	});
 
 	it("uses a different daily puzzle key for each calendar day", () => {

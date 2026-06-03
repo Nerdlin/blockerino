@@ -1,6 +1,7 @@
 import {
 	getJoinRoomUpdate,
 	getStaleRoomCutoffs,
+	getMultiplayerViewMode,
 	getOpponentPlayerRole,
 	getWinnerNameForRole,
 	isPlayerNameReady,
@@ -39,6 +40,15 @@ describe("multiplayer room helpers", () => {
 		expect(getWinnerNameForRole("player1")).toBe("Player 1");
 		expect(getWinnerNameForRole("player2")).toBe("Player 2");
 		expect(getWinnerNameForRole("draw")).toBe("Draw");
+	});
+
+	it("keeps post-loss opponent watching separate from live spectator mode", () => {
+		expect(getMultiplayerViewMode("spectator", false)).toBe("live_spectator");
+		expect(getMultiplayerViewMode("spectator", true)).toBe("live_spectator");
+		expect(getMultiplayerViewMode("player1", false)).toBe("active_player");
+		expect(getMultiplayerViewMode("player2", false)).toBe("active_player");
+		expect(getMultiplayerViewMode("player1", true)).toBe("opponent_watch");
+		expect(getMultiplayerViewMode("player2", true)).toBe("opponent_watch");
 	});
 
 	it("computes stale room cutoffs for matchmaking cleanup", () => {
