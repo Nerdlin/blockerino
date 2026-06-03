@@ -86,7 +86,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	// Состояние для отображения модального окна проигрыша
 	const [isGameOver, setIsGameOver] = useState(false);
 	const [secondChanceReason, setSecondChanceReason] = useState<SecondChanceReason | null>(null);
-	const [secondChancesUsed, setSecondChancesUsed] = useState(canUseInitialState ? (initialState as any).secondChancesUsed || 0 : 0);
+	const secondChancesUsed = useSharedValue(canUseInitialState ? (initialState as any).secondChancesUsed || 0 : 0);
 	const [scorePopups, setScorePopups] = useState<{id: number, points: number, x: number, y: number}[]>([]);
 	const scorePopupIdCounter = useRef(0);
 
@@ -140,7 +140,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		return nextBoard;
 	};
 
-	const saveCurrentGame = (nextBoard = board.value, nextHand = hand.value, nextSecondChancesUsed = secondChancesUsed) => {
+	const saveCurrentGame = (nextBoard = board.value, nextHand = hand.value, nextSecondChancesUsed = secondChancesUsed.value) => {
 		saveActiveGame({
 			gameMode,
 			board: nextBoard,
@@ -164,7 +164,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	};
 
 	const startSecondChanceOrFinish = (reason: SecondChanceReason) => {
-		if (canUseSecondChance(secondChancesUsed)) {
+		if (canUseSecondChance(secondChancesUsed.value)) {
 			setSecondChanceReason(reason);
 			return;
 		}
@@ -173,8 +173,8 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	};
 
 	const acceptSecondChance = () => {
-		const nextSecondChancesUsed = secondChancesUsed + 1;
-		const nextScore = applySecondChancePenalty(score.value, secondChancesUsed);
+		const nextSecondChancesUsed = secondChancesUsed.value + 1;
+		const nextScore = applySecondChancePenalty(score.value, secondChancesUsed.value);
 		const nextBoard = createSecondChanceBoard();
 		const nextHand = createSecondChanceHand();
 
@@ -188,7 +188,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		}
 
 		setActiveCombo(0);
-		setSecondChancesUsed(nextSecondChancesUsed);
+		secondChancesUsed.value = nextSecondChancesUsed;
 		setSecondChanceReason(null);
 		recordAchievementProgress({ secondChancesUsed: 1 });
 
@@ -238,7 +238,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		}, 1000);
 
 		return () => clearInterval(timer);
-	}, [gameMode, isGameOver, secondChanceReason, secondChancesUsed]);
+	}, [gameMode, isGameOver, secondChanceReason]);
 
 	useEffect(() => {
 		if (scoreStorageId.value !== undefined) return;
@@ -382,7 +382,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			board.value = newBoard;
 
 			// Сохраняем состояние текущей игры
-			runOnJS(saveCurrentGame)(newBoard, nextHand, secondChancesUsed);
+			runOnJS(saveCurrentGame)(newBoard, nextHand, secondChancesUsed.value);
 			
 			// Проверка игры на окончание после обновления руки
 			runOnJS(setTimeout)(() => {
@@ -472,16 +472,16 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 							hand={hand} 
 							boardSize={boardLength}
 							onHandChange={(newHand) => {
-								saveCurrentGame(board.value, newHand, secondChancesUsed);
+								saveCurrentGame(board.value, newHand, secondChancesUsed.value);
 							}}
 						/>
 					</DndProvider>
 
 					{secondChanceReason && (
 						<SecondChanceModal
-							cost={getSecondChanceCost(secondChancesUsed)}
+							cost={getSecondChanceCost(secondChancesUsed.value)}
 							currentScore={Math.floor(score.value)}
-							chancesRemaining={Math.max(0, SECOND_CHANCE_COSTS.length - secondChancesUsed - 1)}
+							chancesRemaining={Math.max(0, SECOND_CHANCE_COSTS.length - secondChancesUsed.value - 1)}
 							reason={secondChanceReason}
 							onAccept={acceptSecondChance}
 							onDecline={finishGame}
