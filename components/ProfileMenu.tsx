@@ -445,4 +445,36 @@ const styles = StyleSheet.create({
 	mobileBottomButtonText: {
 		fontSize: 13,
 	},
+	avatarPlaceholder: {
+		width: 60,
+		height: 60,
+		borderRadius: 30,
+		backgroundColor: '#444',
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginBottom: 10,
+	},
+	avatarText: {
+		color: '#fff',
+		fontSize: 24,
+		fontFamily: 'SilkscreenBold',
+	},
+	tabsContainer: {
+		flexDirection: 'row',
+		justifyContent: 'center',
+		width: '100%',
+		gap: 10,
+		marginBottom: 20,
+	},
+	tabButton: {
+		flex: 1,
+		paddingVertical: 8,
+	},
+	tabButtonText: {
+		fontSize: 12,
+	},
+	tabContentContainer: {
+		width: '100%',
+		minHeight: 200,
+	},
 });

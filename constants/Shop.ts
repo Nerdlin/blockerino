@@ -212,13 +212,6 @@ export const SHOP_ITEMS: ShopItem[] = [
 		previewColors: ["#7F5539", "#B08968", "#E6CCB2"],
 	},
 	{
-		id: "sfx_glass",
-		category: "sfx",
-		title: "Glass Pops",
-		description: "Brighter feedback for clears and combos.",
-		price: 220,
-		accent: "#A9DEF9",
-	{
 		id: "music_classic",
 		category: "music",
 		title: "Classic Loop",
@@ -330,7 +323,7 @@ export const SHOP_ITEMS: ShopItem[] = [
 
 const SHOP_ITEM_MAP = new Map(SHOP_ITEMS.map((item) => [item.id, item]));
 
-import { atom } from "jotai";
+
 export const shopStateAtom = atom<ShopState>(createDefaultShopState());
 
 export function createDefaultShopState(): ShopState {
@@ -658,6 +651,7 @@ export function useShopState() {
 	const awardCoins = useCallback(async (score: number) => {
 		const coins = calculateCoinsForScore(score);
 		if (coins <= 0) return 0;
+
 		const latest = await loadShopState();
 		await commit(addCoinsToShopState(latest, coins));
 		return coins;
@@ -670,6 +664,7 @@ export function useShopState() {
 		equip,
 		purchaseAndEquip,
 		awardCoins,
+		commit,
 	};
 }
 
