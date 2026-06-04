@@ -11,6 +11,7 @@ import { useTheme } from "@/constants/Theme";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { normalizePlayerName } from "@/constants/Multiplayer";
 import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
+import { useShopState } from "@/constants/Shop";
 
 export default function HighScores() {
     const { width, height } = useWindowDimensions();
@@ -23,6 +24,32 @@ export default function HighScores() {
     const [ loading, setLoading ] = useState(false);
     const [ syncing, setSyncing ] = useState(false);
     const [ playerName, setPlayerName ] = useState('');
+    
+    // Secret states
+    const [chaosClicks, setChaosClicks] = useState(0);
+    const [secretMessage, setSecretMessage] = useState<string | null>(null);
+    const { state: shopState, commit: commitShopState } = useShopState();
+
+    const handleChaosClick = async () => {
+        setGameMode(GameModeType.Chaos);
+        
+        if (shopState.ownedItemIds.includes("music_custom")) return;
+
+        const newClicks = chaosClicks + 1;
+        setChaosClicks(newClicks);
+
+        if (newClicks === 12) {
+            setSecretMessage("SECRET UNLOCKED: Custom Music URL in Shop!");
+            const newState = {
+                ...shopState,
+                ownedItemIds: [...shopState.ownedItemIds, "music_custom"]
+            };
+            await commitShopState(newState);
+        } else if (newClicks >= 3) {
+            setSecretMessage(`${12 - newClicks} clicks remaining...`);
+        }
+    };
+
     const syncInProgress = useRef(false);
     const isMounted = useRef(true);
     const handleBack = useCallback(() => {
@@ -158,13 +185,18 @@ export default function HighScores() {
             />
             <StylizedButton
                 text="Chaos"
-                onClick={() => { setGameMode(GameModeType.Chaos) }}
+                onClick={handleChaosClick}
                 backgroundColor={gameMode === GameModeType.Chaos ? cssColors.pitchBlack : cssColors.spaceGray}
                 borderColor={gameMode === GameModeType.Chaos ? "white" : undefined}
                 style={styles.modeButton}
                 textStyle={isMobile && styles.mobileButtonText}
             />
         </View>
+        {secretMessage && (
+            <Text style={{ fontFamily: 'Silkscreen', fontSize: 12, color: '#FFD700', marginTop: 5, textAlign: 'center' }}>
+                {secretMessage}
+            </Text>
+        )}
         <Text style={[styles.header, { color: currentTheme.textPrimary }, isMobile && { fontSize: 22 }]}>
             {"Global Leaderboard (Top 10)"}
         </Text>

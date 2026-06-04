@@ -5,7 +5,7 @@ import { Platform, SafeAreaView, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
 import { ReduceMotion, runOnJS, useSharedValue } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes, createSeededBoard } from '@/constants/Board';
+import { BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes, createSeededBoard, cloneBoard, hasAnyPossibleMove } from '@/constants/Board';
 import { StatsGameHud, StickyGameHud } from '@/components/game/GameHud';
 import BlockGrid from '@/components/game/BlockGrid';
 import { createRandomHand, createRandomHandWorklet, createSeededHand, getDailyPuzzleKey, getNumericSeedFromDate } from '@/constants/Hand';
@@ -107,7 +107,12 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const { playSfx, playComboSound, initialize } = useSoundSettings();
 
 	const [, setActiveCombo] = useAtom(activeComboAtom);
+	const isMountedRef = useRef(true);
+	const isGameOverRef = useRef(false);
+	const secondChanceDecisionLockedRef = useRef(false);
+
 	const updateActiveCombo = (val: number) => {
+		if (!isMountedRef.current || isGameOverRef.current) return;
 		setActiveCombo(val);
 	};
 
@@ -157,6 +162,9 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	};
 
 	const finishGame = () => {
+		isGameOverRef.current = true;
+		setActiveCombo(0);
+		secondChanceDecisionLockedRef.current = true;
 		setSecondChanceReason(null);
 		setIsGameOver(true);
 		recordAchievementProgress({ soloGamesFinished: 1 });
@@ -221,6 +229,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		initialize();
 		setActiveCombo(0);
 		return () => {
+			isMountedRef.current = false;
 			setActiveCombo(0);
 		};
 	}, []);
@@ -300,7 +309,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			// Звук размещения блока
 			runOnJS(playSfx)('placeBlock');
 
-			const newBoard = clearHoverBlocks([...board.value]);
+			const newBoard = clearHoverBlocks(cloneBoard(board.value));
 			placePieceOntoBoard(newBoard, piece, dropX, dropY, BoardBlockType.FILLED);
 
 			const linesBroken = breakLines(newBoard);
@@ -385,16 +394,11 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			runOnJS(saveCurrentGame)(newBoard, nextHand, secondChancesUsed.value);
 			
 			// Проверка игры на окончание после обновления руки
-			runOnJS(setTimeout)(() => {
-				// Исправлено: правильное использование runOnJS и проверка результата
-				const hasPossibleMoves = checkForPossibleMoves();
-				if (!hasPossibleMoves) {
-					startSecondChanceOrFinish("moves");
-				}
-			}, 300);
-			
+			if (!hasAnyPossibleMove(newBoard, nextHand)) {
+				runOnJS(startSecondChanceOrFinish)("moves");
+			}
 		} else {
-			board.value = clearHoverBlocks([...board.value]);
+			board.value = clearHoverBlocks(cloneBoard(board.value));
 			// Звук неудачного размещения
 			runOnJS(playSfx)('invalidPlacement');
 		}

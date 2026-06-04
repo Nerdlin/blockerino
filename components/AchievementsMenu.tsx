@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View, useWindowDimensions, Pressable } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { useTheme } from "@/constants/Theme";
@@ -7,6 +7,7 @@ import { cssColors } from "@/constants/Color";
 import { AchievementRow, getAchievementRows } from "@/constants/Achievements";
 import { useAppState } from "@/hooks/useAppState";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
+import { useShopState } from "@/constants/Shop";
 
 export default function AchievementsMenu() {
 	const { currentTheme } = useTheme();
@@ -19,6 +20,31 @@ export default function AchievementsMenu() {
 		() => achievements.filter((achievement) => achievement.progress.complete).length,
 		[achievements]
 	);
+
+	// Secret states
+	const [firstStepsClicks, setFirstStepsClicks] = useState(0);
+	const [secretMessage, setSecretMessage] = useState<string | null>(null);
+	const { state: shopState, commit: commitShopState } = useShopState();
+
+	const handleAchievementClick = async (id: string) => {
+		if (id === "first_steps") {
+			if (shopState.ownedItemIds.includes("sfx_custom")) return;
+
+			const newClicks = firstStepsClicks + 1;
+			setFirstStepsClicks(newClicks);
+
+			if (newClicks === 7) {
+				setSecretMessage("SECRET UNLOCKED: Custom SFX URL in Shop!");
+				const newState = {
+					...shopState,
+					ownedItemIds: [...shopState.ownedItemIds, "sfx_custom"]
+				};
+				await commitShopState(newState);
+			} else if (newClicks >= 3) {
+				setSecretMessage(`${7 - newClicks} clicks remaining...`);
+			}
+		}
+	};
 
 	const loadAchievements = async () => {
 		setLoading(true);
@@ -44,6 +70,11 @@ export default function AchievementsMenu() {
 					Completed {completedCount}/{achievements.length}
 				</Text>
 			)}
+			{secretMessage && (
+				<Text style={{ fontFamily: 'Silkscreen', fontSize: 12, color: '#FFD700', marginBottom: 10, textAlign: 'center' }}>
+					{secretMessage}
+				</Text>
+			)}
 
 			{loading ? (
 				<ActivityIndicator size="large" color={currentTheme.accent} style={styles.loader} />
@@ -54,8 +85,9 @@ export default function AchievementsMenu() {
 						const progressWidth = `${progressPercent}%` as `${number}%`;
 
 						return (
-							<View
+							<Pressable
 								key={achievement.id}
+								onPress={() => handleAchievementClick(achievement.id)}
 								style={[
 									styles.row,
 									{
@@ -89,7 +121,7 @@ export default function AchievementsMenu() {
 								<Text style={[styles.howTo, { color: currentTheme.textSecondary }]}>
 									{achievement.howToUnlock}
 								</Text>
-							</View>
+							</Pressable>
 						);
 					})}
 				</View>

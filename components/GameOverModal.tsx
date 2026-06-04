@@ -198,7 +198,7 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
                 )}
                 {submitStatus === 'success' && (
                     <Text style={[styles.statusText, { color: 'rgb(0, 200, 80)' }]}>
-                        🏆 Score saved under "{playerName}"!
+                        Score saved under "{playerName}"!
                     </Text>
                 )}
                 {submitStatus === 'queued' && (

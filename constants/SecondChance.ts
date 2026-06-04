@@ -1,8 +1,9 @@
 export const SECOND_CHANCE_COSTS = [100, 500, 1000] as const;
 export const SECOND_CHANCE_DECISION_SECONDS = 10;
+export const MAX_SECOND_CHANCES = 3;
 
 export function canUseSecondChance(chancesUsed: number): boolean {
-	return chancesUsed < SECOND_CHANCE_COSTS.length;
+	return chancesUsed < MAX_SECOND_CHANCES && chancesUsed < SECOND_CHANCE_COSTS.length;
 }
 
 export function getSecondChanceCost(chancesUsed: number): number {

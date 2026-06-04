@@ -1,6 +1,6 @@
 import { supabase } from "./Supabase";
 
-const DEFAULT_CONNECTION_TIMEOUT_MS = 4500;
+const DEFAULT_CONNECTION_TIMEOUT_MS = 8000;
 
 export async function checkSupabaseConnection(
 	timeoutMs: number = DEFAULT_CONNECTION_TIMEOUT_MS

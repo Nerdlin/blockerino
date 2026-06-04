@@ -1,8 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { atom, useAtom } from "jotai";
 import { useCallback, useEffect } from "react";
+import { supabase } from "./Supabase";
 
 export type ShopCategory = "piece_skin" | "background" | "music" | "sfx";
+export type BackgroundScene = "classic" | "ender" | "sunset" | "ice" | "cyber";
 
 export interface ShopItem {
 	id: string;
@@ -13,6 +15,7 @@ export interface ShopItem {
 	accent: string;
 	previewColors: string[];
 	gradient?: [string, string, string];
+	scene?: BackgroundScene;
 }
 
 export interface EquippedCosmetics {
@@ -27,9 +30,12 @@ export interface ShopState {
 	ownedItemIds: string[];
 	equipped: EquippedCosmetics;
 	starterGrantClaimed: boolean;
+	updatedAt: number;
 }
 
 const SHOP_STATE_KEY = "SHOP_STATE_V1";
+const PLAYER_NAME_KEY = "PLAYER_NAME";
+const PLAYER_ID_KEY = "PLAYER_ID";
 export const STARTER_SHOP_COINS = 250;
 
 export const DEFAULT_EQUIPPED_COSMETICS: EquippedCosmetics = {
@@ -96,6 +102,7 @@ export const SHOP_ITEMS: ShopItem[] = [
 		accent: "#F0AF0C",
 		previewColors: ["#0A0A14", "#140A1E", "#1E0A14"],
 		gradient: ["rgb(10, 10, 20)", "rgb(20, 10, 30)", "rgb(30, 10, 20)"],
+		scene: "classic",
 	},
 	{
 		id: "background_ender",
@@ -106,6 +113,7 @@ export const SHOP_ITEMS: ShopItem[] = [
 		accent: "#6BFFB8",
 		previewColors: ["#090716", "#251047", "#0E3D37"],
 		gradient: ["rgb(9, 7, 22)", "rgb(37, 16, 71)", "rgb(14, 61, 55)"],
+		scene: "ender",
 	},
 	{
 		id: "background_sunset",
@@ -116,6 +124,7 @@ export const SHOP_ITEMS: ShopItem[] = [
 		accent: "#FFD166",
 		previewColors: ["#231942", "#FF6B6B", "#FFD166"],
 		gradient: ["rgb(35, 25, 66)", "rgb(255, 107, 107)", "rgb(255, 209, 102)"],
+		scene: "sunset",
 	},
 	{
 		id: "background_ice",
@@ -126,6 +135,7 @@ export const SHOP_ITEMS: ShopItem[] = [
 		accent: "#90E0EF",
 		previewColors: ["#061A2D", "#0A4D68", "#90E0EF"],
 		gradient: ["rgb(6, 26, 45)", "rgb(10, 77, 104)", "rgb(144, 224, 239)"],
+		scene: "ice",
 	},
 	{
 		id: "background_cyber",
@@ -136,7 +146,78 @@ export const SHOP_ITEMS: ShopItem[] = [
 		accent: "#FF2BD6",
 		previewColors: ["#050816", "#00D4FF", "#FF2BD6"],
 		gradient: ["rgb(5, 8, 22)", "rgb(0, 85, 132)", "rgb(86, 14, 96)"],
+		scene: "cyber",
 	},
+	{
+		id: "music_classic",
+		category: "music",
+		title: "Classic Loop",
+		description: "The original background mix.",
+		price: 0,
+		accent: "#F0AF0C",
+		previewColors: ["#F0AF0C", "#FFFFFF", "#777777"],
+	},
+	{
+		id: "music_lofi",
+		category: "music",
+		title: "Lo-fi Builder",
+		description: "Softer mix preset for longer solo runs.",
+		price: 140,
+		accent: "#BDE0FE",
+		previewColors: ["#BDE0FE", "#FFC8DD", "#A2D2FF"],
+	},
+	{
+		id: "music_arcade",
+		category: "music",
+		title: "Arcade Rush",
+		description: "A brighter, louder arcade-style mix preset.",
+		price: 220,
+		accent: "#FF006E",
+		previewColors: ["#FF006E", "#FBFF12", "#3A86FF"],
+	},
+	{
+		id: "music_cave",
+		category: "music",
+		title: "Cave Echoes",
+		description: "A darker mix preset for mining-style themes.",
+		price: 280,
+		accent: "#8D99AE",
+		previewColors: ["#2B2D42", "#8D99AE", "#EDF2F4"],
+	},
+	{
+		id: "music_space",
+		category: "music",
+		title: "Space Drift",
+		description: "A quieter floating mix preset.",
+		price: 360,
+		accent: "#9D4EDD",
+		previewColors: ["#10002B", "#5A189A", "#E0AAFF"],
+	},
+	{
+		id: "sfx_classic",
+		category: "sfx",
+		title: "Classic Clicks",
+		description: "The original placement, combo and menu sounds.",
+		price: 0,
+		accent: "#F0AF0C",
+		previewColors: ["#F0AF0C", "#FFFFFF", "#777777"],
+	},
+	{
+		id: "sfx_wood",
+		category: "sfx",
+		title: "Wooden Blocks",
+		description: "Chunkier placement emphasis for blocky skins.",
+		price: 140,
+		accent: "#B08968",
+		previewColors: ["#7F5539", "#B08968", "#E6CCB2"],
+	},
+	{
+		id: "sfx_glass",
+		category: "sfx",
+		title: "Glass Pops",
+		description: "Brighter feedback for clears and combos.",
+		price: 220,
+		accent: "#A9DEF9",
 	{
 		id: "music_classic",
 		category: "music",
@@ -227,10 +308,29 @@ export const SHOP_ITEMS: ShopItem[] = [
 		accent: "#ADB5BD",
 		previewColors: ["#343A40", "#ADB5BD", "#F8F9FA"],
 	},
+	{
+		id: "music_custom",
+		category: "music",
+		title: "Custom Stream URL",
+		description: "Secret! Play your own music stream URL. Configure in Options.",
+		price: 0,
+		accent: "#FFFFFF",
+		previewColors: ["#FF0000", "#00FF00", "#0000FF"],
+	},
+	{
+		id: "sfx_custom",
+		category: "sfx",
+		title: "Custom SFX URL",
+		description: "Secret! Play your own SFX stream URL. Configure in Options.",
+		price: 0,
+		accent: "#FFFFFF",
+		previewColors: ["#FF00FF", "#00FFFF", "#FFFF00"],
+	},
 ];
 
 const SHOP_ITEM_MAP = new Map(SHOP_ITEMS.map((item) => [item.id, item]));
 
+import { atom } from "jotai";
 export const shopStateAtom = atom<ShopState>(createDefaultShopState());
 
 export function createDefaultShopState(): ShopState {
@@ -239,6 +339,7 @@ export function createDefaultShopState(): ShopState {
 		ownedItemIds: [...FREE_SHOP_ITEM_IDS],
 		equipped: { ...DEFAULT_EQUIPPED_COSMETICS },
 		starterGrantClaimed: true,
+		updatedAt: 0,
 	};
 }
 
@@ -276,12 +377,14 @@ export function normalizeShopState(value: Partial<ShopState> | null | undefined)
 
 	const savedBalance = Math.max(0, Math.floor(Number(value.balance) || 0));
 	const starterGrantClaimed = value.starterGrantClaimed === true;
+	const updatedAt = Number.isFinite(Number(value.updatedAt)) ? Math.max(0, Number(value.updatedAt)) : 0;
 
 	return {
 		balance: starterGrantClaimed ? savedBalance : Math.max(savedBalance, STARTER_SHOP_COINS),
 		ownedItemIds: [...ownedSet],
 		equipped,
 		starterGrantClaimed: true,
+		updatedAt,
 	};
 }
 
@@ -368,13 +471,152 @@ export function getBackgroundGradient(itemId: string): [string, string, string] 
 	return getShopItem(itemId)?.gradient;
 }
 
+export function getBackgroundScene(itemId: string): BackgroundScene {
+	return getShopItem(itemId)?.scene ?? "classic";
+}
+
+export function getBackgroundParticleConfig(itemId: string, isGameplayActive: boolean) {
+	const scene = getBackgroundScene(itemId);
+	if (scene === "classic") {
+		return {
+			count: isGameplayActive ? 14 : 25,
+			blockSize: isGameplayActive ? 22 : 28,
+			maxOpacity: isGameplayActive ? 0.55 : 1,
+		};
+	}
+
+	return {
+		count: isGameplayActive ? 4 : 8,
+		blockSize: isGameplayActive ? 18 : 22,
+		maxOpacity: isGameplayActive ? 0.18 : 0.28,
+	};
+}
+
+export function mergeShopStates(localState: ShopState, remoteState: Partial<ShopState> | null | undefined): ShopState {
+	const local = normalizeShopState(localState);
+	const remote = normalizeShopState(remoteState);
+	const ownedSet = new Set([...local.ownedItemIds, ...remote.ownedItemIds]);
+	
+	const localNewer = local.updatedAt >= remote.updatedAt;
+
+	return normalizeShopState({
+		balance: localNewer ? local.balance : remote.balance,
+		ownedItemIds: [...ownedSet],
+		equipped: local.equipped, // Always prefer local equipped items to avoid annoying reverts
+		starterGrantClaimed: true,
+		updatedAt: Math.max(local.updatedAt, remote.updatedAt),
+	});
+}
+
+interface ShopSyncIdentity {
+	playerName: string;
+	playerId: string | null;
+}
+
+interface RemoteShopProfile {
+	id?: string;
+	player_name?: string;
+	player_id?: string | null;
+	coins?: number | null;
+	owned_item_ids?: string[] | null;
+	equipped?: Partial<EquippedCosmetics> | null;
+	updated_at?: string | null;
+}
+
+async function getShopSyncIdentity(): Promise<ShopSyncIdentity | null> {
+	const [rawName, playerId] = await Promise.all([
+		AsyncStorage.getItem(PLAYER_NAME_KEY),
+		AsyncStorage.getItem(PLAYER_ID_KEY),
+	]);
+	const playerName = (rawName || "").trim();
+	if (!playerName) return null;
+
+	return {
+		playerName,
+		playerId: playerId || null,
+	};
+}
+
+function profileToShopState(profile: RemoteShopProfile | null | undefined): Partial<ShopState> | null {
+	if (!profile) return null;
+
+	return {
+		balance: Math.max(0, Math.floor(Number(profile.coins) || 0)),
+		ownedItemIds: Array.isArray(profile.owned_item_ids) ? profile.owned_item_ids : [],
+		equipped: profile.equipped as EquippedCosmetics | undefined,
+		starterGrantClaimed: true,
+		updatedAt: profile.updated_at ? new Date(profile.updated_at).getTime() : 0,
+	};
+}
+
+function escapeIlike(value: string): string {
+	return value.replace(/[%_]/g, "\\$&");
+}
+
+export async function syncShopStateWithProfile(localState: ShopState): Promise<{ status: "synced" | "skipped" | "failed"; state: ShopState }> {
+	const local = normalizeShopState(localState);
+
+	try {
+		const identity = await getShopSyncIdentity();
+		if (!identity) {
+			return { status: "skipped", state: local };
+		}
+
+		const { data: profiles, error: fetchError } = await supabase
+			.from("profiles")
+			.select("id, player_name, player_id, coins, owned_item_ids, equipped, updated_at")
+			.ilike("player_name", escapeIlike(identity.playerName))
+			.limit(1);
+
+		if (fetchError) {
+			console.error("Error fetching shop profile:", fetchError);
+			return { status: "failed", state: local };
+		}
+
+		const profile = profiles?.[0] as RemoteShopProfile | undefined;
+		const merged = {
+			...mergeShopStates(local, profileToShopState(profile)),
+			updatedAt: Date.now(),
+		};
+
+		const payload = {
+			player_name: identity.playerName,
+			player_id: identity.playerId,
+			coins: merged.balance,
+			owned_item_ids: merged.ownedItemIds,
+			equipped: merged.equipped,
+			updated_at: new Date(merged.updatedAt).toISOString(),
+		};
+
+		const writeResult = profile?.id
+			? await supabase.from("profiles").update(payload).eq("id", profile.id)
+			: await supabase.from("profiles").insert(payload);
+
+		if (writeResult.error) {
+			console.error("Error saving shop profile:", writeResult.error);
+			return { status: "failed", state: local };
+		}
+
+		await saveShopState(merged);
+		return { status: "synced", state: normalizeShopState(merged) };
+	} catch (error) {
+		console.error("Error syncing shop profile:", error);
+		return { status: "failed", state: local };
+	}
+}
+
 export function useShopState() {
 	const [state, setState] = useAtom(shopStateAtom);
 
 	const commit = useCallback(async (next: ShopState) => {
-		const normalized = normalizeShopState(next);
+		const normalized = normalizeShopState({ ...next, updatedAt: Date.now() });
 		setState(normalized);
 		await saveShopState(normalized);
+		const syncResult = await syncShopStateWithProfile(normalized);
+		if (syncResult.status === "synced") {
+			setState(syncResult.state);
+			return syncResult.state;
+		}
 		return normalized;
 	}, [setState]);
 
@@ -435,6 +677,12 @@ export function useShopBootstrap() {
 	const [, setState] = useAtom(shopStateAtom);
 
 	useEffect(() => {
-		loadShopState().then(setState);
+		loadShopState().then(async (local) => {
+			setState(local);
+			const syncResult = await syncShopStateWithProfile(local);
+			if (syncResult.status === "synced") {
+				setState(syncResult.state);
+			}
+		});
 	}, [setState]);
 }

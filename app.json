@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nerdlin.blockerino"
+      "bundleIdentifier": "com.nerdlin.blockerino",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "android": {
       "package": "com.nerdlin.blockerino",
@@ -26,8 +29,13 @@
       },
       "permissions": [
         "INTERNET",
-        "ACCESS_NETWORK_STATE"
-      ]
+        "ACCESS_NETWORK_STATE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "runtimeVersion": "1.0.0"
     },
     "web": {
       "bundler": "metro",
@@ -59,6 +67,16 @@
     "experiments": {
       "typedRoutes": true,
       "baseUrl": "/blockerino"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ca108ad1-37de-4a05-868d-31ba91e722a7"
+      }
+    },
+    "owner": "nerdlin",
+    "updates": {
+      "url": "https://u.expo.dev/ca108ad1-37de-4a05-868d-31ba91e722a7"
     }
   }
 }

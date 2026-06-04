@@ -29,12 +29,12 @@ export function getEloBadge(elo: number): { tier: string; color: string } {
 }
 
 const ELO_TIERS = [
-    { tier: "Bronze", color: "#CD7F32", icon: "🥉", min: 0, max: 800 },
-    { tier: "Silver", color: "#C0C0C0", icon: "🥈", min: 800, max: 1000 },
-    { tier: "Gold", color: "#FFD700", icon: "🥇", min: 1000, max: 1200 },
-    { tier: "Diamond", color: "#00BFFF", icon: "💎", min: 1200, max: 1400 },
-    { tier: "Master", color: "#DA70D6", icon: "👑", min: 1400, max: 1600 },
-    { tier: "Legend", color: "#FF4500", icon: "🔥", min: 1600, max: 2000 },
+    { tier: "Bronze", color: "#CD7F32", icon: "B", min: 0, max: 800 },
+    { tier: "Silver", color: "#C0C0C0", icon: "S", min: 800, max: 1000 },
+    { tier: "Gold", color: "#FFD700", icon: "G", min: 1000, max: 1200 },
+    { tier: "Diamond", color: "#00BFFF", icon: "D", min: 1200, max: 1400 },
+    { tier: "Master", color: "#DA70D6", icon: "M", min: 1400, max: 1600 },
+    { tier: "Legend", color: "#FF4500", icon: "L", min: 1600, max: 2000 },
 ];
 
 function getEloDetails(elo: number) {
@@ -692,7 +692,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             { opacity: pressed ? 0.7 : 1 }
                         ]}
                     >
-                        <Text style={{ fontSize: 18 }}>🏆</Text>
+                        <Text style={styles.eloLeaderboardIcon}>TOP</Text>
                         <Text style={[styles.eloLeaderboardBtnText, { color: currentTheme.accent }]}>
                             ELO Leaderboard
                         </Text>
@@ -1373,6 +1373,14 @@ const styles = StyleSheet.create({
         fontFamily: 'Silkscreen',
         fontWeight: 'bold',
         marginLeft: 10,
+    },
+    eloLeaderboardIcon: {
+        minWidth: 34,
+        fontSize: 11,
+        fontFamily: 'Silkscreen',
+        fontWeight: 'bold',
+        color: '#FFD700',
+        textAlign: 'center',
     },
     eloLeaderboardSub: {
         fontSize: 13,

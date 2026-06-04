@@ -21,11 +21,11 @@ export async function getGlobalHighScores(
     limit: number = 10
 ): Promise<GlobalHighScore[]> {
     try {
+        const scoreColumn = `highscore_${gameMode === 'daily_puzzle' ? 'daily' : gameMode}`;
         const { data, error } = await supabase
-            .from('high_scores')
-            .select('*')
-            .eq('game_mode', gameMode)
-            .order('score', { ascending: false })
+            .from('profiles')
+            .select(`id, player_name, ${scoreColumn}, created_at`)
+            .order(scoreColumn, { ascending: false })
             .limit(limit * 5); // Fetch extra to account for duplicates
 
         if (error) {
@@ -36,7 +36,8 @@ export async function getGlobalHighScores(
         if (!data) return [];
 
         const uniquePlayers = new Set();
-        const filteredData = data.filter(record => {
+        const filteredData = data.filter((record: any) => {
+            if (record[scoreColumn] <= 0) return false;
             // Case-insensitive duplicate check
             const lowerName = record.player_name.toLowerCase();
             if (uniquePlayers.has(lowerName)) {
@@ -46,14 +47,20 @@ export async function getGlobalHighScores(
             return true;
         });
 
-        return filteredData.slice(0, limit);
+        return filteredData.slice(0, limit).map((r: any) => ({
+            id: r.id,
+            player_name: r.player_name,
+            score: r[scoreColumn],
+            game_mode: gameMode,
+            created_at: r.created_at
+        }));
     } catch (error) {
         console.error('Error fetching global high scores:', error);
         return [];
     }
 }
 
-// Добавить новый рекорд в глобальную таблицу (с защитой от дубликатов)
+// Получить локальный/глобальный рекорд игрока
 export async function getPlayerGlobalHighScore(
     playerName: string,
     gameMode: string
@@ -63,19 +70,19 @@ export async function getPlayerGlobalHighScore(
         if (!finalPlayerName) return null;
 
         const escapedName = finalPlayerName.replace(/[%_]/g, '\\$&');
+        const scoreColumn = `highscore_${gameMode === 'daily_puzzle' ? 'daily' : gameMode}`;
+
         const { data, error } = await supabase
-            .from('high_scores')
-            .select('score')
+            .from('profiles')
+            .select(scoreColumn)
             .ilike('player_name', escapedName)
-            .eq('game_mode', gameMode)
-            .order('score', { ascending: false })
             .limit(1);
 
         if (error || !data || data.length === 0) {
             return null;
         }
 
-        return data[0].score;
+        return data[0][scoreColumn] as number;
     } catch (error) {
         console.error('Error fetching player global high score:', error);
         return null;
@@ -88,18 +95,17 @@ export async function submitGlobalHighScore(
     gameMode: string
 ): Promise<boolean> {
     try {
-        // Экранируем спецсимволы в имени для case-insensitive LIKE поиска
         const finalPlayerName = playerName.trim();
         if (!finalPlayerName || score <= 0) return false;
 
         const escapedName = finalPlayerName.replace(/[%_]/g, '\\$&');
+        const scoreColumn = `highscore_${gameMode === 'daily_puzzle' ? 'daily' : gameMode}`;
 
-        // Проверяем, существует ли уже запись для этого игрока в этом режиме (без учета регистра)
+        // Fetch existing profile
         const { data, error: fetchError } = await supabase
-            .from('high_scores')
-            .select('id, score, player_name')
+            .from('profiles')
+            .select(`id, player_name, ${scoreColumn}`)
             .ilike('player_name', escapedName)
-            .eq('game_mode', gameMode)
             .limit(1);
 
         if (fetchError) {
@@ -110,53 +116,37 @@ export async function submitGlobalHighScore(
         const existingRecord = data && data[0];
 
         if (existingRecord) {
-            // Если новый результат лучше, обновляем его и имя (вдруг изменился регистр)
-            if (score > existingRecord.score) {
+            const currentScore = existingRecord[scoreColumn] || 0;
+            // Update if better score or if case mismatch
+            if (score > currentScore) {
                 const { error: updateError } = await supabase
-                    .from('high_scores')
+                    .from('profiles')
                     .update({
                         player_name: finalPlayerName,
-                        score: score,
-                        created_at: new Date().toISOString()
+                        [scoreColumn]: score
                     })
                     .eq('id', existingRecord.id);
 
-                if (updateError) {
-                    console.error('Error updating high score:', updateError);
-                    return false;
-                }
+                if (updateError) return false;
             } else if (finalPlayerName !== existingRecord.player_name) {
-                // Если счет не лучше, но изменился регистр/написание имени, обновляем имя в БД
                 const { error: updateError } = await supabase
-                    .from('high_scores')
-                    .update({
-                        player_name: finalPlayerName
-                    })
+                    .from('profiles')
+                    .update({ player_name: finalPlayerName })
                     .eq('id', existingRecord.id);
 
-                if (updateError) {
-                    console.error('Error updating player name:', updateError);
-                    return false;
-                }
+                if (updateError) return false;
             }
             return true;
         } else {
-            // Если записи нет, создаем новую
+            // Profile doesn't exist, create it (offline/guest flow)
             const { error: insertError } = await supabase
-                .from('high_scores')
-                .insert([
-                    {
-                        player_name: finalPlayerName,
-                        score: score,
-                        game_mode: gameMode
-                    }
-                ]);
+                .from('profiles')
+                .insert([{
+                    player_name: finalPlayerName,
+                    [scoreColumn]: score
+                }]);
 
-            if (insertError) {
-                console.error('Error inserting high score:', insertError);
-                return false;
-            }
-
+            if (insertError) return false;
             return true;
         }
     } catch (error) {
@@ -166,7 +156,7 @@ export async function submitGlobalHighScore(
 }
 
 export interface EloRating {
-    id?: number;
+    id?: number | string;
     player_name: string;
     elo: number;
     updated_at?: string;
@@ -180,13 +170,13 @@ export async function submitEloRating(playerName: string, elo: number): Promise<
         const escapedName = finalPlayerName.replace(/[%_]/g, '\\$&');
 
         const { data, error: fetchError } = await supabase
-            .from('elo_ratings')
+            .from('profiles')
             .select('id, elo')
             .ilike('player_name', escapedName)
             .limit(1);
 
         if (fetchError) {
-            console.error('Error fetching existing elo:', fetchError);
+            console.error('Error fetching existing profile elo:', fetchError);
             return false;
         }
 
@@ -194,27 +184,20 @@ export async function submitEloRating(playerName: string, elo: number): Promise<
 
         if (existingRecord) {
             const { error: updateError } = await supabase
-                .from('elo_ratings')
+                .from('profiles')
                 .update({
                     player_name: finalPlayerName,
-                    elo: elo,
-                    updated_at: new Date().toISOString()
+                    elo: elo
                 })
                 .eq('id', existingRecord.id);
 
-            if (updateError) {
-                console.error('Error updating elo rating:', updateError);
-                return false;
-            }
+            if (updateError) return false;
         } else {
             const { error: insertError } = await supabase
-                .from('elo_ratings')
+                .from('profiles')
                 .insert([{ player_name: finalPlayerName, elo: elo }]);
 
-            if (insertError) {
-                console.error('Error inserting elo rating:', insertError);
-                return false;
-            }
+            if (insertError) return false;
         }
         return true;
     } catch (error) {
@@ -229,7 +212,7 @@ export async function getPlayerElo(playerName: string): Promise<number | null> {
         if (!finalPlayerName) return null;
 
         const { data, error } = await supabase
-            .from('elo_ratings')
+            .from('profiles')
             .select('elo')
             .ilike('player_name', finalPlayerName.replace(/[%_]/g, '\\$&'))
             .limit(1);
@@ -247,8 +230,8 @@ export async function getPlayerElo(playerName: string): Promise<number | null> {
 export async function getTopEloRatings(limit: number = 100): Promise<EloRating[]> {
     try {
         const { data, error } = await supabase
-            .from('elo_ratings')
-            .select('*')
+            .from('profiles')
+            .select('id, player_name, elo, updated_at')
             .order('elo', { ascending: false })
             .limit(limit);
 

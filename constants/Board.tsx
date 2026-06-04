@@ -2,38 +2,61 @@ import { Color } from "./Color";
 import { getRandomPieceColor, PieceData } from "./Piece";
 import { useWindowDimensions } from 'react-native';
 import { useAppStateValue, MenuStateType } from "@/hooks/useAppState";
-import { makeSeededPrng } from "./Hand";
+import { Hand, makeSeededPrng } from "./Hand";
 
-export function useGameSizes(boardLength: number) {
-  const { width, height } = useWindowDimensions();
-  const appState = useAppStateValue();
-  
-  const isMobile = width < 600 || height < 700;
-  const isMultiplayer = appState?.containsState(MenuStateType.MULTIPLAYER_GAME);
-  
-  // Calculate grid block size based on width
-  const maxGridWidth = width - 16; // 8px padding on each side
+export interface GameSizeInput {
+  width: number;
+  height: number;
+  boardLength: number;
+  isMultiplayer?: boolean;
+}
+
+export function calculateGameSizes({
+  width,
+  height,
+  boardLength,
+  isMultiplayer = false,
+}: GameSizeInput) {
+  const isMobile = width < 600 || height < 760;
+  const horizontalPadding = isMobile ? 24 : 32;
+  const maxGridWidth = Math.max(160, width - horizontalPadding);
   const calculatedBlockSizeWidth = Math.floor(maxGridWidth / boardLength);
-  
-  // Calculate grid block size based on height to prevent vertical scrolling
-  // For multiplayer, we need extra reserved height for opponent's mini board
-  const reservedHeight = isMultiplayer ? (isMobile ? 370 : 380) : (isMobile ? 210 : 280);
-  const maxGridHeight = height - reservedHeight;
+
+  const reservedHeight = isMultiplayer
+    ? (isMobile ? (boardLength === 10 ? 500 : 450) : 390)
+    : (isMobile ? (boardLength === 10 ? 300 : 250) : 280);
+  const maxGridHeight = Math.max(160, height - reservedHeight);
   const calculatedBlockSizeHeight = Math.floor(maxGridHeight / boardLength);
-  
-  const idealBlockSize = 46;
-  // Make sure block size is at least 18px so it remains playable
-  const gridBlockSize = Math.max(18, Math.min(idealBlockSize, calculatedBlockSizeWidth, calculatedBlockSizeHeight));
-  
+
+  const idealBlockSize = isMobile && isMultiplayer ? 42 : 46;
+  const minBlockSize = isMobile && isMultiplayer ? 16 : 18;
+  const gridBlockSize = Math.max(
+    minBlockSize,
+    Math.min(idealBlockSize, calculatedBlockSizeWidth, calculatedBlockSizeHeight)
+  );
+
   const scaleRatio = gridBlockSize / 46;
-  const handScale = (isMobile && boardLength === 10) ? 0.65 : (isMobile ? 0.75 : 1.0);
-  
+  const handScale = isMobile && boardLength === 10 ? 0.62 : (isMobile ? 0.72 : 1.0);
+
   return {
     GRID_BLOCK_SIZE: gridBlockSize,
     HAND_BLOCK_SIZE: 22 * scaleRatio * handScale,
     HITBOX_SIZE: Math.max(6, 12 * scaleRatio),
     DRAG_JUMP_LENGTH: 116 * scaleRatio
   };
+}
+
+export function useGameSizes(boardLength: number) {
+  const { width, height } = useWindowDimensions();
+  const appState = useAppStateValue();
+  const isMultiplayer = Boolean(appState?.containsState(MenuStateType.MULTIPLAYER_GAME));
+
+  return calculateGameSizes({
+    width,
+    height,
+    boardLength,
+    isMultiplayer,
+  });
 }
 
 export interface XYPoint {
@@ -56,6 +79,15 @@ export interface BoardBlock {
 }
 
 export type Board = BoardBlock[][];
+
+export function cloneBoard(board: Board): Board {
+  "worklet";
+  return board.map((row) => row.map((cell) => ({
+    blockType: cell.blockType,
+    color: { ...cell.color },
+    hoveredBreakColor: { ...cell.hoveredBreakColor },
+  })));
+}
 
 export function newEmptyBoard(boardLength: number): Board {
   return new Array(boardLength).fill(null).map(() => {
@@ -169,6 +201,25 @@ export function createPossibleBoardSpots(
   }
 
   return fitPositions;
+}
+
+export function hasAnyPossibleMove(board: Board, hand: Hand): boolean {
+  "worklet";
+  for (let i = 0; i < hand.length; i++) {
+    const piece = hand[i];
+    if (!piece) continue;
+
+    const possibleSpots = createPossibleBoardSpots(board, piece);
+    for (let y = 0; y < possibleSpots.length; y++) {
+      for (let x = 0; x < possibleSpots[y].length; x++) {
+        if (possibleSpots[y][x] === 1) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
 }
 
 export function clearHoverBlocks(board: Board): Board {

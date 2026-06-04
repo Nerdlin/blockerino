@@ -155,7 +155,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 
 			placedBlockFall.value = withSequence(
 				withTiming(1, { duration: 600 }),
-				withTiming(0, { duration: 16 })
+				withTiming(0, { duration: 0 })
 			);
 
 			sparkProgress.value = 0;

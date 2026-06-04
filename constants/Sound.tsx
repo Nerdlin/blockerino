@@ -199,6 +199,18 @@ const getSoundResource = (type: SoundAssetKey) => {
   }
 };
 
+// Network check for custom urls
+import * as Network from 'expo-network';
+
+async function hasInternetConnection(): Promise<boolean> {
+  try {
+    const networkState = await Network.getNetworkStateAsync();
+    return !!networkState.isConnected && !!networkState.isInternetReachable;
+  } catch {
+    return false;
+  }
+}
+
 // Класс для управления звуковыми эффектами
 class SoundManager {
   private sounds: Map<string, AudioPlayer> = new Map();
@@ -356,13 +368,28 @@ class SoundManager {
   }
 
   // Воспроизведение звукового эффекта
-  async playSfx(type: SfxAssetKey, volume?: number) {
+  async playSfx(type: SfxAssetKey, volume?: number, sfxPackId?: string) {
     try {
       if (!this.initialized) {
         console.log('Sound system not initialized, skipping playback', type);
         return;
       }
       
+      if (sfxPackId === 'sfx_custom') {
+        const customUrl = await AsyncStorage.getItem("CUSTOM_SFX_URL");
+        if (customUrl) {
+          const hasNet = await hasInternetConnection();
+          if (hasNet) {
+            const customSound = createAudioPlayer(customUrl);
+            customSound.volume = volume ?? 1;
+            customSound.play();
+            return;
+          } else {
+            console.log("No internet for custom SFX, falling back to default");
+          }
+        }
+      }
+
       const sound = this.sounds.get(type);
       if (sound) {
         sound.volume = volume ?? 1;
@@ -379,12 +406,40 @@ class SoundManager {
   // Воспроизведение фоновой музыки
   async playMusic(volume?: number, musicPackId: string = 'music_classic') {
     try {
-      const musicKey = getMusicTrackKey(musicPackId);
-      const nextMusic = this.musicTracks.get(musicKey);
-      if (!this.initialized || !nextMusic) {
+      if (!this.initialized) {
         console.log('Background music not initialized, skipping playback');
         return;
       }
+
+      if (musicPackId === 'music_custom') {
+        const customUrl = await AsyncStorage.getItem("CUSTOM_MUSIC_URL");
+        if (customUrl) {
+          const hasNet = await hasInternetConnection();
+          if (hasNet) {
+            const previousMusic = this.musicTracks.get(this.currentMusicKey);
+            previousMusic?.pause();
+            
+            // Re-create the player so it streams the latest URL
+            const customMusic = createAudioPlayer(customUrl);
+            customMusic.loop = true;
+            this.musicTracks.set('musicCustom' as any, customMusic);
+            this.currentMusicKey = 'musicCustom' as any;
+            
+            customMusic.volume = volume ?? 1;
+            customMusic.play();
+            return;
+          } else {
+            console.log("No internet for custom music, falling back to classic");
+            musicPackId = 'music_classic'; // Fallback
+          }
+        } else {
+          musicPackId = 'music_classic'; // Fallback
+        }
+      }
+
+      const musicKey = getMusicTrackKey(musicPackId);
+      const nextMusic = this.musicTracks.get(musicKey);
+      if (!nextMusic) return;
 
       if (musicKey !== this.currentMusicKey) {
         const previousMusic = this.musicTracks.get(this.currentMusicKey);
@@ -428,7 +483,10 @@ class SoundManager {
   // Обновление громкости фоновой музыки
   async updateMusicVolume(volume: number, musicPackId: string = 'music_classic') {
     try {
-      const musicKey = getMusicTrackKey(musicPackId);
+      let musicKey = getMusicTrackKey(musicPackId);
+      if (musicPackId === 'music_custom') {
+        musicKey = 'musicCustom' as any;
+      }
       const music = this.musicTracks.get(musicKey);
       if (music) {
         music.volume = volume;
@@ -481,7 +539,7 @@ export function useSoundSettings() {
 
   const playSfx = async (type: SoundType) => {
     if (sfxEnabled) {
-      await soundManager.playSfx(mapSfxForPack(type, sfxPackId), sfxVolume * getSfxVolumeMultiplier(sfxPackId));
+      await soundManager.playSfx(mapSfxForPack(type, sfxPackId), sfxVolume * getSfxVolumeMultiplier(sfxPackId), sfxPackId);
     }
   };
 
@@ -489,7 +547,7 @@ export function useSoundSettings() {
   const playComboSound = async (comboCount: number) => {
     if (sfxEnabled) {
       const soundType = soundManager.getComboSound(comboCount);
-      await soundManager.playSfx(mapSfxForPack(soundType, sfxPackId), sfxVolume * getSfxVolumeMultiplier(sfxPackId));
+      await soundManager.playSfx(mapSfxForPack(soundType, sfxPackId), sfxVolume * getSfxVolumeMultiplier(sfxPackId), sfxPackId);
     }
   };
 

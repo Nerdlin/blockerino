@@ -1,14 +1,16 @@
 import { MenuStateType, useAppState } from "@/hooks/useAppState";
-import { StyleSheet, Switch, Text, View, useWindowDimensions } from "react-native";
+import { StyleSheet, Switch, Text, View, useWindowDimensions, TextInput } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSoundSettings } from "@/constants/Sound";
 import { Theme, ThemeType, useTheme } from "@/constants/Theme";
 import Animated, { FadeIn } from "react-native-reanimated";
 import Slider from "@react-native-community/slider";
 import { clearActiveGame } from "@/constants/Storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
+import { useShopState } from "@/constants/Shop";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function OptionsMenu() {
 	const [ appState, setAppState, appendAppState, popAppState ] = useAppState();
@@ -28,6 +30,22 @@ export default function OptionsMenu() {
 	} = useSoundSettings();
 
 	const { currentTheme, changeTheme, loadTheme, availableThemes } = useTheme();
+	const { state: shopState } = useShopState();
+	const [customMusicUrl, setCustomMusicUrl] = useState("");
+	const [customSfxUrl, setCustomSfxUrl] = useState("");
+
+	useEffect(() => {
+		AsyncStorage.getItem("CUSTOM_MUSIC_URL").then(val => { if (val) setCustomMusicUrl(val); });
+		AsyncStorage.getItem("CUSTOM_SFX_URL").then(val => { if (val) setCustomSfxUrl(val); });
+	}, []);
+
+	const handleCustomMusicUrlBlur = () => {
+		AsyncStorage.setItem("CUSTOM_MUSIC_URL", customMusicUrl);
+	};
+	
+	const handleCustomSfxUrlBlur = () => {
+		AsyncStorage.setItem("CUSTOM_SFX_URL", customSfxUrl);
+	};
 
 	useEffect(() => {
 		initialize();
@@ -148,6 +166,52 @@ export default function OptionsMenu() {
 						</Text>
 					</View>
 				)}
+
+				{shopState.equipped.music === "music_custom" && (
+					<SettingLabel 
+						title="Custom Music URL" 
+						description="Direct audio stream link (.mp3, etc.)"
+						labelStyle={{ color: currentTheme.textPrimary }}
+						descStyle={{ color: currentTheme.textSecondary }}
+					>
+						<TextInput
+							style={[styles.urlInput, {
+								color: currentTheme.textPrimary,
+								borderColor: currentTheme.textSecondary,
+								backgroundColor: 'rgba(0, 0, 0, 0.4)'
+							}, isMobile && { fontSize: 12 }]}
+							value={customMusicUrl}
+							onChangeText={setCustomMusicUrl}
+							onBlur={handleCustomMusicUrlBlur}
+							onSubmitEditing={handleCustomMusicUrlBlur}
+							placeholder="https://..."
+							placeholderTextColor={currentTheme.textSecondary}
+						/>
+					</SettingLabel>
+				)}
+
+				{shopState.equipped.sfx === "sfx_custom" && (
+					<SettingLabel 
+						title="Custom SFX URL" 
+						description="Direct audio stream link (.mp3, etc.)"
+						labelStyle={{ color: currentTheme.textPrimary }}
+						descStyle={{ color: currentTheme.textSecondary }}
+					>
+						<TextInput
+							style={[styles.urlInput, {
+								color: currentTheme.textPrimary,
+								borderColor: currentTheme.textSecondary,
+								backgroundColor: 'rgba(0, 0, 0, 0.4)'
+							}, isMobile && { fontSize: 12 }]}
+							value={customSfxUrl}
+							onChangeText={setCustomSfxUrl}
+							onBlur={handleCustomSfxUrlBlur}
+							onSubmitEditing={handleCustomSfxUrlBlur}
+							placeholder="https://..."
+							placeholderTextColor={currentTheme.textSecondary}
+						/>
+					</SettingLabel>
+				)}
 			</View>
 
 			<View style={styles.settingSection}>
@@ -167,6 +231,17 @@ export default function OptionsMenu() {
 			</View>
 
 			<View style={styles.buttonsContainer}>
+				<StylizedButton 
+					onClick={() => {
+						playSfx('menuClick');
+						appendAppState(MenuStateType.PROFILE);
+					}} 
+					text="Profile" 
+					backgroundColor={currentTheme.buttonPrimary}
+					style={isMobile && styles.mobileBottomButton}
+					textStyle={isMobile && styles.mobileBottomButtonText}
+				/>
+				
 				<StylizedButton 
 					onClick={handleButtonPress} 
 					text="Back" 
@@ -285,10 +360,20 @@ const styles = StyleSheet.create({
 		height: 40,
 	},
 	sliderValue: {
-		width: 50,
-		textAlign: 'right',
-		fontSize: 12,
-		fontFamily: 'Silkscreen',
+		fontFamily: "Silkscreen",
+		fontSize: 10,
+		width: 40,
+		textAlign: "right",
+	},
+	urlInput: {
+		width: "100%",
+		borderWidth: 1,
+		borderRadius: 6,
+		paddingHorizontal: 8,
+		paddingVertical: 6,
+		fontFamily: "Silkscreen",
+		fontSize: 10,
+		marginTop: 6,
 	},
 	themesContainer: {
 		flexDirection: 'row',

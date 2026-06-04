@@ -3,7 +3,10 @@ import {
 	calculateCoinsForScore,
 	createDefaultShopState,
 	equipShopItem,
+	getBackgroundParticleConfig,
+	getBackgroundScene,
 	getShopItemsByCategory,
+	mergeShopStates,
 	normalizeShopState,
 	purchaseShopItem,
 } from "./Shop";
@@ -72,5 +75,47 @@ describe("shop catalog and wallet", () => {
 		expect(calculateCoinsForScore(0)).toBe(0);
 		expect(calculateCoinsForScore(249)).toBe(9);
 		expect(calculateCoinsForScore(2500)).toBe(100);
+	});
+
+	it("merges remote shop profiles without dropping local purchases", () => {
+		const local = normalizeShopState({
+			...createDefaultShopState(),
+			balance: 130,
+			ownedItemIds: ["piece_classic", "background_classic", "music_classic", "sfx_classic", "piece_minecraft"],
+			equipped: {
+				piece_skin: "piece_minecraft",
+				background: "background_classic",
+				music: "music_classic",
+				sfx: "sfx_classic",
+			},
+		});
+
+		const merged = mergeShopStates(local, {
+			balance: 500,
+			ownedItemIds: ["background_ender", "music_arcade"],
+			equipped: {
+				piece_skin: "piece_classic",
+				background: "background_ender",
+				music: "music_arcade",
+				sfx: "sfx_classic",
+			},
+			starterGrantClaimed: true,
+		});
+
+		expect(merged.balance).toBe(500);
+		expect(merged.ownedItemIds).toEqual(expect.arrayContaining(["piece_minecraft", "background_ender", "music_arcade"]));
+		expect(merged.equipped.piece_skin).toBe("piece_minecraft");
+		expect(merged.equipped.background).toBe("background_ender");
+	});
+
+	it("uses real background scenes and quieter particles outside classic", () => {
+		expect(getBackgroundScene("background_classic")).toBe("classic");
+		expect(getBackgroundScene("background_ender")).toBe("ender");
+
+		const classic = getBackgroundParticleConfig("background_classic", false);
+		const ender = getBackgroundParticleConfig("background_ender", false);
+
+		expect(ender.count).toBeLessThan(classic.count);
+		expect(ender.maxOpacity).toBeLessThan(classic.maxOpacity);
 	});
 });

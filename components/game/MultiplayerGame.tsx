@@ -5,7 +5,7 @@ import { Platform, SafeAreaView, StyleSheet, Text, View, useWindowDimensions, Ac
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
 import Animated, { ReduceMotion, runOnJS, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Board, BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes } from '@/constants/Board';
+import { Board, BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, cloneBoard, createPossibleBoardSpots, emptyPossibleBoardSpots, hasAnyPossibleMove, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes } from '@/constants/Board';
 import { StatsGameHud, StickyGameHud } from '@/components/game/GameHud';
 import BlockGrid, { ReadOnlyBlockGrid } from '@/components/game/BlockGrid';
 import { Hand, createRandomHand, createRandomHandWorklet } from '@/constants/Hand';
@@ -233,6 +233,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         if (roomResultSavedRef.current) return;
 
         roomResultSavedRef.current = true;
+        const { data: roomInfo } = await supabase.from('matchmaking_rooms').select('player1_id, player2_id').eq('id', roomId).single();
+
         const { error } = await supabase
             .from('matchmaking_rooms')
             .update({
@@ -241,11 +243,25 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
             })
             .eq('id', roomId);
 
+        if (!error && roomInfo && myRole === 'player1') {
+            const winnerId = winnerRole === 'player1' ? roomInfo.player1_id : (winnerRole === 'player2' ? roomInfo.player2_id : null);
+            await supabase.from('match_history').insert({
+                room_id: roomId,
+                player1_id: roomInfo.player1_id,
+                player2_id: roomInfo.player2_id,
+                winner_id: winnerId,
+                player1_score: score.value,
+                player2_score: opponentScoreRef.current,
+                player1_elo_change: 0,
+                player2_elo_change: 0
+            });
+        }
+
         if (error) {
             roomResultSavedRef.current = false;
             console.error('Error saving multiplayer result:', error);
         }
-    }, [getWinnerDisplayName, roomId]);
+    }, [getWinnerDisplayName, roomId, myRole, score]);
 
     const markOpponentDisconnected = useCallback(() => {
         if (!isActivePlayerRole(myRole) || opponentDisconnectedRef.current) return;
@@ -656,6 +672,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 		);
 	};
 
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const checkForPossibleMoves = () => {
 		for (let i = 0; i < hand.value.length; i++) {
 			const piece = hand.value[i];
@@ -723,7 +740,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 			// Play placement sound
 			runOnJS(playSfx)('placeBlock');
 
-			const newBoard = clearHoverBlocks([...board.value]);
+			const newBoard = clearHoverBlocks(cloneBoard(board.value));
 			placePieceOntoBoard(newBoard, piece, dropX, dropY, BoardBlockType.FILLED);
 
 			const linesBroken = breakLines(newBoard);
@@ -779,15 +796,12 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
             runOnJS(broadcastState)(newBoard, nextHand, score.value, combo.value, lastBrokenLine.value, false);
 			runOnJS(addScorePopup)(pointsEarned, dropX * GRID_BLOCK_SIZE, dropY * GRID_BLOCK_SIZE);
 			
-			runOnJS(setTimeout)(() => {
-				const hasPossibleMoves = checkForPossibleMoves();
-				if (!hasPossibleMoves) {
-                    runOnJS(handleGameOver)();
-				}
-			}, 300);
+			if (!hasAnyPossibleMove(newBoard, nextHand)) {
+				runOnJS(handleGameOver)();
+			}
 			
 		} else {
-			board.value = clearHoverBlocks([...board.value]);
+			board.value = clearHoverBlocks(cloneBoard(board.value));
 			runOnJS(playSfx)('invalidPlacement');
 		}
 		
@@ -816,7 +830,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 	const handleUpdate: DndProviderProps["onUpdate"] = (event, {activeId, activeLayout, droppableActiveId}) => {
 		"worklet";
 		if (!droppableActiveId) {
-			board.value = clearHoverBlocks([...board.value]);
+			board.value = clearHoverBlocks(cloneBoard(board.value));
 			runOnJS(broadcastHoverState)(draggingPiece.value, null, null);
 			return;
 		}
@@ -828,13 +842,13 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 		const dropIdStr = droppableActiveId.toString();
 		const {x: dropX, y: dropY} = decodeDndId(dropIdStr);
 		if (isNaN(dropX) || isNaN(dropY)) {
-			board.value = clearHoverBlocks([...board.value]);
+			board.value = clearHoverBlocks(cloneBoard(board.value));
 			runOnJS(broadcastHoverState)(draggingPiece.value, null, null);
 			return;
 		}
 		const piece: PieceData = hand.value[draggingPiece.value!]!;
 
-		const newBoard = clearHoverBlocks([...board.value]);
+		const newBoard = clearHoverBlocks(cloneBoard(board.value));
 		updateHoveredBreaks(newBoard, piece, dropX, dropY);
 
 		board.value = newBoard;
@@ -1373,7 +1387,8 @@ const styles = StyleSheet.create({
         marginTop: 20,
         marginBottom: 5,
         gap: 6,
-		maxWidth: 400
+		maxWidth: 400,
+        zIndex: 10
     },
     opponentMiniTopRow: {
         flexDirection: 'row',
