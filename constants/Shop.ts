@@ -573,8 +573,6 @@ export async function syncShopStateWithProfile(localState: ShopState): Promise<{
 		};
 
 		const payload = {
-			player_name: identity.playerName,
-			player_id: identity.playerId,
 			coins: merged.balance,
 			owned_item_ids: merged.ownedItemIds,
 			equipped: merged.equipped,
@@ -583,7 +581,7 @@ export async function syncShopStateWithProfile(localState: ShopState): Promise<{
 
 		const writeResult = profile?.id
 			? await supabase.from("profiles").update(payload).eq("id", profile.id)
-			: await supabase.from("profiles").insert(payload);
+			: await supabase.from("profiles").insert({ ...payload, player_name: identity.playerName, player_id: identity.playerId });
 
 		if (writeResult.error) {
 			console.error("Error saving shop profile:", writeResult.error);
