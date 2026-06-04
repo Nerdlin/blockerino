@@ -17,7 +17,7 @@ import React, { useState, useEffect } from "react";
 import OptionsMenu from "@/components/OptionsMenu";
 import { MenuStateType, useAppState, multiplayerRoomIdAtom, multiplayerRoleAtom, multiplayerGameModeAtom } from "@/hooks/useAppState";
 import MainMenu from "@/components/MainMenu";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import HighScores from "@/components/HighScoresMenu";
 import { PieceParticle } from "@/components/PieceParticle";
 import AnimatedBackground from "@/components/AnimatedBackground";
@@ -31,8 +31,9 @@ import MultiplayerConnectionGate from "@/components/MultiplayerConnectionGate";
 import AchievementsMenu from "@/components/AchievementsMenu";
 import ShopMenu from "@/components/ShopMenu";
 import ProfileMenu from "@/components/ProfileMenu";
-import { useShopBootstrap } from "@/constants/Shop";
+import { getBackgroundParticleConfig, shopStateAtom, useShopBootstrap } from "@/constants/Shop";
 import { useInviteListener } from "@/hooks/useInviteListener";
+import { DEFAULT_ELO } from "@/constants/Multiplayer";
 
 // Suppress noisy library-specific deprecation warnings in developer tools
 LogBox.ignoreLogs([
@@ -49,6 +50,7 @@ configureReanimatedLogger({
 export default function App() {
 	const { initialize: initSounds } = useSoundSettings();
 	useShopBootstrap();
+	const shopState = useAtomValue(shopStateAtom);
 
 	const [loaded] = useFonts({
 		"Press-Start-2P": require("../assets/fonts/PressStart2P-Regular.ttf"),
@@ -68,7 +70,7 @@ export default function App() {
 	const [ multiplayerRole, setMultiplayerRole ] = useAtom(multiplayerRoleAtom);
 	const [ opponentName, setOpponentName ] = useState('');
 	const [ multiplayerGameMode, setMultiplayerGameMode ] = useAtom(multiplayerGameModeAtom);
-	const [ multiplayerPlayerElo, setMultiplayerPlayerElo ] = useState(1000);
+	const [ multiplayerPlayerElo, setMultiplayerPlayerElo ] = useState(DEFAULT_ELO);
 
 	useInviteListener(setMultiplayerRoomId, setMultiplayerRole, setMultiplayerGameMode as any);
 
@@ -141,17 +143,18 @@ export default function App() {
 	
 	const isMultiplayerGameVisible = !!appState.containsState(MenuStateType.MULTIPLAYER_GAME) && !!multiplayerRoomId;
 	const isGameplayActive = gameMode !== undefined || isMultiplayerGameVisible;
+	const particleConfig = getBackgroundParticleConfig(shopState.equipped.background, isGameplayActive);
 
 	return (
 		<>
 		<StatusBar style="light" backgroundColor="#050510" translucent={false} />
 		<Animated.View entering={FadeIn} exiting={FadeOut} style={styles.container}>
 			<AnimatedBackground isGameplayActive={isGameplayActive} />
-			{[...Array(isGameplayActive ? 14 : 25)].map((_, i) => (
+			{[...Array(particleConfig.count)].map((_, i) => (
 				<PieceParticle
 					key={`particle${i}-${isGameplayActive ? 'game' : 'menu'}`}
-					blockSize={isGameplayActive ? 22 : 28}
-					maxOpacity={isGameplayActive ? 0.55 : 1}
+					blockSize={particleConfig.blockSize}
+					maxOpacity={particleConfig.maxOpacity}
 				/>
 			))}
 

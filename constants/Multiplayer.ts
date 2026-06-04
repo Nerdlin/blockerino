@@ -5,6 +5,7 @@ export type MatchWinnerRole = ActivePlayerRole | "draw";
 export type MatchmakingRoomStatus = "waiting" | "playing" | "finished";
 
 export const ROOM_CLEANUP_RPC = "cleanup_matchmaking_rooms";
+export const DEFAULT_ELO = 0;
 
 export const ROOM_RETENTION_MS = {
 	publicWaiting: 5 * 60 * 1000,

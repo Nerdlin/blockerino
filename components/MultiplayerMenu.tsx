@@ -10,7 +10,7 @@ import { cssColors } from "@/constants/Color";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import * as Crypto from "expo-crypto";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { getJoinRoomUpdate, isPlayerNameReady, isVisiblePublicRoom, normalizePlayerName } from "@/constants/Multiplayer";
+import { DEFAULT_ELO, getJoinRoomUpdate, isPlayerNameReady, isVisiblePublicRoom, normalizePlayerName } from "@/constants/Multiplayer";
 
 interface MultiplayerMenuProps {
     onStartGame: (roomId: string, role: 'player1' | 'player2' | 'spectator', opponentName: string, gameMode: GameModeType, playerElo: number) => void;
@@ -82,7 +82,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const syncPlayerElo = useCallback(async (name: string = playerNameRef.current, localFallback?: string | null) => {
         const currentName = name.trim();
         if (!currentName) {
-            setPlayerElo(0);
+            setPlayerElo(DEFAULT_ELO);
             return;
         }
         
@@ -98,13 +98,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             return;
         }
 
-        if (localFallback) {
-            const parsed = parseInt(localFallback, 10);
-            setPlayerElo(isNaN(parsed) ? 0 : parsed);
-        } else {
-            AsyncStorage.setItem('PLAYER_ELO', '0');
-            setPlayerElo(0);
-        }
+        AsyncStorage.setItem('PLAYER_ELO', String(DEFAULT_ELO));
+        setPlayerElo(DEFAULT_ELO);
     }, []);
 
     const cleanupRoomsIfNeeded = useCallback(async (force: boolean = false) => {
@@ -328,8 +323,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             AsyncStorage.setItem('PLAYER_NAME', normalizedName);
         } else {
             AsyncStorage.removeItem('PLAYER_NAME');
-            AsyncStorage.setItem('PLAYER_ELO', '0');
-            setPlayerElo(0);
+            AsyncStorage.setItem('PLAYER_ELO', String(DEFAULT_ELO));
+            setPlayerElo(DEFAULT_ELO);
         }
         if (normalizedName && matchError === NAME_REQUIRED_MESSAGE) {
             setMatchError("");

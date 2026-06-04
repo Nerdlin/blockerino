@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, User } from '@supabase/supabase-js';
 import { getStaleRoomCutoffs, ROOM_CLEANUP_RPC } from './Multiplayer';
 
 // Supabase configuration
@@ -6,6 +6,138 @@ const SUPABASE_URL = 'https://ptcglecvavdvpxadqfqd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0Y2dsZWN2YXZkdnB4YWRxZnFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDExODAsImV4cCI6MjA5NTcxNzE4MH0.ZL-xsoBqBTbcgZ-ZETyKzFtrJad0QgiSftBuDV5s_fE';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+export interface PlayerProfile {
+    id: string;
+    auth_user_id?: string | null;
+    player_id?: string | null;
+    player_name: string;
+    email?: string | null;
+    avatar_url?: string | null;
+    coins?: number | null;
+    elo?: number | null;
+    owned_item_ids?: string[] | null;
+    equipped?: Record<string, unknown> | null;
+    updated_at?: string | null;
+}
+
+function escapeIlike(value: string): string {
+    return value.replace(/[%_]/g, '\\$&');
+}
+
+function getUserDisplayName(user: User, preferredName?: string): string {
+    const metadata = user.user_metadata || {};
+    const candidate = [
+        preferredName,
+        metadata.player_name,
+        metadata.name,
+        metadata.full_name,
+        user.email?.split('@')[0],
+        `player_${user.id.slice(0, 6)}`,
+    ].find((value) => typeof value === 'string' && value.trim().length > 0);
+
+    return String(candidate).trim().slice(0, 20);
+}
+
+function getUserProviders(user: User): string[] {
+    const providers = new Set<string>();
+    const appProviders = user.app_metadata?.providers;
+    if (Array.isArray(appProviders)) {
+        appProviders.forEach((provider) => {
+            if (typeof provider === 'string') providers.add(provider);
+        });
+    }
+    user.identities?.forEach((identity) => {
+        if (identity.provider) providers.add(identity.provider);
+    });
+    return [...providers];
+}
+
+function getUserAvatarUrl(user: User): string | null {
+    const metadata = user.user_metadata || {};
+    return (metadata.avatar_url || metadata.picture || null) as string | null;
+}
+
+async function getExistingProfileForAuthUser(userId: string): Promise<PlayerProfile | null> {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id, auth_user_id, player_id, player_name, email, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
+        .or(`auth_user_id.eq.${userId},player_id.eq.${userId}`)
+        .limit(1);
+
+    if (error) {
+        console.error('Error fetching auth profile:', error);
+        return null;
+    }
+
+    return (data?.[0] as PlayerProfile | undefined) || null;
+}
+
+async function getReusableProfileByName(playerName: string, userId: string): Promise<PlayerProfile | null> {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id, auth_user_id, player_id, player_name, email, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
+        .ilike('player_name', escapeIlike(playerName))
+        .limit(1);
+
+    if (error) {
+        console.error('Error fetching named profile:', error);
+        return null;
+    }
+
+    const profile = data?.[0] as PlayerProfile | undefined;
+    if (!profile) return null;
+    if (profile.auth_user_id && profile.auth_user_id !== userId) return null;
+    return profile;
+}
+
+export async function upsertAuthenticatedProfile(user: User, preferredName?: string): Promise<PlayerProfile | null> {
+    const baseName = getUserDisplayName(user, preferredName);
+    const providers = getUserProviders(user);
+    const payload = {
+        auth_user_id: user.id,
+        player_id: user.id,
+        player_name: baseName,
+        email: user.email ?? null,
+        avatar_url: getUserAvatarUrl(user),
+        login_providers: providers,
+        last_login_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+    };
+
+    const byAuth = await getExistingProfileForAuthUser(user.id);
+    const reusableByName = byAuth ? null : await getReusableProfileByName(baseName, user.id);
+    const targetProfile = byAuth || reusableByName;
+
+    if (targetProfile?.id) {
+        const { data, error } = await supabase
+            .from('profiles')
+            .update(payload)
+            .eq('id', targetProfile.id)
+            .select('id, auth_user_id, player_id, player_name, email, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
+            .single();
+
+        if (error) {
+            console.error('Error updating auth profile:', error);
+            return targetProfile;
+        }
+
+        return data as PlayerProfile;
+    }
+
+    const { data, error } = await supabase
+        .from('profiles')
+        .insert(payload)
+        .select('id, auth_user_id, player_id, player_name, email, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
+        .single();
+
+    if (error) {
+        console.error('Error creating auth profile:', error);
+        return null;
+    }
+
+    return data as PlayerProfile;
+}
 
 export interface GlobalHighScore {
     id?: number;
@@ -16,15 +148,28 @@ export interface GlobalHighScore {
 }
 
 // Получить топ N глобальных рекордов
+type HighScoreColumn = 'highscore_classic' | 'highscore_chaos' | 'highscore_time_attack' | 'highscore_daily';
+type HighScoreProfileRow = {
+    id?: string | number;
+    player_name?: string;
+    created_at?: string;
+} & Partial<Record<HighScoreColumn, number>>;
+
+const HIGH_SCORE_COLUMNS_SELECT = 'id, player_name, created_at, highscore_classic, highscore_chaos, highscore_time_attack, highscore_daily';
+
+function getHighScoreColumn(gameMode: string): HighScoreColumn {
+    return `highscore_${gameMode === 'daily_puzzle' ? 'daily' : gameMode}` as HighScoreColumn;
+}
+
 export async function getGlobalHighScores(
     gameMode: string,
     limit: number = 10
 ): Promise<GlobalHighScore[]> {
     try {
-        const scoreColumn = `highscore_${gameMode === 'daily_puzzle' ? 'daily' : gameMode}`;
+        const scoreColumn = getHighScoreColumn(gameMode);
         const { data, error } = await supabase
             .from('profiles')
-            .select(`id, player_name, ${scoreColumn}, created_at`)
+            .select(HIGH_SCORE_COLUMNS_SELECT)
             .order(scoreColumn, { ascending: false })
             .limit(limit * 5); // Fetch extra to account for duplicates
 
@@ -35,11 +180,12 @@ export async function getGlobalHighScores(
 
         if (!data) return [];
 
+        const rows = data as HighScoreProfileRow[];
         const uniquePlayers = new Set();
-        const filteredData = data.filter((record: any) => {
-            if (record[scoreColumn] <= 0) return false;
+        const filteredData = rows.filter((record) => {
+            if ((record[scoreColumn] || 0) <= 0) return false;
             // Case-insensitive duplicate check
-            const lowerName = record.player_name.toLowerCase();
+            const lowerName = (record.player_name || '').toLowerCase();
             if (uniquePlayers.has(lowerName)) {
                 return false;
             }
@@ -47,10 +193,10 @@ export async function getGlobalHighScores(
             return true;
         });
 
-        return filteredData.slice(0, limit).map((r: any) => ({
-            id: r.id,
-            player_name: r.player_name,
-            score: r[scoreColumn],
+        return filteredData.slice(0, limit).map((r) => ({
+            id: typeof r.id === 'number' ? r.id : undefined,
+            player_name: r.player_name || 'Player',
+            score: r[scoreColumn] || 0,
             game_mode: gameMode,
             created_at: r.created_at
         }));
@@ -69,12 +215,12 @@ export async function getPlayerGlobalHighScore(
         const finalPlayerName = playerName.trim();
         if (!finalPlayerName) return null;
 
-        const escapedName = finalPlayerName.replace(/[%_]/g, '\\$&');
-        const scoreColumn = `highscore_${gameMode === 'daily_puzzle' ? 'daily' : gameMode}`;
+        const escapedName = escapeIlike(finalPlayerName);
+        const scoreColumn = getHighScoreColumn(gameMode);
 
         const { data, error } = await supabase
             .from('profiles')
-            .select(scoreColumn)
+            .select(HIGH_SCORE_COLUMNS_SELECT)
             .ilike('player_name', escapedName)
             .limit(1);
 
@@ -82,7 +228,8 @@ export async function getPlayerGlobalHighScore(
             return null;
         }
 
-        return data[0][scoreColumn] as number;
+        const row = (data as HighScoreProfileRow[])[0];
+        return row[scoreColumn] ?? null;
     } catch (error) {
         console.error('Error fetching player global high score:', error);
         return null;
@@ -98,13 +245,13 @@ export async function submitGlobalHighScore(
         const finalPlayerName = playerName.trim();
         if (!finalPlayerName || score <= 0) return false;
 
-        const escapedName = finalPlayerName.replace(/[%_]/g, '\\$&');
-        const scoreColumn = `highscore_${gameMode === 'daily_puzzle' ? 'daily' : gameMode}`;
+        const escapedName = escapeIlike(finalPlayerName);
+        const scoreColumn = getHighScoreColumn(gameMode);
 
         // Fetch existing profile
         const { data, error: fetchError } = await supabase
             .from('profiles')
-            .select(`id, player_name, ${scoreColumn}`)
+            .select(HIGH_SCORE_COLUMNS_SELECT)
             .ilike('player_name', escapedName)
             .limit(1);
 
@@ -113,7 +260,7 @@ export async function submitGlobalHighScore(
             return false;
         }
 
-        const existingRecord = data && data[0];
+        const existingRecord = (data as HighScoreProfileRow[] | null)?.[0];
 
         if (existingRecord) {
             const currentScore = existingRecord[scoreColumn] || 0;
@@ -167,7 +314,7 @@ export async function submitEloRating(playerName: string, elo: number): Promise<
         const finalPlayerName = playerName.trim();
         if (!finalPlayerName) return false;
 
-        const escapedName = finalPlayerName.replace(/[%_]/g, '\\$&');
+        const escapedName = escapeIlike(finalPlayerName);
 
         const { data, error: fetchError } = await supabase
             .from('profiles')
@@ -214,7 +361,7 @@ export async function getPlayerElo(playerName: string): Promise<number | null> {
         const { data, error } = await supabase
             .from('profiles')
             .select('elo')
-            .ilike('player_name', finalPlayerName.replace(/[%_]/g, '\\$&'))
+            .ilike('player_name', escapeIlike(finalPlayerName))
             .limit(1);
 
         if (error || !data || data.length === 0) {
@@ -312,11 +459,12 @@ export async function isTopScore(
     topN: number = 100
 ): Promise<boolean> {
     try {
+        const scoreColumn = getHighScoreColumn(gameMode);
         const { data, error } = await supabase
-            .from('high_scores')
-            .select('score')
-            .eq('game_mode', gameMode)
-            .order('score', { ascending: false })
+            .from('profiles')
+            .select(HIGH_SCORE_COLUMNS_SELECT)
+            .gt(scoreColumn, 0)
+            .order(scoreColumn, { ascending: false })
             .limit(topN);
 
         if (error) {
@@ -330,7 +478,8 @@ export async function isTopScore(
         }
 
         // Проверяем, больше ли наш счет минимального в топе
-        const minTopScore = data[data.length - 1].score;
+        const rows = data as HighScoreProfileRow[];
+        const minTopScore = rows[rows.length - 1][scoreColumn] || 0;
         return score > minTopScore;
     } catch (error) {
         console.error('Error checking top score:', error);

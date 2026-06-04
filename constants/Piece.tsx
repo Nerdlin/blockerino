@@ -630,9 +630,19 @@ function getPieceColorPaletteIndex(color: Color): number {
 	return closestIndex;
 }
 
+function getPieceSkinFamily(pieceSkinId: string): string {
+	"worklet";
+	if (pieceSkinId.startsWith("piece_minecraft")) return "piece_minecraft";
+	if (pieceSkinId.startsWith("piece_crystal")) return "piece_crystal";
+	if (pieceSkinId.startsWith("piece_lava")) return "piece_lava";
+	if (pieceSkinId.startsWith("piece_circuit")) return "piece_circuit";
+	return "piece_classic";
+}
+
 function getPieceSkinColor(color: Color, pieceSkinId: string = "piece_classic"): Color {
 	"worklet";
-	if (pieceSkinId === "piece_classic") {
+	const skinFamily = getPieceSkinFamily(pieceSkinId);
+	if (skinFamily === "piece_classic") {
 		return color;
 	}
 
@@ -672,7 +682,7 @@ function getPieceSkinColor(color: Color, pieceSkinId: string = "piece_classic"):
 		],
 	};
 
-	const palette = palettes[pieceSkinId];
+	const palette = palettes[skinFamily];
 	if (!palette) {
 		return color;
 	}
@@ -706,23 +716,24 @@ function getBorderColors(backgroundColor: Color) {
 
 export function createFilledBlockStyle(color: Color, borderWidth: number = 7, pieceSkinId: string = "piece_classic"): object {
 	"worklet";
+	const skinFamily = getPieceSkinFamily(pieceSkinId);
 	const skinColor = getPieceSkinColor(color, pieceSkinId);
 	let finalBorderWidth = borderWidth;
 	let borderRadius = 0;
 	let shadow = "none";
 
-	if (pieceSkinId === "piece_minecraft") {
+	if (skinFamily === "piece_minecraft") {
 		finalBorderWidth = Math.max(1, Math.round(borderWidth * 0.75));
 		borderRadius = 1;
-	} else if (pieceSkinId === "piece_crystal") {
+	} else if (skinFamily === "piece_crystal") {
 		finalBorderWidth = Math.max(1, Math.round(borderWidth * 0.55));
 		borderRadius = 5;
 		shadow = `0 0 ${Math.max(4, Math.round(borderWidth * 1.2))}px ${colorToHex(skinColor)}`;
-	} else if (pieceSkinId === "piece_lava") {
+	} else if (skinFamily === "piece_lava") {
 		finalBorderWidth = Math.max(1, Math.round(borderWidth * 0.9));
 		borderRadius = 2;
 		shadow = `0 0 ${Math.max(3, Math.round(borderWidth))}px rgba(255, 77, 0, 0.85)`;
-	} else if (pieceSkinId === "piece_circuit") {
+	} else if (skinFamily === "piece_circuit") {
 		finalBorderWidth = Math.max(1, Math.round(borderWidth * 0.45));
 		borderRadius = 1;
 		shadow = `inset 0 0 ${Math.max(2, Math.round(borderWidth))}px rgba(0, 255, 157, 0.55)`;

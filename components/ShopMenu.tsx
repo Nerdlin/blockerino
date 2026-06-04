@@ -5,11 +5,10 @@ import StylizedButton from "./StylizedButton";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
 import {
-	SHOP_ITEMS,
 	ShopCategory,
 	ShopItem,
 	getEquippedShopItem,
-	getShopItemsByCategory,
+	getVisibleShopItemsByCategory,
 	useShopState,
 } from "@/constants/Shop";
 import { useSoundSettings } from "@/constants/Sound";
@@ -26,13 +25,22 @@ export default function ShopMenu() {
 	const [setAppState] = useSetAppState();
 	const { currentTheme } = useTheme();
 	const { state, equip, purchaseAndEquip } = useShopState();
-	const { playSfx, updateMusicVolume, musicVolume } = useSoundSettings();
+	const { playSfx } = useSoundSettings();
 	const { width } = useWindowDimensions();
 	const isMobile = width < 620;
 	const [activeCategory, setActiveCategory] = useState<ShopCategory>("piece_skin");
 	const [message, setMessage] = useState("Earn coins after solo games. Spend them here.");
 
-	const items = useMemo(() => getShopItemsByCategory(activeCategory), [activeCategory]);
+	const items = useMemo(
+		() => getVisibleShopItemsByCategory(activeCategory, state.ownedItemIds),
+		[activeCategory, state.ownedItemIds]
+	);
+	const visibleCatalogCount = useMemo(
+		() => CATEGORIES.reduce((total, category) => (
+			total + getVisibleShopItemsByCategory(category.id, state.ownedItemIds).length
+		), 0),
+		[state.ownedItemIds]
+	);
 	const equippedItem = getEquippedShopItem(state, activeCategory);
 
 	const close = () => {
@@ -54,9 +62,6 @@ export default function ShopMenu() {
 		if (result.ok) {
 			playSfx("menuClick");
 			setMessage(isOwned ? `${item.title} equipped.` : `${item.title} bought and equipped.`);
-			if (item.category === "music") {
-				await updateMusicVolume(musicVolume);
-			}
 		} else {
 			playSfx("invalidPlacement");
 			setMessage(result.error ?? "Could not buy this item.");
@@ -118,7 +123,7 @@ export default function ShopMenu() {
 			</View>
 
 			<Text style={[styles.catalogCount, { color: currentTheme.textSecondary }]}>
-				{SHOP_ITEMS.length} cosmetics in catalog
+				{visibleCatalogCount} cosmetics available
 			</Text>
 
 			<StylizedButton

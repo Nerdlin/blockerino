@@ -13,7 +13,7 @@ export async function checkSupabaseConnection(
 		});
 
 		const ping = supabase
-			.from("high_scores")
+			.from("profiles")
 			.select("id")
 			.limit(1);
 

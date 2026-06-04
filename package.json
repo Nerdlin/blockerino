@@ -1,7 +1,7 @@
 {
   "name": "blockerino",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -29,6 +29,7 @@
     "babel-plugin-react-compiler": "^19.0.0-beta-e552027-20250112",
     "expo": "~54.0.0",
     "expo-application": "~7.0.8",
+    "expo-asset": "~12.0.13",
     "expo-audio": "~1.1.1",
     "expo-av": "~16.0.8",
     "expo-blur": "~15.0.8",
@@ -38,7 +39,7 @@
     "expo-haptics": "~15.0.8",
     "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.12",
-    "expo-network": "^56.0.4",
+    "expo-network": "~8.0.8",
     "expo-router": "~6.0.24",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",

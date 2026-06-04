@@ -6,6 +6,8 @@ import {
 	getBackgroundParticleConfig,
 	getBackgroundScene,
 	getShopItemsByCategory,
+	getVisibleShopItemsByCategory,
+	isSecretShopItem,
 	mergeShopStates,
 	normalizeShopState,
 	purchaseShopItem,
@@ -18,12 +20,13 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
 }));
 
 describe("shop catalog and wallet", () => {
-	it("offers 20 cosmetic variants split across shop categories", () => {
-		expect(SHOP_ITEMS).toHaveLength(20);
-		expect(getShopItemsByCategory("piece_skin")).toHaveLength(5);
-		expect(getShopItemsByCategory("background")).toHaveLength(5);
-		expect(getShopItemsByCategory("music")).toHaveLength(5);
-		expect(getShopItemsByCategory("sfx")).toHaveLength(5);
+	it("offers expanded cosmetic variants without duplicate ids", () => {
+		const ids = SHOP_ITEMS.map((item) => item.id);
+		expect(new Set(ids).size).toBe(ids.length);
+		expect(getShopItemsByCategory("piece_skin").filter((item) => !item.secret)).toHaveLength(25);
+		expect(getShopItemsByCategory("background").filter((item) => !item.secret)).toHaveLength(25);
+		expect(getShopItemsByCategory("music").filter((item) => !item.secret)).toHaveLength(25);
+		expect(getShopItemsByCategory("sfx").filter((item) => !item.secret)).toHaveLength(25);
 	});
 
 	it("starts with free classic cosmetics already owned and equipped", () => {
@@ -54,6 +57,25 @@ describe("shop catalog and wallet", () => {
 		const equip = equipShopItem(purchase.state, "piece_minecraft");
 		expect(equip.ok).toBe(true);
 		expect(equip.state.equipped.piece_skin).toBe("piece_minecraft");
+	});
+
+	it("hides secret URL items until they are unlocked", () => {
+		const state = createDefaultShopState();
+
+		expect(isSecretShopItem("music_custom")).toBe(true);
+		expect(isSecretShopItem("sfx_custom")).toBe(true);
+		expect(getVisibleShopItemsByCategory("music", state.ownedItemIds).some((item) => item.id === "music_custom")).toBe(false);
+		expect(getVisibleShopItemsByCategory("sfx", state.ownedItemIds).some((item) => item.id === "sfx_custom")).toBe(false);
+
+		const directPurchase = purchaseShopItem({ ...state, balance: 9999 }, "music_custom");
+		expect(directPurchase.ok).toBe(false);
+		expect(directPurchase.state.ownedItemIds).not.toContain("music_custom");
+
+		const unlocked = normalizeShopState({
+			...state,
+			ownedItemIds: [...state.ownedItemIds, "music_custom"],
+		});
+		expect(getVisibleShopItemsByCategory("music", unlocked.ownedItemIds).some((item) => item.id === "music_custom")).toBe(true);
 	});
 
 	it("grants starter coins when migrating an older saved shop state", () => {
@@ -100,12 +122,13 @@ describe("shop catalog and wallet", () => {
 				sfx: "sfx_classic",
 			},
 			starterGrantClaimed: true,
+			updatedAt: local.updatedAt + 1,
 		});
 
 		expect(merged.balance).toBe(500);
 		expect(merged.ownedItemIds).toEqual(expect.arrayContaining(["piece_minecraft", "background_ender", "music_arcade"]));
 		expect(merged.equipped.piece_skin).toBe("piece_minecraft");
-		expect(merged.equipped.background).toBe("background_ender");
+		expect(merged.equipped.background).toBe("background_classic");
 	});
 
 	it("uses real background scenes and quieter particles outside classic", () => {
@@ -115,6 +138,7 @@ describe("shop catalog and wallet", () => {
 		const classic = getBackgroundParticleConfig("background_classic", false);
 		const ender = getBackgroundParticleConfig("background_ender", false);
 
+		expect(ender.count).toBe(0);
 		expect(ender.count).toBeLessThan(classic.count);
 		expect(ender.maxOpacity).toBeLessThan(classic.maxOpacity);
 	});

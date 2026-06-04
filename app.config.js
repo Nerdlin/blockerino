@@ -6,6 +6,7 @@ export default ({ config }) => ({
   },
   plugins: [
     ...(config.plugins || []),
+    "expo-asset",
     "@react-native-google-signin/google-signin"
   ]
 });

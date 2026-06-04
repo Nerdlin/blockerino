@@ -29,6 +29,7 @@ import {
     getOpponentPlayerRole,
     getWinnerNameForRole,
     getWinnerRoleByScore,
+    DEFAULT_ELO,
     normalizePlayerName,
 } from '@/constants/Multiplayer';
 
@@ -119,6 +120,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     
     // ELO states
     const [playerElo, setPlayerElo] = useState<number>(initialPlayerElo);
+    const playerEloRef = useRef(initialPlayerElo);
     const [opponentElo, setOpponentElo] = useState<number | null>(null);
 
     // Opponent states
@@ -126,6 +128,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const [opponentHand, setOpponentHand] = useState<Hand>([]);
     const [opponentHover, setOpponentHover] = useState<{ index: number | null, x: number | null, y: number | null }>({ index: null, x: null, y: null });
     const [opponentScore, setOpponentScore] = useState(0);
+    const opponentScoreRef = useRef(0);
     const [opponentIsGameOver, setOpponentIsGameOver] = useState(false);
     const [opponentDisconnected, setOpponentDisconnected] = useState(false);
 
@@ -184,6 +187,14 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         setActiveCombo(val);
     };
 
+    useEffect(() => {
+        playerEloRef.current = playerElo;
+    }, [playerElo]);
+
+    useEffect(() => {
+        opponentScoreRef.current = opponentScore;
+    }, [opponentScore]);
+
     const isActivePlayerRole = (role: MultiplayerGameProps['myRole']): role is ActivePlayerRole => {
         return role === 'player1' || role === 'player2';
     };
@@ -225,7 +236,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         if (!normalizedOpponentName || normalizedOpponentName === 'Opponent') return;
 
         const fetchedOpponentElo = opponentEloRef.current ?? (await getPlayerElo(normalizedOpponentName));
-        const currentOpponentElo = fetchedOpponentElo ?? 1000;
+        const currentOpponentElo = fetchedOpponentElo ?? DEFAULT_ELO;
         await submitEloRatingOrQueue(normalizedOpponentName, Math.max(0, currentOpponentElo - 10));
     }, []);
 
@@ -299,16 +310,14 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     }, [myRole, persistRoomResult]);
 
     const applyForfeitPenalty = useCallback(() => {
-        AsyncStorage.getItem('PLAYER_ELO').then((val) => {
-            const currentElo = parseInt(val || '1000', 10);
-            const newElo = Math.max(0, currentElo - 10);
-            AsyncStorage.setItem('PLAYER_ELO', newElo.toString());
-            setPlayerElo(newElo);
-            const persistentName = getPersistentPlayerName();
-            if (persistentName) {
-                submitEloRatingOrQueue(persistentName, newElo);
-            }
-        });
+        const currentElo = Number.isFinite(playerEloRef.current) ? playerEloRef.current : DEFAULT_ELO;
+        const newElo = Math.max(0, currentElo - 10);
+        AsyncStorage.setItem('PLAYER_ELO', newElo.toString());
+        setPlayerElo(newElo);
+        const persistentName = getPersistentPlayerName();
+        if (persistentName) {
+            submitEloRatingOrQueue(persistentName, newElo);
+        }
     }, [getPersistentPlayerName]);
 
     const shouldForfeitOnLeave = useCallback(() => {
@@ -580,8 +589,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 }
             }
 
-            AsyncStorage.getItem('PLAYER_ELO').then((val) => {
-                const currentElo = parseInt(val || '1000', 10);
+            Promise.resolve().then(() => {
+                const currentElo = Number.isFinite(playerEloRef.current) ? playerEloRef.current : DEFAULT_ELO;
                 let eloDiff = 0;
 
                 if (opponentDisconnected) {

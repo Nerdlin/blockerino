@@ -1,23 +1,27 @@
-import { MenuStateType, useAppState } from "@/hooks/useAppState";
-import { StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, ActivityIndicator } from "react-native";
+import { useAppState } from "@/hooks/useAppState";
+import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, ActivityIndicator } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSoundSettings } from "@/constants/Sound";
 import { useTheme } from "@/constants/Theme";
 import { supabase } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { Session } from "@supabase/supabase-js";
+import { Session, User } from "@supabase/supabase-js";
 import { useShopState } from "@/constants/Shop";
-import { getPlayerElo } from "@/constants/Supabase";
+import { PlayerProfile, getPlayerElo, upsertAuthenticatedProfile } from "@/constants/Supabase";
 import MatchHistoryList from "./MatchHistoryList";
 import FriendsList from "./FriendsList";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
-GoogleSignin.configure({
-	webClientId: '124810801663-q9dfh84aualkiqpmv5ae2f0kj08mig50.apps.googleusercontent.com',
-});
+if (Platform.OS !== "web") {
+	GoogleSignin.configure({
+		webClientId: '124810801663-q9dfh84aualkiqpmv5ae2f0kj08mig50.apps.googleusercontent.com',
+		scopes: ['profile', 'email'],
+		offlineAccess: false,
+	});
+}
 
 const PLAYER_NAME_KEY = "PLAYER_NAME";
 const PLAYER_ID_KEY = "PLAYER_ID";
@@ -42,53 +46,63 @@ export default function ProfileMenu() {
 
 	const { state: shopState } = useShopState();
 
-	const loadProfileStats = async (name: string, userId: string) => {
+	const loadProfileStats = useCallback(async (name: string, userId: string) => {
 		try {
 			const elo = await getPlayerElo(name);
 			if (elo !== null) setPlayerElo(elo);
 
-			// Count games played from matchmaking_rooms where player participated and status is finished
 			const { count, error } = await supabase
 				.from("matchmaking_rooms")
 				.select("*", { count: "exact", head: true })
 				.or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
 				.eq("status", "finished");
-			
+
 			if (!error && count !== null) {
 				setGamesPlayed(count);
 			}
 		} catch (e) {
 			console.error("Error loading profile stats", e);
 		}
-	};
+	}, []);
+
+	const applyProfile = useCallback(async (profile: PlayerProfile | null, user: User) => {
+		const nextName = profile?.player_name || user.user_metadata?.player_name || user.user_metadata?.name || user.email?.split("@")[0] || "";
+		if (nextName) {
+			setPlayerName(nextName);
+			await AsyncStorage.setItem(PLAYER_NAME_KEY, nextName);
+		}
+		await AsyncStorage.setItem(PLAYER_ID_KEY, user.id);
+		await loadProfileStats(nextName, user.id);
+	}, [loadProfileStats]);
+
+	const hydrateSession = useCallback(async (nextSession: Session | null) => {
+		setSession(nextSession);
+		if (nextSession?.user) {
+			const localName = await AsyncStorage.getItem(PLAYER_NAME_KEY);
+			const profile = await upsertAuthenticatedProfile(nextSession.user, localName || undefined);
+			await applyProfile(profile, nextSession.user);
+		} else {
+			const localName = await AsyncStorage.getItem(PLAYER_NAME_KEY);
+			if (localName) setPlayerName(localName);
+		}
+	}, [applyProfile]);
 
 	useEffect(() => {
-		supabase.auth.getSession().then(({ data: { session } }) => {
-			setSession(session);
-			setLoading(false);
-			if (session) {
-				AsyncStorage.getItem(PLAYER_NAME_KEY).then(name => {
-					if (name) {
-						setPlayerName(name);
-						loadProfileStats(name, session.user.id);
-					}
-				});
-			}
+		let mounted = true;
+		supabase.auth.getSession().then(async ({ data: { session } }) => {
+			await hydrateSession(session);
+			if (mounted) setLoading(false);
 		});
 
-		supabase.auth.onAuthStateChange((_event, session) => {
-			setSession(session);
-			if (session && playerName) {
-				loadProfileStats(playerName, session.user.id);
-			}
+		const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+			void hydrateSession(session);
 		});
 
-		if (!session) {
-			AsyncStorage.getItem(PLAYER_NAME_KEY).then(name => {
-				if (name) setPlayerName(name);
-			});
-		}
-	}, []);
+		return () => {
+			mounted = false;
+			listener.subscription.unsubscribe();
+		};
+	}, [hydrateSession]);
 
 	const handleButtonPress = () => {
 		playSfx('menuClick');
@@ -125,8 +139,8 @@ export default function ProfileMenu() {
 				});
 				if (error) throw error;
 				if (data.user) {
-					await AsyncStorage.setItem(PLAYER_NAME_KEY, playerName);
-					await AsyncStorage.setItem(PLAYER_ID_KEY, data.user.id);
+					const profile = await upsertAuthenticatedProfile(data.user, playerName);
+					await applyProfile(profile, data.user);
 					setErrorMessage("Success! Check your email to verify (if required), or you are logged in.");
 				}
 			} else {
@@ -136,13 +150,8 @@ export default function ProfileMenu() {
 				});
 				if (error) throw error;
 				if (data.user) {
-					// Load player name from profile
-					const { data: profile } = await supabase.from('profiles').select('player_name').eq('id', data.user.id).single();
-					if (profile?.player_name) {
-						setPlayerName(profile.player_name);
-						await AsyncStorage.setItem(PLAYER_NAME_KEY, profile.player_name);
-					}
-					await AsyncStorage.setItem(PLAYER_ID_KEY, data.user.id);
+					const profile = await upsertAuthenticatedProfile(data.user);
+					await applyProfile(profile, data.user);
 				}
 			}
 		} catch (e: any) {
@@ -157,27 +166,38 @@ export default function ProfileMenu() {
 		setAuthLoading(true);
 		setErrorMessage("");
 		try {
+			if (Platform.OS === "web") {
+				if (typeof window === "undefined") {
+					throw new Error("Google OAuth is unavailable in this environment.");
+				}
+				const redirectTo = `${window.location.origin}${window.location.pathname}`;
+				const { error } = await supabase.auth.signInWithOAuth({
+					provider: "google",
+					options: { redirectTo },
+				});
+				if (error) throw error;
+				return;
+			}
+
 			await GoogleSignin.hasPlayServices();
 			const userInfo = await GoogleSignin.signIn();
-			if (userInfo.data?.idToken) {
+			const idToken = userInfo.data?.idToken || (userInfo as any).idToken;
+			if (idToken) {
 				const { data, error } = await supabase.auth.signInWithIdToken({
 					provider: 'google',
-					token: userInfo.data.idToken,
+					token: idToken,
 				});
 				if (error) throw error;
 				if (data.user) {
-					await AsyncStorage.setItem(PLAYER_ID_KEY, data.user.id);
-					// Reload profile
-					const { data: profile } = await supabase.from('profiles').select('player_name').eq('id', data.user.id).single();
-					if (profile?.player_name) {
-						setPlayerName(profile.player_name);
-						await AsyncStorage.setItem(PLAYER_NAME_KEY, profile.player_name);
-					}
+					const profile = await upsertAuthenticatedProfile(data.user);
+					await applyProfile(profile, data.user);
 				}
+			} else {
+				throw new Error("Google did not return an ID token. Check Android OAuth client SHA/package settings.");
 			}
 		} catch (e: any) {
 			console.error(e);
-			setErrorMessage("Google Sign-In failed or was cancelled.");
+			setErrorMessage(e.message || "Google Sign-In failed or was cancelled.");
 		} finally {
 			setAuthLoading(false);
 		}
@@ -188,6 +208,7 @@ export default function ProfileMenu() {
 		setAuthLoading(true);
 		await supabase.auth.signOut();
 		await AsyncStorage.removeItem(PLAYER_ID_KEY);
+		setSession(null);
 		setAuthLoading(false);
 	};
 
@@ -204,7 +225,7 @@ export default function ProfileMenu() {
 				{loading ? (
 					<ActivityIndicator size="large" color={currentTheme.accent} />
 				) : session ? (
-					<View style={styles.profileContainer}>
+					<View style={[styles.profileContainer, isMobile && styles.mobileProfileContainer]}>
 						<View style={styles.avatarPlaceholder}>
 							<Text style={styles.avatarText}>{playerName ? playerName.charAt(0).toUpperCase() : '?'}</Text>
 						</View>
@@ -212,41 +233,41 @@ export default function ProfileMenu() {
 							{playerName || session.user.email}
 						</Text>
 
-						<View style={styles.tabsContainer}>
+						<View style={[styles.tabsContainer, isMobile && styles.mobileTabsContainer]}>
 							<StylizedButton 
 								onClick={() => { playSfx('menuClick'); setActiveTab("stats"); }} 
 								text="Stats" 
 								backgroundColor={activeTab === "stats" ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
-								style={styles.tabButton}
-								textStyle={styles.tabButtonText}
+								style={[styles.tabButton, isMobile && styles.mobileTabButton]}
+								textStyle={[styles.tabButtonText, isMobile && styles.mobileTabButtonText]}
 							/>
 							<StylizedButton 
 								onClick={() => { playSfx('menuClick'); setActiveTab("history"); }} 
 								text="History" 
 								backgroundColor={activeTab === "history" ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
-								style={styles.tabButton}
-								textStyle={styles.tabButtonText}
+								style={[styles.tabButton, isMobile && styles.mobileTabButton]}
+								textStyle={[styles.tabButtonText, isMobile && styles.mobileTabButtonText]}
 							/>
 							<StylizedButton 
 								onClick={() => { playSfx('menuClick'); setActiveTab("friends"); }} 
 								text="Friends" 
 								backgroundColor={activeTab === "friends" ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
-								style={styles.tabButton}
-								textStyle={styles.tabButtonText}
+								style={[styles.tabButton, isMobile && styles.mobileTabButton]}
+								textStyle={[styles.tabButtonText, isMobile && styles.mobileTabButtonText]}
 							/>
 						</View>
 						
 						{activeTab === "stats" && (
 							<View style={styles.statsContainer}>
-								<View style={[styles.statBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
+								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
 									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{shopState.balance}</Text>
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>Coins</Text>
 								</View>
-								<View style={[styles.statBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
+								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
 									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{playerElo !== null ? playerElo : "N/A"}</Text>
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>Elo</Text>
 								</View>
-								<View style={[styles.statBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
+								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
 									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{gamesPlayed}</Text>
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>Matches</Text>
 								</View>
@@ -273,7 +294,7 @@ export default function ProfileMenu() {
 						/>
 					</View>
 				) : (
-					<View style={styles.authContainer}>
+					<View style={[styles.authContainer, isMobile && styles.mobileAuthContainer]}>
 						<Text style={[styles.authTitle, { color: currentTheme.textPrimary }]}>
 							{authMode === "login" ? "Login to Sync" : "Create Account"}
 						</Text>
@@ -314,14 +335,16 @@ export default function ProfileMenu() {
 							onClick={handleAuth} 
 							text={authLoading ? "..." : (authMode === "login" ? "Log In" : "Register")} 
 							backgroundColor={currentTheme.buttonPrimary}
-							style={{ marginTop: 10, width: '100%' }}
+							style={[styles.authButton, isMobile && styles.mobileAuthButton]}
+							textStyle={isMobile && styles.mobileAuthButtonText}
 						/>
 
 						<StylizedButton 
 							onClick={handleGoogleSignIn} 
 							text="Sign in with Google" 
 							backgroundColor="rgb(220, 70, 50)"
-							style={{ marginTop: 10, width: '100%' }}
+							style={[styles.authButton, isMobile && styles.mobileAuthButton]}
+							textStyle={isMobile && styles.mobileAuthButtonText}
 						/>
 
 						<StylizedButton 
@@ -371,6 +394,9 @@ const styles = StyleSheet.create({
 		width: '90%',
 		alignItems: 'center',
 	},
+	mobileProfileContainer: {
+		width: '100%',
+	},
 	welcomeText: {
 		fontSize: 18,
 		fontFamily: 'Silkscreen',
@@ -392,6 +418,11 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 		minWidth: 100,
 	},
+	mobileStatBox: {
+		minWidth: 130,
+		paddingHorizontal: 10,
+		paddingVertical: 12,
+	},
 	statValue: {
 		fontSize: 24,
 		fontFamily: 'SilkscreenBold',
@@ -404,6 +435,10 @@ const styles = StyleSheet.create({
 	authContainer: {
 		width: '90%',
 		alignItems: 'center',
+	},
+	mobileAuthContainer: {
+		width: '100%',
+		paddingHorizontal: 2,
 	},
 	authTitle: {
 		fontSize: 16,
@@ -465,13 +500,40 @@ const styles = StyleSheet.create({
 		width: '100%',
 		gap: 10,
 		marginBottom: 20,
+		flexWrap: 'wrap',
 	},
 	tabButton: {
 		flex: 1,
 		paddingVertical: 8,
+		minWidth: 105,
 	},
 	tabButtonText: {
 		fontSize: 12,
+	},
+	mobileTabsContainer: {
+		gap: 8,
+	},
+	mobileTabButton: {
+		flexGrow: 1,
+		flexBasis: 105,
+		maxWidth: 160,
+		minHeight: 38,
+		paddingHorizontal: 6,
+	},
+	mobileTabButtonText: {
+		fontSize: 11,
+	},
+	authButton: {
+		marginTop: 10,
+		width: '100%',
+		minHeight: 54,
+	},
+	mobileAuthButton: {
+		minHeight: 50,
+		paddingHorizontal: 8,
+	},
+	mobileAuthButtonText: {
+		fontSize: 13,
 	},
 	tabContentContainer: {
 		width: '100%',

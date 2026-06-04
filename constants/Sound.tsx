@@ -46,7 +46,8 @@ export type MusicTrackKey =
   | 'musicLofi'
   | 'musicArcade'
   | 'musicCave'
-  | 'musicSpace';
+  | 'musicSpace'
+  | 'musicCustom';
 
 type GeneratedSfxKey =
   | 'sfxWoodPlace'
@@ -66,65 +67,44 @@ type SfxAssetKey = SoundType | GeneratedSfxKey;
 type SoundAssetKey = SfxAssetKey | MusicTrackKey;
 
 function getMusicVolumeMultiplier(musicPackId: string): number {
-  switch (musicPackId) {
-    case 'music_lofi':
-      return 0.78;
-    case 'music_arcade':
-      return 1.08;
-    case 'music_cave':
-      return 0.72;
-    case 'music_space':
-      return 0.62;
-    default:
-      return 1;
-  }
+  if (musicPackId.startsWith('music_lofi')) return 0.78;
+  if (musicPackId.startsWith('music_arcade')) return 1.08;
+  if (musicPackId.startsWith('music_cave')) return 0.72;
+  if (musicPackId.startsWith('music_space')) return 0.62;
+  return 1;
 }
 
 function getSfxVolumeMultiplier(sfxPackId: string): number {
-  switch (sfxPackId) {
-    case 'sfx_glass':
-      return 0.92;
-    case 'sfx_retro':
-      return 1.05;
-    case 'sfx_metal':
-      return 1.12;
-    case 'sfx_wood':
-      return 0.98;
-    default:
-      return 1;
-  }
+  if (sfxPackId.startsWith('sfx_glass')) return 0.92;
+  if (sfxPackId.startsWith('sfx_retro')) return 1.05;
+  if (sfxPackId.startsWith('sfx_metal')) return 1.12;
+  if (sfxPackId.startsWith('sfx_wood')) return 0.98;
+  return 1;
 }
 
 export function getMusicTrackKey(musicPackId: string): MusicTrackKey {
-  switch (musicPackId) {
-    case 'music_lofi':
-      return 'musicLofi';
-    case 'music_arcade':
-      return 'musicArcade';
-    case 'music_cave':
-      return 'musicCave';
-    case 'music_space':
-      return 'musicSpace';
-    default:
-      return 'backgroundMusic';
-  }
+  if (musicPackId.startsWith('music_lofi')) return 'musicLofi';
+  if (musicPackId.startsWith('music_arcade')) return 'musicArcade';
+  if (musicPackId.startsWith('music_cave')) return 'musicCave';
+  if (musicPackId.startsWith('music_space')) return 'musicSpace';
+  return 'backgroundMusic';
 }
 
 export function mapSfxForPack(type: SoundType, sfxPackId: string): SfxAssetKey {
-  if (sfxPackId === 'sfx_glass') {
+  if (sfxPackId.startsWith('sfx_glass')) {
     if (type === 'placeBlock') return 'sfxGlassPlace';
     if (type === 'breakLine' || type.startsWith('combo')) return 'sfxGlassClear';
     if (type === 'menuClick' || type === 'buttonHover' || type === 'invalidPlacement') return 'sfxGlassClick';
     if (type === 'gameOver') return 'sfxGlassClear';
-  } else if (sfxPackId === 'sfx_retro') {
+  } else if (sfxPackId.startsWith('sfx_retro')) {
     if (type === 'placeBlock') return 'sfxRetroPlace';
     if (type === 'breakLine' || type.startsWith('combo') || type === 'gameOver') return 'sfxRetroClear';
     if (type === 'menuClick' || type === 'buttonHover' || type === 'invalidPlacement') return 'sfxRetroClick';
-  } else if (sfxPackId === 'sfx_metal') {
+  } else if (sfxPackId.startsWith('sfx_metal')) {
     if (type === 'placeBlock') return 'sfxMetalPlace';
     if (type === 'breakLine' || type.startsWith('combo') || type === 'gameOver') return 'sfxMetalClear';
     if (type === 'menuClick' || type === 'buttonHover' || type === 'invalidPlacement') return 'sfxMetalClick';
-  } else if (sfxPackId === 'sfx_wood') {
+  } else if (sfxPackId.startsWith('sfx_wood')) {
     if (type === 'placeBlock') return 'sfxWoodPlace';
     if (type === 'breakLine' || type.startsWith('combo') || type === 'gameOver') return 'sfxWoodClear';
     if (type === 'menuClick' || type === 'buttonHover' || type === 'invalidPlacement') return 'sfxWoodClick';
@@ -205,7 +185,7 @@ import * as Network from 'expo-network';
 async function hasInternetConnection(): Promise<boolean> {
   try {
     const networkState = await Network.getNetworkStateAsync();
-    return !!networkState.isConnected && !!networkState.isInternetReachable;
+    return !!networkState.isConnected && networkState.isInternetReachable !== false;
   } catch {
     return false;
   }
@@ -216,6 +196,8 @@ class SoundManager {
   private sounds: Map<string, AudioPlayer> = new Map();
   private musicTracks: Map<MusicTrackKey, AudioPlayer> = new Map();
   private currentMusicKey: MusicTrackKey = 'backgroundMusic';
+  private musicPlaying = false;
+  private customMusicUrl: string | null = null;
   private initialized = false;
 
   // Загрузка настроек
@@ -302,6 +284,15 @@ class SoundManager {
     } catch (error) {
       console.log(`Error loading music "${key}": ${error}`);
     }
+  }
+
+  private pauseMusicTracksExcept(activeKey: MusicTrackKey) {
+    this.musicTracks.forEach((music, key) => {
+      if (key !== activeKey) {
+        music.pause();
+        music.seekTo(0);
+      }
+    });
   }
 
   // Инициализация звуков
@@ -416,17 +407,28 @@ class SoundManager {
         if (customUrl) {
           const hasNet = await hasInternetConnection();
           if (hasNet) {
-            const previousMusic = this.musicTracks.get(this.currentMusicKey);
-            previousMusic?.pause();
-            
-            // Re-create the player so it streams the latest URL
-            const customMusic = createAudioPlayer(customUrl);
-            customMusic.loop = true;
-            this.musicTracks.set('musicCustom' as any, customMusic);
-            this.currentMusicKey = 'musicCustom' as any;
-            
+            const customKey: MusicTrackKey = 'musicCustom';
+            let customMusic = this.musicTracks.get(customKey);
+            if (!customMusic || this.customMusicUrl !== customUrl) {
+              customMusic?.pause();
+              customMusic = createAudioPlayer(customUrl);
+              customMusic.loop = true;
+              this.musicTracks.set(customKey, customMusic);
+              this.customMusicUrl = customUrl;
+              this.musicPlaying = false;
+            }
+
+            if (this.currentMusicKey !== customKey) {
+              this.pauseMusicTracksExcept(customKey);
+              this.currentMusicKey = customKey;
+              this.musicPlaying = false;
+            }
+
             customMusic.volume = volume ?? 1;
-            customMusic.play();
+            if (!this.musicPlaying) {
+              customMusic.play();
+              this.musicPlaying = true;
+            }
             return;
           } else {
             console.log("No internet for custom music, falling back to classic");
@@ -442,14 +444,18 @@ class SoundManager {
       if (!nextMusic) return;
 
       if (musicKey !== this.currentMusicKey) {
-        const previousMusic = this.musicTracks.get(this.currentMusicKey);
-        previousMusic?.pause();
-        previousMusic?.seekTo(0);
+        this.pauseMusicTracksExcept(musicKey);
         this.currentMusicKey = musicKey;
+        this.musicPlaying = false;
+      } else {
+        this.pauseMusicTracksExcept(musicKey);
       }
 
       nextMusic.volume = volume ?? 1;
-      nextMusic.play();
+      if (!this.musicPlaying) {
+        nextMusic.play();
+        this.musicPlaying = true;
+      }
     } catch (error) {
       if (String(error).includes('NotAllowedError')) {
         console.log('Background music will start after user interaction.');
@@ -466,6 +472,7 @@ class SoundManager {
         music.pause();
         music.seekTo(0);
       });
+      this.musicPlaying = false;
     } catch (error) {
       console.error('Error stopping background music:', error);
     }
@@ -475,6 +482,7 @@ class SoundManager {
   async pauseMusic() {
     try {
       this.musicTracks.get(this.currentMusicKey)?.pause();
+      this.musicPlaying = false;
     } catch (error) {
       console.error('Error pausing background music:', error);
     }
@@ -485,7 +493,7 @@ class SoundManager {
     try {
       let musicKey = getMusicTrackKey(musicPackId);
       if (musicPackId === 'music_custom') {
-        musicKey = 'musicCustom' as any;
+        musicKey = 'musicCustom';
       }
       const music = this.musicTracks.get(musicKey);
       if (music) {
