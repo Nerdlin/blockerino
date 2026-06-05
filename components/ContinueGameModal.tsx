@@ -46,7 +46,7 @@ export default function ContinueGameModal({
                     Mode: <Text style={{ color: currentTheme.textPrimary, textTransform: 'capitalize' }}>{gameMode}</Text>
                 </Text>
                 <Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>
-                    Score: <Text style={{ color: currentTheme.accent, fontWeight: 'bold' }}>{score}</Text>
+                    Score: <Text style={{ color: currentTheme.accent, fontFamily: 'SilkscreenBold' }}>{score}</Text>
                 </Text>
             </View>
 

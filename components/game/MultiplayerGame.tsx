@@ -1432,8 +1432,7 @@ const styles = StyleSheet.create({
     },
     opponentScoreText: {
         fontSize: 16,
-        fontFamily: 'Silkscreen',
-        fontWeight: 'bold'
+        fontFamily: 'SilkscreenBold',
     },
     overlay: {
         ...StyleSheet.absoluteFillObject,
@@ -1496,9 +1495,8 @@ const styles = StyleSheet.create({
     },
     spectatorScore: {
         fontSize: 18,
-        fontFamily: 'Silkscreen',
+        fontFamily: 'SilkscreenBold',
         marginBottom: 15,
-        fontWeight: 'bold',
         textAlign: 'center'
     },
     liveDot: {
@@ -1554,9 +1552,8 @@ const styles = StyleSheet.create({
     },
     emoteText: {
         color: '#fff',
-        fontFamily: 'Silkscreen',
+        fontFamily: 'SilkscreenBold',
         fontSize: 14,
-        fontWeight: 'bold'
     },
     spectatorRow: {
         flexDirection: 'row',

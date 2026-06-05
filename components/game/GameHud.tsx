@@ -7,6 +7,7 @@ import { getHighScores } from "@/constants/Storage";
 import { colorToHex } from "@/constants/Color";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useGameSizes } from "@/constants/Board";
+import PixelIcon from "@/components/PixelIcon";
 
 const comboBarGoodColor = colorToHex({r: 0, g: 255, b: 0});
 const comboBarBadColor = colorToHex({r: 255, g: 51, b: 51});
@@ -86,7 +87,6 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, tim
 					color: 'white',
 					fontFamily: 'Silkscreen',
 					fontSize: isMobile ? (isShortScreen ? 24 : 32) : 50,
-					fontWeight: '100',
 					...Platform.select({
 						web: {
 							textShadow: "3px 3px 10px rgb(0, 0, 0)"
@@ -109,7 +109,7 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, tim
 						fontSize: isMobile ? 18 : 24,
 						marginBottom: 4
 					}}>
-						⏳ {timeLeftText}s
+						TIME {timeLeftText}s
 					</Text>
 					<TimerBar timeRemaining={timeRemaining} />
 				</View>
@@ -208,7 +208,7 @@ export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score:
 				top: 15,
 				left: 15
 			}
-		]}>{"👑" + Math.max(scoreState, highestScore)}</Text>
+		]}>{"BEST " + Math.max(scoreState, highestScore)}</Text>
 		<SettingsButton isMobile={isMobile}></SettingsButton>
 	</>
 }
@@ -232,14 +232,7 @@ function SettingsButton({ isMobile }: { isMobile?: boolean }) {
 			}
 		]}
 	>
-		<Text style={[
-			styles.settingsEmoji,
-			isMobile && {
-				fontSize: 22
-			}
-		]}>
-			{"⚙️"}
-		</Text>
+		<PixelIcon name="gear" size={isMobile ? 24 : 30} color="#D7D7D7" secondaryColor="#FFFFFF" />
 	</Pressable>
 }
 
@@ -257,15 +250,10 @@ const styles = StyleSheet.create({
 		top: 50,
 		right: 50
 	},
-	settingsEmoji: {
-		color: 'white',
-		fontSize: 30
-	},
 	highScoreLabel: {
 		color: 'rgb(240, 175, 12)',
 		fontFamily: 'Silkscreen',
 		fontSize: 35,
-		fontWeight: '100',
 		position: 'absolute',
 		top: 50,
 		left: 50
@@ -317,7 +305,6 @@ const styles = StyleSheet.create({
 	hudLabel: {
 		color: 'white',
 		fontFamily: 'Silkscreen',
-		fontWeight: '900',
 		fontSize: 30,
 		marginLeft: 2,
 		alignSelf: 'flex-start',

@@ -9,6 +9,7 @@ import { PieceView } from "./PieceView";
 import { shopStateAtom } from "@/constants/Shop";
 import { useAtomValue } from "jotai";
 import { shouldCheckConnectionBeforeStart } from "@/constants/GameStart";
+import PixelIcon from "./PixelIcon";
 
 const logoBPiece: PieceData = {
 	matrix: [
@@ -68,7 +69,7 @@ export default function MainMenu() {
 			onPress={() => appendAppState(MenuStateType.ACHIEVEMENTS)}
 			style={styles.achievementsButton}
 		>
-			<Text style={styles.achievementsIcon}>🏅</Text>
+			<PixelIcon name="medal" size={27} color="#F0AF0C" secondaryColor="#FFFFFF" />
 		</Pressable>
 
 		<BlockerinoLogo style={{position: 'absolute', bottom: 10, left: 10}} blockSize={5}></BlockerinoLogo>
@@ -81,7 +82,7 @@ export default function MainMenu() {
 				startSoloMode(GameModeType.Classic);
 			}}
 			backgroundColor={cssColors.brightNiceRed}
-			title={"Classic ∞"}
+			title={"Classic 8x8"}
 			flavorText={"classical line breaking"}
 			idleBounce={true}
 		/>
@@ -109,7 +110,7 @@ export default function MainMenu() {
 				appendAppState(MenuStateType.DAILY_CHALLENGES);
 			}}
 			backgroundColor={"#FFD700"}
-			title={"🏆 Challenges"}
+			title={"Challenges"}
 			flavorText={"daily puzzle & speed mode"}
 		/>
 		<MainButton onClick = {() => {
@@ -153,6 +154,7 @@ function MainButton({
 	const rotationDeg = useSharedValue(0);
 	const { height } = useWindowDimensions();
 	const isShortScreen = height < 700;
+	const allowIdleMotion = height >= 760;
 
 	const animatedStyle = useAnimatedStyle(() => {
 		return {
@@ -166,6 +168,12 @@ function MainButton({
 
 	useEffect(() => {
 		const idleBounceTotalTime = 3700;
+		if (!allowIdleMotion) {
+			idleAnimTranslateY.value = 0;
+			rotationDeg.value = 0;
+			return;
+		}
+
 		if (idleBounce) {
 			idleAnimTranslateY.value = withRepeat(
 				withSequence(
@@ -199,7 +207,7 @@ function MainButton({
 				1000,
 			);
 		}
-	}, [idleAnimTranslateY, idleBounce, idleBounceRotate, rotationDeg]);
+	}, [allowIdleMotion, idleAnimTranslateY, idleBounce, idleBounceRotate, rotationDeg]);
 
 	const onPress = () => {
 		scale.value = withSequence(withTiming(1.25, { duration: 200 }), withTiming(1, { duration: 200 }));
@@ -322,7 +330,9 @@ const styles = StyleSheet.create({
 		zIndex: 20,
 	},
 	achievementsIcon: {
-		fontSize: 24,
+		fontFamily: "SilkscreenBold",
+		fontSize: 12,
+		color: "#F0AF0C",
 		textAlign: "center",
 	},
 	shopButton: {

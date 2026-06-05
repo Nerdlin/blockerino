@@ -97,7 +97,26 @@ export default function AchievementsMenu() {
 								]}
 							>
 								<View style={styles.leftSide}>
-									<Text style={styles.medal}>{achievement.medal}</Text>
+									<View
+										style={[
+											styles.medalBadge,
+											{
+												borderColor: achievement.progress.complete ? currentTheme.accent : currentTheme.textSecondary,
+												backgroundColor: achievement.progress.complete ? "rgba(240, 175, 12, 0.16)" : "rgba(255, 255, 255, 0.05)",
+											},
+										]}
+									>
+										<Text
+											style={[
+												styles.medalText,
+												{ color: achievement.progress.complete ? currentTheme.accent : currentTheme.textPrimary },
+											]}
+											numberOfLines={1}
+											adjustsFontSizeToFit
+										>
+											{achievement.medal}
+										</Text>
+									</View>
 									<View style={styles.titleBlock}>
 										<Text style={[styles.title, { color: currentTheme.textPrimary }]} numberOfLines={1}>
 											{achievement.title}
@@ -186,9 +205,19 @@ const styles = StyleSheet.create({
 		gap: 8,
 		minWidth: 0,
 	},
-	medal: {
-		fontSize: 21,
-		width: 30,
+	medalBadge: {
+		width: 36,
+		height: 30,
+		borderRadius: 4,
+		borderWidth: 1,
+		alignItems: "center",
+		justifyContent: "center",
+		paddingHorizontal: 2,
+	},
+	medalText: {
+		width: "100%",
+		fontFamily: "SilkscreenBold",
+		fontSize: 10,
 		textAlign: "center",
 	},
 	titleBlock: {

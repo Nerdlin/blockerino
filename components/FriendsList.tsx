@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderRadius: 4,
         paddingHorizontal: 10,
-        fontFamily: 'SpaceMono',
+        fontFamily: 'Silkscreen',
     },
     addButton: {
         minWidth: 70,

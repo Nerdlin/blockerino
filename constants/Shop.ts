@@ -305,8 +305,8 @@ const BASE_SHOP_ITEMS: ShopItem[] = [
 	{
 		id: "music_custom",
 		category: "music",
-		title: "Custom Stream URL",
-		description: "Secret! Play your own music stream URL. Configure in Options.",
+		title: "Custom Music Link",
+		description: "YouTube, Spotify, Yandex, or direct audio. Configure in Options.",
 		price: 0,
 		accent: "#FFFFFF",
 		previewColors: ["#FF0000", "#00FF00", "#0000FF"],
@@ -315,8 +315,8 @@ const BASE_SHOP_ITEMS: ShopItem[] = [
 	{
 		id: "sfx_custom",
 		category: "sfx",
-		title: "Custom SFX URL",
-		description: "Secret! Play your own SFX stream URL. Configure in Options.",
+		title: "Custom SFX Link",
+		description: "External link or direct SFX audio. Configure in Options.",
 		price: 0,
 		accent: "#FFFFFF",
 		previewColors: ["#FF00FF", "#00FFFF", "#FFFF00"],
@@ -493,7 +493,9 @@ export function getShopItemsByCategory(category: ShopCategory): ShopItem[] {
 
 export function getVisibleShopItemsByCategory(category: ShopCategory, ownedItemIds: string[] = []): ShopItem[] {
 	const ownedSet = new Set(ownedItemIds);
-	return getShopItemsByCategory(category).filter((item) => !item.secret || ownedSet.has(item.id));
+	return getShopItemsByCategory(category)
+		.filter((item) => !item.secret || ownedSet.has(item.id))
+		.sort((a, b) => Number(b.id.endsWith("_custom")) - Number(a.id.endsWith("_custom")));
 }
 
 export function isSecretShopItem(itemId: string): boolean {
@@ -632,9 +634,9 @@ export function getBackgroundParticleConfig(itemId: string, isGameplayActive: bo
 	const scene = getBackgroundScene(itemId);
 	if (scene === "classic") {
 		return {
-			count: isGameplayActive ? 14 : 25,
-			blockSize: isGameplayActive ? 22 : 28,
-			maxOpacity: isGameplayActive ? 0.55 : 1,
+			count: isGameplayActive ? 0 : 8,
+			blockSize: isGameplayActive ? 14 : 22,
+			maxOpacity: isGameplayActive ? 0 : 0.65,
 		};
 	}
 

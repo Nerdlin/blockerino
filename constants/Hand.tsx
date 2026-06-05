@@ -1,4 +1,4 @@
-import { PieceData, isClassicComplexPiece, piecesData, pieceColors } from "./Piece";
+import { PieceData, getRandomPiece, getRandomPieceWorklet, isClassicComplexPiece, piecesData, pieceColors } from "./Piece";
 
 export type Hand = (PieceData | null)[]
 
@@ -81,7 +81,6 @@ export function createSeededHand(size: number, seedNum: number): Hand {
 export function createRandomHand(size: number, gameMode?: string): Hand {
 	const hand = new Array<PieceData | null>(size);
 	if (gameMode !== 'chaos') {
-		const { getRandomPiece } = require("./Piece");
 		const rescueIndex = Math.floor(Math.random() * size);
 
 		for (let i = 0; i < size; i++) {
@@ -92,7 +91,6 @@ export function createRandomHand(size: number, gameMode?: string): Hand {
 		return hand;
 	}
 
-	const { getRandomPiece } = require("./Piece");
 	const rescueIndex = Math.floor(Math.random() * size);
 	const complexLimit = Math.max(1, Math.floor(size / 2));
 	let complexCount = 0;
@@ -112,7 +110,6 @@ export function createRandomHandWorklet(size: number, gameMode?: string): Hand {
 	"worklet";
 	const hand = new Array<PieceData | null>(size);
 	if (gameMode !== 'chaos') {
-		const { getRandomPieceWorklet } = require("./Piece");
 		const rescueIndex = Math.floor(Math.random() * size);
 
 		for (let i = 0; i < size; i++) {
@@ -123,7 +120,6 @@ export function createRandomHandWorklet(size: number, gameMode?: string): Hand {
 		return hand;
 	}
 
-	const { getRandomPieceWorklet } = require("./Piece");
 	const rescueIndex = Math.floor(Math.random() * size);
 	const complexLimit = Math.max(1, Math.floor(size / 2));
 	let complexCount = 0;

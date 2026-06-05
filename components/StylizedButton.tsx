@@ -72,7 +72,6 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		color: 'white',
 		fontFamily: 'Silkscreen',
-        fontWeight: '100',
         textAlign: 'center'
 	}
 });

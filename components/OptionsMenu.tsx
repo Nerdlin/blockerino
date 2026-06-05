@@ -1,9 +1,14 @@
 import { MenuStateType, useAppState } from "@/hooks/useAppState";
-import { StyleSheet, Switch, Text, View, useWindowDimensions, TextInput } from "react-native";
+import { Linking, ScrollView, StyleSheet, Switch, Text, View, useWindowDimensions, TextInput } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
-import { useCallback, useEffect, useState } from "react";
-import { useSoundSettings } from "@/constants/Sound";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+	CUSTOM_MUSIC_URL_KEY,
+	CUSTOM_SFX_URL_KEY,
+	getCustomAudioSourceInfo,
+	useSoundSettings,
+} from "@/constants/Sound";
 import { Theme, ThemeType, useTheme } from "@/constants/Theme";
 import Animated, { FadeIn } from "react-native-reanimated";
 import Slider from "@react-native-community/slider";
@@ -35,16 +40,16 @@ export default function OptionsMenu() {
 	const [customSfxUrl, setCustomSfxUrl] = useState("");
 
 	useEffect(() => {
-		AsyncStorage.getItem("CUSTOM_MUSIC_URL").then(val => { if (val) setCustomMusicUrl(val); });
-		AsyncStorage.getItem("CUSTOM_SFX_URL").then(val => { if (val) setCustomSfxUrl(val); });
+		AsyncStorage.getItem(CUSTOM_MUSIC_URL_KEY).then(val => { if (val) setCustomMusicUrl(val); });
+		AsyncStorage.getItem(CUSTOM_SFX_URL_KEY).then(val => { if (val) setCustomSfxUrl(val); });
 	}, []);
 
 	const handleCustomMusicUrlBlur = () => {
-		AsyncStorage.setItem("CUSTOM_MUSIC_URL", customMusicUrl);
+		AsyncStorage.setItem(CUSTOM_MUSIC_URL_KEY, customMusicUrl.trim());
 	};
 	
 	const handleCustomSfxUrlBlur = () => {
-		AsyncStorage.setItem("CUSTOM_SFX_URL", customSfxUrl);
+		AsyncStorage.setItem(CUSTOM_SFX_URL_KEY, customSfxUrl.trim());
 	};
 
 	useEffect(() => {
@@ -101,177 +106,221 @@ export default function OptionsMenu() {
 			isMobile && { width: '92%', height: '85%', paddingHorizontal: 10 }
 		]}>
 			<Text style={[styles.sectionHeader, { color: currentTheme.textPrimary }]}>Settings</Text>
-			
-			<View style={styles.settingSection}>
-				<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>Sound</Text>
-				
-				<SettingLabel 
-					title="Music" 
-					description="Background game music"
-					labelStyle={{ color: currentTheme.textPrimary }}
-					descStyle={{ color: currentTheme.textSecondary }}
-				>
-					<Switch
-						value={musicEnabled}
-						onValueChange={handleMusicToggle}
-						trackColor={{ false: "#767577", true: currentTheme.buttonPrimary }}
-					/>
-				</SettingLabel>
 
-				{musicEnabled && (
-					<View style={styles.sliderContainer}>
-						<Slider
-							style={styles.slider}
-							minimumValue={0}
-							maximumValue={1}
-							value={musicVolume}
-							onValueChange={updateMusicVolume}
-							minimumTrackTintColor={currentTheme.buttonPrimary}
-							maximumTrackTintColor={currentTheme.textSecondary}
-							thumbTintColor={currentTheme.accent}
-						/>
-						<Text style={[styles.sliderValue, { color: currentTheme.textSecondary }]}>
-							{Math.round(musicVolume * 100)}%
-						</Text>
-					</View>
-				)}
-				
-				<SettingLabel 
-					title="Sound Effects" 
-					description="Game action sounds"
-					labelStyle={{ color: currentTheme.textPrimary }}
-					descStyle={{ color: currentTheme.textSecondary }}
-				>
-					<Switch
-						value={sfxEnabled}
-						onValueChange={handleSfxToggle}
-						trackColor={{ false: "#767577", true: currentTheme.buttonPrimary }}
-					/>
-				</SettingLabel>
+			<ScrollView
+				style={styles.optionsScroll}
+				contentContainerStyle={styles.optionsScrollContent}
+				keyboardShouldPersistTaps="handled"
+				showsVerticalScrollIndicator={false}
+			>
+				<View style={styles.settingSection}>
+					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>Sound</Text>
 
-				{sfxEnabled && (
-					<View style={styles.sliderContainer}>
-						<Slider
-							style={styles.slider}
-							minimumValue={0}
-							maximumValue={1}
-							value={sfxVolume}
-							onValueChange={updateSfxVolume}
-							minimumTrackTintColor={currentTheme.buttonPrimary}
-							maximumTrackTintColor={currentTheme.textSecondary}
-							thumbTintColor={currentTheme.accent}
-						/>
-						<Text style={[styles.sliderValue, { color: currentTheme.textSecondary }]}>
-							{Math.round(sfxVolume * 100)}%
-						</Text>
-					</View>
-				)}
-
-				{shopState.equipped.music === "music_custom" && (
-					<SettingLabel 
-						title="Custom Music URL" 
-						description="Direct audio stream link (.mp3, etc.)"
+					<SettingLabel
+						title="Music"
+						description="Background game music"
 						labelStyle={{ color: currentTheme.textPrimary }}
 						descStyle={{ color: currentTheme.textSecondary }}
 					>
-						<TextInput
-							style={[styles.urlInput, {
-								color: currentTheme.textPrimary,
-								borderColor: currentTheme.textSecondary,
-								backgroundColor: 'rgba(0, 0, 0, 0.4)'
-							}, isMobile && { fontSize: 12 }]}
+						<Switch
+							value={musicEnabled}
+							onValueChange={handleMusicToggle}
+							trackColor={{ false: "#767577", true: currentTheme.buttonPrimary }}
+						/>
+					</SettingLabel>
+
+					{musicEnabled && (
+						<View style={styles.sliderContainer}>
+							<Slider
+								style={styles.slider}
+								minimumValue={0}
+								maximumValue={1}
+								value={musicVolume}
+								onValueChange={updateMusicVolume}
+								minimumTrackTintColor={currentTheme.buttonPrimary}
+								maximumTrackTintColor={currentTheme.textSecondary}
+								thumbTintColor={currentTheme.accent}
+							/>
+							<Text style={[styles.sliderValue, { color: currentTheme.textSecondary }]}>
+								{Math.round(musicVolume * 100)}%
+							</Text>
+						</View>
+					)}
+
+					<SettingLabel
+						title="Sound Effects"
+						description="Game action sounds"
+						labelStyle={{ color: currentTheme.textPrimary }}
+						descStyle={{ color: currentTheme.textSecondary }}
+					>
+						<Switch
+							value={sfxEnabled}
+							onValueChange={handleSfxToggle}
+							trackColor={{ false: "#767577", true: currentTheme.buttonPrimary }}
+						/>
+					</SettingLabel>
+
+					{sfxEnabled && (
+						<View style={styles.sliderContainer}>
+							<Slider
+								style={styles.slider}
+								minimumValue={0}
+								maximumValue={1}
+								value={sfxVolume}
+								onValueChange={updateSfxVolume}
+								minimumTrackTintColor={currentTheme.buttonPrimary}
+								maximumTrackTintColor={currentTheme.textSecondary}
+								thumbTintColor={currentTheme.accent}
+							/>
+							<Text style={[styles.sliderValue, { color: currentTheme.textSecondary }]}>
+								{Math.round(sfxVolume * 100)}%
+							</Text>
+						</View>
+					)}
+
+					{shopState.equipped.music === "music_custom" && (
+						<CustomAudioInput
+							title="Custom Music Link"
 							value={customMusicUrl}
 							onChangeText={setCustomMusicUrl}
-							onBlur={handleCustomMusicUrlBlur}
-							onSubmitEditing={handleCustomMusicUrlBlur}
-							placeholder="https://..."
-							placeholderTextColor={currentTheme.textSecondary}
-						/>
-					</SettingLabel>
-				)}
-
-				{shopState.equipped.sfx === "sfx_custom" && (
-					<SettingLabel 
-						title="Custom SFX URL" 
-						description="Direct audio stream link (.mp3, etc.)"
-						labelStyle={{ color: currentTheme.textPrimary }}
-						descStyle={{ color: currentTheme.textSecondary }}
-					>
-						<TextInput
-							style={[styles.urlInput, {
-								color: currentTheme.textPrimary,
-								borderColor: currentTheme.textSecondary,
-								backgroundColor: 'rgba(0, 0, 0, 0.4)'
-							}, isMobile && { fontSize: 12 }]}
-							value={customSfxUrl}
-							onChangeText={setCustomSfxUrl}
-							onBlur={handleCustomSfxUrlBlur}
-							onSubmitEditing={handleCustomSfxUrlBlur}
-							placeholder="https://..."
-							placeholderTextColor={currentTheme.textSecondary}
-						/>
-					</SettingLabel>
-				)}
-			</View>
-
-			<View style={styles.settingSection}>
-				<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>Theme</Text>
-				
-				<View style={styles.themesContainer}>
-					{availableThemes.map((theme) => (
-						<ThemeButton 
-							key={theme.id} 
-							theme={theme} 
-							isSelected={currentTheme.id === theme.id}
-							onPress={() => handleThemeChange(theme.id)}
+							onSave={handleCustomMusicUrlBlur}
+							currentTheme={currentTheme}
 							isMobile={isMobile}
 						/>
-					))}
+					)}
+
+					{shopState.equipped.sfx === "sfx_custom" && (
+						<CustomAudioInput
+							title="Custom SFX Link"
+							value={customSfxUrl}
+							onChangeText={setCustomSfxUrl}
+							onSave={handleCustomSfxUrlBlur}
+							currentTheme={currentTheme}
+							isMobile={isMobile}
+						/>
+					)}
 				</View>
-			</View>
 
-			<View style={styles.buttonsContainer}>
-				<StylizedButton 
-					onClick={() => {
-						playSfx('menuClick');
-						appendAppState(MenuStateType.PROFILE);
-					}} 
-					text="Profile" 
-					backgroundColor={currentTheme.buttonPrimary}
-					style={isMobile && styles.mobileBottomButton}
-					textStyle={isMobile && styles.mobileBottomButtonText}
-				/>
-				
-				<StylizedButton 
-					onClick={handleButtonPress} 
-					text="Back" 
-					backgroundColor={currentTheme.buttonSecondary}
-					style={isMobile && styles.mobileBottomButton}
-					textStyle={isMobile && styles.mobileBottomButtonText}
-				/>
+				<View style={styles.settingSection}>
+					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>Theme</Text>
 
-				{(appState.containsGameMode() || appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
-					<>
-						{(appState.containsGameMode() && !appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
-							<StylizedButton 
-								onClick={handleRestartPress} 
-								text="Restart" 
-								backgroundColor={currentTheme.buttonPrimary}
+					<View style={styles.themesContainer}>
+						{availableThemes.map((theme) => (
+							<ThemeButton
+								key={theme.id}
+								theme={theme}
+								isSelected={currentTheme.id === theme.id}
+								onPress={() => handleThemeChange(theme.id)}
+								isMobile={isMobile}
+							/>
+						))}
+					</View>
+				</View>
+
+				<View style={styles.buttonsContainer}>
+					<StylizedButton
+						onClick={() => {
+							playSfx('menuClick');
+							appendAppState(MenuStateType.PROFILE);
+						}}
+						text="Profile"
+						backgroundColor={currentTheme.buttonPrimary}
+						style={isMobile && styles.mobileBottomButton}
+						textStyle={isMobile && styles.mobileBottomButtonText}
+					/>
+
+					<StylizedButton
+						onClick={handleButtonPress}
+						text="Back"
+						backgroundColor={currentTheme.buttonSecondary}
+						style={isMobile && styles.mobileBottomButton}
+						textStyle={isMobile && styles.mobileBottomButtonText}
+					/>
+
+					{(appState.containsGameMode() || appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
+						<>
+							{(appState.containsGameMode() && !appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
+								<StylizedButton
+									onClick={handleRestartPress}
+									text="Restart"
+									backgroundColor={currentTheme.buttonPrimary}
+									style={isMobile && styles.mobileBottomButton}
+									textStyle={isMobile && styles.mobileBottomButtonText}
+								/>
+							)}
+							<StylizedButton
+								onClick={handleQuitPress}
+								text="End Game"
+								backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(204, 51, 0)' : currentTheme.buttonPrimary}
 								style={isMobile && styles.mobileBottomButton}
 								textStyle={isMobile && styles.mobileBottomButtonText}
 							/>
-						)}
-						<StylizedButton 
-							onClick={handleQuitPress} 
-							text="End Game" 
-							backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(204, 51, 0)' : currentTheme.buttonPrimary}
-							style={isMobile && styles.mobileBottomButton}
-							textStyle={isMobile && styles.mobileBottomButtonText}
-						/>
-					</>
+						</>
+					)}
+				</View>
+			</ScrollView>
+		</SimplePopupView>
+	);
+}
+
+function CustomAudioInput({
+	title,
+	value,
+	onChangeText,
+	onSave,
+	currentTheme,
+	isMobile,
+}: {
+	title: string;
+	value: string;
+	onChangeText: (value: string) => void;
+	onSave: () => void;
+	currentTheme: Theme;
+	isMobile: boolean;
+}) {
+	const sourceInfo = useMemo(() => getCustomAudioSourceInfo(value), [value]);
+	const canOpenExternal = sourceInfo.kind !== "empty" && !sourceInfo.canPlayInApp && sourceInfo.url.startsWith("http");
+
+	const openExternal = async () => {
+		onSave();
+		if (canOpenExternal) {
+			await Linking.openURL(sourceInfo.url);
+		}
+	};
+
+	return (
+		<View style={styles.customAudioContainer}>
+			<Text style={[styles.settingTitle, { color: currentTheme.textPrimary }]}>{title}</Text>
+			<TextInput
+				style={[styles.urlInput, {
+					color: currentTheme.textPrimary,
+					borderColor: currentTheme.textSecondary,
+					backgroundColor: 'rgba(0, 0, 0, 0.4)'
+				}, isMobile && { fontSize: 10 }]}
+				value={value}
+				onChangeText={onChangeText}
+				onBlur={onSave}
+				onSubmitEditing={onSave}
+				placeholder="YouTube, Spotify, Yandex, or direct .mp3"
+				placeholderTextColor={currentTheme.textSecondary}
+				autoCapitalize="none"
+				autoCorrect={false}
+			/>
+			<View style={styles.customAudioStatusRow}>
+				<Text style={[styles.customAudioStatus, { color: sourceInfo.canPlayInApp ? currentTheme.accent : currentTheme.textSecondary }]}>
+					{sourceInfo.label}: {sourceInfo.message}
+				</Text>
+				{canOpenExternal && (
+					<StylizedButton
+						text="Open"
+						onClick={openExternal}
+						backgroundColor={currentTheme.buttonSecondary}
+						style={styles.openLinkButton}
+						textStyle={styles.openLinkButtonText}
+					/>
 				)}
 			</View>
-		</SimplePopupView>
+		</View>
 	);
 }
 
@@ -329,6 +378,13 @@ const styles = StyleSheet.create({
 		alignSelf: 'flex-end',
 		justifyContent: 'flex-end',
 	},
+	optionsScroll: {
+		width: "100%",
+	},
+	optionsScrollContent: {
+		alignItems: "center",
+		paddingBottom: 12,
+	},
 	settingTitle: {
 		fontSize: 16,
 		fontFamily: 'Silkscreen'
@@ -374,6 +430,33 @@ const styles = StyleSheet.create({
 		fontFamily: "Silkscreen",
 		fontSize: 10,
 		marginTop: 6,
+	},
+	customAudioContainer: {
+		width: "80%",
+		alignItems: "stretch",
+		marginTop: 8,
+		marginBottom: 8,
+	},
+	customAudioStatusRow: {
+		width: "100%",
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		marginTop: 6,
+	},
+	customAudioStatus: {
+		flex: 1,
+		fontFamily: "Silkscreen",
+		fontSize: 8,
+		lineHeight: 12,
+	},
+	openLinkButton: {
+		minWidth: 72,
+		minHeight: 28,
+		paddingHorizontal: 8,
+	},
+	openLinkButtonText: {
+		fontSize: 10,
 	},
 	themesContainer: {
 		flexDirection: 'row',

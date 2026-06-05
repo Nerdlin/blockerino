@@ -92,10 +92,10 @@ INSERT INTO public.app_config (key, value)
 VALUES (
   'android_version',
   jsonb_build_object(
-    'latestVersion', '1.0.1',
-    'latestBuildNumber', 2,
+    'latestVersion', '1.0.2',
+    'latestBuildNumber', 3,
     'downloadUrl', 'https://github.com/Nerdlin/blockerino/raw/main/builds/blockerino-release.apk',
-    'releaseNotes', 'Android release with update delivery, zero-ELO multiplayer, profile sync, and shop fixes.',
+    'releaseNotes', 'Android stability release with fixed hand refresh crashes, clearer online diagnostics, profile scores, and consistent pixel icons.',
     'isMandatory', false
   )
 )

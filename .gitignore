@@ -41,3 +41,8 @@ app-example
 
 # Playwright
 .playwright-mcp
+# App artifacts
+builds/
+*.apk
+dist/
+

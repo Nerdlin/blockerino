@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { checkSupabaseConnection } from "@/constants/Connectivity";
+import { checkSupabaseConnectionDetails } from "@/constants/Connectivity";
+import type { SupabaseConnectionResult } from "@/constants/Connectivity";
 import { useTheme } from "@/constants/Theme";
 import { cssColors } from "@/constants/Color";
 import SimplePopupView from "./SimplePopupView";
@@ -17,16 +18,18 @@ export default function MultiplayerConnectionGate({
 	const mountedRef = useRef(true);
 	const [checking, setChecking] = useState(true);
 	const [lastChecked, setLastChecked] = useState<number | null>(null);
+	const [connectionResult, setConnectionResult] = useState<SupabaseConnectionResult | null>(null);
 
 	const checkConnection = useCallback(async () => {
 		setChecking(true);
-		const isOnline = await checkSupabaseConnection();
+		const result = await checkSupabaseConnectionDetails();
 
 		if (!mountedRef.current) return;
 		setLastChecked(Date.now());
+		setConnectionResult(result);
 		setChecking(false);
 
-		if (isOnline) {
+		if (result.online) {
 			onConnected();
 		}
 	}, [onConnected]);
@@ -55,9 +58,16 @@ export default function MultiplayerConnectionGate({
 			)}
 
 			{!checking && (
-				<Text style={[styles.status, { color: currentTheme.textSecondary }]}>
-					{lastChecked ? "Still offline. Turn on internet and check again." : "No connection detected."}
-				</Text>
+				<View style={styles.statusBlock}>
+					<Text style={[styles.status, { color: currentTheme.textSecondary }]}>
+						{lastChecked ? "Connection check failed." : "No connection detected."}
+					</Text>
+					{connectionResult?.message && (
+						<Text style={[styles.detail, { color: currentTheme.textSecondary }]}>
+							{connectionResult.code ? `${connectionResult.code}: ` : ""}{connectionResult.message}
+						</Text>
+					)}
+				</View>
 			)}
 
 			<View style={styles.buttonRow}>
@@ -111,7 +121,19 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		lineHeight: 18,
 		textAlign: "center",
+	},
+	statusBlock: {
+		width: "100%",
+		alignItems: "center",
 		marginBottom: 16,
+		gap: 6,
+	},
+	detail: {
+		fontFamily: "Silkscreen",
+		fontSize: 9,
+		lineHeight: 13,
+		textAlign: "center",
+		paddingHorizontal: 8,
 	},
 	buttonRow: {
 		width: "100%",

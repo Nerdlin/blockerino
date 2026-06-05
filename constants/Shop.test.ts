@@ -76,6 +76,7 @@ describe("shop catalog and wallet", () => {
 			ownedItemIds: [...state.ownedItemIds, "music_custom"],
 		});
 		expect(getVisibleShopItemsByCategory("music", unlocked.ownedItemIds).some((item) => item.id === "music_custom")).toBe(true);
+		expect(getVisibleShopItemsByCategory("music", unlocked.ownedItemIds)[0].id).toBe("music_custom");
 	});
 
 	it("grants starter coins when migrating an older saved shop state", () => {

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Blockerino",
     "slug": "blockerino",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "com.nerdlin.blockerino",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#050510"
@@ -33,7 +33,7 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
-      "runtimeVersion": "1.0.0"
+      "runtimeVersion": "1.0.2"
     },
     "web": {
       "bundler": "metro",

@@ -37,16 +37,12 @@ interface BlockGridProps {
 	draggingPiece: SharedValue<number | null>;
 }
 
-const PARTICLE_CONFIGS = [
+const PARTICLE_CONFIGS = Platform.OS === "web" ? [
 	{ angle: 0.0, speed: 1.0 },
 	{ angle: Math.PI / 4, speed: 1.3 },
 	{ angle: Math.PI / 2, speed: 0.8 },
 	{ angle: 3 * Math.PI / 4, speed: 1.5 },
-	{ angle: Math.PI, speed: 1.1 },
-	{ angle: 5 * Math.PI / 4, speed: 0.9 },
-	{ angle: 3 * Math.PI / 2, speed: 1.4 },
-	{ angle: 7 * Math.PI / 4, speed: 0.7 },
-];
+] : [];
 
 interface SparkParticleProps {
 	sparkProgress: SharedValue<number>;
@@ -123,18 +119,6 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 	const sparkProgress = useSharedValue(0);
 	const { currentTheme } = useTheme();
 	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
-
-	const pulseAnim = useSharedValue(1);
-	useEffect(() => {
-		pulseAnim.value = withRepeat(
-			withSequence(
-				withTiming(1.15, { duration: 400 }),
-				withTiming(0.95, { duration: 400 })
-			),
-			-1,
-			true
-		);
-	}, [pulseAnim]);
 
 	// Реакция на изменение состояния блока
 	useAnimatedReaction(() => {
@@ -287,7 +271,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 			<Animated.View style={[staticStyle, { width: gridBlockSize, height: gridBlockSize, justifyContent: 'center', alignItems: 'center' }]} />
 			<Animated.View style={fallingStyle} />
 			<Animated.View style={[styles.pointerEventsNone, flashStyle]} />
-			{[...Array(8)].map((_, i) => (
+			{PARTICLE_CONFIGS.map((_, i) => (
 				<SparkParticle
 					key={`spark-${i}`}
 					sparkProgress={sparkProgress}

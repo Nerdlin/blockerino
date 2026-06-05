@@ -1,4 +1,4 @@
-import { useAppState } from "@/hooks/useAppState";
+import { GameModeType, useAppState } from "@/hooks/useAppState";
 import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, ActivityIndicator } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -10,7 +10,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { Session, User } from "@supabase/supabase-js";
 import { useShopState } from "@/constants/Shop";
-import { PlayerProfile, getPlayerElo, upsertAuthenticatedProfile } from "@/constants/Supabase";
+import { PlayerProfile, getPlayerElo, getPlayerGlobalHighScore, upsertAuthenticatedProfile } from "@/constants/Supabase";
+import { getHighScores } from "@/constants/Storage";
 import MatchHistoryList from "./MatchHistoryList";
 import FriendsList from "./FriendsList";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -40,6 +41,8 @@ export default function ProfileMenu() {
 	const [password, setPassword] = useState("");
 	const [playerName, setPlayerName] = useState("");
 	const [playerElo, setPlayerElo] = useState<number | null>(null);
+	const [classicScore, setClassicScore] = useState<number>(0);
+	const [chaosScore, setChaosScore] = useState<number>(0);
 	const [gamesPlayed, setGamesPlayed] = useState<number>(0);
 	const [errorMessage, setErrorMessage] = useState("");
 	const [authLoading, setAuthLoading] = useState(false);
@@ -48,8 +51,22 @@ export default function ProfileMenu() {
 
 	const loadProfileStats = useCallback(async (name: string, userId: string) => {
 		try {
-			const elo = await getPlayerElo(name);
+			const [
+				elo,
+				localClassicScores,
+				localChaosScores,
+				remoteClassicScore,
+				remoteChaosScore,
+			] = await Promise.all([
+				getPlayerElo(name),
+				getHighScores(GameModeType.Classic, true, true, 1),
+				getHighScores(GameModeType.Chaos, true, true, 1),
+				getPlayerGlobalHighScore(name, GameModeType.Classic),
+				getPlayerGlobalHighScore(name, GameModeType.Chaos),
+			]);
 			if (elo !== null) setPlayerElo(elo);
+			setClassicScore(Math.max(localClassicScores[0]?.score || 0, remoteClassicScore || 0));
+			setChaosScore(Math.max(localChaosScores[0]?.score || 0, remoteChaosScore || 0));
 
 			const { count, error } = await supabase
 				.from("matchmaking_rooms")
@@ -268,6 +285,14 @@ export default function ProfileMenu() {
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>Elo</Text>
 								</View>
 								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
+									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{classicScore}</Text>
+									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>Classic</Text>
+								</View>
+								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
+									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{chaosScore}</Text>
+									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>Chaos</Text>
+								</View>
+								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
 									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{gamesPlayed}</Text>
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>Matches</Text>
 								</View>
@@ -452,11 +477,11 @@ const styles = StyleSheet.create({
 		borderRadius: 4,
 		paddingHorizontal: 10,
 		marginBottom: 10,
-		fontFamily: 'SpaceMono',
+		fontFamily: 'Silkscreen',
 	},
 	errorText: {
 		color: 'rgb(255, 100, 100)',
-		fontFamily: 'SpaceMono',
+		fontFamily: 'Silkscreen',
 		fontSize: 12,
 		marginBottom: 10,
 		textAlign: 'center',

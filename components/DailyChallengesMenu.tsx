@@ -70,13 +70,13 @@ export default function DailyChallengesMenu() {
 
                 {/* Challenge 1: Daily Puzzle */}
                 <View style={[styles.challengeCard, { borderColor: currentTheme.textSecondary, backgroundColor: 'rgba(0, 0, 0, 0.2)' }]}>
-                    <Text style={[styles.cardTitle, { color: '#FFD700' }]}>📅 Daily Puzzle</Text>
+                    <Text style={[styles.cardTitle, { color: '#FFD700' }]}>Daily Puzzle</Text>
                     <Text style={[styles.cardDesc, { color: currentTheme.textPrimary }]}>
                         Play today's seeded layout! Everyone gets the same pre-filled board and sequence of pieces today.
                     </Text>
                     <View style={styles.cardFooter}>
                         <Text style={[styles.bestScoreText, { color: currentTheme.textSecondary }]}>
-                            Personal Best: <Text style={{ color: currentTheme.accent, fontWeight: 'bold' }}>{dailyBest}</Text>
+                            Personal Best: <Text style={{ color: currentTheme.accent, fontFamily: 'SilkscreenBold' }}>{dailyBest}</Text>
                         </Text>
                         <StylizedButton 
                             text={checkingMode === GameModeType.DailyPuzzle ? "Checking..." : "Play Puzzle"} 
@@ -90,13 +90,13 @@ export default function DailyChallengesMenu() {
 
                 {/* Challenge 2: Speed Game */}
                 <View style={[styles.challengeCard, { borderColor: currentTheme.textSecondary, backgroundColor: 'rgba(0, 0, 0, 0.2)' }]}>
-                    <Text style={[styles.cardTitle, { color: '#00FFCC' }]}>⚡ Speed Game</Text>
+                    <Text style={[styles.cardTitle, { color: '#00FFCC' }]}>Speed Game</Text>
                     <Text style={[styles.cardDesc, { color: currentTheme.textPrimary }]}>
                         Start with 60 seconds. Clearing lines (+5s) and scoring points extends your time!
                     </Text>
                     <View style={styles.cardFooter}>
                         <Text style={[styles.bestScoreText, { color: currentTheme.textSecondary }]}>
-                            Personal Best: <Text style={{ color: currentTheme.accent, fontWeight: 'bold' }}>{speedBest}</Text>
+                            Personal Best: <Text style={{ color: currentTheme.accent, fontFamily: 'SilkscreenBold' }}>{speedBest}</Text>
                         </Text>
                         <StylizedButton 
                             text={checkingMode === GameModeType.TimeAttack ? "Checking..." : "Play Speed"} 
@@ -142,8 +142,7 @@ const styles = StyleSheet.create({
     },
     cardTitle: {
         fontSize: 18,
-        fontFamily: 'Silkscreen',
-        fontWeight: 'bold',
+        fontFamily: 'SilkscreenBold',
     },
     cardDesc: {
         fontSize: 12,

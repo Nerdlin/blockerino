@@ -1,4 +1,4 @@
-import { getAudioModeOptions, getMusicTrackKey, mapSfxForPack, shouldPauseMusicForAppState } from "./Sound";
+import { getAudioModeOptions, getCustomAudioSourceInfo, getMusicTrackKey, mapSfxForPack, shouldPauseMusicForAppState } from "./Sound";
 
 jest.mock("expo-audio", () => ({
 	createAudioPlayer: jest.fn(),
@@ -41,5 +41,24 @@ describe("sound settings", () => {
 		expect(mapSfxForPack("menuClick", "sfx_retro_coin")).toBe("sfxRetroClick");
 		expect(mapSfxForPack("invalidPlacement", "sfx_metal_titan")).toBe("sfxMetalClick");
 		expect(mapSfxForPack("gameOver", "sfx_classic")).toBe("gameOver");
+	});
+
+	it("accepts external music providers without treating them as in-game streams", () => {
+		expect(getCustomAudioSourceInfo("https://www.youtube.com/watch?v=test")).toMatchObject({
+			kind: "youtube",
+			canPlayInApp: false,
+		});
+		expect(getCustomAudioSourceInfo("https://open.spotify.com/track/test")).toMatchObject({
+			kind: "spotify",
+			canPlayInApp: false,
+		});
+		expect(getCustomAudioSourceInfo("https://music.yandex.ru/album/1/track/2")).toMatchObject({
+			kind: "yandex",
+			canPlayInApp: false,
+		});
+		expect(getCustomAudioSourceInfo("https://example.com/song.mp3?token=1")).toMatchObject({
+			kind: "direct",
+			canPlayInApp: true,
+		});
 	});
 });

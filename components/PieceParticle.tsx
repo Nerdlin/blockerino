@@ -1,7 +1,6 @@
 import { getRandomPiece } from "@/constants/Piece";
-import React from "react";
-import { useEffect, useState } from "react";
-import { Dimensions } from "react-native";
+import React, { useEffect, useMemo } from "react";
+import { useWindowDimensions } from "react-native";
 import Animated, { useSharedValue, withRepeat, withSequence, withDelay, withTiming, useAnimatedStyle } from "react-native-reanimated";
 import { PieceView } from "./PieceView";
 
@@ -12,25 +11,21 @@ function PieceParticleComponent({
     blockSize?: number;
     maxOpacity?: number;
 }) {
-    const [{width, height}, setWindowDimensions] = useState(Dimensions.get('window'));
-    useEffect(() => {
-        const handleResize = () => {
-            setWindowDimensions(Dimensions.get('window'));
-        };
-
-        const listener = Dimensions.addEventListener('change', handleResize);
-
-        return () => {
-            listener.remove();
-        };
-    }, []);
+    const { width, height } = useWindowDimensions();
     
-    const randomX = Math.random() * width;
-    const randomY = Math.random() * height;
-    const randomDelay = Math.random() * 5000;
+    const randomSeed = useMemo(() => ({
+        xRatio: Math.random(),
+        yRatio: Math.random(),
+        delay: Math.random() * 5000,
+        targetY: Math.random() * 50 - 150,
+        piece: getRandomPiece(),
+    }), []);
+    const randomX = randomSeed.xRatio * width;
+    const randomY = randomSeed.yRatio * height;
+    const randomDelay = randomSeed.delay;
 
     const randomTargetX = 0;
-    const randomTargetY = Math.random() * 50 - 150;
+    const randomTargetY = randomSeed.targetY;
 
     const opacity = useSharedValue(0);
     const translateXOffset = useSharedValue(0);
@@ -83,7 +78,7 @@ function PieceParticleComponent({
                 animatedStyle,
             ]}
         >
-            <PieceView piece={getRandomPiece()} blockSize={blockSize}></PieceView>
+            <PieceView piece={randomSeed.piece} blockSize={blockSize}></PieceView>
         </Animated.View>
     );
 }

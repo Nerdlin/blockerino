@@ -121,7 +121,6 @@ const styles = StyleSheet.create({
 		color: "#FFD700",
 		fontFamily: "SilkscreenBold",
 		fontSize: 32,
-		fontWeight: "bold",
 		...Platform.select({
 			web: {
 				textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)"
@@ -136,7 +135,6 @@ const styles = StyleSheet.create({
 	subText: {
 		fontFamily: "SilkscreenBold",
 		fontSize: 22,
-		fontWeight: "bold",
 		marginTop: 4,
 		textAlign: 'center',
 		...Platform.select({

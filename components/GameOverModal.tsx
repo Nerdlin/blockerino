@@ -271,10 +271,9 @@ const styles = StyleSheet.create({
     },
     scoreValue: {
         fontSize: 42,
-        fontFamily: 'Silkscreen',
+        fontFamily: 'SilkscreenBold',
         marginBottom: 8,
         textAlign: 'center',
-        fontWeight: 'bold',
     },
     coinsText: {
         fontSize: 14,

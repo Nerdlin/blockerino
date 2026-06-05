@@ -27,6 +27,12 @@ export interface AchievementRow extends AchievementDefinition {
 }
 
 const ACHIEVEMENT_STATS_KEY = "ACHIEVEMENT_STATS";
+const ACHIEVEMENT_FLUSH_DELAY_MS = 750;
+
+let cachedAchievementStats: AchievementStats | null = null;
+let pendingAchievementProgress: AchievementStats | null = null;
+let achievementFlushTimer: ReturnType<typeof setTimeout> | null = null;
+let achievementFlushQueue: Promise<void> = Promise.resolve();
 
 function getBestScore(scores: HighScore[]): number {
 	return Math.max(0, ...scores.map((score) => score.score));
@@ -63,7 +69,7 @@ function getBestScoreTotal(scores: HighScore[]): number {
 export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	{
 		id: "first_steps",
-		medal: "\u{1F949}",
+		medal: "1",
 		title: "First Steps",
 		target: 1,
 		howToUnlock: "Finish any solo game.",
@@ -71,7 +77,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "regular_player",
-		medal: "\u{1F3AE}",
+		medal: "10",
 		title: "Regular Player",
 		target: 10,
 		howToUnlock: "Finish 10 solo games.",
@@ -79,7 +85,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "marathoner",
-		medal: "\u{1F3C1}",
+		medal: "50",
 		title: "Marathoner",
 		target: 50,
 		howToUnlock: "Finish 50 solo games.",
@@ -87,7 +93,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_hunter",
-		medal: "\u{1F948}",
+		medal: "1K",
 		title: "Score Hunter",
 		target: 1000,
 		howToUnlock: "Reach 1000 points in one solo game.",
@@ -95,7 +101,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "block_master",
-		medal: "\u{1F947}",
+		medal: "5K",
 		title: "Block Master",
 		target: 5000,
 		howToUnlock: "Reach 5000 points in one solo game.",
@@ -103,7 +109,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_legend",
-		medal: "\u{1F48E}",
+		medal: "10K",
 		title: "Score Legend",
 		target: 10000,
 		howToUnlock: "Reach 10000 points in one solo game.",
@@ -111,7 +117,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "line_breaker",
-		medal: "\u{1F3C5}",
+		medal: "50L",
 		title: "Line Breaker",
 		target: 50,
 		howToUnlock: "Clear 50 rows or columns.",
@@ -119,7 +125,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "line_crusher",
-		medal: "\u{1F525}",
+		medal: "250",
 		title: "Line Crusher",
 		target: 250,
 		howToUnlock: "Clear 250 rows or columns.",
@@ -127,7 +133,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "steady_hands",
-		medal: "\u{1F396}",
+		medal: "200",
 		title: "Steady Hands",
 		target: 200,
 		howToUnlock: "Place 200 pieces.",
@@ -135,7 +141,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "piece_architect",
-		medal: "\u{1F9F1}",
+		medal: "1KP",
 		title: "Piece Architect",
 		target: 1000,
 		howToUnlock: "Place 1000 pieces.",
@@ -143,7 +149,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "comeback",
-		medal: "\u{1F3C6}",
+		medal: "+1",
 		title: "Comeback",
 		target: 1,
 		howToUnlock: "Use an extra chance once.",
@@ -151,7 +157,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "second_wind",
-		medal: "\u{1F300}",
+		medal: "+5",
 		title: "Second Wind",
 		target: 5,
 		howToUnlock: "Use 5 extra chances.",
@@ -159,7 +165,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "classic_riser",
-		medal: "\u{1F9E9}",
+		medal: "CL",
 		title: "Classic Riser",
 		target: 2500,
 		howToUnlock: "Reach 2500 points in Classic.",
@@ -167,7 +173,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "chaos_tamer",
-		medal: "\u{1F52E}",
+		medal: "CH",
 		title: "Chaos Tamer",
 		target: 1500,
 		howToUnlock: "Reach 1500 points in Chaos.",
@@ -175,7 +181,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "chaos_champion",
-		medal: "\u{1F30B}",
+		medal: "CH+",
 		title: "Chaos Champion",
 		target: 5000,
 		howToUnlock: "Reach 5000 points in Chaos.",
@@ -183,7 +189,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "speed_spark",
-		medal: "\u{26A1}",
+		medal: "SP1",
 		title: "Speed Spark",
 		target: 1000,
 		howToUnlock: "Reach 1000 points in Speed mode.",
@@ -191,7 +197,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "speed_streak",
-		medal: "\u{1F4A8}",
+		medal: "SP2",
 		title: "Speed Streak",
 		target: 2500,
 		howToUnlock: "Reach 2500 points in Speed mode.",
@@ -199,7 +205,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "daily_solver",
-		medal: "\u{1F4C5}",
+		medal: "DAY",
 		title: "Daily Solver",
 		target: 1000,
 		howToUnlock: "Reach 1000 points in Daily Puzzle.",
@@ -207,7 +213,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "mode_sampler",
-		medal: "\u{1F9ED}",
+		medal: "ALL",
 		title: "Mode Sampler",
 		target: 4,
 		howToUnlock: "Score in every solo mode.",
@@ -215,7 +221,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_collector",
-		medal: "\u{1F4B0}",
+		medal: "TOT",
 		title: "Score Collector",
 		target: 5000,
 		howToUnlock: "Build a 5000-point best-score total across modes.",
@@ -230,6 +236,54 @@ export function getDefaultAchievementStats(): AchievementStats {
 		totalPiecesPlaced: 0,
 		secondChancesUsed: 0,
 	};
+}
+
+function mergeAchievementProgress(base: AchievementStats, progress: Partial<AchievementStats>): AchievementStats {
+	return {
+		soloGamesFinished: base.soloGamesFinished + (progress.soloGamesFinished || 0),
+		totalLinesCleared: base.totalLinesCleared + (progress.totalLinesCleared || 0),
+		totalPiecesPlaced: base.totalPiecesPlaced + (progress.totalPiecesPlaced || 0),
+		secondChancesUsed: base.secondChancesUsed + (progress.secondChancesUsed || 0),
+	};
+}
+
+async function readStoredAchievementStats(): Promise<AchievementStats> {
+	try {
+		const value = await AsyncStorage.getItem(ACHIEVEMENT_STATS_KEY);
+		if (!value) return getDefaultAchievementStats();
+
+		return {
+			...getDefaultAchievementStats(),
+			...JSON.parse(value),
+		};
+	} catch (error) {
+		console.error("Error loading achievement stats:", error);
+		return getDefaultAchievementStats();
+	}
+}
+
+export async function flushAchievementProgress(): Promise<void> {
+	if (achievementFlushTimer) {
+		clearTimeout(achievementFlushTimer);
+		achievementFlushTimer = null;
+	}
+
+	if (!pendingAchievementProgress) {
+		await achievementFlushQueue;
+		return;
+	}
+
+	const progressToFlush = pendingAchievementProgress;
+	pendingAchievementProgress = null;
+
+	achievementFlushQueue = achievementFlushQueue.catch(() => undefined).then(async () => {
+		const current = cachedAchievementStats ?? await readStoredAchievementStats();
+		const next = mergeAchievementProgress(current, progressToFlush);
+		cachedAchievementStats = next;
+		await AsyncStorage.setItem(ACHIEVEMENT_STATS_KEY, JSON.stringify(next));
+	});
+
+	await achievementFlushQueue;
 }
 
 export function buildAchievementRows(scores: HighScore[], stats: AchievementStats): AchievementRow[] {
@@ -247,33 +301,26 @@ export function buildAchievementRows(scores: HighScore[], stats: AchievementStat
 }
 
 export async function getAchievementStats(): Promise<AchievementStats> {
-	try {
-		const value = await AsyncStorage.getItem(ACHIEVEMENT_STATS_KEY);
-		if (!value) return getDefaultAchievementStats();
-
-		return {
-			...getDefaultAchievementStats(),
-			...JSON.parse(value),
-		};
-	} catch (error) {
-		console.error("Error loading achievement stats:", error);
-		return getDefaultAchievementStats();
+	await flushAchievementProgress();
+	if (!cachedAchievementStats) {
+		cachedAchievementStats = await readStoredAchievementStats();
 	}
+
+	return cachedAchievementStats;
 }
 
 export async function recordAchievementProgress(progress: Partial<AchievementStats>): Promise<void> {
-	try {
-		const current = await getAchievementStats();
-		const next: AchievementStats = {
-			soloGamesFinished: current.soloGamesFinished + (progress.soloGamesFinished || 0),
-			totalLinesCleared: current.totalLinesCleared + (progress.totalLinesCleared || 0),
-			totalPiecesPlaced: current.totalPiecesPlaced + (progress.totalPiecesPlaced || 0),
-			secondChancesUsed: current.secondChancesUsed + (progress.secondChancesUsed || 0),
-		};
+	pendingAchievementProgress = mergeAchievementProgress(
+		pendingAchievementProgress ?? getDefaultAchievementStats(),
+		progress
+	);
 
-		await AsyncStorage.setItem(ACHIEVEMENT_STATS_KEY, JSON.stringify(next));
-	} catch (error) {
-		console.error("Error saving achievement stats:", error);
+	if (!achievementFlushTimer) {
+		achievementFlushTimer = setTimeout(() => {
+			void flushAchievementProgress().catch((error) => {
+				console.error("Error saving achievement stats:", error);
+			});
+		}, ACHIEVEMENT_FLUSH_DELAY_MS);
 	}
 }
 

@@ -9,6 +9,8 @@ const MUSIC_VOLUME_KEY = 'MUSIC_VOLUME';
 const SFX_VOLUME_KEY = 'SFX_VOLUME';
 const MUSIC_ENABLED_KEY = 'MUSIC_ENABLED';
 const SFX_ENABLED_KEY = 'SFX_ENABLED';
+export const CUSTOM_MUSIC_URL_KEY = 'CUSTOM_MUSIC_URL';
+export const CUSTOM_SFX_URL_KEY = 'CUSTOM_SFX_URL';
 
 // Атомы для хранения состояния звука
 export const musicVolumeAtom = atom(0.5);
@@ -65,6 +67,78 @@ type GeneratedSfxKey =
 
 type SfxAssetKey = SoundType | GeneratedSfxKey;
 type SoundAssetKey = SfxAssetKey | MusicTrackKey;
+
+export type CustomAudioSourceKind = 'empty' | 'direct' | 'youtube' | 'spotify' | 'yandex' | 'other';
+
+export interface CustomAudioSourceInfo {
+  kind: CustomAudioSourceKind;
+  canPlayInApp: boolean;
+  label: string;
+  message: string;
+  url: string;
+}
+
+const DIRECT_AUDIO_URL_PATTERN = /\.(mp3|m4a|aac|wav|ogg|oga|flac|opus|m3u8)(\?|#|$)/i;
+
+export function getCustomAudioSourceInfo(rawUrl: string): CustomAudioSourceInfo {
+  const url = rawUrl.trim();
+  if (!url) {
+    return {
+      kind: 'empty',
+      canPlayInApp: false,
+      label: 'No link',
+      message: 'Paste a music or sound link.',
+      url,
+    };
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return {
+      kind: 'other',
+      canPlayInApp: false,
+      label: 'Invalid link',
+      message: 'Use a full https:// link.',
+      url,
+    };
+  }
+
+  const host = parsed.hostname.toLowerCase();
+  const provider =
+    host.includes('youtube.com') || host.includes('youtu.be')
+      ? 'youtube'
+      : host.includes('spotify.com')
+        ? 'spotify'
+        : host.includes('music.yandex') || host.includes('yandex.')
+          ? 'yandex'
+          : null;
+
+  if (provider) {
+    const label = provider === 'youtube' ? 'YouTube' : provider === 'spotify' ? 'Spotify' : 'Yandex Music';
+    return {
+      kind: provider,
+      canPlayInApp: false,
+      label,
+      message: `${label} link saved. Open it outside the game; in-game playback needs a direct audio stream.`,
+      url,
+    };
+  }
+
+  const isHttpAudio = (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
+    (DIRECT_AUDIO_URL_PATTERN.test(parsed.pathname) || DIRECT_AUDIO_URL_PATTERN.test(parsed.href));
+
+  return {
+    kind: isHttpAudio ? 'direct' : 'other',
+    canPlayInApp: isHttpAudio,
+    label: isHttpAudio ? 'Direct audio' : 'Saved link',
+    message: isHttpAudio
+      ? 'Direct audio stream will play in game.'
+      : 'Link saved. If it is not a direct audio stream, open it outside the game.',
+    url,
+  };
+}
 
 function getMusicVolumeMultiplier(musicPackId: string): number {
   if (musicPackId.startsWith('music_lofi')) return 0.78;
@@ -179,18 +253,6 @@ const getSoundResource = (type: SoundAssetKey) => {
   }
 };
 
-// Network check for custom urls
-import * as Network from 'expo-network';
-
-async function hasInternetConnection(): Promise<boolean> {
-  try {
-    const networkState = await Network.getNetworkStateAsync();
-    return !!networkState.isConnected && networkState.isInternetReachable !== false;
-  } catch {
-    return false;
-  }
-}
-
 // Класс для управления звуковыми эффектами
 class SoundManager {
   private sounds: Map<string, AudioPlayer> = new Map();
@@ -251,39 +313,51 @@ class SoundManager {
   }
 
   // Safe load of sound file with error handling
-  private async loadSoundSafely(key: SfxAssetKey): Promise<void> {
+  private async loadSoundSafely(key: SfxAssetKey): Promise<AudioPlayer | null> {
     try {
       const soundResource = getSoundResource(key);
       if (!soundResource) {
         console.log(`Resource not found for sound "${key}"`);
-        return;
+        return null;
       }
 
       const sound = createAudioPlayer(soundResource);
       if (sound) {
         this.sounds.set(key, sound);
+        return sound;
       }
     } catch (error) {
       console.log(`Error loading sound "${key}": ${error}`);
     }
+    return null;
   }
 
-  private async loadMusicSafely(key: MusicTrackKey): Promise<void> {
+  private async loadMusicSafely(key: MusicTrackKey): Promise<AudioPlayer | null> {
     try {
       const soundResource = getSoundResource(key);
       if (!soundResource) {
         console.log(`Resource not found for music "${key}"`);
-        return;
+        return null;
       }
 
       const music = createAudioPlayer(soundResource);
       if (music) {
         music.loop = true;
         this.musicTracks.set(key, music);
+        return music;
       }
     } catch (error) {
       console.log(`Error loading music "${key}": ${error}`);
     }
+    return null;
+  }
+
+  private async getOrLoadSound(key: SfxAssetKey): Promise<AudioPlayer | null> {
+    return this.sounds.get(key) ?? await this.loadSoundSafely(key);
+  }
+
+  private async getOrLoadMusic(key: MusicTrackKey): Promise<AudioPlayer | null> {
+    return this.musicTracks.get(key) ?? await this.loadMusicSafely(key);
   }
 
   private pauseMusicTracksExcept(activeKey: MusicTrackKey) {
@@ -301,48 +375,6 @@ class SoundManager {
 
     try {
       await setAudioModeAsync(getAudioModeOptions()).catch(err => console.log('Error setting audio mode:', err));
-
-      // Load all sound effects with safe loading
-      const sfxKeys: SfxAssetKey[] = [
-        'placeBlock',
-        'breakLine',
-        'comboBreak',
-        'comboX2',
-        'comboX3',
-        'comboX4',
-        'comboX5',
-        'gameOver',
-        'menuClick',
-        'invalidPlacement',
-        'buttonHover',
-        'sfxWoodPlace',
-        'sfxWoodClear',
-        'sfxWoodClick',
-        'sfxGlassPlace',
-        'sfxGlassClear',
-        'sfxGlassClick',
-        'sfxRetroPlace',
-        'sfxRetroClear',
-        'sfxRetroClick',
-        'sfxMetalPlace',
-        'sfxMetalClear',
-        'sfxMetalClick',
-      ];
-      const soundPromises = sfxKeys.map(key => this.loadSoundSafely(key));
-
-      await Promise.all(soundPromises);
-
-      const musicKeys: MusicTrackKey[] = [
-        'backgroundMusic',
-        'musicLofi',
-        'musicArcade',
-        'musicCave',
-        'musicSpace',
-      ];
-      const musicPromises = musicKeys.map(key => this.loadMusicSafely(key));
-
-      await Promise.all(musicPromises);
-
       this.initialized = true;
     } catch (error) {
       console.error('Error initializing sounds:', error);
@@ -362,26 +394,25 @@ class SoundManager {
   async playSfx(type: SfxAssetKey, volume?: number, sfxPackId?: string) {
     try {
       if (!this.initialized) {
-        console.log('Sound system not initialized, skipping playback', type);
-        return;
+        await this.initialize();
       }
       
       if (sfxPackId === 'sfx_custom') {
-        const customUrl = await AsyncStorage.getItem("CUSTOM_SFX_URL");
-        if (customUrl) {
-          const hasNet = await hasInternetConnection();
-          if (hasNet) {
-            const customSound = createAudioPlayer(customUrl);
+        const customUrl = await AsyncStorage.getItem(CUSTOM_SFX_URL_KEY);
+        const source = getCustomAudioSourceInfo(customUrl || '');
+        if (source.canPlayInApp) {
+          try {
+            const customSound = createAudioPlayer(source.url);
             customSound.volume = volume ?? 1;
             customSound.play();
             return;
-          } else {
-            console.log("No internet for custom SFX, falling back to default");
+          } catch (error) {
+            console.log("Custom SFX could not play, falling back to default:", error);
           }
         }
       }
 
-      const sound = this.sounds.get(type);
+      const sound = await this.getOrLoadSound(type);
       if (sound) {
         sound.volume = volume ?? 1;
         sound.seekTo(0);
@@ -398,23 +429,22 @@ class SoundManager {
   async playMusic(volume?: number, musicPackId: string = 'music_classic') {
     try {
       if (!this.initialized) {
-        console.log('Background music not initialized, skipping playback');
-        return;
+        await this.initialize();
       }
 
       if (musicPackId === 'music_custom') {
-        const customUrl = await AsyncStorage.getItem("CUSTOM_MUSIC_URL");
-        if (customUrl) {
-          const hasNet = await hasInternetConnection();
-          if (hasNet) {
+        const customUrl = await AsyncStorage.getItem(CUSTOM_MUSIC_URL_KEY);
+        const source = getCustomAudioSourceInfo(customUrl || '');
+        if (source.canPlayInApp) {
+          try {
             const customKey: MusicTrackKey = 'musicCustom';
             let customMusic = this.musicTracks.get(customKey);
-            if (!customMusic || this.customMusicUrl !== customUrl) {
+            if (!customMusic || this.customMusicUrl !== source.url) {
               customMusic?.pause();
-              customMusic = createAudioPlayer(customUrl);
+              customMusic = createAudioPlayer(source.url);
               customMusic.loop = true;
               this.musicTracks.set(customKey, customMusic);
-              this.customMusicUrl = customUrl;
+              this.customMusicUrl = source.url;
               this.musicPlaying = false;
             }
 
@@ -430,17 +460,17 @@ class SoundManager {
               this.musicPlaying = true;
             }
             return;
-          } else {
-            console.log("No internet for custom music, falling back to classic");
-            musicPackId = 'music_classic'; // Fallback
+          } catch (error) {
+            console.log("Custom music could not play, falling back to classic:", error);
           }
-        } else {
-          musicPackId = 'music_classic'; // Fallback
+        } else if (source.kind !== 'empty') {
+          await this.pauseMusic();
+          return;
         }
       }
 
       const musicKey = getMusicTrackKey(musicPackId);
-      const nextMusic = this.musicTracks.get(musicKey);
+      const nextMusic = await this.getOrLoadMusic(musicKey);
       if (!nextMusic) return;
 
       if (musicKey !== this.currentMusicKey) {

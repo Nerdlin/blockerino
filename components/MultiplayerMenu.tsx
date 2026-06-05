@@ -966,11 +966,11 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                             <Text style={[styles.eloLBRank, { color: currentTheme.textPrimary, flex: 0.4 }]}>
                                                 {index + 1}
                                             </Text>
-                                            <Text style={[styles.eloLBName, { 
-                                                color: currentTheme.textPrimary, 
-                                                flex: 2,
-                                                fontWeight: isMe ? 'bold' : 'normal'
-                                            }]} numberOfLines={1}>
+                                             <Text style={[styles.eloLBName, { 
+                                                 color: currentTheme.textPrimary, 
+                                                 flex: 2,
+                                                 fontFamily: isMe ? 'SilkscreenBold' : 'Silkscreen',
+                                             }]} numberOfLines={1}>
                                                 {entry.player_name}{isMe ? ' (You)' : ''}
                                             </Text>
                                             <View style={[styles.eloLBBadge, { backgroundColor: badge.color, flex: 0.8, alignSelf: 'center' }]}>
@@ -1081,8 +1081,7 @@ const styles = StyleSheet.create({
     eloBadgeText: {
         color: '#000',
         fontSize: 10,
-        fontFamily: 'Silkscreen',
-        fontWeight: 'bold'
+        fontFamily: 'SilkscreenBold',
     },
     eloText: {
         fontSize: 11,
@@ -1224,8 +1223,7 @@ const styles = StyleSheet.create({
     },
     codeText: {
         fontSize: 32,
-        fontFamily: 'Silkscreen',
-        fontWeight: 'bold',
+        fontFamily: 'SilkscreenBold',
         letterSpacing: 2
     },
     eloCardButton: {
@@ -1241,8 +1239,7 @@ const styles = StyleSheet.create({
     },
     eloCardTier: {
         fontSize: 16,
-        fontFamily: 'Silkscreen',
-        fontWeight: 'bold',
+        fontFamily: 'SilkscreenBold',
     },
     eloCardValue: {
         fontSize: 13,
@@ -1280,8 +1277,7 @@ const styles = StyleSheet.create({
     },
     eloDetailTier: {
         fontSize: 22,
-        fontFamily: 'Silkscreen',
-        fontWeight: 'bold',
+        fontFamily: 'SilkscreenBold',
     },
     eloDetailValue: {
         fontSize: 18,
@@ -1322,8 +1318,7 @@ const styles = StyleSheet.create({
     },
     eloTierName: {
         fontSize: 14,
-        fontFamily: 'Silkscreen',
-        fontWeight: 'bold',
+        fontFamily: 'SilkscreenBold',
     },
     eloTierRange: {
         fontSize: 11,
@@ -1341,8 +1336,7 @@ const styles = StyleSheet.create({
     },
     eloInfoTitle: {
         fontSize: 14,
-        fontFamily: 'Silkscreen',
-        fontWeight: 'bold',
+        fontFamily: 'SilkscreenBold',
         marginBottom: 6,
     },
     eloInfoText: {
@@ -1365,15 +1359,13 @@ const styles = StyleSheet.create({
     eloLeaderboardBtnText: {
         flex: 1,
         fontSize: 14,
-        fontFamily: 'Silkscreen',
-        fontWeight: 'bold',
+        fontFamily: 'SilkscreenBold',
         marginLeft: 10,
     },
     eloLeaderboardIcon: {
         minWidth: 34,
         fontSize: 11,
-        fontFamily: 'Silkscreen',
-        fontWeight: 'bold',
+        fontFamily: 'SilkscreenBold',
         color: '#FFD700',
         textAlign: 'center',
     },
@@ -1412,8 +1404,7 @@ const styles = StyleSheet.create({
     },
     eloLBHText: {
         fontSize: 11,
-        fontFamily: 'Silkscreen',
-        fontWeight: 'bold',
+        fontFamily: 'SilkscreenBold',
     },
     eloLeaderboardList: {
         width: '95%',
@@ -1446,12 +1437,10 @@ const styles = StyleSheet.create({
     eloLBBadgeText: {
         color: '#000',
         fontSize: 9,
-        fontFamily: 'Silkscreen',
-        fontWeight: 'bold',
+        fontFamily: 'SilkscreenBold',
     },
     eloLBValue: {
         fontSize: 13,
-        fontFamily: 'Silkscreen',
-        fontWeight: 'bold',
+        fontFamily: 'SilkscreenBold',
     }
 });
