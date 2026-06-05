@@ -74,8 +74,20 @@ export default function ShopMenu() {
 			isMobile && { width: "94%", height: "88%" },
 		]}>
 			<View style={styles.header}>
-				<Text style={[styles.title, { color: currentTheme.textPrimary }]}>Shop</Text>
-				<Text style={[styles.balance, { color: currentTheme.accent }]}>Coins: {state.balance}</Text>
+				<View style={styles.topBar}>
+					<StylizedButton
+						text="Back"
+						onClick={close}
+						backgroundColor={currentTheme.buttonSecondary}
+						style={styles.topBackButton}
+						textStyle={styles.topBackButtonText}
+					/>
+					<View style={styles.headerTitleBlock}>
+						<Text style={[styles.title, { color: currentTheme.textPrimary }]}>Shop</Text>
+						<Text style={[styles.balance, { color: currentTheme.accent }]}>Coins: {state.balance}</Text>
+					</View>
+					<View style={styles.topBarSpacer} />
+				</View>
 				<Text style={[styles.caption, { color: currentTheme.textSecondary }]}>{message}</Text>
 			</View>
 
@@ -244,6 +256,30 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: 6,
 		marginBottom: 12,
+	},
+	topBar: {
+		width: "100%",
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		gap: 8,
+	},
+	headerTitleBlock: {
+		flex: 1,
+		alignItems: "center",
+	},
+	topBackButton: {
+		minWidth: 74,
+		minHeight: 30,
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		margin: 0,
+	},
+	topBackButtonText: {
+		fontSize: 10,
+	},
+	topBarSpacer: {
+		width: 74,
 	},
 	title: {
 		fontFamily: "Silkscreen",

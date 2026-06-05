@@ -634,16 +634,16 @@ export function getBackgroundParticleConfig(itemId: string, isGameplayActive: bo
 	const scene = getBackgroundScene(itemId);
 	if (scene === "classic") {
 		return {
-			count: isGameplayActive ? 0 : 8,
+			count: isGameplayActive ? 4 : 8,
 			blockSize: isGameplayActive ? 14 : 22,
-			maxOpacity: isGameplayActive ? 0 : 0.65,
+			maxOpacity: isGameplayActive ? 0.32 : 0.65,
 		};
 	}
 
 	return {
-		count: 0,
-		blockSize: isGameplayActive ? 18 : 22,
-		maxOpacity: 0,
+		count: isGameplayActive ? 3 : 6,
+		blockSize: isGameplayActive ? 14 : 22,
+		maxOpacity: isGameplayActive ? 0.26 : 0.48,
 	};
 }
 

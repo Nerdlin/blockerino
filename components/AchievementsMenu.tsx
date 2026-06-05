@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View, useWindowDimensions, Pressable } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, Text, View, useWindowDimensions, Pressable } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { useTheme } from "@/constants/Theme";
@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
 	},
 	medalText: {
 		width: "100%",
-		fontFamily: "SilkscreenBold",
-		fontSize: 10,
+		fontFamily: Platform.select({ web: "system-ui, Apple Color Emoji, Segoe UI Emoji, sans-serif" }),
+		fontSize: 18,
 		textAlign: "center",
 	},
 	titleBlock: {

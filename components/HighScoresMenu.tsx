@@ -13,6 +13,8 @@ import { normalizePlayerName } from "@/constants/Multiplayer";
 import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
 import { useShopState } from "@/constants/Shop";
 
+const LEADERBOARD_LIMIT = 100;
+
 export default function HighScores() {
     const { width, height } = useWindowDimensions();
     const isMobile = width < 600 || height < 700;
@@ -65,8 +67,8 @@ export default function HighScores() {
 
         try {
             const [localScores, remoteScores] = await Promise.all([
-                getHighScores(gameMode, true, true, 10),
-                getGlobalHighScores(gameMode, 10)
+                getHighScores(gameMode, true, true, LEADERBOARD_LIMIT),
+                getGlobalHighScores(gameMode, LEADERBOARD_LIMIT)
             ]);
 
             if (!isMounted.current) return;
@@ -198,7 +200,7 @@ export default function HighScores() {
             </Text>
         )}
         <Text style={[styles.header, { color: currentTheme.textPrimary }, isMobile && { fontSize: 22 }]}>
-            {"Global Leaderboard (Top 10)"}
+            {"Global Leaderboard (Top 100)"}
         </Text>
         <View style={styles.leaderboardMetaRow}>
             <Text style={[styles.subHeader, styles.leaderboardSortText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 16 }]}>

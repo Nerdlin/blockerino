@@ -16,6 +16,7 @@ import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
 import { submitEloRatingOrQueue, submitGlobalHighScoreOrQueue } from '@/constants/OfflineSync';
+import { recordLocalMatchHistory } from '@/constants/MatchHistory';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScorePopup } from './ScorePopup';
 import { useSoundSettings } from '@/constants/Sound';
@@ -254,9 +255,9 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
             })
             .eq('id', roomId);
 
-        if (!error && roomInfo && myRole === 'player1') {
+        if (!error && roomInfo) {
             const winnerId = winnerRole === 'player1' ? roomInfo.player1_id : (winnerRole === 'player2' ? roomInfo.player2_id : null);
-            await supabase.from('match_history').insert({
+            const historyEntry = {
                 room_id: roomId,
                 player1_id: roomInfo.player1_id,
                 player2_id: roomInfo.player2_id,
@@ -264,8 +265,19 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 player1_score: score.value,
                 player2_score: opponentScoreRef.current,
                 player1_elo_change: 0,
-                player2_elo_change: 0
-            });
+                player2_elo_change: 0,
+            };
+
+            if (isActivePlayerRole(myRole)) {
+                await recordLocalMatchHistory(historyEntry);
+            }
+
+            if (myRole === 'player1') {
+                const { error: historyError } = await supabase.from('match_history').insert(historyEntry);
+                if (historyError) {
+                    console.error('Error saving match history:', historyError);
+                }
+            }
         }
 
         if (error) {

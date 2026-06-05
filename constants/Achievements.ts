@@ -69,7 +69,7 @@ function getBestScoreTotal(scores: HighScore[]): number {
 export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	{
 		id: "first_steps",
-		medal: "1",
+		medal: "👣",
 		title: "First Steps",
 		target: 1,
 		howToUnlock: "Finish any solo game.",
@@ -77,7 +77,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "regular_player",
-		medal: "10",
+		medal: "🎮",
 		title: "Regular Player",
 		target: 10,
 		howToUnlock: "Finish 10 solo games.",
@@ -85,7 +85,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "marathoner",
-		medal: "50",
+		medal: "🏃",
 		title: "Marathoner",
 		target: 50,
 		howToUnlock: "Finish 50 solo games.",
@@ -93,7 +93,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_hunter",
-		medal: "1K",
+		medal: "🎯",
 		title: "Score Hunter",
 		target: 1000,
 		howToUnlock: "Reach 1000 points in one solo game.",
@@ -101,7 +101,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "block_master",
-		medal: "5K",
+		medal: "🧱",
 		title: "Block Master",
 		target: 5000,
 		howToUnlock: "Reach 5000 points in one solo game.",
@@ -109,7 +109,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_legend",
-		medal: "10K",
+		medal: "🏆",
 		title: "Score Legend",
 		target: 10000,
 		howToUnlock: "Reach 10000 points in one solo game.",
@@ -117,7 +117,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "line_breaker",
-		medal: "50L",
+		medal: "⚡",
 		title: "Line Breaker",
 		target: 50,
 		howToUnlock: "Clear 50 rows or columns.",
@@ -125,7 +125,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "line_crusher",
-		medal: "250",
+		medal: "💥",
 		title: "Line Crusher",
 		target: 250,
 		howToUnlock: "Clear 250 rows or columns.",
@@ -133,7 +133,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "steady_hands",
-		medal: "200",
+		medal: "✋",
 		title: "Steady Hands",
 		target: 200,
 		howToUnlock: "Place 200 pieces.",
@@ -141,7 +141,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "piece_architect",
-		medal: "1KP",
+		medal: "🏗️",
 		title: "Piece Architect",
 		target: 1000,
 		howToUnlock: "Place 1000 pieces.",
@@ -149,7 +149,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "comeback",
-		medal: "+1",
+		medal: "🔁",
 		title: "Comeback",
 		target: 1,
 		howToUnlock: "Use an extra chance once.",
@@ -157,7 +157,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "second_wind",
-		medal: "+5",
+		medal: "🍃",
 		title: "Second Wind",
 		target: 5,
 		howToUnlock: "Use 5 extra chances.",
@@ -165,7 +165,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "classic_riser",
-		medal: "CL",
+		medal: "🎲",
 		title: "Classic Riser",
 		target: 2500,
 		howToUnlock: "Reach 2500 points in Classic.",
@@ -173,7 +173,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "chaos_tamer",
-		medal: "CH",
+		medal: "🌀",
 		title: "Chaos Tamer",
 		target: 1500,
 		howToUnlock: "Reach 1500 points in Chaos.",
@@ -181,7 +181,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "chaos_champion",
-		medal: "CH+",
+		medal: "🌪️",
 		title: "Chaos Champion",
 		target: 5000,
 		howToUnlock: "Reach 5000 points in Chaos.",
@@ -189,7 +189,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "speed_spark",
-		medal: "SP1",
+		medal: "⚡",
 		title: "Speed Spark",
 		target: 1000,
 		howToUnlock: "Reach 1000 points in Speed mode.",
@@ -197,7 +197,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "speed_streak",
-		medal: "SP2",
+		medal: "🚀",
 		title: "Speed Streak",
 		target: 2500,
 		howToUnlock: "Reach 2500 points in Speed mode.",
@@ -205,7 +205,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "daily_solver",
-		medal: "DAY",
+		medal: "📅",
 		title: "Daily Solver",
 		target: 1000,
 		howToUnlock: "Reach 1000 points in Daily Puzzle.",
@@ -213,7 +213,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "mode_sampler",
-		medal: "ALL",
+		medal: "🧩",
 		title: "Mode Sampler",
 		target: 4,
 		howToUnlock: "Score in every solo mode.",
@@ -221,7 +221,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_collector",
-		medal: "TOT",
+		medal: "💰",
 		title: "Score Collector",
 		target: 5000,
 		howToUnlock: "Build a 5000-point best-score total across modes.",

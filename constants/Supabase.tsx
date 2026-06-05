@@ -1,11 +1,32 @@
-import { createClient, User } from '@supabase/supabase-js';
+import 'react-native-url-polyfill/auto';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState, Platform } from 'react-native';
+import { createClient, processLock, User } from '@supabase/supabase-js';
 import { getStaleRoomCutoffs, ROOM_CLEANUP_RPC } from './Multiplayer';
 
 // Supabase configuration
-const SUPABASE_URL = 'https://ptcglecvavdvpxadqfqd.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0Y2dsZWN2YXZkdnB4YWRxZnFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDExODAsImV4cCI6MjA5NTcxNzE4MH0.ZL-xsoBqBTbcgZ-ZETyKzFtrJad0QgiSftBuDV5s_fE';
+export const SUPABASE_URL = 'https://ptcglecvavdvpxadqfqd.supabase.co';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0Y2dsZWN2YXZkdnB4YWRxZnFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDExODAsImV4cCI6MjA5NTcxNzE4MH0.ZL-xsoBqBTbcgZ-ZETyKzFtrJad0QgiSftBuDV5s_fE';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+        ...(Platform.OS !== 'web' ? { storage: AsyncStorage } : {}),
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: Platform.OS === 'web',
+        lock: processLock,
+    },
+});
+
+if (Platform.OS !== 'web') {
+    AppState.addEventListener('change', (state) => {
+        if (state === 'active') {
+            supabase.auth.startAutoRefresh();
+        } else {
+            supabase.auth.stopAutoRefresh();
+        }
+    });
+}
 
 export interface PlayerProfile {
     id: string;

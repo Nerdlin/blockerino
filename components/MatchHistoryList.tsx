@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { supabase } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
+import { getLocalMatchHistory, StoredMatchHistoryItem } from '@/constants/MatchHistory';
 
-interface MatchHistoryItem {
+interface MatchHistoryItem extends StoredMatchHistoryItem {
     id: string;
     winner_id: string | null;
     player1_id: string;
@@ -15,6 +16,19 @@ interface MatchHistoryItem {
     created_at: string;
 }
 
+function mergeMatchHistory(remote: MatchHistoryItem[], local: StoredMatchHistoryItem[]): MatchHistoryItem[] {
+    const byKey = new Map<string, MatchHistoryItem>();
+
+    [...local, ...remote].forEach((match) => {
+        const key = match.room_id || match.id;
+        byKey.set(key, match as MatchHistoryItem);
+    });
+
+    return [...byKey.values()]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 20);
+}
+
 export default function MatchHistoryList({ userId }: { userId: string }) {
     const { currentTheme } = useTheme();
     const [history, setHistory] = useState<MatchHistoryItem[]>([]);
@@ -23,15 +37,21 @@ export default function MatchHistoryList({ userId }: { userId: string }) {
     useEffect(() => {
         let isMounted = true;
         const fetchHistory = async () => {
-            const { data, error } = await supabase
-                .from('match_history')
-                .select('*')
-                .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
-                .order('created_at', { ascending: false })
-                .limit(20);
+            const [localHistory, remoteResult] = await Promise.all([
+                getLocalMatchHistory(userId),
+                supabase
+                    .from('match_history')
+                    .select('*')
+                    .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
+                    .order('created_at', { ascending: false })
+                    .limit(20),
+            ]);
 
-            if (!error && data && isMounted) {
-                setHistory(data as MatchHistoryItem[]);
+            if (isMounted) {
+                const remoteHistory = !remoteResult.error && remoteResult.data
+                    ? remoteResult.data as MatchHistoryItem[]
+                    : [];
+                setHistory(mergeMatchHistory(remoteHistory, localHistory));
             }
             if (isMounted) setLoading(false);
         };

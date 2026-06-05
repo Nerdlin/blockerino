@@ -139,7 +139,7 @@ describe("shop catalog and wallet", () => {
 		const classic = getBackgroundParticleConfig("background_classic", false);
 		const ender = getBackgroundParticleConfig("background_ender", false);
 
-		expect(ender.count).toBe(0);
+		expect(ender.count).toBeGreaterThan(0);
 		expect(ender.count).toBeLessThan(classic.count);
 		expect(ender.maxOpacity).toBeLessThan(classic.maxOpacity);
 	});

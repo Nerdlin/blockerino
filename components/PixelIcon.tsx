@@ -1,6 +1,6 @@
 import { StyleSheet, View } from "react-native";
 
-type PixelIconName = "medal" | "gear";
+type PixelIconName = "medal" | "gear" | "crown";
 
 const ICONS: Record<PixelIconName, string[]> = {
 	medal: [
@@ -20,6 +20,15 @@ const ICONS: Record<PixelIconName, string[]> = {
 		"0111110",
 		"1111111",
 		"1010101",
+	],
+	crown: [
+		"1000001",
+		"1101011",
+		"1111111",
+		"0111110",
+		"0111110",
+		"1111111",
+		"0111110",
 	],
 };
 

@@ -201,14 +201,18 @@ export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score:
 	});
 
 	return <>
-		<Text style={[
+		<View style={[
 			styles.highScoreLabel,
 			isMobile && {
-				fontSize: 22,
 				top: 15,
 				left: 15
 			}
-		]}>{"BEST " + Math.max(scoreState, highestScore)}</Text>
+		]}>
+			<PixelIcon name="crown" size={isMobile ? 24 : 34} color="#F0AF0C" secondaryColor="#FFE68A" />
+			<Text style={[styles.highScoreText, isMobile && { fontSize: 22 }]}>
+				{Math.max(scoreState, highestScore)}
+			</Text>
+		</View>
 		<SettingsButton isMobile={isMobile}></SettingsButton>
 	</>
 }
@@ -251,12 +255,18 @@ const styles = StyleSheet.create({
 		right: 50
 	},
 	highScoreLabel: {
+		position: 'absolute',
+		top: 50,
+		left: 50,
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+		zIndex: 1000,
+	},
+	highScoreText: {
 		color: 'rgb(240, 175, 12)',
 		fontFamily: 'Silkscreen',
 		fontSize: 35,
-		position: 'absolute',
-		top: 50,
-		left: 50
 	},
 	hudContainer: {
 		width: '100%',

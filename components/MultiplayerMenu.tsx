@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import { StyleSheet, Text, View, TextInput, ActivityIndicator, Clipboard, useWindowDimensions, ScrollView, Pressable } from "react-native";
+import { StyleSheet, Text, View, TextInput, ActivityIndicator, Clipboard, useWindowDimensions, ScrollView, Pressable, Platform } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { GameModeType, useAppState } from "@/hooks/useAppState";
@@ -19,22 +19,22 @@ interface MultiplayerMenuProps {
 const NAME_REQUIRED_MESSAGE = "Enter a nickname to play multiplayer.";
 const NAME_READY_MESSAGE = "Nickname set. You can play now!";
 
-export function getEloBadge(elo: number): { tier: string; color: string } {
-    if (elo < 800) return { tier: "Bronze", color: "#CD7F32" };
-    if (elo < 1000) return { tier: "Silver", color: "#C0C0C0" };
-    if (elo < 1200) return { tier: "Gold", color: "#FFD700" };
-    if (elo < 1400) return { tier: "Diamond", color: "#00BFFF" };
-    if (elo < 1600) return { tier: "Master", color: "#DA70D6" };
-    return { tier: "Legend", color: "#FF4500" };
+export function getEloBadge(elo: number): { tier: string; color: string; icon: string } {
+    if (elo < 800) return { tier: "Bronze", color: "#CD7F32", icon: "🥉" };
+    if (elo < 1000) return { tier: "Silver", color: "#C0C0C0", icon: "🥈" };
+    if (elo < 1200) return { tier: "Gold", color: "#FFD700", icon: "🥇" };
+    if (elo < 1400) return { tier: "Diamond", color: "#00BFFF", icon: "💎" };
+    if (elo < 1600) return { tier: "Master", color: "#DA70D6", icon: "⭐" };
+    return { tier: "Legend", color: "#FF4500", icon: "👑" };
 }
 
 const ELO_TIERS = [
-    { tier: "Bronze", color: "#CD7F32", icon: "B", min: 0, max: 800 },
-    { tier: "Silver", color: "#C0C0C0", icon: "S", min: 800, max: 1000 },
-    { tier: "Gold", color: "#FFD700", icon: "G", min: 1000, max: 1200 },
-    { tier: "Diamond", color: "#00BFFF", icon: "D", min: 1200, max: 1400 },
-    { tier: "Master", color: "#DA70D6", icon: "M", min: 1400, max: 1600 },
-    { tier: "Legend", color: "#FF4500", icon: "L", min: 1600, max: 2000 },
+    { tier: "Bronze", color: "#CD7F32", icon: "🥉", min: 0, max: 800 },
+    { tier: "Silver", color: "#C0C0C0", icon: "🥈", min: 800, max: 1000 },
+    { tier: "Gold", color: "#FFD700", icon: "🥇", min: 1000, max: 1200 },
+    { tier: "Diamond", color: "#00BFFF", icon: "💎", min: 1200, max: 1400 },
+    { tier: "Master", color: "#DA70D6", icon: "⭐", min: 1400, max: 1600 },
+    { tier: "Legend", color: "#FF4500", icon: "👑", min: 1600, max: 2000 },
 ];
 
 function getEloDetails(elo: number) {
@@ -664,7 +664,10 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         <View style={styles.eloBadgeContainer}>
                             <Text style={[styles.eloLabel, { color: currentTheme.textSecondary }]}>ELO Rating:</Text>
                             <View style={[styles.eloBadge, { backgroundColor: getEloBadge(playerElo).color }]}>
-                                <Text style={styles.eloBadgeText}>{getEloBadge(playerElo).tier}</Text>
+                                <View style={styles.eloBadgeContent}>
+                                    <Text style={styles.eloBadgeIcon}>{getEloBadge(playerElo).icon}</Text>
+                                    <Text style={styles.eloBadgeText}>{getEloBadge(playerElo).tier}</Text>
+                                </View>
                             </View>
                             <Text style={[styles.eloText, { color: currentTheme.textPrimary }]}>{playerElo} ELO</Text>
                         </View>
@@ -828,7 +831,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                 return (
                                     <>
                                         <View style={styles.eloCardRow}>
-                                            <Text style={{ fontSize: 20 }}>{details.currentTier.icon}</Text>
+                                            <Text style={[styles.eloEmojiText, { fontSize: 20 }]}>{details.currentTier.icon}</Text>
                                             <View style={{ flex: 1, marginLeft: 8 }}>
                                                 <Text style={[styles.eloCardTier, { color: details.currentTier.color }]}>
                                                     {details.currentTier.tier}
@@ -845,7 +848,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                         </View>
                                         {details.nextTier && (
                                             <Text style={styles.eloCardNext}>
-                                                {details.nextTier.min - playerElo} to {details.nextTier.tier} {details.nextTier.icon}
+                                                {details.nextTier.min - playerElo} to {details.nextTier.tier} <Text style={styles.inlineEmojiText}>{details.nextTier.icon}</Text>
                                             </Text>
                                         )}
                                     </>
@@ -863,7 +866,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     <View style={styles.eloScreenHeader}>
                         <Text style={[styles.header, { color: currentTheme.textPrimary, marginBottom: 5 }]}>My Rating</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <Text style={{ fontSize: 40 }}>{getEloDetails(playerElo).currentTier.icon}</Text>
+                            <Text style={[styles.eloEmojiText, { fontSize: 40 }]}>{getEloDetails(playerElo).currentTier.icon}</Text>
                             <View>
                                 <Text style={[styles.eloDetailTier, { color: getEloBadge(playerElo).color }]}>
                                     {getEloBadge(playerElo).tier}
@@ -897,7 +900,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                     styles.eloTierRow,
                                     isCurrent && { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: tierInfo.color }
                                 ]}>
-                                    <Text style={{ fontSize: 24 }}>{tierInfo.icon}</Text>
+                                    <Text style={[styles.eloEmojiText, { fontSize: 24 }]}>{tierInfo.icon}</Text>
                                     <View style={{ flex: 1, marginLeft: 10 }}>
                                         <Text style={[styles.eloTierName, { color: isCurrent ? tierInfo.color : currentTheme.textPrimary }]}>
                                             {tierInfo.tier}{isCurrent ? ' (You are here)' : ''}
@@ -974,7 +977,10 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                                 {entry.player_name}{isMe ? ' (You)' : ''}
                                             </Text>
                                             <View style={[styles.eloLBBadge, { backgroundColor: badge.color, flex: 0.8, alignSelf: 'center' }]}>
-                                                <Text style={styles.eloLBBadgeText}>{badge.tier}</Text>
+                                                <View style={styles.eloLBBadgeContent}>
+                                                    <Text style={styles.eloLBBadgeIcon}>{badge.icon}</Text>
+                                                    <Text style={styles.eloLBBadgeText}>{badge.tier}</Text>
+                                                </View>
                                             </View>
                                             <Text style={[styles.eloLBValue, { color: currentTheme.textPrimary, flex: 0.8, textAlign: 'right' }]}>
                                                 {entry.elo}
@@ -1078,10 +1084,27 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         marginBottom: 2
     },
+    eloBadgeContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 3,
+    },
+    eloBadgeIcon: {
+        fontSize: 11,
+        fontFamily: Platform.select({ web: "system-ui, Apple Color Emoji, Segoe UI Emoji, sans-serif" }),
+        lineHeight: 14,
+    },
     eloBadgeText: {
         color: '#000',
         fontSize: 10,
         fontFamily: 'SilkscreenBold',
+    },
+    eloEmojiText: {
+        fontFamily: Platform.select({ web: "system-ui, Apple Color Emoji, Segoe UI Emoji, sans-serif" }),
+    },
+    inlineEmojiText: {
+        fontFamily: Platform.select({ web: "system-ui, Apple Color Emoji, Segoe UI Emoji, sans-serif" }),
     },
     eloText: {
         fontSize: 11,
@@ -1433,6 +1456,18 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
         borderRadius: 3,
         alignItems: 'center',
+    },
+    eloLBBadgeContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 3,
+    },
+    eloLBBadgeIcon: {
+        color: '#000',
+        fontSize: 10,
+        fontFamily: Platform.select({ web: "system-ui, Apple Color Emoji, Segoe UI Emoji, sans-serif" }),
+        lineHeight: 12,
     },
     eloLBBadgeText: {
         color: '#000',
