@@ -53,14 +53,21 @@ export function ScorePopup({ points, x, y, onComplete }: ScorePopupProps) {
 		onCompleteRef.current = onComplete;
 	}, [onComplete]);
 
+	// Wrap in a JS function so we don't pass the ref to the worklet
+	const handleComplete = () => {
+		if (onCompleteRef.current) {
+			onCompleteRef.current();
+		}
+	};
+
 	useEffect(() => {
 		// Анимация появления и исчезновения
 		opacity.value = withSequence(
 			withTiming(1, { duration: 100 }),
 			withTiming(1, { duration: 800 }),
 			withTiming(0, { duration: 300 }, (isFinished) => {
-				if (isFinished && onCompleteRef.current) {
-					runOnJS(onCompleteRef.current)();
+				if (isFinished) {
+					runOnJS(handleComplete)();
 				}
 			})
 		);
