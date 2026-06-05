@@ -2,6 +2,7 @@ import {
 	StyleSheet,
 	LogBox,
 	AppState,
+	Platform,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
@@ -48,7 +49,7 @@ configureReanimatedLogger({
 });
 
 export default function App() {
-	const { initialize: initSounds } = useSoundSettings();
+	const { initialize: initSounds } = useSoundSettings({ manageMusicPlayback: true });
 	useShopBootstrap();
 	const shopState = useAtomValue(shopStateAtom);
 
@@ -64,6 +65,7 @@ export default function App() {
 	const [ savedGame, setSavedGame ] = useState<SavedGameState | null>(null);
 	const [ showContinueModal, setShowContinueModal ] = useState(false);
 	const [ multiplayerConnectionReady, setMultiplayerConnectionReady ] = useState(false);
+	const [ clientEffectsReady, setClientEffectsReady ] = useState(Platform.OS !== "web");
 
 	// Multiplayer States
 	const [ multiplayerRoomId, setMultiplayerRoomId ] = useAtom(multiplayerRoomIdAtom);
@@ -88,6 +90,12 @@ export default function App() {
 	}, []);
 
 	useEffect(() => {
+		if (Platform.OS === "web") {
+			setClientEffectsReady(true);
+		}
+	}, []);
+
+	useEffect(() => {
 		const subscription = AppState.addEventListener("change", (nextAppState) => {
 			if (shouldPauseMusicForAppState(nextAppState)) {
 				soundManager.pauseMusic();
@@ -103,7 +111,7 @@ export default function App() {
 		}
 	}, [currentAppState]);
 
-	if (!loaded) return null;
+	if (Platform.OS !== "web" && !loaded) return null;
 
 	const gameModeSearch = appState?.containsGameMode();
 	const gameMode = gameModeSearch ? gameModeSearch.current as GameModeType : undefined;
@@ -150,7 +158,7 @@ export default function App() {
 		<StatusBar style="light" backgroundColor="#050510" translucent={false} />
 		<Animated.View entering={FadeIn} exiting={FadeOut} style={styles.container}>
 			<AnimatedBackground isGameplayActive={isGameplayActive} />
-			{[...Array(particleConfig.count)].map((_, i) => (
+			{clientEffectsReady && [...Array(particleConfig.count)].map((_, i) => (
 				<PieceParticle
 					key={`particle${i}-${isGameplayActive ? 'game' : 'menu'}`}
 					blockSize={particleConfig.blockSize}

@@ -23,10 +23,10 @@ describe("shop catalog and wallet", () => {
 	it("offers expanded cosmetic variants without duplicate ids", () => {
 		const ids = SHOP_ITEMS.map((item) => item.id);
 		expect(new Set(ids).size).toBe(ids.length);
-		expect(getShopItemsByCategory("piece_skin").filter((item) => !item.secret)).toHaveLength(25);
-		expect(getShopItemsByCategory("background").filter((item) => !item.secret)).toHaveLength(25);
-		expect(getShopItemsByCategory("music").filter((item) => !item.secret)).toHaveLength(25);
-		expect(getShopItemsByCategory("sfx").filter((item) => !item.secret)).toHaveLength(25);
+		expect(getShopItemsByCategory("piece_skin").filter((item) => !item.secret)).toHaveLength(35);
+		expect(getShopItemsByCategory("background").filter((item) => !item.secret)).toHaveLength(35);
+		expect(getShopItemsByCategory("music").filter((item) => !item.secret)).toHaveLength(35);
+		expect(getShopItemsByCategory("sfx").filter((item) => !item.secret)).toHaveLength(35);
 	});
 
 	it("starts with free classic cosmetics already owned and equipped", () => {
@@ -130,6 +130,35 @@ describe("shop catalog and wallet", () => {
 		expect(merged.ownedItemIds).toEqual(expect.arrayContaining(["piece_minecraft", "background_ender", "music_arcade"]));
 		expect(merged.equipped.piece_skin).toBe("piece_minecraft");
 		expect(merged.equipped.background).toBe("background_classic");
+	});
+
+	it("allows remote profile coin edits to override a clean local cache", () => {
+		const local = normalizeShopState({
+			...createDefaultShopState(),
+			balance: 125,
+			pendingProfileSync: false,
+			updatedAt: 5000,
+		});
+
+		const merged = mergeShopStates(local, {
+			balance: 777,
+			ownedItemIds: ["background_ender"],
+			equipped: {
+				piece_skin: "piece_classic",
+				background: "background_ender",
+				music: "music_classic",
+				sfx: "sfx_classic",
+			},
+			starterGrantClaimed: true,
+			updatedAt: 1000,
+		}, {
+			preferRemoteBalance: true,
+			preferRemoteEquipped: true,
+		});
+
+		expect(merged.balance).toBe(777);
+		expect(merged.equipped.background).toBe("background_ender");
+		expect(merged.ownedItemIds).toContain("background_ender");
 	});
 
 	it("uses real background scenes and quieter particles outside classic", () => {

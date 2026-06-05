@@ -31,6 +31,7 @@ export interface ShopState {
 	ownedItemIds: string[];
 	equipped: EquippedCosmetics;
 	starterGrantClaimed: boolean;
+	pendingProfileSync: boolean;
 	updatedAt: number;
 }
 
@@ -345,6 +346,16 @@ const EXTRA_PIECE_SKINS: ShopItem[] = [
 	["piece_circuit_plasma", "Plasma Circuit", "Bright electric blocks for fast modes.", 380, "#4D5BFF", ["#4D5BFF", "#00D4FF", "#D5FF3F"]],
 	["piece_circuit_terminal", "Terminal Circuit", "Low-glow hacker terminal colors.", 410, "#06D6A0", ["#081C15", "#06D6A0", "#00FF9D"]],
 	["piece_circuit_candy", "Candy Circuit", "Playful pink-blue circuitry.", 440, "#FFC8DD", ["#FFC8DD", "#A2D2FF", "#FF2BD6"]],
+	["piece_paper_cut", "Paper Cuts", "Flat paper pieces with inked edges.", 460, "#FDE68A", ["#FDE68A", "#FFFFFF", "#111827"]],
+	["piece_ocean_shell", "Ocean Shells", "Teal and coral shell-inspired pieces.", 480, "#2DD4BF", ["#0F766E", "#2DD4BF", "#FB7185"]],
+	["piece_monochrome", "Monochrome", "High contrast black, white and gray blocks.", 500, "#E5E7EB", ["#111827", "#6B7280", "#F8FAFC"]],
+	["piece_candy_pop", "Candy Pop", "Bright candy blocks with playful contrast.", 520, "#F9A8D4", ["#F9A8D4", "#FDE047", "#38BDF8"]],
+	["piece_shadow_gold", "Shadow Gold", "Dark pieces with restrained gold highlights.", 540, "#FACC15", ["#020617", "#854D0E", "#FACC15"]],
+	["piece_forest_mushroom", "Forest Caps", "Earthy green and red forest pieces.", 560, "#A3E635", ["#365314", "#A3E635", "#DC2626"]],
+	["piece_aurora_glass", "Aurora Glass", "Translucent aurora-like color chips.", 580, "#A78BFA", ["#22D3EE", "#A78BFA", "#4ADE80"]],
+	["piece_neon_fruit", "Neon Fruit", "Fruit-bright pieces with saturated edges.", 600, "#FB7185", ["#FB7185", "#FACC15", "#4ADE80"]],
+	["piece_ink_stamp", "Ink Stamps", "Stamped ink colors with off-white blocks.", 620, "#111827", ["#111827", "#E5E7EB", "#EF4444"]],
+	["piece_cosmic_ore", "Cosmic Ore", "Meteor-like pieces with cold metal shine.", 640, "#93C5FD", ["#0F172A", "#93C5FD", "#C4B5FD"]],
 ].map(([id, title, description, price, accent, previewColors]) => ({
 	id: id as string,
 	category: "piece_skin" as const,
@@ -376,6 +387,16 @@ const EXTRA_BACKGROUNDS: ShopItem[] = [
 	["background_ultraviolet", "Ultraviolet", "Dark ultraviolet neon backdrop.", 520, "#D946EF", ["#12051F", "#86198F", "#D946EF"], ["rgb(18, 5, 31)", "rgb(134, 25, 143)", "rgb(217, 70, 239)"], "cyber"],
 	["background_solar", "Solar Rail", "Warm rail lights behind the board.", 540, "#FB923C", ["#140800", "#C2410C", "#FB923C"], ["rgb(20, 8, 0)", "rgb(194, 65, 12)", "rgb(251, 146, 60)"], "sunset"],
 	["background_quartz", "Quartz Blue", "Pale quartz light on deep blue.", 560, "#C4B5FD", ["#06111F", "#4338CA", "#C4B5FD"], ["rgb(6, 17, 31)", "rgb(67, 56, 202)", "rgb(196, 181, 253)"], "ice"],
+	["background_paper_dawn", "Paper Dawn", "Soft dawn tones with a clean paper feel.", 580, "#FDE68A", ["#1C1917", "#FDBA74", "#FDE68A"], ["rgb(28, 25, 23)", "rgb(253, 186, 116)", "rgb(253, 230, 138)"], "sunset"],
+	["background_deep_forest", "Deep Forest", "Green forest shadow with a quiet glow.", 600, "#86EFAC", ["#03130A", "#166534", "#86EFAC"], ["rgb(3, 19, 10)", "rgb(22, 101, 52)", "rgb(134, 239, 172)"], "ender"],
+	["background_coral_sea", "Coral Sea", "Teal water with coral edge lighting.", 620, "#FB7185", ["#042F2E", "#0F766E", "#FB7185"], ["rgb(4, 47, 46)", "rgb(15, 118, 110)", "rgb(251, 113, 133)"], "ice"],
+	["background_mono_lab", "Mono Lab", "Black and silver lab lighting.", 640, "#E5E7EB", ["#020617", "#334155", "#E5E7EB"], ["rgb(2, 6, 23)", "rgb(51, 65, 85)", "rgb(229, 231, 235)"], "cyber"],
+	["background_lilac_mist", "Lilac Mist", "Pale lilac haze over deep blue.", 660, "#DDD6FE", ["#111827", "#6366F1", "#DDD6FE"], ["rgb(17, 24, 39)", "rgb(99, 102, 241)", "rgb(221, 214, 254)"], "ender"],
+	["background_amber_room", "Amber Room", "Dim amber panels with black corners.", 680, "#F59E0B", ["#120A02", "#92400E", "#F59E0B"], ["rgb(18, 10, 2)", "rgb(146, 64, 14)", "rgb(245, 158, 11)"], "sunset"],
+	["background_steel_rain", "Steel Rain", "Cool steel rain with pale highlights.", 700, "#CBD5E1", ["#020617", "#475569", "#CBD5E1"], ["rgb(2, 6, 23)", "rgb(71, 85, 105)", "rgb(203, 213, 225)"], "ice"],
+	["background_melon_arcade", "Melon Arcade", "Green and pink arcade colors kept dark.", 720, "#F9A8D4", ["#052E16", "#16A34A", "#F9A8D4"], ["rgb(5, 46, 22)", "rgb(22, 163, 74)", "rgb(249, 168, 212)"], "cyber"],
+	["background_blueprint", "Blueprint", "Blueprint blue with thin electric depth.", 740, "#93C5FD", ["#07142A", "#1D4ED8", "#93C5FD"], ["rgb(7, 20, 42)", "rgb(29, 78, 216)", "rgb(147, 197, 253)"], "cyber"],
+	["background_crimson_fog", "Crimson Fog", "Dark crimson fog for dramatic runs.", 760, "#FCA5A5", ["#1F0508", "#7F1D1D", "#FCA5A5"], ["rgb(31, 5, 8)", "rgb(127, 29, 29)", "rgb(252, 165, 165)"], "ender"],
 ].map(([id, title, description, price, accent, previewColors, gradient, scene]) => ({
 	id: id as string,
 	category: "background" as const,
@@ -389,26 +410,36 @@ const EXTRA_BACKGROUNDS: ShopItem[] = [
 }));
 
 const EXTRA_MUSIC: ShopItem[] = [
-	["music_lofi_rain", "Lo-fi Rain", "Lo-fi preset with softer rainy energy.", 180, "#BDE0FE", ["#BDE0FE", "#64748B", "#A2D2FF"]],
-	["music_lofi_rooftop", "Lo-fi Rooftop", "Laid-back rooftop mix preset.", 200, "#93C5FD", ["#93C5FD", "#FFC8DD", "#475569"]],
-	["music_lofi_midnight", "Lo-fi Midnight", "Quiet midnight lo-fi loop.", 220, "#A5B4FC", ["#312E81", "#A5B4FC", "#E0E7FF"]],
-	["music_lofi_cafe", "Lo-fi Cafe", "Warm low-pressure cafe mix.", 240, "#FBCFE8", ["#FBCFE8", "#FDBA74", "#BDE0FE"]],
-	["music_lofi_clouds", "Lo-fi Clouds", "Airy chilled building preset.", 260, "#BAE6FD", ["#BAE6FD", "#E0F2FE", "#A7F3D0"]],
-	["music_arcade_turbo", "Arcade Turbo", "Fast arcade energy with bright highs.", 280, "#FF006E", ["#FF006E", "#FBFF12", "#3A86FF"]],
-	["music_arcade_combo", "Arcade Combo", "Punchy loop for combo chasing.", 300, "#FB7185", ["#FB7185", "#FACC15", "#60A5FA"]],
-	["music_arcade_pixel", "Pixel Sprint", "Sharper pixel-rush mix preset.", 320, "#F43F5E", ["#F43F5E", "#22D3EE", "#FDE047"]],
-	["music_arcade_neon", "Neon Sprint", "Neon arcade preset with extra lift.", 340, "#D946EF", ["#D946EF", "#22D3EE", "#A3E635"]],
-	["music_arcade_boss", "Boss Rush", "Heavier arcade pressure loop.", 360, "#EF4444", ["#EF4444", "#F97316", "#111827"]],
-	["music_cave_drip", "Cave Drip", "Darker cave echo with lower volume.", 300, "#8D99AE", ["#2B2D42", "#8D99AE", "#EDF2F4"]],
-	["music_cave_depth", "Deep Cave", "Low cave ambience for mining skins.", 320, "#94A3B8", ["#0F172A", "#475569", "#94A3B8"]],
-	["music_cave_crystal", "Crystal Cave", "Cave mix with brighter crystal edge.", 340, "#A78BFA", ["#1E1B4B", "#A78BFA", "#BAE6FD"]],
-	["music_cave_ember", "Ember Cave", "Dark cave warmth with ember pulse.", 360, "#FB923C", ["#1C0A00", "#FB923C", "#64748B"]],
-	["music_cave_echo", "Long Echoes", "Slow echo preset for longer rounds.", 380, "#CBD5E1", ["#111827", "#64748B", "#CBD5E1"]],
-	["music_space_orbit", "Orbit Drift", "Floating orbit preset.", 340, "#9D4EDD", ["#10002B", "#5A189A", "#E0AAFF"]],
-	["music_space_comet", "Comet Trail", "Space mix with light forward motion.", 360, "#C084FC", ["#312E81", "#C084FC", "#67E8F9"]],
-	["music_space_nebula", "Nebula Drift", "Wide purple-blue space loop.", 380, "#A78BFA", ["#1E1B4B", "#A78BFA", "#60A5FA"]],
-	["music_space_satellite", "Satellite", "Small satellite pulse preset.", 400, "#818CF8", ["#111827", "#818CF8", "#E0E7FF"]],
-	["music_space_void", "Void Signal", "Sparse deep-space mix preset.", 420, "#6D28D9", ["#030014", "#6D28D9", "#C4B5FD"]],
+	["music_lofi_rain", "Rain Piano", "Sparse piano pulses with soft rainy clicks.", 180, "#BDE0FE", ["#BDE0FE", "#64748B", "#E0F2FE"]],
+	["music_lofi_rooftop", "Jazz Steps", "Swinging chords and brushed rhythm accents.", 200, "#FDE68A", ["#1F2937", "#FDE68A", "#F97316"]],
+	["music_lofi_midnight", "Synth Drive", "Retro synth bass with a wide night pulse.", 220, "#22D3EE", ["#0F172A", "#22D3EE", "#F0ABFC"]],
+	["music_lofi_cafe", "Blue Smoke", "Slow blues lead over a warmer low-end loop.", 240, "#60A5FA", ["#111827", "#60A5FA", "#FBBF24"]],
+	["music_lofi_clouds", "Dream Pop", "Airy bright chords with a floating melody.", 260, "#F9A8D4", ["#F9A8D4", "#A7F3D0", "#BAE6FD"]],
+	["music_arcade_turbo", "Drum Grid", "Fast breakbeat rhythm for tense late boards.", 280, "#FB7185", ["#FB7185", "#FDE047", "#111827"]],
+	["music_arcade_combo", "Chip Hero", "Square-wave melody with classic handheld bite.", 300, "#A3E635", ["#052E16", "#A3E635", "#22D3EE"]],
+	["music_arcade_pixel", "Techno Rail", "Steady four-on-floor pulse with sharp synths.", 320, "#38BDF8", ["#020617", "#38BDF8", "#818CF8"]],
+	["music_arcade_neon", "Trap Steps", "Half-time bass hits with clipped high ticks.", 340, "#D946EF", ["#111827", "#D946EF", "#F97316"]],
+	["music_arcade_boss", "String Siege", "Small orchestral loop for boss-like pressure.", 360, "#F87171", ["#450A0A", "#F87171", "#E5E7EB"]],
+	["music_cave_drip", "Factory Pulse", "Industrial clanks under a low mechanical groove.", 300, "#94A3B8", ["#111827", "#94A3B8", "#F97316"]],
+	["music_cave_depth", "Deep Ambient", "Slow pad tones with extra empty space.", 320, "#67E8F9", ["#082F49", "#67E8F9", "#C4B5FD"]],
+	["music_cave_crystal", "Choir Glow", "Soft vocal-like harmonics for calmer runs.", 340, "#C4B5FD", ["#1E1B4B", "#C4B5FD", "#FBCFE8"]],
+	["music_cave_ember", "Percussion Run", "Hand-drum style rhythm with a dry lead.", 360, "#FB923C", ["#1C0A00", "#FB923C", "#FDE68A"]],
+	["music_cave_echo", "Noir Alley", "Minor-key late-night pulse with smoky bends.", 380, "#CBD5E1", ["#111827", "#475569", "#CBD5E1"]],
+	["music_space_orbit", "Dub Orbit", "Off-beat chords and deep echo bass.", 340, "#34D399", ["#052E16", "#34D399", "#FDE68A"]],
+	["music_space_comet", "Tropical Keys", "Bright mallet notes over a quick sunny pattern.", 360, "#2DD4BF", ["#064E3B", "#2DD4BF", "#FACC15"]],
+	["music_space_nebula", "Funk City", "Bouncy bass line with clipped rhythm stabs.", 380, "#F97316", ["#1C0A00", "#F97316", "#22D3EE"]],
+	["music_space_satellite", "Glitch Signal", "Broken digital ticks and unstable melody jumps.", 400, "#A78BFA", ["#111827", "#A78BFA", "#4ADE80"]],
+	["music_space_void", "Toy March", "Playful march rhythm with bright triangle tones.", 420, "#FDE047", ["#1F2937", "#FDE047", "#38BDF8"]],
+	["music_salsa", "Clave Sparks", "Fast clave-style accents with warm keys.", 440, "#FB923C", ["#7C2D12", "#FB923C", "#FDE68A"]],
+	["music_hardstyle", "Hard Kick", "Heavy compressed kick pattern for intense sessions.", 460, "#EF4444", ["#111827", "#EF4444", "#FACC15"]],
+	["music_music_box", "Music Box", "Tiny bell melody for a lighter, delicate mood.", 480, "#BAE6FD", ["#1E3A8A", "#BAE6FD", "#FFFFFF"]],
+	["music_harp", "Harp Lines", "Plucked arpeggios with a calm open feel.", 500, "#C4B5FD", ["#312E81", "#C4B5FD", "#E0F2FE"]],
+	["music_breakbeat", "Breakbeat Blocks", "Syncopated drums and a restless bass pulse.", 520, "#F43F5E", ["#111827", "#F43F5E", "#22D3EE"]],
+	["music_dub", "Dub Corner", "Slow echo hits with a round bass floor.", 540, "#4ADE80", ["#052E16", "#4ADE80", "#FDE68A"]],
+	["music_garage", "Garage Shuffle", "Swinging club rhythm with clipped chords.", 560, "#38BDF8", ["#082F49", "#38BDF8", "#F0ABFC"]],
+	["music_minimal", "Minimal Dots", "Sparse repeating tones with clean focus.", 580, "#E5E7EB", ["#111827", "#E5E7EB", "#60A5FA"]],
+	["music_waltz", "Pixel Waltz", "Three-step melody with a tiny ballroom feel.", 600, "#F9A8D4", ["#831843", "#F9A8D4", "#FDE68A"]],
+	["music_future_bass", "Future Lift", "Wide bright chords with clipped bass jumps.", 620, "#A78BFA", ["#1E1B4B", "#A78BFA", "#22D3EE"]],
 ].map(([id, title, description, price, accent, previewColors]) => ({
 	id: id as string,
 	category: "music" as const,
@@ -420,26 +451,36 @@ const EXTRA_MUSIC: ShopItem[] = [
 }));
 
 const EXTRA_SFX: ShopItem[] = [
-	["sfx_wood_oak", "Oak Blocks", "Wood pack with a lighter tap.", 180, "#B08968", ["#7F5539", "#B08968", "#E6CCB2"]],
-	["sfx_wood_bamboo", "Bamboo Pops", "Sharper wooden feedback.", 200, "#A3B18A", ["#588157", "#A3B18A", "#DAD7CD"]],
-	["sfx_wood_chest", "Chest Clicks", "Chunky boxy wood clicks.", 220, "#C08457", ["#7F5539", "#C08457", "#FFD6A5"]],
-	["sfx_wood_plank", "Plank Taps", "Flat plank placement sounds.", 240, "#BC8A5F", ["#6F4E37", "#BC8A5F", "#F2D2A9"]],
-	["sfx_wood_forest", "Forest Knock", "Soft forest knock feedback.", 260, "#90A955", ["#31572C", "#90A955", "#ECF39E"]],
-	["sfx_glass_frost", "Frost Glass", "Cooler glass feedback.", 240, "#A9DEF9", ["#A9DEF9", "#E4C1F9", "#FCF6BD"]],
-	["sfx_glass_prism", "Prism Pops", "Bright prism clear sounds.", 260, "#B8F2E6", ["#B8F2E6", "#AED9E0", "#FAF3DD"]],
-	["sfx_glass_ice", "Ice Tinks", "Crisp ice-style glass hits.", 280, "#BAE6FD", ["#BAE6FD", "#E0F2FE", "#FFFFFF"]],
-	["sfx_glass_neon", "Neon Glass", "Glass pack with neon click emphasis.", 300, "#67E8F9", ["#67E8F9", "#F0ABFC", "#FDE047"]],
-	["sfx_glass_chime", "Chime Glass", "Small chime-like glass clear preset.", 320, "#C4B5FD", ["#C4B5FD", "#A7F3D0", "#FBCFE8"]],
-	["sfx_retro_chip", "Chip Beeps", "Small chip-style retro pack.", 280, "#06D6A0", ["#06D6A0", "#FFD166", "#EF476F"]],
-	["sfx_retro_terminal", "Terminal Beeps", "Drier terminal event sounds.", 300, "#4ADE80", ["#052E16", "#4ADE80", "#BBF7D0"]],
-	["sfx_retro_laser", "Laser Beeps", "Sharper laser arcade feedback.", 320, "#22D3EE", ["#22D3EE", "#A3E635", "#F43F5E"]],
-	["sfx_retro_coin", "Coin Beeps", "Coin-op style menu and clear sounds.", 340, "#FACC15", ["#FACC15", "#FB7185", "#60A5FA"]],
-	["sfx_retro_console", "Console Beeps", "Old console feedback mapping.", 360, "#A78BFA", ["#A78BFA", "#34D399", "#FDE047"]],
-	["sfx_metal_steel", "Steel Clanks", "Heavy steel impact feedback.", 320, "#ADB5BD", ["#343A40", "#ADB5BD", "#F8F9FA"]],
-	["sfx_metal_anvil", "Anvil Hits", "Thicker metal placement hits.", 340, "#94A3B8", ["#1F2937", "#94A3B8", "#E5E7EB"]],
-	["sfx_metal_robot", "Robot Clinks", "Short robotic metal clicks.", 360, "#CBD5E1", ["#111827", "#64748B", "#CBD5E1"]],
-	["sfx_metal_cyber", "Cyber Clanks", "Metal pack with cyber bite.", 380, "#38BDF8", ["#0F172A", "#38BDF8", "#F0ABFC"]],
-	["sfx_metal_titan", "Titan Clanks", "Largest metal-feedback preset.", 400, "#F8FAFC", ["#020617", "#94A3B8", "#F8FAFC"]],
+	["sfx_wood_oak", "Paper Folds", "Dry paper taps and crumpled clears.", 180, "#FDE68A", ["#78350F", "#FDE68A", "#FFFFFF"]],
+	["sfx_wood_bamboo", "Bubble Pops", "Rounded wet pops for playful feedback.", 200, "#67E8F9", ["#164E63", "#67E8F9", "#F9A8D4"]],
+	["sfx_wood_chest", "Laser Zaps", "Sharp sci-fi zaps with fast clear sweeps.", 220, "#F43F5E", ["#111827", "#F43F5E", "#22D3EE"]],
+	["sfx_wood_plank", "Stone Drops", "Short rocky impacts and dusty clears.", 240, "#A8A29E", ["#292524", "#A8A29E", "#E7E5E4"]],
+	["sfx_wood_forest", "Water Plops", "Soft water taps and splashy line clears.", 260, "#38BDF8", ["#082F49", "#38BDF8", "#BAE6FD"]],
+	["sfx_glass_frost", "Electric Snaps", "Static-charged clicks for quick moves.", 240, "#FDE047", ["#111827", "#FDE047", "#38BDF8"]],
+	["sfx_glass_prism", "Toy Buttons", "Small toy-like button chirps.", 260, "#F9A8D4", ["#831843", "#F9A8D4", "#A3E635"]],
+	["sfx_glass_ice", "Clay Thumps", "Muted clay hits with soft clears.", 280, "#FDBA74", ["#7C2D12", "#FDBA74", "#FED7AA"]],
+	["sfx_glass_neon", "Bell Tones", "Bright bell clicks and ringing clears.", 300, "#C4B5FD", ["#312E81", "#C4B5FD", "#FFFFFF"]],
+	["sfx_glass_chime", "Air Whoosh", "Breathy swipes and airy clear sounds.", 320, "#BAE6FD", ["#082F49", "#BAE6FD", "#E0F2FE"]],
+	["sfx_retro_chip", "Typewriter", "Clacky keypress-style block feedback.", 280, "#E5E7EB", ["#111827", "#E5E7EB", "#FCA5A5"]],
+	["sfx_retro_terminal", "Spring Boing", "Bouncy spring hits for light sessions.", 300, "#A3E635", ["#365314", "#A3E635", "#FDE68A"]],
+	["sfx_retro_laser", "Ice Cracks", "Cold brittle taps and glassy clears.", 320, "#BAE6FD", ["#0C4A6E", "#BAE6FD", "#FFFFFF"]],
+	["sfx_retro_coin", "Fire Sparks", "Hot crackles with quick ember clears.", 340, "#FB923C", ["#7C2D12", "#FB923C", "#FDE68A"]],
+	["sfx_retro_console", "Coin Drops", "Coin-op clinks for menu and combo feedback.", 360, "#FACC15", ["#713F12", "#FACC15", "#60A5FA"]],
+	["sfx_metal_steel", "Drum Hits", "Percussive thumps and snare-like clears.", 320, "#F87171", ["#450A0A", "#F87171", "#E5E7EB"]],
+	["sfx_metal_anvil", "Sci-Fi Pings", "Clean futuristic pings with short sweeps.", 340, "#22D3EE", ["#082F49", "#22D3EE", "#A78BFA"]],
+	["sfx_metal_robot", "Finger Snaps", "Dry snap clicks and crisp clear hits.", 360, "#FDE68A", ["#422006", "#FDE68A", "#FFFFFF"]],
+	["sfx_metal_cyber", "Plucked Strings", "Tiny plucks for placements and combos.", 380, "#C4B5FD", ["#312E81", "#C4B5FD", "#FDE68A"]],
+	["sfx_metal_titan", "Soft Felt", "Very soft muted feedback for quiet play.", 400, "#CBD5E1", ["#111827", "#CBD5E1", "#F8FAFC"]],
+	["sfx_camera", "Camera Clicks", "Shutter-like taps and flash clears.", 420, "#E5E7EB", ["#111827", "#E5E7EB", "#FDE047"]],
+	["sfx_clock", "Clock Ticks", "Tick-tock clicks with mechanical clears.", 440, "#FDE68A", ["#422006", "#FDE68A", "#CBD5E1"]],
+	["sfx_rubber", "Rubber Bounce", "Elastic hits with a bouncy finish.", 460, "#A3E635", ["#365314", "#A3E635", "#F9A8D4"]],
+	["sfx_ceramic", "Ceramic Chips", "Tiny ceramic taps and brittle clears.", 480, "#BAE6FD", ["#0F172A", "#BAE6FD", "#FFFFFF"]],
+	["sfx_spark", "Spark Burst", "Bright sparks for placements and combos.", 500, "#FACC15", ["#111827", "#FACC15", "#F43F5E"]],
+	["sfx_bass", "Bass Thuds", "Low bass impacts for heavier feedback.", 520, "#94A3B8", ["#020617", "#94A3B8", "#F97316"]],
+	["sfx_digital", "Digital Chirps", "Short UI chirps with clean digital edges.", 540, "#38BDF8", ["#082F49", "#38BDF8", "#4ADE80"]],
+	["sfx_magic", "Magic Dust", "Soft sparkling chimes for clears.", 560, "#C084FC", ["#581C87", "#C084FC", "#FDE68A"]],
+	["sfx_crunch", "Crunch Pack", "Crunchy textured hits and rough clears.", 580, "#FDBA74", ["#431407", "#FDBA74", "#E7E5E4"]],
+	["sfx_wind", "Wind Swipes", "Quiet airy swipes with light clear gusts.", 600, "#BAE6FD", ["#082F49", "#BAE6FD", "#A7F3D0"]],
 ].map(([id, title, description, price, accent, previewColors]) => ({
 	id: id as string,
 	category: "sfx" as const,
@@ -479,6 +520,7 @@ export function createDefaultShopState(): ShopState {
 		ownedItemIds: [...FREE_SHOP_ITEM_IDS],
 		equipped: { ...DEFAULT_EQUIPPED_COSMETICS },
 		starterGrantClaimed: true,
+		pendingProfileSync: false,
 		updatedAt: 0,
 	};
 }
@@ -535,6 +577,7 @@ export function normalizeShopState(value: Partial<ShopState> | null | undefined)
 		ownedItemIds: [...ownedSet],
 		equipped,
 		starterGrantClaimed: true,
+		pendingProfileSync: value.pendingProfileSync === true,
 		updatedAt,
 	};
 }
@@ -647,18 +690,30 @@ export function getBackgroundParticleConfig(itemId: string, isGameplayActive: bo
 	};
 }
 
-export function mergeShopStates(localState: ShopState, remoteState: Partial<ShopState> | null | undefined): ShopState {
+interface MergeShopStateOptions {
+	preferRemoteBalance?: boolean;
+	preferRemoteEquipped?: boolean;
+}
+
+export function mergeShopStates(
+	localState: ShopState,
+	remoteState: Partial<ShopState> | null | undefined,
+	options: MergeShopStateOptions = {}
+): ShopState {
 	const local = normalizeShopState(localState);
+	if (!remoteState) return local;
+
 	const remote = normalizeShopState(remoteState);
 	const ownedSet = new Set([...local.ownedItemIds, ...remote.ownedItemIds]);
 	
 	const localNewer = local.updatedAt >= remote.updatedAt;
 
 	return normalizeShopState({
-		balance: localNewer ? local.balance : remote.balance,
+		balance: options.preferRemoteBalance ? remote.balance : localNewer ? local.balance : remote.balance,
 		ownedItemIds: [...ownedSet],
-		equipped: local.equipped, // Always prefer local equipped items to avoid annoying reverts
+		equipped: options.preferRemoteEquipped ? remote.equipped : local.equipped,
 		starterGrantClaimed: true,
+		pendingProfileSync: local.pendingProfileSync || remote.pendingProfileSync,
 		updatedAt: Math.max(local.updatedAt, remote.updatedAt),
 	});
 }
@@ -700,6 +755,7 @@ function profileToShopState(profile: RemoteShopProfile | null | undefined): Part
 		ownedItemIds: Array.isArray(profile.owned_item_ids) ? profile.owned_item_ids : [],
 		equipped: profile.equipped as EquippedCosmetics | undefined,
 		starterGrantClaimed: true,
+		pendingProfileSync: false,
 		updatedAt: profile.updated_at ? new Date(profile.updated_at).getTime() : 0,
 	};
 }
@@ -729,8 +785,13 @@ export async function syncShopStateWithProfile(localState: ShopState): Promise<{
 		}
 
 		const profile = profiles?.[0] as RemoteShopProfile | undefined;
+		const hasUnsyncedLocalChanges = local.pendingProfileSync;
 		const merged = {
-			...mergeShopStates(local, profileToShopState(profile)),
+			...mergeShopStates(local, profileToShopState(profile), {
+				preferRemoteBalance: Boolean(profile && !hasUnsyncedLocalChanges),
+				preferRemoteEquipped: Boolean(profile && !hasUnsyncedLocalChanges),
+			}),
+			pendingProfileSync: false,
 			updatedAt: Date.now(),
 		};
 
@@ -762,7 +823,7 @@ export function useShopState() {
 	const [state, setState] = useAtom(shopStateAtom);
 
 	const commit = useCallback(async (next: ShopState) => {
-		const normalized = normalizeShopState({ ...next, updatedAt: Date.now() });
+		const normalized = normalizeShopState({ ...next, pendingProfileSync: true, updatedAt: Date.now() });
 		setState(normalized);
 		await saveShopState(normalized);
 		const syncResult = await syncShopStateWithProfile(normalized);

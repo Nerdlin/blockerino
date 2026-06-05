@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Platform, Pressable, StyleSheet, Text } from "react-native";
 import { useSoundSettings } from "@/constants/Sound";
 
 export default function StylizedButton({
@@ -28,6 +28,7 @@ export default function StylizedButton({
 
     const handleHoverIn = () => {
         if (disabled) return;
+        if (Platform.OS === "web") return;
         playSfx('buttonHover');
     };
 

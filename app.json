@@ -75,6 +75,7 @@
     "owner": "nerdlin",
     "updates": {
       "url": "https://u.expo.dev/ca108ad1-37de-4a05-868d-31ba91e722a7",
+      "checkAutomatically": "ON_ERROR_RECOVERY",
       "requestHeaders": {
         "expo-channel-name": "production"
       }
