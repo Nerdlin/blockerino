@@ -11,7 +11,7 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { Session, User } from "@supabase/supabase-js";
 import { useShopState } from "@/constants/Shop";
 import { PlayerProfile, getPlayerElo, getPlayerGlobalHighScore, upsertAuthenticatedProfile } from "@/constants/Supabase";
-import { getHighScores } from "@/constants/Storage";
+import { getHighScores, createHighScore } from "@/constants/Storage";
 import MatchHistoryList from "./MatchHistoryList";
 import FriendsList from "./FriendsList";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -65,8 +65,19 @@ export default function ProfileMenu() {
 				getPlayerGlobalHighScore(name, GameModeType.Chaos),
 			]);
 			if (elo !== null) setPlayerElo(elo);
-			setClassicScore(Math.max(localClassicScores[0]?.score || 0, remoteClassicScore || 0));
-			setChaosScore(Math.max(localChaosScores[0]?.score || 0, remoteChaosScore || 0));
+			const localClassic = localClassicScores[0]?.score || 0;
+			const remoteClassic = remoteClassicScore || 0;
+			setClassicScore(Math.max(localClassic, remoteClassic));
+			if (remoteClassic > localClassic) {
+				await createHighScore({ score: remoteClassic, date: Date.now(), type: GameModeType.Classic });
+			}
+
+			const localChaos = localChaosScores[0]?.score || 0;
+			const remoteChaos = remoteChaosScore || 0;
+			setChaosScore(Math.max(localChaos, remoteChaos));
+			if (remoteChaos > localChaos) {
+				await createHighScore({ score: remoteChaos, date: Date.now(), type: GameModeType.Chaos });
+			}
 
 			const { count, error } = await supabase
 				.from("matchmaking_rooms")

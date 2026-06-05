@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import Head from "expo-router/head";
 import { useEffect } from "react";
-import { LogBox } from "react-native";
+import { LogBox, Platform } from "react-native";
 import { updateService } from "@/constants/UpdateService";
 import { flushPendingEloRatings, flushPendingGlobalHighScores } from "@/constants/OfflineSync";
 
@@ -65,7 +65,7 @@ export default function RootLayout() {
 		const pendingScoreSyncTimer = setInterval(syncPendingScores, 15000);
 
 		// Register service worker on web platform
-		if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+		if (Platform.OS === 'web' && typeof window !== 'undefined' && navigator && 'serviceWorker' in navigator) {
 			window.addEventListener('online', syncPendingScores);
 			window.addEventListener('load', () => {
 				const swPath = window.location.pathname.startsWith('/blockerino')
@@ -83,7 +83,7 @@ export default function RootLayout() {
 
 		return () => {
 			clearInterval(pendingScoreSyncTimer);
-			if (typeof window !== 'undefined') {
+			if (Platform.OS === 'web' && typeof window !== 'undefined' && window.removeEventListener) {
 				window.removeEventListener('online', syncPendingScores);
 			}
 		};

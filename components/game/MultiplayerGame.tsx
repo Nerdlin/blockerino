@@ -1,7 +1,8 @@
 import { PieceData, getBlockCount } from '@/constants/Piece';
 import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-dnd';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, SafeAreaView, StyleSheet, Text, View, useWindowDimensions, ActivityIndicator, ScrollView } from 'react-native';
+import { Platform, StyleSheet, Text, View, useWindowDimensions, ActivityIndicator, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
 import Animated, { ReduceMotion, runOnJS, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';

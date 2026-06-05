@@ -115,49 +115,69 @@ async function getReusableProfileByName(playerName: string, userId: string): Pro
 export async function upsertAuthenticatedProfile(user: User, preferredName?: string): Promise<PlayerProfile | null> {
     const baseName = getUserDisplayName(user, preferredName);
     const providers = getUserProviders(user);
+    let playerName = baseName;
     const payload = {
         auth_user_id: user.id,
         player_id: user.id,
-        player_name: baseName,
+        player_name: playerName,
         email: user.email ?? null,
         avatar_url: getUserAvatarUrl(user),
         login_providers: providers,
         last_login_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-    };
+    } as any;
 
     const byAuth = await getExistingProfileForAuthUser(user.id);
     const reusableByName = byAuth ? null : await getReusableProfileByName(baseName, user.id);
     const targetProfile = byAuth || reusableByName;
 
-    if (targetProfile?.id) {
-        const { data, error } = await supabase
-            .from('profiles')
-            .update(payload)
-            .eq('id', targetProfile.id)
-            .select('id, auth_user_id, player_id, player_name, email, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
-            .single();
+    let resultData = null;
+    let attempt = 0;
+    const MAX_ATTEMPTS = 5;
 
-        if (error) {
-            console.error('Error updating auth profile:', error);
-            return targetProfile;
+    while (attempt < MAX_ATTEMPTS) {
+        payload.player_name = playerName;
+
+        if (targetProfile?.id) {
+            const { data, error } = await supabase
+                .from('profiles')
+                .update(payload)
+                .eq('id', targetProfile.id)
+                .select('id, auth_user_id, player_id, player_name, email, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
+                .single();
+
+            if (error) {
+                if (error.code === '23505' && error.message.includes('profiles_player_name_key')) {
+                    playerName = `${baseName.slice(0, 15)}_${Math.floor(Math.random() * 10000)}`;
+                    attempt++;
+                    continue;
+                }
+                console.error('Error updating auth profile:', error);
+                return targetProfile;
+            }
+            resultData = data;
+            break;
+        } else {
+            const { data, error } = await supabase
+                .from('profiles')
+                .insert({ ...payload, updated_at: new Date().toISOString() })
+                .select('id, auth_user_id, player_id, player_name, email, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
+                .single();
+
+            if (error) {
+                if (error.code === '23505' && error.message.includes('profiles_player_name_key')) {
+                    playerName = `${baseName.slice(0, 15)}_${Math.floor(Math.random() * 10000)}`;
+                    attempt++;
+                    continue;
+                }
+                console.error('Error creating auth profile:', error);
+                return null;
+            }
+            resultData = data;
+            break;
         }
-
-        return data as PlayerProfile;
     }
 
-    const { data, error } = await supabase
-        .from('profiles')
-        .insert(payload)
-        .select('id, auth_user_id, player_id, player_name, email, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
-        .single();
-
-    if (error) {
-        console.error('Error creating auth profile:', error);
-        return null;
-    }
-
-    return data as PlayerProfile;
+    return (resultData as PlayerProfile) || null;
 }
 
 export interface GlobalHighScore {
