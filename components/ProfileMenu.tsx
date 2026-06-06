@@ -2,7 +2,7 @@ import { GameModeType, useAppState } from "@/hooks/useAppState";
 import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, ActivityIndicator } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSoundSettings } from "@/constants/Sound";
 import { useTheme } from "@/constants/Theme";
 import { supabase } from "@/constants/Supabase";
@@ -26,6 +26,80 @@ if (Platform.OS !== "web") {
 
 const PLAYER_NAME_KEY = "PLAYER_NAME";
 const PLAYER_ID_KEY = "PLAYER_ID";
+const WEB_AUTH_CALLBACK_PARAMS = [
+	"code",
+	"state",
+	"access_token",
+	"refresh_token",
+	"expires_at",
+	"expires_in",
+	"token_type",
+	"provider_token",
+	"provider_refresh_token",
+	"error",
+	"error_code",
+	"error_description",
+];
+
+function getSessionHydrationKey(nextSession: Session | null): string | null {
+	return nextSession?.user?.id || null;
+}
+
+function getWebOAuthRedirectTo(): string {
+	if (typeof window === "undefined") return "";
+	const url = new URL(window.location.href);
+	url.search = "";
+	url.hash = "";
+	return url.toString();
+}
+
+function readWebAuthCallbackMessage(): string | null {
+	if (Platform.OS !== "web" || typeof window === "undefined") return null;
+
+	const searchParams = new URLSearchParams(window.location.search);
+	const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+	const errorDescription = searchParams.get("error_description") || hashParams.get("error_description");
+	const error = searchParams.get("error") || hashParams.get("error");
+
+	if (!error && !errorDescription) return null;
+
+	const message = errorDescription || error || "Authentication callback failed.";
+	if (message.toLowerCase().includes("oauth state parameter missing")) {
+		return "Google sign-in callback expired or was opened twice. Please try again.";
+	}
+	return message;
+}
+
+function clearWebAuthCallbackParams() {
+	if (Platform.OS !== "web" || typeof window === "undefined" || !window.history?.replaceState) return;
+
+	const url = new URL(window.location.href);
+	let changed = false;
+
+	for (const param of WEB_AUTH_CALLBACK_PARAMS) {
+		if (url.searchParams.has(param)) {
+			url.searchParams.delete(param);
+			changed = true;
+		}
+	}
+
+	if (url.hash) {
+		const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+		const hadAuthHash = WEB_AUTH_CALLBACK_PARAMS.some((param) => hashParams.has(param));
+		if (hadAuthHash) {
+			for (const param of WEB_AUTH_CALLBACK_PARAMS) {
+				hashParams.delete(param);
+			}
+			const nextHash = hashParams.toString();
+			url.hash = nextHash ? `#${nextHash}` : "";
+			changed = true;
+		}
+	}
+
+	if (changed) {
+		window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+	}
+}
 
 export default function ProfileMenu() {
 	const [ , , , popAppState ] = useAppState();
@@ -46,6 +120,8 @@ export default function ProfileMenu() {
 	const [gamesPlayed, setGamesPlayed] = useState<number>(0);
 	const [errorMessage, setErrorMessage] = useState("");
 	const [authLoading, setAuthLoading] = useState(false);
+	const hydratedSessionKeyRef = useRef<string | null>(null);
+	const hydratingSessionKeyRef = useRef<string | null>(null);
 
 	const { state: shopState } = useShopState();
 
@@ -103,13 +179,33 @@ export default function ProfileMenu() {
 		await loadProfileStats(nextName, user.id);
 	}, [loadProfileStats]);
 
-	const hydrateSession = useCallback(async (nextSession: Session | null) => {
+	const hydrateSession = useCallback(async (nextSession: Session | null, options: { force?: boolean } = {}) => {
+		const sessionKey = getSessionHydrationKey(nextSession);
 		setSession(nextSession);
+
 		if (nextSession?.user) {
+			if (
+				!options.force &&
+				sessionKey &&
+				(hydratedSessionKeyRef.current === sessionKey || hydratingSessionKeyRef.current === sessionKey)
+			) {
+				return;
+			}
+
+			hydratingSessionKeyRef.current = sessionKey;
 			const localName = await AsyncStorage.getItem(PLAYER_NAME_KEY);
-			const profile = await upsertAuthenticatedProfile(nextSession.user, localName || undefined);
-			await applyProfile(profile, nextSession.user);
+			try {
+				const profile = await upsertAuthenticatedProfile(nextSession.user, localName || undefined);
+				await applyProfile(profile, nextSession.user);
+				hydratedSessionKeyRef.current = sessionKey;
+			} finally {
+				if (hydratingSessionKeyRef.current === sessionKey) {
+					hydratingSessionKeyRef.current = null;
+				}
+			}
 		} else {
+			hydratedSessionKeyRef.current = null;
+			hydratingSessionKeyRef.current = null;
 			const localName = await AsyncStorage.getItem(PLAYER_NAME_KEY);
 			if (localName) setPlayerName(localName);
 		}
@@ -117,13 +213,23 @@ export default function ProfileMenu() {
 
 	useEffect(() => {
 		let mounted = true;
+		const callbackMessage = readWebAuthCallbackMessage();
+		if (callbackMessage) {
+			setErrorMessage(callbackMessage);
+			clearWebAuthCallbackParams();
+		}
+
 		supabase.auth.getSession().then(async ({ data: { session } }) => {
 			await hydrateSession(session);
 			if (mounted) setLoading(false);
 		});
 
-		const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-			void hydrateSession(session);
+		const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+			if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+				setSession(session);
+				return;
+			}
+			void hydrateSession(session, { force: event === "SIGNED_IN" });
 		});
 
 		return () => {
@@ -166,7 +272,9 @@ export default function ProfileMenu() {
 					}
 				});
 				if (error) throw error;
-				if (data.user) {
+				if (data.session) {
+					await hydrateSession(data.session, { force: true });
+				} else if (data.user) {
 					const profile = await upsertAuthenticatedProfile(data.user, playerName);
 					await applyProfile(profile, data.user);
 					setErrorMessage("Success! Check your email to verify (if required), or you are logged in.");
@@ -177,7 +285,9 @@ export default function ProfileMenu() {
 					password,
 				});
 				if (error) throw error;
-				if (data.user) {
+				if (data.session) {
+					await hydrateSession(data.session, { force: true });
+				} else if (data.user) {
 					const profile = await upsertAuthenticatedProfile(data.user);
 					await applyProfile(profile, data.user);
 				}
@@ -198,12 +308,20 @@ export default function ProfileMenu() {
 				if (typeof window === "undefined") {
 					throw new Error("Google OAuth is unavailable in this environment.");
 				}
-				const redirectTo = `${window.location.origin}${window.location.pathname}`;
-				const { error } = await supabase.auth.signInWithOAuth({
+				clearWebAuthCallbackParams();
+				const redirectTo = getWebOAuthRedirectTo();
+				const { data, error } = await supabase.auth.signInWithOAuth({
 					provider: "google",
-					options: { redirectTo },
+					options: {
+						redirectTo,
+						scopes: "openid email profile",
+						queryParams: { prompt: "select_account" },
+						skipBrowserRedirect: true,
+					},
 				});
 				if (error) throw error;
+				if (!data.url) throw new Error("Google did not return a sign-in URL.");
+				window.location.assign(data.url);
 				return;
 			}
 
@@ -216,7 +334,9 @@ export default function ProfileMenu() {
 					token: idToken,
 				});
 				if (error) throw error;
-				if (data.user) {
+				if (data.session) {
+					await hydrateSession(data.session, { force: true });
+				} else if (data.user) {
 					const profile = await upsertAuthenticatedProfile(data.user);
 					await applyProfile(profile, data.user);
 				}
@@ -236,6 +356,8 @@ export default function ProfileMenu() {
 		setAuthLoading(true);
 		await supabase.auth.signOut();
 		await AsyncStorage.removeItem(PLAYER_ID_KEY);
+		hydratedSessionKeyRef.current = null;
+		hydratingSessionKeyRef.current = null;
 		setSession(null);
 		setAuthLoading(false);
 	};

@@ -342,6 +342,10 @@ export function getMusicTrackKey(musicPackId: string): MusicTrackKey {
   return MUSIC_PACK_TRACKS[musicPackId] ?? 'backgroundMusic';
 }
 
+export function hasMusicTrackForPack(musicPackId: string): boolean {
+  return musicPackId === 'music_custom' || Object.prototype.hasOwnProperty.call(MUSIC_PACK_TRACKS, musicPackId);
+}
+
 interface SfxRoleAssets {
   place: SfxAssetKey;
   clear: SfxAssetKey;
@@ -414,6 +418,10 @@ export function mapSfxForPack(type: SoundType, sfxPackId: string): SfxAssetKey {
   const pack = SFX_PACK_ASSETS[sfxPackId];
   const role = getSfxRole(type);
   return pack && role ? pack[role] : type;
+}
+
+export function hasSfxAssetsForPack(sfxPackId: string): boolean {
+  return sfxPackId === 'sfx_custom' || sfxPackId === 'sfx_classic' || Object.prototype.hasOwnProperty.call(SFX_PACK_ASSETS, sfxPackId);
 }
 
 // Статичные импорты звуков вместо динамических
@@ -601,13 +609,17 @@ class SoundManager {
 
   private cleanupSfxPlayer(player: AudioPlayer, delayMs = 1200) {
     this.activeSfxPlayers.add(player);
+    const cleanupDelayMs = Platform.OS === 'android' ? Math.max(delayMs, 5000) : delayMs;
     setTimeout(() => {
       try {
-        player.pause();
+        if (Platform.OS !== 'android') {
+          player.pause();
+          player.seekTo(0);
+        }
         player.remove();
       } catch {}
       this.activeSfxPlayers.delete(player);
-    }, delayMs);
+    }, cleanupDelayMs);
   }
 
   private canPlayOneShotNow(): boolean {

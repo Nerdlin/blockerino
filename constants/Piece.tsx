@@ -639,8 +639,112 @@ function getPieceSkinFamily(pieceSkinId: string): string {
 	return "piece_classic";
 }
 
+function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
+	"worklet";
+	switch (pieceSkinId) {
+		case "piece_paper_cut":
+			return [
+				{ r: 253, g: 230, b: 138 },
+				{ r: 255, g: 255, b: 255 },
+				{ r: 17, g: 24, b: 39 },
+				{ r: 251, g: 191, b: 36 },
+				{ r: 229, g: 231, b: 235 },
+				{ r: 55, g: 65, b: 81 },
+			];
+		case "piece_ocean_shell":
+			return [
+				{ r: 15, g: 118, b: 110 },
+				{ r: 45, g: 212, b: 191 },
+				{ r: 251, g: 113, b: 133 },
+				{ r: 14, g: 165, b: 233 },
+				{ r: 6, g: 95, b: 70 },
+				{ r: 253, g: 164, b: 175 },
+			];
+		case "piece_monochrome":
+			return [
+				{ r: 17, g: 24, b: 39 },
+				{ r: 107, g: 114, b: 128 },
+				{ r: 248, g: 250, b: 252 },
+				{ r: 31, g: 41, b: 55 },
+				{ r: 156, g: 163, b: 175 },
+				{ r: 229, g: 231, b: 235 },
+			];
+		case "piece_candy_pop":
+			return [
+				{ r: 249, g: 168, b: 212 },
+				{ r: 253, g: 224, b: 71 },
+				{ r: 56, g: 189, b: 248 },
+				{ r: 251, g: 113, b: 133 },
+				{ r: 167, g: 243, b: 208 },
+				{ r: 216, g: 180, b: 254 },
+			];
+		case "piece_shadow_gold":
+			return [
+				{ r: 2, g: 6, b: 23 },
+				{ r: 133, g: 77, b: 14 },
+				{ r: 250, g: 204, b: 21 },
+				{ r: 17, g: 24, b: 39 },
+				{ r: 161, g: 98, b: 7 },
+				{ r: 254, g: 240, b: 138 },
+			];
+		case "piece_forest_mushroom":
+			return [
+				{ r: 54, g: 83, b: 20 },
+				{ r: 163, g: 230, b: 53 },
+				{ r: 220, g: 38, b: 38 },
+				{ r: 22, g: 101, b: 52 },
+				{ r: 132, g: 204, b: 22 },
+				{ r: 127, g: 29, b: 29 },
+			];
+		case "piece_aurora_glass":
+			return [
+				{ r: 34, g: 211, b: 238 },
+				{ r: 167, g: 139, b: 250 },
+				{ r: 74, g: 222, b: 128 },
+				{ r: 192, g: 132, b: 252 },
+				{ r: 45, g: 212, b: 191 },
+				{ r: 147, g: 197, b: 253 },
+			];
+		case "piece_neon_fruit":
+			return [
+				{ r: 251, g: 113, b: 133 },
+				{ r: 250, g: 204, b: 21 },
+				{ r: 74, g: 222, b: 128 },
+				{ r: 249, g: 115, b: 22 },
+				{ r: 236, g: 72, b: 153 },
+				{ r: 163, g: 230, b: 53 },
+			];
+		case "piece_ink_stamp":
+			return [
+				{ r: 17, g: 24, b: 39 },
+				{ r: 229, g: 231, b: 235 },
+				{ r: 239, g: 68, b: 68 },
+				{ r: 55, g: 65, b: 81 },
+				{ r: 248, g: 250, b: 252 },
+				{ r: 185, g: 28, b: 28 },
+			];
+		case "piece_cosmic_ore":
+			return [
+				{ r: 15, g: 23, b: 42 },
+				{ r: 147, g: 197, b: 253 },
+				{ r: 196, g: 181, b: 253 },
+				{ r: 30, g: 41, b: 59 },
+				{ r: 125, g: 211, b: 252 },
+				{ r: 216, g: 180, b: 254 },
+			];
+		default:
+			return null;
+	}
+}
+
 function getPieceSkinColor(color: Color, pieceSkinId: string = "piece_classic"): Color {
 	"worklet";
+	const exactPalette = getExactPieceSkinPalette(pieceSkinId);
+	if (exactPalette) {
+		const index = getPieceColorPaletteIndex(color);
+		return exactPalette[index % exactPalette.length];
+	}
+
 	const skinFamily = getPieceSkinFamily(pieceSkinId);
 	if (skinFamily === "piece_classic") {
 		return color;
@@ -717,6 +821,7 @@ function getBorderColors(backgroundColor: Color) {
 export function createFilledBlockStyle(color: Color, borderWidth: number = 7, pieceSkinId: string = "piece_classic"): object {
 	"worklet";
 	const skinFamily = getPieceSkinFamily(pieceSkinId);
+	const hasExactPalette = getExactPieceSkinPalette(pieceSkinId) !== null;
 	const skinColor = getPieceSkinColor(color, pieceSkinId);
 	let finalBorderWidth = borderWidth;
 	let borderRadius = 0;
@@ -737,6 +842,12 @@ export function createFilledBlockStyle(color: Color, borderWidth: number = 7, pi
 		finalBorderWidth = Math.max(1, Math.round(borderWidth * 0.45));
 		borderRadius = 1;
 		shadow = `inset 0 0 ${Math.max(2, Math.round(borderWidth))}px rgba(0, 255, 157, 0.55)`;
+	} else if (hasExactPalette) {
+		finalBorderWidth = Math.max(1, Math.round(borderWidth * 0.65));
+		borderRadius = pieceSkinId === "piece_aurora_glass" ? 4 : 2;
+		if (pieceSkinId === "piece_shadow_gold" || pieceSkinId === "piece_cosmic_ore") {
+			shadow = `0 0 ${Math.max(3, Math.round(borderWidth))}px ${colorToHex(skinColor)}`;
+		}
 	}
 
 	return {

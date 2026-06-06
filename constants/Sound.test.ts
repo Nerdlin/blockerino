@@ -1,4 +1,5 @@
-import { getAudioModeOptions, getCustomAudioSourceInfo, getMusicTrackKey, mapSfxForPack, shouldPauseMusicForAppState } from "./Sound";
+import { SHOP_ITEMS } from "./Shop";
+import { getAudioModeOptions, getCustomAudioSourceInfo, getMusicTrackKey, hasMusicTrackForPack, hasSfxAssetsForPack, mapSfxForPack, shouldPauseMusicForAppState } from "./Sound";
 
 jest.mock("expo-audio", () => ({
 	createAudioPlayer: jest.fn(),
@@ -43,6 +44,14 @@ describe("sound settings", () => {
 		expect(mapSfxForPack("invalidPlacement", "sfx_metal_titan")).toBe("sfxSoftClick");
 		expect(mapSfxForPack("breakLine", "sfx_wind")).toBe("sfxWindClear");
 		expect(mapSfxForPack("gameOver", "sfx_classic")).toBe("gameOver");
+	});
+
+	it("maps every shop music and sfx item to a playable pack", () => {
+		const musicIds = SHOP_ITEMS.filter((item) => item.category === "music").map((item) => item.id);
+		const sfxIds = SHOP_ITEMS.filter((item) => item.category === "sfx").map((item) => item.id);
+
+		expect(musicIds.filter((id) => !hasMusicTrackForPack(id))).toEqual([]);
+		expect(sfxIds.filter((id) => !hasSfxAssetsForPack(id))).toEqual([]);
 	});
 
 	it("accepts external music providers without treating them as in-game streams", () => {

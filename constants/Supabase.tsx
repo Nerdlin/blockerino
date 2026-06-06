@@ -8,12 +8,32 @@ import { getStaleRoomCutoffs, ROOM_CLEANUP_RPC } from './Multiplayer';
 export const SUPABASE_URL = 'https://ptcglecvavdvpxadqfqd.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0Y2dsZWN2YXZkdnB4YWRxZnFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDExODAsImV4cCI6MjA5NTcxNzE4MH0.ZL-xsoBqBTbcgZ-ZETyKzFtrJad0QgiSftBuDV5s_fE';
 
+const webStorage = {
+    getItem: async (key: string) => {
+        if (typeof window === 'undefined') return null;
+        return window.localStorage.getItem(key);
+    },
+    setItem: async (key: string, value: string) => {
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem(key, value);
+    },
+    removeItem: async (key: string) => {
+        if (typeof window === 'undefined') return;
+        window.localStorage.removeItem(key);
+    },
+};
+
+function getSupabaseAuthStorage() {
+    return Platform.OS === 'web' ? webStorage : AsyncStorage;
+}
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
-        ...(Platform.OS !== 'web' ? { storage: AsyncStorage } : {}),
+        storage: getSupabaseAuthStorage(),
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: Platform.OS === 'web',
+        flowType: 'pkce',
         lock: processLock,
     },
 });

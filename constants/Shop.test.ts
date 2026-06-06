@@ -11,6 +11,7 @@ import {
 	mergeShopStates,
 	normalizeShopState,
 	purchaseShopItem,
+	shouldPushLocalShopBalance,
 } from "./Shop";
 
 jest.mock("@react-native-async-storage/async-storage", () => ({
@@ -159,6 +160,35 @@ describe("shop catalog and wallet", () => {
 		expect(merged.balance).toBe(777);
 		expect(merged.equipped.background).toBe("background_ender");
 		expect(merged.ownedItemIds).toContain("background_ender");
+	});
+
+	it("does not push stale local coins over a newer remote profile edit", () => {
+		const local = normalizeShopState({
+			...createDefaultShopState(),
+			balance: 125,
+			pendingProfileSync: true,
+			updatedAt: 1000,
+		});
+
+		expect(shouldPushLocalShopBalance(local, {
+			balance: 999,
+			ownedItemIds: [],
+			equipped: local.equipped,
+			starterGrantClaimed: true,
+			updatedAt: 2000,
+		})).toBe(false);
+
+		expect(shouldPushLocalShopBalance({
+			...local,
+			balance: 1200,
+			updatedAt: 3000,
+		}, {
+			balance: 999,
+			ownedItemIds: [],
+			equipped: local.equipped,
+			starterGrantClaimed: true,
+			updatedAt: 2000,
+		})).toBe(true);
 	});
 
 	it("uses real background scenes and quieter particles outside classic", () => {

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import { StyleSheet, Text, View, ActivityIndicator, TextInput, useWindowDimensions } from "react-native";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
-import { GameModeType, useSetAppState } from "@/hooks/useAppState";
+import { GameModeType, MenuStateType, useAppStateValue, useSetAppState } from "@/hooks/useAppState";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from "@/constants/Theme";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
@@ -14,12 +14,14 @@ import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
 import { useShopState } from "@/constants/Shop";
 
 const LEADERBOARD_LIMIT = 100;
+const LEADERBOARD_REFRESH_MS = 30000;
 
 export default function HighScores() {
     const { width, height } = useWindowDimensions();
     const isMobile = width < 600 || height < 700;
     const { currentTheme } = useTheme();
     const [ setAppState, , popAppState ] = useSetAppState();
+    const appState = useAppStateValue();
     const [ highScores, setHighScores ] = useState<HighScore[]>([]);
     const [ globalHighScores, setGlobalHighScores ] = useState<GlobalHighScore[]>([]);
     const [ gameMode, setGameMode ] = useState(GameModeType.Classic);
@@ -53,7 +55,9 @@ export default function HighScores() {
     };
 
     const syncInProgress = useRef(false);
+    const refreshInProgress = useRef(false);
     const isMounted = useRef(true);
+    const isActive = appState.current === MenuStateType.HIGH_SCORES;
     const handleBack = useCallback(() => {
         popAppState();
     }, [popAppState]);
@@ -61,6 +65,9 @@ export default function HighScores() {
     useEscapeKey(handleBack);
 
     const refreshScores = useCallback(async (showLoader: boolean = false) => {
+        if (refreshInProgress.current) return;
+        refreshInProgress.current = true;
+
         if (showLoader) {
             setLoading(true);
         }
@@ -76,6 +83,7 @@ export default function HighScores() {
             setHighScores(localScores);
             setGlobalHighScores(remoteScores);
         } finally {
+            refreshInProgress.current = false;
             if (showLoader && isMounted.current) {
                 setLoading(false);
             }
@@ -136,13 +144,17 @@ export default function HighScores() {
     };
 
     useEffect(() => {
+        if (!isActive) {
+            return;
+        }
+
         refreshScores(true);
-        const timer = setInterval(() => refreshScores(false), 10000);
+        const timer = setInterval(() => refreshScores(false), LEADERBOARD_REFRESH_MS);
 
         return () => {
             clearInterval(timer);
         };
-    }, [refreshScores]);
+    }, [isActive, refreshScores]);
 
     const hasScores = globalHighScores.length > 0;
 

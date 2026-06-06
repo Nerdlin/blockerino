@@ -718,6 +718,18 @@ export function mergeShopStates(
 	});
 }
 
+export function shouldPushLocalShopBalance(
+	localState: ShopState,
+	remoteState: Partial<ShopState> | null | undefined
+): boolean {
+	const local = normalizeShopState(localState);
+	if (!remoteState) return true;
+	if (!local.pendingProfileSync) return false;
+
+	const remote = normalizeShopState(remoteState);
+	return local.updatedAt >= remote.updatedAt;
+}
+
 interface ShopSyncIdentity {
 	playerName: string;
 	playerId: string | null;
@@ -764,6 +776,22 @@ function escapeIlike(value: string): string {
 	return value.replace(/[%_]/g, "\\$&");
 }
 
+function areStringSetsEqual(a: string[], b: string[]): boolean {
+	const setA = new Set(a);
+	const setB = new Set(b);
+	if (setA.size !== setB.size) return false;
+	for (const value of setA) {
+		if (!setB.has(value)) return false;
+	}
+	return true;
+}
+
+function areEquippedCosmeticsEqual(a: EquippedCosmetics, b: Partial<EquippedCosmetics> | null | undefined): boolean {
+	if (!b) return false;
+	return (Object.keys(DEFAULT_EQUIPPED_COSMETICS) as ShopCategory[])
+		.every((category) => a[category] === b[category]);
+}
+
 export async function syncShopStateWithProfile(localState: ShopState): Promise<{ status: "synced" | "skipped" | "failed"; state: ShopState }> {
 	const local = normalizeShopState(localState);
 
@@ -786,33 +814,70 @@ export async function syncShopStateWithProfile(localState: ShopState): Promise<{
 
 		const profile = profiles?.[0] as RemoteShopProfile | undefined;
 		const hasUnsyncedLocalChanges = local.pendingProfileSync;
+		const remoteState = profileToShopState(profile);
+		const shouldWriteBalance = shouldPushLocalShopBalance(local, remoteState);
 		const merged = {
-			...mergeShopStates(local, profileToShopState(profile), {
-				preferRemoteBalance: Boolean(profile && !hasUnsyncedLocalChanges),
+			...mergeShopStates(local, remoteState, {
+				preferRemoteBalance: Boolean(profile && !shouldWriteBalance),
 				preferRemoteEquipped: Boolean(profile && !hasUnsyncedLocalChanges),
 			}),
 			pendingProfileSync: false,
-			updatedAt: Date.now(),
+			updatedAt: Math.max(local.updatedAt, remoteState?.updatedAt || 0),
 		};
 
-		const payload = {
-			coins: merged.balance,
-			owned_item_ids: merged.ownedItemIds,
-			equipped: merged.equipped,
-			updated_at: new Date(merged.updatedAt).toISOString(),
-		};
+		if (profile?.id && !hasUnsyncedLocalChanges) {
+			const cleanState = normalizeShopState(merged);
+			await saveShopState(cleanState);
+			return { status: "synced", state: cleanState };
+		}
 
+		const payload: Partial<{
+			coins: number;
+			owned_item_ids: string[];
+			equipped: EquippedCosmetics;
+		}> = {};
+
+		if (shouldWriteBalance) {
+			payload.coins = merged.balance;
+		}
+
+		const remoteOwnedItemIds = Array.isArray(profile?.owned_item_ids) ? profile!.owned_item_ids! : [];
+		if (!profile?.id || !areStringSetsEqual(merged.ownedItemIds, remoteOwnedItemIds)) {
+			payload.owned_item_ids = merged.ownedItemIds;
+		}
+
+		if (!profile?.id || !areEquippedCosmeticsEqual(merged.equipped, profile.equipped)) {
+			payload.equipped = merged.equipped;
+		}
+
+		if (profile?.id && Object.keys(payload).length === 0) {
+			const cleanState = normalizeShopState(merged);
+			await saveShopState(cleanState);
+			return { status: "synced", state: cleanState };
+		}
+
+		const selectColumns = "id, player_name, player_id, coins, owned_item_ids, equipped, updated_at";
 		const writeResult = profile?.id
-			? await supabase.from("profiles").update(payload).eq("id", profile.id)
-			: await supabase.from("profiles").insert({ ...payload, player_name: identity.playerName, player_id: identity.playerId });
+			? await supabase.from("profiles").update(payload).eq("id", profile.id).select(selectColumns).single()
+			: await supabase.from("profiles").insert({ ...payload, player_name: identity.playerName, player_id: identity.playerId }).select(selectColumns).single();
 
 		if (writeResult.error) {
 			console.error("Error saving shop profile:", writeResult.error);
 			return { status: "failed", state: local };
 		}
 
-		await saveShopState(merged);
-		return { status: "synced", state: normalizeShopState(merged) };
+		const savedRemoteState = profileToShopState(writeResult.data as RemoteShopProfile | null);
+		const syncedState = normalizeShopState({
+			...mergeShopStates(merged, savedRemoteState, {
+				preferRemoteBalance: true,
+				preferRemoteEquipped: true,
+			}),
+			pendingProfileSync: false,
+			updatedAt: savedRemoteState?.updatedAt || merged.updatedAt || Date.now(),
+		});
+
+		await saveShopState(syncedState);
+		return { status: "synced", state: syncedState };
 	} catch (error) {
 		console.error("Error syncing shop profile:", error);
 		return { status: "failed", state: local };

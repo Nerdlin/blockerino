@@ -1,7 +1,9 @@
 import { useGameSizes } from "@/constants/Board";
 import { Hand } from "@/constants/Hand";
 import { createFilledBlockStyle } from "@/constants/Piece";
+import { shopStateAtom } from "@/constants/Shop";
 import { SharedPoint, useDraggable } from "@mgcrea/react-native-dnd";
+import { useAtomValue } from "jotai";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import Animated, { SharedValue, runOnJS, useAnimatedStyle, useAnimatedReaction } from "react-native-reanimated";
 
@@ -17,12 +19,14 @@ function HandBlock({
 	x,
 	y,
 	GRID_BLOCK_SIZE,
+	pieceSkinId,
 }: {
 	hand: SharedValue<Hand>;
 	i: number;
 	x: number;
 	y: number;
 	GRID_BLOCK_SIZE: number;
+	pieceSkinId: string;
 }) {
 	const animatedStyle = useAnimatedStyle(() => {
 		const piece = hand.value[i];
@@ -45,13 +49,13 @@ function HandBlock({
 				left: x * GRID_BLOCK_SIZE,
 				width: GRID_BLOCK_SIZE,
 				height: GRID_BLOCK_SIZE,
-				...createFilledBlockStyle(piece.color),
+				...createFilledBlockStyle(piece.color, 7, pieceSkinId),
 				opacity: 1,
 			};
 		}
 
 		return style;
-	});
+	}, [pieceSkinId]);
 
 	return (
 		<Animated.View
@@ -69,6 +73,7 @@ function HandBlock({
 
 export default function HandPieces({ hand, boardSize, onHandChange }: HandProps) {
 	const { GRID_BLOCK_SIZE, HAND_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardSize);
+	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
 	const handSize = hand.value.length;
 	const handPieces = [];
 
@@ -84,6 +89,7 @@ export default function HandPieces({ hand, boardSize, onHandChange }: HandProps)
 						x={x}
 						y={y}
 						GRID_BLOCK_SIZE={GRID_BLOCK_SIZE}
+						pieceSkinId={pieceSkinId}
 					/>
 				);
 			}
@@ -193,6 +199,7 @@ export default function HandPieces({ hand, boardSize, onHandChange }: HandProps)
 
 export function ReadOnlyHandPieces({ hand, boardSize, scale = 1 }: { hand: Hand; boardSize: number; scale?: number }) {
 	const { HAND_BLOCK_SIZE } = useGameSizes(boardSize);
+	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
 	const size = HAND_BLOCK_SIZE * scale;
 	const blockSize = size;
 
@@ -225,7 +232,7 @@ export function ReadOnlyHandPieces({ hand, boardSize, scale = 1 }: { hand: Hand;
 									left: x * blockSize,
 									width: blockSize,
 									height: blockSize,
-									...createFilledBlockStyle(piece.color, Math.max(1, Math.round(blockSize * 0.15))),
+									...createFilledBlockStyle(piece.color, Math.max(1, Math.round(blockSize * 0.15)), pieceSkinId),
 									opacity: 1,
 									justifyContent: 'center',
 									alignItems: 'center',
