@@ -2,9 +2,11 @@ import {
 	Board,
 	BoardBlockType,
 	calculateGameSizes,
+	clearHoverBlocks,
 	cloneBoard,
 	hasAnyPossibleMove,
 	newEmptyBoard,
+	updateHoveredBreaks,
 } from "./Board";
 import { PieceData } from "./Piece";
 
@@ -26,6 +28,45 @@ describe("board helpers", () => {
 
 		expect(board[0][0].blockType).toBe(BoardBlockType.EMPTY);
 		expect(board[0][0].color.r).not.toBe(123);
+	});
+
+	it("does not leak hover placement into the real board when no line clears", () => {
+		const board = newEmptyBoard(4);
+		const oneBlock: PieceData = {
+			matrix: [[1]],
+			color: { r: 255, g: 255, b: 255 },
+			distributionPoints: 1,
+		};
+
+		updateHoveredBreaks(board, oneBlock, 0, 0);
+
+		expect(board[0][0].blockType).toBe(BoardBlockType.EMPTY);
+	});
+
+	it("keeps filled preview cells filled when a hover clears crossing lines", () => {
+		const board = newEmptyBoard(4);
+		board[0][0].blockType = BoardBlockType.FILLED;
+		board[0][1].blockType = BoardBlockType.FILLED;
+		board[0][2].blockType = BoardBlockType.FILLED;
+		board[1][0].blockType = BoardBlockType.FILLED;
+		board[2][0].blockType = BoardBlockType.FILLED;
+
+		const cornerPiece: PieceData = {
+			matrix: [
+				[0, 0, 0, 1],
+				[0, 0, 0, 0],
+				[0, 0, 0, 0],
+				[1, 0, 0, 0],
+			],
+			color: { r: 255, g: 255, b: 255 },
+			distributionPoints: 1,
+		};
+
+		updateHoveredBreaks(board, cornerPiece, 0, 0);
+
+		expect(board[0][0].blockType).toBe(BoardBlockType.HOVERED_BREAK_FILLED);
+		clearHoverBlocks(board);
+		expect(board[0][0].blockType).toBe(BoardBlockType.FILLED);
 	});
 
 	it("checks possible moves from the supplied board and hand immediately", () => {

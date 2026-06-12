@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { supabase } from '@/constants/Supabase';
-import { useAppState, MenuStateType } from '@/hooks/useAppState';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { useAppState, MenuStateType, GameModeType } from '@/hooks/useAppState';
 
 export function useInviteListener(
     setMultiplayerRoomId: (id: string) => void,
     setMultiplayerRole: (role: "player1" | "player2") => void,
-    setMultiplayerGameMode: (mode: '1v1_casual' | '1v1_ranked') => void
+    setMultiplayerGameMode: (mode: GameModeType) => void
 ) {
     const [appState, setAppState] = useAppState();
     const [userId, setUserId] = useState<string | null>(null);
@@ -24,10 +23,11 @@ export function useInviteListener(
         const channel = supabase.channel(`invites:${userId}`)
             .on('broadcast', { event: '1v1_invite' }, (payload) => {
                 const { roomId, hostName, gameMode } = payload.payload;
+                const nextGameMode = Object.values(GameModeType).includes(gameMode) ? gameMode : GameModeType.Classic;
                 
                 Alert.alert(
                     "1v1 Invite!",
-                    `${hostName} has invited you to a ${gameMode === '1v1_ranked' ? 'Ranked' : 'Casual'} match!`,
+                    `${hostName} has invited you to a ${nextGameMode === GameModeType.Chaos ? 'Chaos' : 'Classic'} match!`,
                     [
                         { text: "Decline", style: "cancel" },
                         {
@@ -41,7 +41,12 @@ export function useInviteListener(
                                 }
 
                                 // Update room to playing with current user
-                                const { data: profile } = await supabase.from('profiles').select('player_name').eq('id', userId).single();
+                                const { data: profile } = await supabase
+                                    .from('profiles')
+                                    .select('player_name')
+                                    .or(`auth_user_id.eq.${userId},player_id.eq.${userId}`)
+                                    .limit(1)
+                                    .maybeSingle();
                                 const myName = profile?.player_name || 'Player 2';
                                 
                                 const { error } = await supabase.from('matchmaking_rooms').update({
@@ -57,7 +62,7 @@ export function useInviteListener(
 
                                 setMultiplayerRoomId(roomId);
                                 setMultiplayerRole("player2");
-                                setMultiplayerGameMode(gameMode);
+                                setMultiplayerGameMode(nextGameMode);
                                 setAppState(MenuStateType.MULTIPLAYER_GAME);
                             }
                         }

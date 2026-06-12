@@ -17,6 +17,13 @@ interface FriendRecord {
     profiles?: { player_name: string } | { player_name: string }[];
 }
 
+interface FriendProfile {
+    id: string;
+    auth_user_id: string | null;
+    player_id: string | null;
+    player_name: string;
+}
+
 export default function FriendsList({ userId }: { userId: string }) {
     const { currentTheme } = useTheme();
     const [friends, setFriends] = useState<FriendRecord[]>([]);
@@ -41,12 +48,23 @@ export default function FriendsList({ userId }: { userId: string }) {
             // For simplicity and robustness, let's fetch all relevant profiles
             const otherUserIds = data.map(f => f.user_id_1 === userId ? f.user_id_2 : f.user_id_1);
             if (otherUserIds.length > 0) {
-                const { data: profiles } = await supabase
+                const [{ data: authProfiles }, { data: playerProfiles }] = await Promise.all([
+                    supabase
                     .from('profiles')
-                    .select('id, player_name')
-                    .in('id', otherUserIds);
+                    .select('id, auth_user_id, player_id, player_name')
+                    .in('auth_user_id', otherUserIds),
+                    supabase
+                    .from('profiles')
+                    .select('id, auth_user_id, player_id, player_name')
+                    .in('player_id', otherUserIds),
+                ]);
                 
-                const profileMap = new Map((profiles || []).map(p => [p.id, p.player_name]));
+                const profileMap = new Map<string, string>();
+                ([...(authProfiles || []), ...(playerProfiles || [])] as FriendProfile[]).forEach((profile) => {
+                    if (profile.auth_user_id) profileMap.set(profile.auth_user_id, profile.player_name);
+                    if (profile.player_id) profileMap.set(profile.player_id, profile.player_name);
+                    profileMap.set(profile.id, profile.player_name);
+                });
                 
                 const enriched = data.map(f => ({
                     ...f,
@@ -84,7 +102,7 @@ export default function FriendsList({ userId }: { userId: string }) {
         // 1. Find user by name
         const { data: profiles, error: profileError } = await supabase
             .from('profiles')
-            .select('id, player_name')
+            .select('id, auth_user_id, player_id, player_name')
             .ilike('player_name', cleanQuery)
             .limit(1);
             
@@ -94,7 +112,13 @@ export default function FriendsList({ userId }: { userId: string }) {
             return;
         }
         
-        const targetId = profiles[0].id;
+        const targetProfile = profiles[0] as FriendProfile;
+        const targetId = targetProfile.auth_user_id || targetProfile.player_id;
+        if (!targetId) {
+            Alert.alert("Error", "This player does not have a login-backed profile yet.");
+            setSearchLoading(false);
+            return;
+        }
         
         if (targetId === userId) {
             Alert.alert("Oops", "You can't add yourself as a friend!");
@@ -124,7 +148,8 @@ export default function FriendsList({ userId }: { userId: string }) {
             });
 
         if (insertError) {
-            Alert.alert("Error", "Could not send friend request.");
+            console.error("Could not send friend request:", insertError);
+            Alert.alert("Error", insertError.message || "Could not send friend request.");
         } else {
             Alert.alert("Success", "Friend request sent!");
             setSearchQuery('');
@@ -170,7 +195,12 @@ export default function FriendsList({ userId }: { userId: string }) {
         setSearchLoading(true); // Reusing search loader for simplicity
 
         // 1. Create a private room
-        const { data: profile } = await supabase.from('profiles').select('player_name').eq('id', userId).single();
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('player_name')
+            .or(`auth_user_id.eq.${userId},player_id.eq.${userId}`)
+            .limit(1)
+            .maybeSingle();
         const myName = profile?.player_name || 'Player 1';
 
         const { data: room, error } = await supabase.from('matchmaking_rooms').insert({
@@ -178,6 +208,7 @@ export default function FriendsList({ userId }: { userId: string }) {
             player1_name: myName,
             status: 'waiting',
             is_private: true,
+            game_mode: gameMode,
         }).select().single();
 
         if (error || !room) {

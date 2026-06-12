@@ -12,6 +12,7 @@ import {
 	normalizeShopState,
 	purchaseShopItem,
 	shouldPushLocalShopBalance,
+	shouldPushLocalShopField,
 } from "./Shop";
 
 jest.mock("@react-native-async-storage/async-storage", () => ({
@@ -181,6 +182,7 @@ describe("shop catalog and wallet", () => {
 		expect(shouldPushLocalShopBalance({
 			...local,
 			balance: 1200,
+			dirtyProfileFields: ["coins"],
 			updatedAt: 3000,
 		}, {
 			balance: 999,
@@ -189,6 +191,26 @@ describe("shop catalog and wallet", () => {
 			starterGrantClaimed: true,
 			updatedAt: 2000,
 		})).toBe(true);
+	});
+
+	it("pushes only the profile fields that changed locally", () => {
+		const local = normalizeShopState({
+			...createDefaultShopState(),
+			balance: 1200,
+			ownedItemIds: ["piece_classic", "background_classic", "music_classic", "sfx_classic", "music_arcade"],
+			dirtyProfileFields: ["coins"],
+			updatedAt: 3000,
+		});
+		const remote = {
+			balance: 999,
+			ownedItemIds: ["piece_classic", "background_classic", "music_classic", "sfx_classic"],
+			equipped: local.equipped,
+			starterGrantClaimed: true,
+			updatedAt: 2000,
+		};
+
+		expect(shouldPushLocalShopBalance(local, remote)).toBe(true);
+		expect(shouldPushLocalShopField(local, remote, "owned_item_ids")).toBe(false);
 	});
 
 	it("uses real background scenes and quieter particles outside classic", () => {

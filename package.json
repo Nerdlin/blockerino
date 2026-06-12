@@ -10,6 +10,8 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "expo lint",
+    "build:android-release": "powershell -ExecutionPolicy Bypass -File ./scripts/build-android-release.ps1",
+    "publish:android-update": "powershell -ExecutionPolicy Bypass -File ./scripts/publish-android-update.ps1",
     "deploy": "gh-pages --nojekyll -d dist",
     "predeploy": "npx cross-env GH_PAGES=1 expo export -p web"
   },

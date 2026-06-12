@@ -258,15 +258,19 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
         if (!error && roomInfo) {
             const winnerId = winnerRole === 'player1' ? roomInfo.player1_id : (winnerRole === 'player2' ? roomInfo.player2_id : null);
+            const player1Score = myRole === 'player1' ? score.value : opponentScoreRef.current;
+            const player2Score = myRole === 'player2' ? score.value : opponentScoreRef.current;
+            const player1EloChange = winnerRole === 'draw' ? 0 : winnerRole === 'player1' ? 10 : -10;
+            const player2EloChange = winnerRole === 'draw' ? 0 : winnerRole === 'player2' ? 10 : -10;
             const historyEntry = {
                 room_id: roomId,
                 player1_id: roomInfo.player1_id,
                 player2_id: roomInfo.player2_id,
                 winner_id: winnerId,
-                player1_score: score.value,
-                player2_score: opponentScoreRef.current,
-                player1_elo_change: 0,
-                player2_elo_change: 0,
+                player1_score: player1Score,
+                player2_score: player2Score,
+                player1_elo_change: player1EloChange,
+                player2_elo_change: player2EloChange,
             };
 
             if (isActivePlayerRole(myRole)) {

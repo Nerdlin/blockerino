@@ -12,6 +12,12 @@ const MUSIC_ENABLED_KEY = 'MUSIC_ENABLED';
 const SFX_ENABLED_KEY = 'SFX_ENABLED';
 export const CUSTOM_MUSIC_URL_KEY = 'CUSTOM_MUSIC_URL';
 export const CUSTOM_SFX_URL_KEY = 'CUSTOM_SFX_URL';
+const SOFT_LOOP_WINDOW_SECONDS = 0.9;
+const SOFT_LOOP_INTERVAL_MS = 250;
+const SOFT_LOOP_FADE_STEPS = 6;
+const SOFT_LOOP_FADE_STEP_MS = 90;
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Атомы для хранения состояния звука
 export const musicVolumeAtom = atom(0.5);
@@ -46,40 +52,40 @@ export type SoundType =
 
 const MUSIC_TRACK_RESOURCES = {
   backgroundMusic: require('../assets/sounds/background-music.mp3'),
-  musicLofi: require('../assets/sounds/generated/music-lofi.wav'),
-  musicArcade: require('../assets/sounds/generated/music-arcade.wav'),
-  musicCave: require('../assets/sounds/generated/music-cave.wav'),
-  musicSpace: require('../assets/sounds/generated/music-space.wav'),
-  musicRainPiano: require('../assets/sounds/generated/music-rain-piano.wav'),
-  musicJazz: require('../assets/sounds/generated/music-jazz.wav'),
-  musicSynthwave: require('../assets/sounds/generated/music-synthwave.wav'),
-  musicBlues: require('../assets/sounds/generated/music-blues.wav'),
-  musicDreamPop: require('../assets/sounds/generated/music-dream-pop.wav'),
-  musicDrumBass: require('../assets/sounds/generated/music-drum-bass.wav'),
-  musicChiptune: require('../assets/sounds/generated/music-chiptune.wav'),
-  musicTechno: require('../assets/sounds/generated/music-techno.wav'),
-  musicTrap: require('../assets/sounds/generated/music-trap.wav'),
-  musicOrchestral: require('../assets/sounds/generated/music-orchestral.wav'),
-  musicIndustrial: require('../assets/sounds/generated/music-industrial.wav'),
-  musicAmbient: require('../assets/sounds/generated/music-ambient.wav'),
-  musicChoir: require('../assets/sounds/generated/music-choir.wav'),
-  musicPercussion: require('../assets/sounds/generated/music-percussion.wav'),
-  musicNoir: require('../assets/sounds/generated/music-noir.wav'),
-  musicReggae: require('../assets/sounds/generated/music-reggae.wav'),
-  musicTropical: require('../assets/sounds/generated/music-tropical.wav'),
-  musicFunk: require('../assets/sounds/generated/music-funk.wav'),
-  musicGlitch: require('../assets/sounds/generated/music-glitch.wav'),
-  musicMarch: require('../assets/sounds/generated/music-march.wav'),
-  musicSalsa: require('../assets/sounds/generated/music-salsa.wav'),
-  musicHardstyle: require('../assets/sounds/generated/music-hardstyle.wav'),
-  musicMusicBox: require('../assets/sounds/generated/music-music-box.wav'),
-  musicHarp: require('../assets/sounds/generated/music-harp.wav'),
-  musicBreakbeat: require('../assets/sounds/generated/music-breakbeat.wav'),
-  musicDub: require('../assets/sounds/generated/music-dub.wav'),
-  musicGarage: require('../assets/sounds/generated/music-garage.wav'),
-  musicMinimal: require('../assets/sounds/generated/music-minimal.wav'),
-  musicWaltz: require('../assets/sounds/generated/music-waltz.wav'),
-  musicFutureBass: require('../assets/sounds/generated/music-future-bass.wav'),
+  musicLofi: require('../assets/sounds/generated/music-lofi.mp3'),
+  musicArcade: require('../assets/sounds/generated/music-arcade.mp3'),
+  musicCave: require('../assets/sounds/generated/music-cave.mp3'),
+  musicSpace: require('../assets/sounds/generated/music-space.mp3'),
+  musicRainPiano: require('../assets/sounds/generated/music-rain-piano.mp3'),
+  musicJazz: require('../assets/sounds/generated/music-jazz.mp3'),
+  musicSynthwave: require('../assets/sounds/generated/music-synthwave.mp3'),
+  musicBlues: require('../assets/sounds/generated/music-blues.mp3'),
+  musicDreamPop: require('../assets/sounds/generated/music-dream-pop.mp3'),
+  musicDrumBass: require('../assets/sounds/generated/music-drum-bass.mp3'),
+  musicChiptune: require('../assets/sounds/generated/music-chiptune.mp3'),
+  musicTechno: require('../assets/sounds/generated/music-techno.mp3'),
+  musicTrap: require('../assets/sounds/generated/music-trap.mp3'),
+  musicOrchestral: require('../assets/sounds/generated/music-orchestral.mp3'),
+  musicIndustrial: require('../assets/sounds/generated/music-industrial.mp3'),
+  musicAmbient: require('../assets/sounds/generated/music-ambient.mp3'),
+  musicChoir: require('../assets/sounds/generated/music-choir.mp3'),
+  musicPercussion: require('../assets/sounds/generated/music-percussion.mp3'),
+  musicNoir: require('../assets/sounds/generated/music-noir.mp3'),
+  musicReggae: require('../assets/sounds/generated/music-reggae.mp3'),
+  musicTropical: require('../assets/sounds/generated/music-tropical.mp3'),
+  musicFunk: require('../assets/sounds/generated/music-funk.mp3'),
+  musicGlitch: require('../assets/sounds/generated/music-glitch.mp3'),
+  musicMarch: require('../assets/sounds/generated/music-march.mp3'),
+  musicSalsa: require('../assets/sounds/generated/music-salsa.mp3'),
+  musicHardstyle: require('../assets/sounds/generated/music-hardstyle.mp3'),
+  musicMusicBox: require('../assets/sounds/generated/music-music-box.mp3'),
+  musicHarp: require('../assets/sounds/generated/music-harp.mp3'),
+  musicBreakbeat: require('../assets/sounds/generated/music-breakbeat.mp3'),
+  musicDub: require('../assets/sounds/generated/music-dub.mp3'),
+  musicGarage: require('../assets/sounds/generated/music-garage.mp3'),
+  musicMinimal: require('../assets/sounds/generated/music-minimal.mp3'),
+  musicWaltz: require('../assets/sounds/generated/music-waltz.mp3'),
+  musicFutureBass: require('../assets/sounds/generated/music-future-bass.mp3'),
 } as const;
 
 const SFX_RESOURCES = {
@@ -94,108 +100,108 @@ const SFX_RESOURCES = {
   menuClick: require('../assets/sounds/menu-click.mp3'),
   invalidPlacement: require('../assets/sounds/invalid-placement.mp3'),
   buttonHover: require('../assets/sounds/button-hover.mp3'),
-  sfxWoodPlace: require('../assets/sounds/generated/sfx-wood-place.wav'),
-  sfxWoodClear: require('../assets/sounds/generated/sfx-wood-clear.wav'),
-  sfxWoodClick: require('../assets/sounds/generated/sfx-wood-click.wav'),
-  sfxGlassPlace: require('../assets/sounds/generated/sfx-glass-place.wav'),
-  sfxGlassClear: require('../assets/sounds/generated/sfx-glass-clear.wav'),
-  sfxGlassClick: require('../assets/sounds/generated/sfx-glass-click.wav'),
-  sfxRetroPlace: require('../assets/sounds/generated/sfx-retro-place.wav'),
-  sfxRetroClear: require('../assets/sounds/generated/sfx-retro-clear.wav'),
-  sfxRetroClick: require('../assets/sounds/generated/sfx-retro-click.wav'),
-  sfxMetalPlace: require('../assets/sounds/generated/sfx-metal-place.wav'),
-  sfxMetalClear: require('../assets/sounds/generated/sfx-metal-clear.wav'),
-  sfxMetalClick: require('../assets/sounds/generated/sfx-metal-click.wav'),
-  sfxPaperPlace: require('../assets/sounds/generated/sfx-paper-place.wav'),
-  sfxPaperClear: require('../assets/sounds/generated/sfx-paper-clear.wav'),
-  sfxPaperClick: require('../assets/sounds/generated/sfx-paper-click.wav'),
-  sfxBubblePlace: require('../assets/sounds/generated/sfx-bubble-place.wav'),
-  sfxBubbleClear: require('../assets/sounds/generated/sfx-bubble-clear.wav'),
-  sfxBubbleClick: require('../assets/sounds/generated/sfx-bubble-click.wav'),
-  sfxLaserPlace: require('../assets/sounds/generated/sfx-laser-place.wav'),
-  sfxLaserClear: require('../assets/sounds/generated/sfx-laser-clear.wav'),
-  sfxLaserClick: require('../assets/sounds/generated/sfx-laser-click.wav'),
-  sfxStonePlace: require('../assets/sounds/generated/sfx-stone-place.wav'),
-  sfxStoneClear: require('../assets/sounds/generated/sfx-stone-clear.wav'),
-  sfxStoneClick: require('../assets/sounds/generated/sfx-stone-click.wav'),
-  sfxWaterPlace: require('../assets/sounds/generated/sfx-water-place.wav'),
-  sfxWaterClear: require('../assets/sounds/generated/sfx-water-clear.wav'),
-  sfxWaterClick: require('../assets/sounds/generated/sfx-water-click.wav'),
-  sfxElectricPlace: require('../assets/sounds/generated/sfx-electric-place.wav'),
-  sfxElectricClear: require('../assets/sounds/generated/sfx-electric-clear.wav'),
-  sfxElectricClick: require('../assets/sounds/generated/sfx-electric-click.wav'),
-  sfxToyPlace: require('../assets/sounds/generated/sfx-toy-place.wav'),
-  sfxToyClear: require('../assets/sounds/generated/sfx-toy-clear.wav'),
-  sfxToyClick: require('../assets/sounds/generated/sfx-toy-click.wav'),
-  sfxClayPlace: require('../assets/sounds/generated/sfx-clay-place.wav'),
-  sfxClayClear: require('../assets/sounds/generated/sfx-clay-clear.wav'),
-  sfxClayClick: require('../assets/sounds/generated/sfx-clay-click.wav'),
-  sfxBellPlace: require('../assets/sounds/generated/sfx-bell-place.wav'),
-  sfxBellClear: require('../assets/sounds/generated/sfx-bell-clear.wav'),
-  sfxBellClick: require('../assets/sounds/generated/sfx-bell-click.wav'),
-  sfxWhooshPlace: require('../assets/sounds/generated/sfx-whoosh-place.wav'),
-  sfxWhooshClear: require('../assets/sounds/generated/sfx-whoosh-clear.wav'),
-  sfxWhooshClick: require('../assets/sounds/generated/sfx-whoosh-click.wav'),
-  sfxTypewriterPlace: require('../assets/sounds/generated/sfx-typewriter-place.wav'),
-  sfxTypewriterClear: require('../assets/sounds/generated/sfx-typewriter-clear.wav'),
-  sfxTypewriterClick: require('../assets/sounds/generated/sfx-typewriter-click.wav'),
-  sfxSpringPlace: require('../assets/sounds/generated/sfx-spring-place.wav'),
-  sfxSpringClear: require('../assets/sounds/generated/sfx-spring-clear.wav'),
-  sfxSpringClick: require('../assets/sounds/generated/sfx-spring-click.wav'),
-  sfxIcePlace: require('../assets/sounds/generated/sfx-ice-place.wav'),
-  sfxIceClear: require('../assets/sounds/generated/sfx-ice-clear.wav'),
-  sfxIceClick: require('../assets/sounds/generated/sfx-ice-click.wav'),
-  sfxFirePlace: require('../assets/sounds/generated/sfx-fire-place.wav'),
-  sfxFireClear: require('../assets/sounds/generated/sfx-fire-clear.wav'),
-  sfxFireClick: require('../assets/sounds/generated/sfx-fire-click.wav'),
-  sfxCoinPlace: require('../assets/sounds/generated/sfx-coin-place.wav'),
-  sfxCoinClear: require('../assets/sounds/generated/sfx-coin-clear.wav'),
-  sfxCoinClick: require('../assets/sounds/generated/sfx-coin-click.wav'),
-  sfxDrumPlace: require('../assets/sounds/generated/sfx-drum-place.wav'),
-  sfxDrumClear: require('../assets/sounds/generated/sfx-drum-clear.wav'),
-  sfxDrumClick: require('../assets/sounds/generated/sfx-drum-click.wav'),
-  sfxSciFiPlace: require('../assets/sounds/generated/sfx-scifi-place.wav'),
-  sfxSciFiClear: require('../assets/sounds/generated/sfx-scifi-clear.wav'),
-  sfxSciFiClick: require('../assets/sounds/generated/sfx-scifi-click.wav'),
-  sfxSnapPlace: require('../assets/sounds/generated/sfx-snap-place.wav'),
-  sfxSnapClear: require('../assets/sounds/generated/sfx-snap-clear.wav'),
-  sfxSnapClick: require('../assets/sounds/generated/sfx-snap-click.wav'),
-  sfxPluckPlace: require('../assets/sounds/generated/sfx-pluck-place.wav'),
-  sfxPluckClear: require('../assets/sounds/generated/sfx-pluck-clear.wav'),
-  sfxPluckClick: require('../assets/sounds/generated/sfx-pluck-click.wav'),
-  sfxSoftPlace: require('../assets/sounds/generated/sfx-soft-place.wav'),
-  sfxSoftClear: require('../assets/sounds/generated/sfx-soft-clear.wav'),
-  sfxSoftClick: require('../assets/sounds/generated/sfx-soft-click.wav'),
-  sfxCameraPlace: require('../assets/sounds/generated/sfx-camera-place.wav'),
-  sfxCameraClear: require('../assets/sounds/generated/sfx-camera-clear.wav'),
-  sfxCameraClick: require('../assets/sounds/generated/sfx-camera-click.wav'),
-  sfxClockPlace: require('../assets/sounds/generated/sfx-clock-place.wav'),
-  sfxClockClear: require('../assets/sounds/generated/sfx-clock-clear.wav'),
-  sfxClockClick: require('../assets/sounds/generated/sfx-clock-click.wav'),
-  sfxRubberPlace: require('../assets/sounds/generated/sfx-rubber-place.wav'),
-  sfxRubberClear: require('../assets/sounds/generated/sfx-rubber-clear.wav'),
-  sfxRubberClick: require('../assets/sounds/generated/sfx-rubber-click.wav'),
-  sfxCeramicPlace: require('../assets/sounds/generated/sfx-ceramic-place.wav'),
-  sfxCeramicClear: require('../assets/sounds/generated/sfx-ceramic-clear.wav'),
-  sfxCeramicClick: require('../assets/sounds/generated/sfx-ceramic-click.wav'),
-  sfxSparkPlace: require('../assets/sounds/generated/sfx-spark-place.wav'),
-  sfxSparkClear: require('../assets/sounds/generated/sfx-spark-clear.wav'),
-  sfxSparkClick: require('../assets/sounds/generated/sfx-spark-click.wav'),
-  sfxBassPlace: require('../assets/sounds/generated/sfx-bass-place.wav'),
-  sfxBassClear: require('../assets/sounds/generated/sfx-bass-clear.wav'),
-  sfxBassClick: require('../assets/sounds/generated/sfx-bass-click.wav'),
-  sfxDigitalPlace: require('../assets/sounds/generated/sfx-digital-place.wav'),
-  sfxDigitalClear: require('../assets/sounds/generated/sfx-digital-clear.wav'),
-  sfxDigitalClick: require('../assets/sounds/generated/sfx-digital-click.wav'),
-  sfxMagicPlace: require('../assets/sounds/generated/sfx-magic-place.wav'),
-  sfxMagicClear: require('../assets/sounds/generated/sfx-magic-clear.wav'),
-  sfxMagicClick: require('../assets/sounds/generated/sfx-magic-click.wav'),
-  sfxCrunchPlace: require('../assets/sounds/generated/sfx-crunch-place.wav'),
-  sfxCrunchClear: require('../assets/sounds/generated/sfx-crunch-clear.wav'),
-  sfxCrunchClick: require('../assets/sounds/generated/sfx-crunch-click.wav'),
-  sfxWindPlace: require('../assets/sounds/generated/sfx-wind-place.wav'),
-  sfxWindClear: require('../assets/sounds/generated/sfx-wind-clear.wav'),
-  sfxWindClick: require('../assets/sounds/generated/sfx-wind-click.wav'),
+  sfxWoodPlace: require('../assets/sounds/generated/sfx-wood-place.mp3'),
+  sfxWoodClear: require('../assets/sounds/generated/sfx-wood-clear.mp3'),
+  sfxWoodClick: require('../assets/sounds/generated/sfx-wood-click.mp3'),
+  sfxGlassPlace: require('../assets/sounds/generated/sfx-glass-place.mp3'),
+  sfxGlassClear: require('../assets/sounds/generated/sfx-glass-clear.mp3'),
+  sfxGlassClick: require('../assets/sounds/generated/sfx-glass-click.mp3'),
+  sfxRetroPlace: require('../assets/sounds/generated/sfx-retro-place.mp3'),
+  sfxRetroClear: require('../assets/sounds/generated/sfx-retro-clear.mp3'),
+  sfxRetroClick: require('../assets/sounds/generated/sfx-retro-click.mp3'),
+  sfxMetalPlace: require('../assets/sounds/generated/sfx-metal-place.mp3'),
+  sfxMetalClear: require('../assets/sounds/generated/sfx-metal-clear.mp3'),
+  sfxMetalClick: require('../assets/sounds/generated/sfx-metal-click.mp3'),
+  sfxPaperPlace: require('../assets/sounds/generated/sfx-paper-place.mp3'),
+  sfxPaperClear: require('../assets/sounds/generated/sfx-paper-clear.mp3'),
+  sfxPaperClick: require('../assets/sounds/generated/sfx-paper-click.mp3'),
+  sfxBubblePlace: require('../assets/sounds/generated/sfx-bubble-place.mp3'),
+  sfxBubbleClear: require('../assets/sounds/generated/sfx-bubble-clear.mp3'),
+  sfxBubbleClick: require('../assets/sounds/generated/sfx-bubble-click.mp3'),
+  sfxLaserPlace: require('../assets/sounds/generated/sfx-laser-place.mp3'),
+  sfxLaserClear: require('../assets/sounds/generated/sfx-laser-clear.mp3'),
+  sfxLaserClick: require('../assets/sounds/generated/sfx-laser-click.mp3'),
+  sfxStonePlace: require('../assets/sounds/generated/sfx-stone-place.mp3'),
+  sfxStoneClear: require('../assets/sounds/generated/sfx-stone-clear.mp3'),
+  sfxStoneClick: require('../assets/sounds/generated/sfx-stone-click.mp3'),
+  sfxWaterPlace: require('../assets/sounds/generated/sfx-water-place.mp3'),
+  sfxWaterClear: require('../assets/sounds/generated/sfx-water-clear.mp3'),
+  sfxWaterClick: require('../assets/sounds/generated/sfx-water-click.mp3'),
+  sfxElectricPlace: require('../assets/sounds/generated/sfx-electric-place.mp3'),
+  sfxElectricClear: require('../assets/sounds/generated/sfx-electric-clear.mp3'),
+  sfxElectricClick: require('../assets/sounds/generated/sfx-electric-click.mp3'),
+  sfxToyPlace: require('../assets/sounds/generated/sfx-toy-place.mp3'),
+  sfxToyClear: require('../assets/sounds/generated/sfx-toy-clear.mp3'),
+  sfxToyClick: require('../assets/sounds/generated/sfx-toy-click.mp3'),
+  sfxClayPlace: require('../assets/sounds/generated/sfx-clay-place.mp3'),
+  sfxClayClear: require('../assets/sounds/generated/sfx-clay-clear.mp3'),
+  sfxClayClick: require('../assets/sounds/generated/sfx-clay-click.mp3'),
+  sfxBellPlace: require('../assets/sounds/generated/sfx-bell-place.mp3'),
+  sfxBellClear: require('../assets/sounds/generated/sfx-bell-clear.mp3'),
+  sfxBellClick: require('../assets/sounds/generated/sfx-bell-click.mp3'),
+  sfxWhooshPlace: require('../assets/sounds/generated/sfx-whoosh-place.mp3'),
+  sfxWhooshClear: require('../assets/sounds/generated/sfx-whoosh-clear.mp3'),
+  sfxWhooshClick: require('../assets/sounds/generated/sfx-whoosh-click.mp3'),
+  sfxTypewriterPlace: require('../assets/sounds/generated/sfx-typewriter-place.mp3'),
+  sfxTypewriterClear: require('../assets/sounds/generated/sfx-typewriter-clear.mp3'),
+  sfxTypewriterClick: require('../assets/sounds/generated/sfx-typewriter-click.mp3'),
+  sfxSpringPlace: require('../assets/sounds/generated/sfx-spring-place.mp3'),
+  sfxSpringClear: require('../assets/sounds/generated/sfx-spring-clear.mp3'),
+  sfxSpringClick: require('../assets/sounds/generated/sfx-spring-click.mp3'),
+  sfxIcePlace: require('../assets/sounds/generated/sfx-ice-place.mp3'),
+  sfxIceClear: require('../assets/sounds/generated/sfx-ice-clear.mp3'),
+  sfxIceClick: require('../assets/sounds/generated/sfx-ice-click.mp3'),
+  sfxFirePlace: require('../assets/sounds/generated/sfx-fire-place.mp3'),
+  sfxFireClear: require('../assets/sounds/generated/sfx-fire-clear.mp3'),
+  sfxFireClick: require('../assets/sounds/generated/sfx-fire-click.mp3'),
+  sfxCoinPlace: require('../assets/sounds/generated/sfx-coin-place.mp3'),
+  sfxCoinClear: require('../assets/sounds/generated/sfx-coin-clear.mp3'),
+  sfxCoinClick: require('../assets/sounds/generated/sfx-coin-click.mp3'),
+  sfxDrumPlace: require('../assets/sounds/generated/sfx-drum-place.mp3'),
+  sfxDrumClear: require('../assets/sounds/generated/sfx-drum-clear.mp3'),
+  sfxDrumClick: require('../assets/sounds/generated/sfx-drum-click.mp3'),
+  sfxSciFiPlace: require('../assets/sounds/generated/sfx-scifi-place.mp3'),
+  sfxSciFiClear: require('../assets/sounds/generated/sfx-scifi-clear.mp3'),
+  sfxSciFiClick: require('../assets/sounds/generated/sfx-scifi-click.mp3'),
+  sfxSnapPlace: require('../assets/sounds/generated/sfx-snap-place.mp3'),
+  sfxSnapClear: require('../assets/sounds/generated/sfx-snap-clear.mp3'),
+  sfxSnapClick: require('../assets/sounds/generated/sfx-snap-click.mp3'),
+  sfxPluckPlace: require('../assets/sounds/generated/sfx-pluck-place.mp3'),
+  sfxPluckClear: require('../assets/sounds/generated/sfx-pluck-clear.mp3'),
+  sfxPluckClick: require('../assets/sounds/generated/sfx-pluck-click.mp3'),
+  sfxSoftPlace: require('../assets/sounds/generated/sfx-soft-place.mp3'),
+  sfxSoftClear: require('../assets/sounds/generated/sfx-soft-clear.mp3'),
+  sfxSoftClick: require('../assets/sounds/generated/sfx-soft-click.mp3'),
+  sfxCameraPlace: require('../assets/sounds/generated/sfx-camera-place.mp3'),
+  sfxCameraClear: require('../assets/sounds/generated/sfx-camera-clear.mp3'),
+  sfxCameraClick: require('../assets/sounds/generated/sfx-camera-click.mp3'),
+  sfxClockPlace: require('../assets/sounds/generated/sfx-clock-place.mp3'),
+  sfxClockClear: require('../assets/sounds/generated/sfx-clock-clear.mp3'),
+  sfxClockClick: require('../assets/sounds/generated/sfx-clock-click.mp3'),
+  sfxRubberPlace: require('../assets/sounds/generated/sfx-rubber-place.mp3'),
+  sfxRubberClear: require('../assets/sounds/generated/sfx-rubber-clear.mp3'),
+  sfxRubberClick: require('../assets/sounds/generated/sfx-rubber-click.mp3'),
+  sfxCeramicPlace: require('../assets/sounds/generated/sfx-ceramic-place.mp3'),
+  sfxCeramicClear: require('../assets/sounds/generated/sfx-ceramic-clear.mp3'),
+  sfxCeramicClick: require('../assets/sounds/generated/sfx-ceramic-click.mp3'),
+  sfxSparkPlace: require('../assets/sounds/generated/sfx-spark-place.mp3'),
+  sfxSparkClear: require('../assets/sounds/generated/sfx-spark-clear.mp3'),
+  sfxSparkClick: require('../assets/sounds/generated/sfx-spark-click.mp3'),
+  sfxBassPlace: require('../assets/sounds/generated/sfx-bass-place.mp3'),
+  sfxBassClear: require('../assets/sounds/generated/sfx-bass-clear.mp3'),
+  sfxBassClick: require('../assets/sounds/generated/sfx-bass-click.mp3'),
+  sfxDigitalPlace: require('../assets/sounds/generated/sfx-digital-place.mp3'),
+  sfxDigitalClear: require('../assets/sounds/generated/sfx-digital-clear.mp3'),
+  sfxDigitalClick: require('../assets/sounds/generated/sfx-digital-click.mp3'),
+  sfxMagicPlace: require('../assets/sounds/generated/sfx-magic-place.mp3'),
+  sfxMagicClear: require('../assets/sounds/generated/sfx-magic-clear.mp3'),
+  sfxMagicClick: require('../assets/sounds/generated/sfx-magic-click.mp3'),
+  sfxCrunchPlace: require('../assets/sounds/generated/sfx-crunch-place.mp3'),
+  sfxCrunchClear: require('../assets/sounds/generated/sfx-crunch-clear.mp3'),
+  sfxCrunchClick: require('../assets/sounds/generated/sfx-crunch-click.mp3'),
+  sfxWindPlace: require('../assets/sounds/generated/sfx-wind-place.mp3'),
+  sfxWindClear: require('../assets/sounds/generated/sfx-wind-clear.mp3'),
+  sfxWindClick: require('../assets/sounds/generated/sfx-wind-click.mp3'),
 } as const;
 
 type BuiltInMusicTrackKey = keyof typeof MUSIC_TRACK_RESOURCES;
@@ -457,37 +463,37 @@ const getSoundResource = (type: SoundAssetKey) => {
     case 'backgroundMusic': 
       try { return require('../assets/sounds/background-music.mp3'); } catch { return null; }
     case 'musicLofi':
-      try { return require('../assets/sounds/generated/music-lofi.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/music-lofi.mp3'); } catch { return null; }
     case 'musicArcade':
-      try { return require('../assets/sounds/generated/music-arcade.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/music-arcade.mp3'); } catch { return null; }
     case 'musicCave':
-      try { return require('../assets/sounds/generated/music-cave.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/music-cave.mp3'); } catch { return null; }
     case 'musicSpace':
-      try { return require('../assets/sounds/generated/music-space.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/music-space.mp3'); } catch { return null; }
     case 'sfxWoodPlace':
-      try { return require('../assets/sounds/generated/sfx-wood-place.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/sfx-wood-place.mp3'); } catch { return null; }
     case 'sfxWoodClear':
-      try { return require('../assets/sounds/generated/sfx-wood-clear.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/sfx-wood-clear.mp3'); } catch { return null; }
     case 'sfxWoodClick':
-      try { return require('../assets/sounds/generated/sfx-wood-click.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/sfx-wood-click.mp3'); } catch { return null; }
     case 'sfxGlassPlace':
-      try { return require('../assets/sounds/generated/sfx-glass-place.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/sfx-glass-place.mp3'); } catch { return null; }
     case 'sfxGlassClear':
-      try { return require('../assets/sounds/generated/sfx-glass-clear.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/sfx-glass-clear.mp3'); } catch { return null; }
     case 'sfxGlassClick':
-      try { return require('../assets/sounds/generated/sfx-glass-click.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/sfx-glass-click.mp3'); } catch { return null; }
     case 'sfxRetroPlace':
-      try { return require('../assets/sounds/generated/sfx-retro-place.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/sfx-retro-place.mp3'); } catch { return null; }
     case 'sfxRetroClear':
-      try { return require('../assets/sounds/generated/sfx-retro-clear.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/sfx-retro-clear.mp3'); } catch { return null; }
     case 'sfxRetroClick':
-      try { return require('../assets/sounds/generated/sfx-retro-click.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/sfx-retro-click.mp3'); } catch { return null; }
     case 'sfxMetalPlace':
-      try { return require('../assets/sounds/generated/sfx-metal-place.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/sfx-metal-place.mp3'); } catch { return null; }
     case 'sfxMetalClear':
-      try { return require('../assets/sounds/generated/sfx-metal-clear.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/sfx-metal-clear.mp3'); } catch { return null; }
     case 'sfxMetalClick':
-      try { return require('../assets/sounds/generated/sfx-metal-click.wav'); } catch { return null; }
+      try { return require('../assets/sounds/generated/sfx-metal-click.mp3'); } catch { return null; }
     default:
       return null;
   }
@@ -503,6 +509,9 @@ class SoundManager {
   private customMusicUrl: string | null = null;
   private initialized = false;
   private musicRequestId = 0;
+  private musicLoopTimer: ReturnType<typeof setInterval> | null = null;
+  private musicLooping = false;
+  private currentMusicVolume = 1;
   private webAudioUnlocked = Platform.OS !== 'web';
   private webAudioUnlockListening = false;
   private pendingWebMusic: { volume?: number; musicPackId: string } | null = null;
@@ -589,7 +598,7 @@ class SoundManager {
 
       const music = createAudioPlayer(soundResource);
       if (music) {
-        music.loop = true;
+        music.loop = false;
         this.musicTracks.set(key, music);
         return music;
       }
@@ -612,14 +621,85 @@ class SoundManager {
     const cleanupDelayMs = Platform.OS === 'android' ? Math.max(delayMs, 5000) : delayMs;
     setTimeout(() => {
       try {
-        if (Platform.OS !== 'android') {
-          player.pause();
-          player.seekTo(0);
-        }
+        player.pause();
+        void player.seekTo(0);
         player.remove();
       } catch {}
       this.activeSfxPlayers.delete(player);
     }, cleanupDelayMs);
+  }
+
+  private stopSoftLoopMonitor() {
+    if (this.musicLoopTimer) {
+      clearInterval(this.musicLoopTimer);
+      this.musicLoopTimer = null;
+    }
+    this.musicLooping = false;
+  }
+
+  private startSoftLoopMonitor() {
+    this.stopSoftLoopMonitor();
+    this.musicLoopTimer = setInterval(() => {
+      void this.maybeSoftLoopCurrentMusic();
+    }, SOFT_LOOP_INTERVAL_MS);
+  }
+
+  private async maybeSoftLoopCurrentMusic() {
+    if (!this.musicPlaying || this.musicLooping) {
+      return;
+    }
+
+    const music = this.musicTracks.get(this.currentMusicKey);
+    if (!music) {
+      return;
+    }
+
+    const duration = Number(music.duration) || 0;
+    const currentTime = Number(music.currentTime) || 0;
+    if (duration <= SOFT_LOOP_WINDOW_SECONDS + 0.5 || duration - currentTime > SOFT_LOOP_WINDOW_SECONDS) {
+      return;
+    }
+
+    await this.softRestartCurrentMusic();
+  }
+
+  private async softRestartCurrentMusic() {
+    if (this.musicLooping) {
+      return;
+    }
+
+    const requestId = this.musicRequestId;
+    const music = this.musicTracks.get(this.currentMusicKey);
+    if (!music || !this.musicPlaying) {
+      return;
+    }
+
+    this.musicLooping = true;
+    const targetVolume = this.currentMusicVolume;
+
+    try {
+      for (let step = 1; step <= SOFT_LOOP_FADE_STEPS; step += 1) {
+        if (requestId !== this.musicRequestId || !this.musicPlaying) return;
+        music.volume = targetVolume * (1 - step / SOFT_LOOP_FADE_STEPS);
+        await delay(SOFT_LOOP_FADE_STEP_MS);
+      }
+
+      if (requestId !== this.musicRequestId || !this.musicPlaying) return;
+      await music.seekTo(0);
+      music.play();
+
+      for (let step = 1; step <= SOFT_LOOP_FADE_STEPS; step += 1) {
+        if (requestId !== this.musicRequestId || !this.musicPlaying) return;
+        music.volume = targetVolume * (step / SOFT_LOOP_FADE_STEPS);
+        await delay(SOFT_LOOP_FADE_STEP_MS);
+      }
+
+      music.volume = targetVolume;
+    } catch (error) {
+      console.log('Soft music loop failed:', error);
+    } finally {
+      this.musicLooping = false;
+    }
   }
 
   private canPlayOneShotNow(): boolean {
@@ -654,7 +734,7 @@ class SoundManager {
     this.musicTracks.forEach((music, key) => {
       if (key !== activeKey) {
         music.pause();
-        music.seekTo(0);
+        void music.seekTo(0);
       }
     });
   }
@@ -770,7 +850,7 @@ class SoundManager {
             if (!customMusic || this.customMusicUrl !== source.url) {
               customMusic?.pause();
               customMusic = createAudioPlayer(source.url);
-              customMusic.loop = true;
+              customMusic.loop = false;
               this.musicTracks.set(customKey, customMusic);
               this.customMusicUrl = source.url;
               this.musicPlaying = false;
@@ -784,11 +864,13 @@ class SoundManager {
 
             if (requestId !== this.musicRequestId) return;
 
-            customMusic.volume = volume ?? 1;
+            this.currentMusicVolume = volume ?? 1;
+            customMusic.volume = this.currentMusicVolume;
             if (!this.musicPlaying) {
               customMusic.play();
               this.musicPlaying = true;
             }
+            this.startSoftLoopMonitor();
             return;
           } catch (error) {
             console.log("Custom music could not play, falling back to classic:", error);
@@ -812,11 +894,13 @@ class SoundManager {
         this.pauseMusicTracksExcept(musicKey);
       }
 
-      nextMusic.volume = volume ?? 1;
+      this.currentMusicVolume = volume ?? 1;
+      nextMusic.volume = this.currentMusicVolume;
       if (!this.musicPlaying) {
         nextMusic.play();
         this.musicPlaying = true;
       }
+      this.startSoftLoopMonitor();
     } catch (error) {
       if (String(error).includes('NotAllowedError')) {
         console.log('Background music will start after user interaction.');
@@ -830,9 +914,10 @@ class SoundManager {
   async stopMusic() {
     try {
       this.musicRequestId++;
+      this.stopSoftLoopMonitor();
       this.musicTracks.forEach((music) => {
         music.pause();
-        music.seekTo(0);
+        void music.seekTo(0);
       });
       this.musicPlaying = false;
     } catch (error) {
@@ -844,16 +929,38 @@ class SoundManager {
   async pauseMusic() {
     try {
       this.musicRequestId++;
-      this.musicTracks.get(this.currentMusicKey)?.pause();
+      this.stopSoftLoopMonitor();
+      this.musicTracks.forEach((music) => {
+        music.pause();
+      });
       this.musicPlaying = false;
     } catch (error) {
       console.error('Error pausing background music:', error);
     }
   }
 
+  stopSfx() {
+    this.activeSfxPlayers.forEach((player) => {
+      try {
+        player.pause();
+        void player.seekTo(0);
+        player.remove();
+      } catch {}
+    });
+    this.activeSfxPlayers.clear();
+
+    this.sounds.forEach((sound) => {
+      try {
+        sound.pause();
+        void sound.seekTo(0);
+      } catch {}
+    });
+  }
+
   // Обновление громкости фоновой музыки
   async updateMusicVolume(volume: number, musicPackId: string = 'music_classic') {
     try {
+      this.currentMusicVolume = volume;
       let musicKey = getMusicTrackKey(musicPackId);
       if (musicPackId === 'music_custom') {
         musicKey = 'musicCustom';
@@ -900,13 +1007,16 @@ export function useSoundSettings(options: { manageMusicPlayback?: boolean } = {}
     if (enabled) {
       await soundManager.playMusic(musicVolume * getMusicVolumeMultiplier(musicPackId), musicPackId);
     } else {
-      await soundManager.pauseMusic();
+      await soundManager.stopMusic();
     }
   };
 
   const toggleSfx = async (enabled: boolean) => {
     setSfxEnabled(enabled);
     await soundManager.saveSettings({ sfxEnabled: enabled });
+    if (!enabled) {
+      soundManager.stopSfx();
+    }
   };
 
   const playSfx = async (type: SoundType) => {
@@ -946,7 +1056,7 @@ export function useSoundSettings(options: { manageMusicPlayback?: boolean } = {}
     if (musicEnabled) {
       soundManager.playMusic(musicVolume * getMusicVolumeMultiplier(musicPackId), musicPackId);
     } else {
-      soundManager.pauseMusic();
+      soundManager.stopMusic();
     }
   }, [manageMusicPlayback, musicEnabled, musicPackId, musicVolume]);
 

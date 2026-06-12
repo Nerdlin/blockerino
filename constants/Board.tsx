@@ -267,7 +267,7 @@ export function updateHoveredBreaks(
 ) {
   "worklet";
   const boardLength = board.length;
-  const tempBoard = [...board];
+  const tempBoard = cloneBoard(board);
   placePieceOntoBoard(tempBoard, piece, dropX, dropY, BoardBlockType.HOVERED);
 
   const rowsToClear = new Set<number>();
@@ -313,7 +313,10 @@ export function updateHoveredBreaks(
 
     colsToClear.forEach((col) => {
       for (let row = 0; row < boardLength; row++) {
-        if (board[row][col].blockType === BoardBlockType.FILLED) {
+        if (
+          board[row][col].blockType === BoardBlockType.FILLED ||
+          board[row][col].blockType === BoardBlockType.HOVERED_BREAK_FILLED
+        ) {
           board[row][col].blockType = BoardBlockType.HOVERED_BREAK_FILLED;
           board[row][col].hoveredBreakColor = piece.color;
         } else {

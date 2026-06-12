@@ -9,7 +9,7 @@ import { supabase } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { Session, User } from "@supabase/supabase-js";
-import { useShopState } from "@/constants/Shop";
+import { loadShopState, syncShopStateWithProfile, useShopState } from "@/constants/Shop";
 import { PlayerProfile, getPlayerElo, getPlayerGlobalHighScore, upsertAuthenticatedProfile } from "@/constants/Supabase";
 import { getHighScores, createHighScore } from "@/constants/Storage";
 import MatchHistoryList from "./MatchHistoryList";
@@ -123,7 +123,7 @@ export default function ProfileMenu() {
 	const hydratedSessionKeyRef = useRef<string | null>(null);
 	const hydratingSessionKeyRef = useRef<string | null>(null);
 
-	const { state: shopState } = useShopState();
+	const { state: shopState, reload: reloadShopState } = useShopState();
 
 	const loadProfileStats = useCallback(async (name: string, userId: string) => {
 		try {
@@ -176,8 +176,13 @@ export default function ProfileMenu() {
 			await AsyncStorage.setItem(PLAYER_NAME_KEY, nextName);
 		}
 		await AsyncStorage.setItem(PLAYER_ID_KEY, user.id);
+		const localShopState = await loadShopState();
+		const syncResult = await syncShopStateWithProfile(localShopState);
+		if (syncResult.status === "synced") {
+			await reloadShopState();
+		}
 		await loadProfileStats(nextName, user.id);
-	}, [loadProfileStats]);
+	}, [loadProfileStats, reloadShopState]);
 
 	const hydrateSession = useCallback(async (nextSession: Session | null, options: { force?: boolean } = {}) => {
 		const sessionKey = getSessionHydrationKey(nextSession);

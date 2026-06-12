@@ -26,12 +26,15 @@ export interface EquippedCosmetics {
 	sfx: string;
 }
 
+export type ShopProfileField = "coins" | "owned_item_ids" | "equipped";
+
 export interface ShopState {
 	balance: number;
 	ownedItemIds: string[];
 	equipped: EquippedCosmetics;
 	starterGrantClaimed: boolean;
 	pendingProfileSync: boolean;
+	dirtyProfileFields: ShopProfileField[];
 	updatedAt: number;
 }
 
@@ -521,6 +524,7 @@ export function createDefaultShopState(): ShopState {
 		equipped: { ...DEFAULT_EQUIPPED_COSMETICS },
 		starterGrantClaimed: true,
 		pendingProfileSync: false,
+		dirtyProfileFields: [],
 		updatedAt: 0,
 	};
 }
@@ -571,13 +575,19 @@ export function normalizeShopState(value: Partial<ShopState> | null | undefined)
 	const savedBalance = Math.max(0, Math.floor(Number(value.balance) || 0));
 	const starterGrantClaimed = value.starterGrantClaimed === true;
 	const updatedAt = Number.isFinite(Number(value.updatedAt)) ? Math.max(0, Number(value.updatedAt)) : 0;
+	const dirtyProfileFields = Array.isArray(value.dirtyProfileFields)
+		? value.dirtyProfileFields.filter((field): field is ShopProfileField => (
+			field === "coins" || field === "owned_item_ids" || field === "equipped"
+		))
+		: [];
 
 	return {
 		balance: starterGrantClaimed ? savedBalance : Math.max(savedBalance, STARTER_SHOP_COINS),
 		ownedItemIds: [...ownedSet],
 		equipped,
 		starterGrantClaimed: true,
-		pendingProfileSync: value.pendingProfileSync === true,
+		pendingProfileSync: dirtyProfileFields.length > 0,
+		dirtyProfileFields: [...new Set(dirtyProfileFields)],
 		updatedAt,
 	};
 }
@@ -692,6 +702,7 @@ export function getBackgroundParticleConfig(itemId: string, isGameplayActive: bo
 
 interface MergeShopStateOptions {
 	preferRemoteBalance?: boolean;
+	preferRemoteOwnedItems?: boolean;
 	preferRemoteEquipped?: boolean;
 }
 
@@ -704,7 +715,9 @@ export function mergeShopStates(
 	if (!remoteState) return local;
 
 	const remote = normalizeShopState(remoteState);
-	const ownedSet = new Set([...local.ownedItemIds, ...remote.ownedItemIds]);
+	const ownedSet = options.preferRemoteOwnedItems
+		? new Set(remote.ownedItemIds)
+		: new Set([...local.ownedItemIds, ...remote.ownedItemIds]);
 	
 	const localNewer = local.updatedAt >= remote.updatedAt;
 
@@ -713,21 +726,34 @@ export function mergeShopStates(
 		ownedItemIds: [...ownedSet],
 		equipped: options.preferRemoteEquipped ? remote.equipped : local.equipped,
 		starterGrantClaimed: true,
-		pendingProfileSync: local.pendingProfileSync || remote.pendingProfileSync,
+		pendingProfileSync: local.pendingProfileSync,
+		dirtyProfileFields: local.dirtyProfileFields,
 		updatedAt: Math.max(local.updatedAt, remote.updatedAt),
 	});
+}
+
+function hasDirtyProfileField(state: ShopState, field: ShopProfileField): boolean {
+	return state.dirtyProfileFields.includes(field);
+}
+
+export function shouldPushLocalShopField(
+	localState: ShopState,
+	remoteState: Partial<ShopState> | null | undefined,
+	field: ShopProfileField
+): boolean {
+	const local = normalizeShopState(localState);
+	if (!remoteState) return true;
+	if (!hasDirtyProfileField(local, field)) return false;
+
+	const remote = normalizeShopState(remoteState);
+	return local.updatedAt >= remote.updatedAt;
 }
 
 export function shouldPushLocalShopBalance(
 	localState: ShopState,
 	remoteState: Partial<ShopState> | null | undefined
 ): boolean {
-	const local = normalizeShopState(localState);
-	if (!remoteState) return true;
-	if (!local.pendingProfileSync) return false;
-
-	const remote = normalizeShopState(remoteState);
-	return local.updatedAt >= remote.updatedAt;
+	return shouldPushLocalShopField(localState, remoteState, "coins");
 }
 
 interface ShopSyncIdentity {
@@ -768,6 +794,7 @@ function profileToShopState(profile: RemoteShopProfile | null | undefined): Part
 		equipped: profile.equipped as EquippedCosmetics | undefined,
 		starterGrantClaimed: true,
 		pendingProfileSync: false,
+		dirtyProfileFields: [],
 		updatedAt: profile.updated_at ? new Date(profile.updated_at).getTime() : 0,
 	};
 }
@@ -813,15 +840,20 @@ export async function syncShopStateWithProfile(localState: ShopState): Promise<{
 		}
 
 		const profile = profiles?.[0] as RemoteShopProfile | undefined;
-		const hasUnsyncedLocalChanges = local.pendingProfileSync;
+		const dirtyFields = new Set(local.dirtyProfileFields);
+		const hasUnsyncedLocalChanges = dirtyFields.size > 0;
 		const remoteState = profileToShopState(profile);
 		const shouldWriteBalance = shouldPushLocalShopBalance(local, remoteState);
+		const shouldWriteOwnedItems = shouldPushLocalShopField(local, remoteState, "owned_item_ids");
+		const shouldWriteEquipped = shouldPushLocalShopField(local, remoteState, "equipped");
 		const merged = {
 			...mergeShopStates(local, remoteState, {
 				preferRemoteBalance: Boolean(profile && !shouldWriteBalance),
-				preferRemoteEquipped: Boolean(profile && !hasUnsyncedLocalChanges),
+				preferRemoteOwnedItems: Boolean(profile && !shouldWriteOwnedItems),
+				preferRemoteEquipped: Boolean(profile && !shouldWriteEquipped),
 			}),
 			pendingProfileSync: false,
+			dirtyProfileFields: [],
 			updatedAt: Math.max(local.updatedAt, remoteState?.updatedAt || 0),
 		};
 
@@ -842,11 +874,11 @@ export async function syncShopStateWithProfile(localState: ShopState): Promise<{
 		}
 
 		const remoteOwnedItemIds = Array.isArray(profile?.owned_item_ids) ? profile!.owned_item_ids! : [];
-		if (!profile?.id || !areStringSetsEqual(merged.ownedItemIds, remoteOwnedItemIds)) {
+		if ((!profile?.id || shouldWriteOwnedItems) && !areStringSetsEqual(merged.ownedItemIds, remoteOwnedItemIds)) {
 			payload.owned_item_ids = merged.ownedItemIds;
 		}
 
-		if (!profile?.id || !areEquippedCosmeticsEqual(merged.equipped, profile.equipped)) {
+		if ((!profile?.id || shouldWriteEquipped) && !areEquippedCosmeticsEqual(merged.equipped, profile?.equipped)) {
 			payload.equipped = merged.equipped;
 		}
 
@@ -870,9 +902,11 @@ export async function syncShopStateWithProfile(localState: ShopState): Promise<{
 		const syncedState = normalizeShopState({
 			...mergeShopStates(merged, savedRemoteState, {
 				preferRemoteBalance: true,
+				preferRemoteOwnedItems: true,
 				preferRemoteEquipped: true,
 			}),
 			pendingProfileSync: false,
+			dirtyProfileFields: [],
 			updatedAt: savedRemoteState?.updatedAt || merged.updatedAt || Date.now(),
 		});
 
@@ -887,8 +921,24 @@ export async function syncShopStateWithProfile(localState: ShopState): Promise<{
 export function useShopState() {
 	const [state, setState] = useAtom(shopStateAtom);
 
-	const commit = useCallback(async (next: ShopState) => {
-		const normalized = normalizeShopState({ ...next, pendingProfileSync: true, updatedAt: Date.now() });
+	const inferDirtyFields = useCallback((next: ShopState): ShopProfileField[] => {
+		const current = normalizeShopState(state);
+		const candidate = normalizeShopState(next);
+		const fields: ShopProfileField[] = [];
+		if (candidate.balance !== current.balance) fields.push("coins");
+		if (!areStringSetsEqual(candidate.ownedItemIds, current.ownedItemIds)) fields.push("owned_item_ids");
+		if (!areEquippedCosmeticsEqual(candidate.equipped, current.equipped)) fields.push("equipped");
+		return fields;
+	}, [state]);
+
+	const commit = useCallback(async (next: ShopState, changedFields?: ShopProfileField[]) => {
+		const dirtyProfileFields = [...new Set(changedFields ?? inferDirtyFields(next))];
+		const normalized = normalizeShopState({
+			...next,
+			pendingProfileSync: dirtyProfileFields.length > 0,
+			dirtyProfileFields,
+			updatedAt: Date.now()
+		});
 		setState(normalized);
 		await saveShopState(normalized);
 		const syncResult = await syncShopStateWithProfile(normalized);
@@ -897,7 +947,7 @@ export function useShopState() {
 			return syncResult.state;
 		}
 		return normalized;
-	}, [setState]);
+	}, [inferDirtyFields, setState]);
 
 	const reload = useCallback(async () => {
 		const next = await loadShopState();
@@ -908,7 +958,7 @@ export function useShopState() {
 	const purchase = useCallback(async (itemId: string) => {
 		const result = purchaseShopItem(state, itemId);
 		if (result.ok) {
-			await commit(result.state);
+			await commit(result.state, ["coins", "owned_item_ids"]);
 		}
 		return result;
 	}, [commit, state]);
@@ -916,7 +966,7 @@ export function useShopState() {
 	const equip = useCallback(async (itemId: string) => {
 		const result = equipShopItem(state, itemId);
 		if (result.ok) {
-			await commit(result.state);
+			await commit(result.state, ["equipped"]);
 		}
 		return result;
 	}, [commit, state]);
@@ -930,7 +980,7 @@ export function useShopState() {
 		if (!equipResult.ok) {
 			return equipResult;
 		}
-		await commit(equipResult.state);
+		await commit(equipResult.state, ["coins", "owned_item_ids", "equipped"]);
 		return equipResult;
 	}, [commit, state]);
 
@@ -939,7 +989,7 @@ export function useShopState() {
 		if (coins <= 0) return 0;
 
 		const latest = await loadShopState();
-		await commit(addCoinsToShopState(latest, coins));
+		await commit(addCoinsToShopState(latest, coins), ["coins"]);
 		return coins;
 	}, [commit]);
 
