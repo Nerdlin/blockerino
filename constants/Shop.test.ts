@@ -25,10 +25,10 @@ describe("shop catalog and wallet", () => {
 	it("offers expanded cosmetic variants without duplicate ids", () => {
 		const ids = SHOP_ITEMS.map((item) => item.id);
 		expect(new Set(ids).size).toBe(ids.length);
-		expect(getShopItemsByCategory("piece_skin").filter((item) => !item.secret)).toHaveLength(35);
-		expect(getShopItemsByCategory("background").filter((item) => !item.secret)).toHaveLength(35);
-		expect(getShopItemsByCategory("music").filter((item) => !item.secret)).toHaveLength(35);
-		expect(getShopItemsByCategory("sfx").filter((item) => !item.secret)).toHaveLength(35);
+		expect(getShopItemsByCategory("piece_skin").filter((item) => !item.secret)).toHaveLength(55);
+		expect(getShopItemsByCategory("background").filter((item) => !item.secret)).toHaveLength(55);
+		expect(getShopItemsByCategory("music").filter((item) => !item.secret)).toHaveLength(55);
+		expect(getShopItemsByCategory("sfx").filter((item) => !item.secret)).toHaveLength(55);
 	});
 
 	it("starts with free classic cosmetics already owned and equipped", () => {

@@ -369,6 +369,37 @@ const EXTRA_PIECE_SKINS: ShopItem[] = [
 	previewColors: previewColors as string[],
 }));
 
+const EXTRA_PIECE_SKINS_WAVE_2: ShopItem[] = [
+	["piece_moonstone", "Moonstone", "Pale moonlit blocks with cool stone edges.", 660, "#C4B5FD", ["#111827", "#C4B5FD", "#E0F2FE"]],
+	["piece_jade_tile", "Jade Tiles", "Green jade blocks with darker carved sides.", 680, "#34D399", ["#064E3B", "#34D399", "#A7F3D0"]],
+	["piece_ruby_cut", "Ruby Cut", "Deep red gemstone pieces with bright facets.", 700, "#FB7185", ["#450A0A", "#DC2626", "#FB7185"]],
+	["piece_sapphire_cut", "Sapphire Cut", "Blue gemstone pieces with icy highlights.", 720, "#60A5FA", ["#0F172A", "#2563EB", "#93C5FD"]],
+	["piece_topaz_tile", "Topaz Tiles", "Golden-orange pieces with polished edges.", 740, "#FBBF24", ["#451A03", "#D97706", "#FBBF24"]],
+	["piece_ghost_ink", "Ghost Ink", "Washed ink blocks with pale spectral tones.", 760, "#E5E7EB", ["#111827", "#64748B", "#E5E7EB"]],
+	["piece_radioactive", "Radioactive", "Toxic green pieces with dark warning contrast.", 780, "#A3E635", ["#1A2E05", "#65A30D", "#D9F99D"]],
+	["piece_storm_cloud", "Storm Cloud", "Gray-blue blocks with lightning-like accents.", 800, "#BAE6FD", ["#0F172A", "#475569", "#BAE6FD"]],
+	["piece_pearl_shell", "Pearl Shell", "Pearl and shell tones for soft boards.", 820, "#FBCFE8", ["#831843", "#FBCFE8", "#E0F2FE"]],
+	["piece_arcade_gum", "Arcade Gum", "Bubblegum arcade colors with high contrast.", 840, "#F472B6", ["#831843", "#F472B6", "#22D3EE"]],
+	["piece_desert_clay", "Desert Clay", "Clay and sand blocks with sunset warmth.", 860, "#FDBA74", ["#431407", "#B45309", "#FDBA74"]],
+	["piece_night_market", "Night Market", "Lantern colors over dark market shadows.", 880, "#FACC15", ["#111827", "#BE123C", "#FACC15"]],
+	["piece_laser_grid", "Laser Grid", "Hard neon blocks with laser-line colors.", 900, "#22D3EE", ["#020617", "#22D3EE", "#EF4444"]],
+	["piece_snow_mint", "Snow Mint", "Fresh mint and snow blocks for calmer play.", 920, "#A7F3D0", ["#064E3B", "#A7F3D0", "#FFFFFF"]],
+	["piece_copper_wire", "Copper Wire", "Copper and teal pieces with techy contrast.", 940, "#F97316", ["#1C0A00", "#F97316", "#14B8A6"]],
+	["piece_royal_velvet", "Royal Velvet", "Rich purple velvet with gold highlights.", 960, "#C084FC", ["#2E1065", "#7E22CE", "#FDE047"]],
+	["piece_magma_ice", "Magma Ice", "Hot-cold contrast for dramatic combos.", 980, "#38BDF8", ["#7F1D1D", "#F97316", "#38BDF8"]],
+	["piece_lime_shadow", "Lime Shadow", "Lime blocks over a near-black base.", 1000, "#BEF264", ["#020617", "#3F6212", "#BEF264"]],
+	["piece_peach_soda", "Peach Soda", "Peach and fizz tones with candy highlights.", 1020, "#FDBA74", ["#7C2D12", "#FDBA74", "#F9A8D4"]],
+	["piece_void_pearl", "Void Pearl", "Pearl shine floating over void-dark blocks.", 1040, "#DDD6FE", ["#030014", "#6D28D9", "#DDD6FE"]],
+].map(([id, title, description, price, accent, previewColors]) => ({
+	id: id as string,
+	category: "piece_skin" as const,
+	title: title as string,
+	description: description as string,
+	price: price as number,
+	accent: accent as string,
+	previewColors: previewColors as string[],
+}));
+
 const EXTRA_BACKGROUNDS: ShopItem[] = [
 	["background_aurora", "Aurora Vault", "Green-blue night sky without block clutter.", 180, "#6BFFB8", ["#020617", "#064E3B", "#38BDF8"], ["rgb(2, 6, 23)", "rgb(6, 78, 59)", "rgb(56, 189, 248)"], "ender"],
 	["background_midnight", "Midnight Glass", "Clean blue-black depth for focused play.", 200, "#93C5FD", ["#020617", "#0F172A", "#1D4ED8"], ["rgb(2, 6, 23)", "rgb(15, 23, 42)", "rgb(29, 78, 216)"], "ice"],
@@ -400,6 +431,39 @@ const EXTRA_BACKGROUNDS: ShopItem[] = [
 	["background_melon_arcade", "Melon Arcade", "Green and pink arcade colors kept dark.", 720, "#F9A8D4", ["#052E16", "#16A34A", "#F9A8D4"], ["rgb(5, 46, 22)", "rgb(22, 163, 74)", "rgb(249, 168, 212)"], "cyber"],
 	["background_blueprint", "Blueprint", "Blueprint blue with thin electric depth.", 740, "#93C5FD", ["#07142A", "#1D4ED8", "#93C5FD"], ["rgb(7, 20, 42)", "rgb(29, 78, 216)", "rgb(147, 197, 253)"], "cyber"],
 	["background_crimson_fog", "Crimson Fog", "Dark crimson fog for dramatic runs.", 760, "#FCA5A5", ["#1F0508", "#7F1D1D", "#FCA5A5"], ["rgb(31, 5, 8)", "rgb(127, 29, 29)", "rgb(252, 165, 165)"], "ender"],
+].map(([id, title, description, price, accent, previewColors, gradient, scene]) => ({
+	id: id as string,
+	category: "background" as const,
+	title: title as string,
+	description: description as string,
+	price: price as number,
+	accent: accent as string,
+	previewColors: previewColors as string[],
+	gradient: gradient as [string, string, string],
+	scene: scene as BackgroundScene,
+}));
+
+const EXTRA_BACKGROUNDS_WAVE_2: ShopItem[] = [
+	["background_moonbase", "Moonbase", "Cold moonbase panels behind the board.", 780, "#C4B5FD", ["#020617", "#312E81", "#C4B5FD"], ["rgb(2, 6, 23)", "rgb(49, 46, 129)", "rgb(196, 181, 253)"], "ice"],
+	["background_emerald_rain", "Emerald Rain", "Green rainy glow with low visual noise.", 800, "#34D399", ["#03130A", "#065F46", "#34D399"], ["rgb(3, 19, 10)", "rgb(6, 95, 70)", "rgb(52, 211, 153)"], "ender"],
+	["background_desert_stars", "Desert Stars", "Warm desert night with distant light.", 820, "#FDBA74", ["#140800", "#7C2D12", "#FDBA74"], ["rgb(20, 8, 0)", "rgb(124, 45, 18)", "rgb(253, 186, 116)"], "sunset"],
+	["background_neon_market", "Neon Market", "Busy neon colors kept behind a dark veil.", 840, "#F472B6", ["#111827", "#BE185D", "#22D3EE"], ["rgb(17, 24, 39)", "rgb(190, 24, 93)", "rgb(34, 211, 238)"], "cyber"],
+	["background_glacier_depth", "Glacier Depth", "Deep glacier blues with pale edges.", 860, "#BAE6FD", ["#041322", "#0E7490", "#BAE6FD"], ["rgb(4, 19, 34)", "rgb(14, 116, 144)", "rgb(186, 230, 253)"], "ice"],
+	["background_cherry_night", "Cherry Night", "Dark cherry light for late sessions.", 880, "#FDA4AF", ["#1E0710", "#9F1239", "#FDA4AF"], ["rgb(30, 7, 16)", "rgb(159, 18, 57)", "rgb(253, 164, 175)"], "sunset"],
+	["background_storm_cell", "Storm Cell", "Storm clouds with cold electric highlights.", 900, "#93C5FD", ["#020617", "#334155", "#93C5FD"], ["rgb(2, 6, 23)", "rgb(51, 65, 85)", "rgb(147, 197, 253)"], "cyber"],
+	["background_jade_temple", "Jade Temple", "Jade shadows with a calm green center.", 920, "#86EFAC", ["#052E16", "#15803D", "#86EFAC"], ["rgb(5, 46, 22)", "rgb(21, 128, 61)", "rgb(134, 239, 172)"], "ender"],
+	["background_peach_dusk", "Peach Dusk", "Soft peach dusk with dark readability.", 940, "#FDBA74", ["#1C0A00", "#C2410C", "#FBCFE8"], ["rgb(28, 10, 0)", "rgb(194, 65, 12)", "rgb(251, 207, 232)"], "sunset"],
+	["background_violet_lab", "Violet Lab", "Violet laboratory glow with clean contrast.", 960, "#C084FC", ["#11051F", "#6B21A8", "#C084FC"], ["rgb(17, 5, 31)", "rgb(107, 33, 168)", "rgb(192, 132, 252)"], "cyber"],
+	["background_magma_sea", "Magma Sea", "Dark magma light under a black horizon.", 980, "#FB923C", ["#120A02", "#7F1D1D", "#FB923C"], ["rgb(18, 10, 2)", "rgb(127, 29, 29)", "rgb(251, 146, 60)"], "sunset"],
+	["background_arctic_wire", "Arctic Wire", "Frozen wireframe blues for focused play.", 1000, "#67E8F9", ["#02111B", "#155E75", "#67E8F9"], ["rgb(2, 17, 27)", "rgb(21, 94, 117)", "rgb(103, 232, 249)"], "ice"],
+	["background_mint_noir", "Mint Noir", "Black noir panels with a mint signal.", 1020, "#A7F3D0", ["#020617", "#064E3B", "#A7F3D0"], ["rgb(2, 6, 23)", "rgb(6, 78, 59)", "rgb(167, 243, 208)"], "cyber"],
+	["background_ruby_night", "Ruby Night", "Ruby light on a deep night gradient.", 1040, "#FB7185", ["#030014", "#881337", "#FB7185"], ["rgb(3, 0, 20)", "rgb(136, 19, 55)", "rgb(251, 113, 133)"], "ender"],
+	["background_circuit_bloom", "Circuit Bloom", "Circuit-green glow with pink bloom.", 1060, "#22C55E", ["#03130A", "#22C55E", "#F472B6"], ["rgb(3, 19, 10)", "rgb(34, 197, 94)", "rgb(244, 114, 182)"], "cyber"],
+	["background_pearl_void", "Pearl Void", "Pearl shimmer on a void-dark field.", 1080, "#DDD6FE", ["#030014", "#4C1D95", "#DDD6FE"], ["rgb(3, 0, 20)", "rgb(76, 29, 149)", "rgb(221, 214, 254)"], "ender"],
+	["background_bronze_city", "Bronze City", "Bronze city lights with restrained warmth.", 1100, "#D97706", ["#120A02", "#92400E", "#FCD34D"], ["rgb(18, 10, 2)", "rgb(146, 64, 14)", "rgb(252, 211, 77)"], "sunset"],
+	["background_rain_window", "Rain Window", "Blue rainy window light for long sessions.", 1120, "#7DD3FC", ["#020617", "#0369A1", "#7DD3FC"], ["rgb(2, 6, 23)", "rgb(3, 105, 161)", "rgb(125, 211, 252)"], "ice"],
+	["background_pixel_meadow", "Pixel Meadow", "Dark meadow green with small bright hints.", 1140, "#A3E635", ["#052E16", "#4D7C0F", "#A3E635"], ["rgb(5, 46, 22)", "rgb(77, 124, 15)", "rgb(163, 230, 53)"], "ender"],
+	["background_eclipse_gold", "Eclipse Gold", "Eclipse-black field with gold edge light.", 1160, "#FACC15", ["#020617", "#713F12", "#FACC15"], ["rgb(2, 6, 23)", "rgb(113, 63, 18)", "rgb(250, 204, 21)"], "sunset"],
 ].map(([id, title, description, price, accent, previewColors, gradient, scene]) => ({
 	id: id as string,
 	category: "background" as const,
@@ -453,6 +517,37 @@ const EXTRA_MUSIC: ShopItem[] = [
 	previewColors: previewColors as string[],
 }));
 
+const EXTRA_MUSIC_WAVE_2: ShopItem[] = [
+	["music_bossa_blocks", "Bossa Blocks", "Light syncopated chords for relaxed puzzle runs.", 640, "#FDBA74", ["#431407", "#FDBA74", "#A7F3D0"]],
+	["music_dungeon_low", "Dungeon Low", "Dark low pulse with a slow underground feel.", 660, "#94A3B8", ["#020617", "#475569", "#94A3B8"]],
+	["music_meteor_shower", "Meteor Shower", "Bright arps and falling melodic sparks.", 680, "#F97316", ["#111827", "#F97316", "#38BDF8"]],
+	["music_sunrise_pad", "Sunrise Pad", "Warm pads for quieter morning sessions.", 700, "#FDE68A", ["#451A03", "#FDE68A", "#FBCFE8"]],
+	["music_circuit_calm", "Circuit Calm", "Minimal tech pulse with soft edges.", 720, "#22D3EE", ["#082F49", "#22D3EE", "#A7F3D0"]],
+	["music_crystal_run", "Crystal Run", "Glassy notes over a fast clean rhythm.", 740, "#C4B5FD", ["#312E81", "#C4B5FD", "#E0F2FE"]],
+	["music_ocean_pulse", "Ocean Pulse", "Deep water bass with small wave accents.", 760, "#2DD4BF", ["#042F2E", "#2DD4BF", "#BAE6FD"]],
+	["music_desert_night", "Desert Night", "Dry plucks with a warm night groove.", 780, "#FDBA74", ["#431407", "#FDBA74", "#FDE68A"]],
+	["music_steel_dream", "Steel Dream", "Metallic pads with a smooth pulse.", 800, "#CBD5E1", ["#020617", "#64748B", "#CBD5E1"]],
+	["music_snowfall", "Snowfall", "Tiny cold tones with soft white space.", 820, "#BAE6FD", ["#0C4A6E", "#BAE6FD", "#FFFFFF"]],
+	["music_forest_walk", "Forest Walk", "Green mallet pattern with grounded rhythm.", 840, "#86EFAC", ["#052E16", "#86EFAC", "#FDE68A"]],
+	["music_vapor_trail", "Vapor Trail", "Airy retro chords with a smooth lift.", 860, "#F0ABFC", ["#581C87", "#F0ABFC", "#67E8F9"]],
+	["music_puzzle_focus", "Puzzle Focus", "Sparse clicky loop built for concentration.", 880, "#E5E7EB", ["#111827", "#E5E7EB", "#60A5FA"]],
+	["music_thunder_room", "Thunder Room", "Heavy room pulse with distant thunder hits.", 900, "#93C5FD", ["#020617", "#475569", "#93C5FD"]],
+	["music_koto_steps", "Koto Steps", "Plucked eastern-style phrases with light drums.", 920, "#FDE68A", ["#422006", "#FDE68A", "#C4B5FD"]],
+	["music_western_dust", "Western Dust", "Twangy dusty loop with slow stomp rhythm.", 940, "#D97706", ["#431407", "#D97706", "#FDE68A"]],
+	["music_deep_house", "Deep House", "Warm club pulse with smooth filtered chords.", 960, "#38BDF8", ["#082F49", "#38BDF8", "#F472B6"]],
+	["music_chip_calm", "Chip Calm", "Soft chiptune melody without arcade pressure.", 980, "#A3E635", ["#365314", "#A3E635", "#22D3EE"]],
+	["music_marimba_run", "Marimba Run", "Bouncy marimba rhythm for quick decisions.", 1000, "#FACC15", ["#713F12", "#FACC15", "#4ADE80"]],
+	["music_cosmic_bell", "Cosmic Bell", "Distant bell tones over a slow cosmic pad.", 1020, "#DDD6FE", ["#312E81", "#DDD6FE", "#BAE6FD"]],
+].map(([id, title, description, price, accent, previewColors]) => ({
+	id: id as string,
+	category: "music" as const,
+	title: title as string,
+	description: description as string,
+	price: price as number,
+	accent: accent as string,
+	previewColors: previewColors as string[],
+}));
+
 const EXTRA_SFX: ShopItem[] = [
 	["sfx_wood_oak", "Paper Folds", "Dry paper taps and crumpled clears.", 180, "#FDE68A", ["#78350F", "#FDE68A", "#FFFFFF"]],
 	["sfx_wood_bamboo", "Bubble Pops", "Rounded wet pops for playful feedback.", 200, "#67E8F9", ["#164E63", "#67E8F9", "#F9A8D4"]],
@@ -494,6 +589,37 @@ const EXTRA_SFX: ShopItem[] = [
 	previewColors: previewColors as string[],
 }));
 
+const EXTRA_SFX_WAVE_2: ShopItem[] = [
+	["sfx_quartz", "Quartz Taps", "Clear quartz ticks with glassy clears.", 620, "#DDD6FE", ["#312E81", "#DDD6FE", "#FFFFFF"]],
+	["sfx_velvet", "Velvet Mutes", "Soft muted taps for quiet late games.", 640, "#C084FC", ["#2E1065", "#C084FC", "#FBCFE8"]],
+	["sfx_arcade", "Arcade Blips", "Bright arcade blips with quick clear chirps.", 660, "#22D3EE", ["#020617", "#22D3EE", "#FACC15"]],
+	["sfx_moon", "Moon Echo", "Soft lunar echoes and pale clicks.", 680, "#BAE6FD", ["#0F172A", "#BAE6FD", "#DDD6FE"]],
+	["sfx_jade", "Jade Knocks", "Polished jade knocks with clean clears.", 700, "#86EFAC", ["#064E3B", "#86EFAC", "#E0F2FE"]],
+	["sfx_rain", "Rain Ticks", "Tiny rain taps and watery clears.", 720, "#7DD3FC", ["#082F49", "#7DD3FC", "#A7F3D0"]],
+	["sfx_pearl", "Pearl Chimes", "Small pearl-like chimes with soft shine.", 740, "#FBCFE8", ["#831843", "#FBCFE8", "#FFFFFF"]],
+	["sfx_thunder", "Thunder Hits", "Low thunder hits for heavy moves.", 760, "#94A3B8", ["#020617", "#94A3B8", "#F97316"]],
+	["sfx_neon", "Neon Zips", "Neon zips and bright clear flashes.", 780, "#F472B6", ["#111827", "#F472B6", "#22D3EE"]],
+	["sfx_snow", "Snow Crunch", "Tiny snow crunches and frosty clears.", 800, "#BAE6FD", ["#0C4A6E", "#BAE6FD", "#FFFFFF"]],
+	["sfx_copper", "Copper Pings", "Copper pings with warm metallic clicks.", 820, "#F97316", ["#431407", "#F97316", "#14B8A6"]],
+	["sfx_ghost", "Ghost Whispers", "Quiet airy ghost taps with soft tails.", 840, "#E5E7EB", ["#111827", "#E5E7EB", "#A78BFA"]],
+	["sfx_lime", "Lime Pops", "Sharp lime pops for crisp actions.", 860, "#BEF264", ["#1A2E05", "#BEF264", "#38BDF8"]],
+	["sfx_orbit", "Orbit Pings", "Small orbital pings and clear sweeps.", 880, "#38BDF8", ["#082F49", "#38BDF8", "#DDD6FE"]],
+	["sfx_bronze", "Bronze Clinks", "Bronze clinks with a warm finish.", 900, "#D97706", ["#431407", "#D97706", "#FDE68A"]],
+	["sfx_silk", "Silk Swipes", "Silky swipes with very soft placements.", 920, "#F9A8D4", ["#831843", "#F9A8D4", "#E0F2FE"]],
+	["sfx_starlight", "Starlight", "Bright tiny star ticks and sparkly clears.", 940, "#DDD6FE", ["#312E81", "#DDD6FE", "#FDE047"]],
+	["sfx_clack", "Clack Pack", "Hard clacks for responsive placement feel.", 960, "#E5E7EB", ["#111827", "#E5E7EB", "#F87171"]],
+	["sfx_peach", "Peach Fizz", "Soft fizzy taps with peachy clear pops.", 980, "#FDBA74", ["#7C2D12", "#FDBA74", "#F9A8D4"]],
+	["sfx_void", "Void Pulse", "Dark pulse hits with small echo tails.", 1000, "#A78BFA", ["#030014", "#6D28D9", "#A78BFA"]],
+].map(([id, title, description, price, accent, previewColors]) => ({
+	id: id as string,
+	category: "sfx" as const,
+	title: title as string,
+	description: description as string,
+	price: price as number,
+	accent: accent as string,
+	previewColors: previewColors as string[],
+}));
+
 function dedupeShopItems(items: ShopItem[]): ShopItem[] {
 	const itemMap = new Map<string, ShopItem>();
 	for (const item of items) {
@@ -507,9 +633,13 @@ function dedupeShopItems(items: ShopItem[]): ShopItem[] {
 export const SHOP_ITEMS: ShopItem[] = dedupeShopItems([
 	...BASE_SHOP_ITEMS,
 	...EXTRA_PIECE_SKINS,
+	...EXTRA_PIECE_SKINS_WAVE_2,
 	...EXTRA_BACKGROUNDS,
+	...EXTRA_BACKGROUNDS_WAVE_2,
 	...EXTRA_MUSIC,
+	...EXTRA_MUSIC_WAVE_2,
 	...EXTRA_SFX,
+	...EXTRA_SFX_WAVE_2,
 ]);
 
 const SHOP_ITEM_MAP = new Map(SHOP_ITEMS.map((item) => [item.id, item]));

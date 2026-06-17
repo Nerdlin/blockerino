@@ -7,5 +7,6 @@ describe("solo game start policy", () => {
 		expect(shouldCheckConnectionBeforeStart(GameModeType.Chaos)).toBe(false);
 		expect(shouldCheckConnectionBeforeStart(GameModeType.DailyPuzzle)).toBe(false);
 		expect(shouldCheckConnectionBeforeStart(GameModeType.TimeAttack)).toBe(false);
+		expect(shouldCheckConnectionBeforeStart(GameModeType.MoveLimit)).toBe(false);
 	});
 });

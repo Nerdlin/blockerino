@@ -8,6 +8,7 @@ import { colorToHex } from "@/constants/Color";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useGameSizes } from "@/constants/Board";
 import PixelIcon from "@/components/PixelIcon";
+import { getGameModeConfig } from "@/constants/GameModes";
 
 const comboBarGoodColor = colorToHex({r: 0, g: 255, b: 0});
 const comboBarBadColor = colorToHex({r: 255, g: 51, b: 51});
@@ -18,7 +19,8 @@ interface GameHudProps {
 	lastBrokenLine: SharedValue<number>,
 	hand: SharedValue<Hand>,
 	gameMode?: GameModeType,
-	timeRemaining?: SharedValue<number>
+	timeRemaining?: SharedValue<number>,
+	movesRemaining?: SharedValue<number>
 }
 
 function TimerBar({ timeRemaining }: { timeRemaining: SharedValue<number> }) {
@@ -48,15 +50,44 @@ function TimerBar({ timeRemaining }: { timeRemaining: SharedValue<number> }) {
 	);
 }
 
-export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, timeRemaining }: GameHudProps) {
+function MoveLimitBar({ movesRemaining, moveLimit }: { movesRemaining: SharedValue<number>, moveLimit: number }) {
+	const animatedStyle = useAnimatedStyle(() => {
+		const percentage = Math.min(100, Math.max(0, (movesRemaining.value / moveLimit) * 100));
+		const barColor = interpolateColor(
+			percentage / 100,
+			[0, 0.25, 0.6, 1],
+			[
+				'rgb(255, 51, 51)',
+				'rgb(255, 153, 51)',
+				'rgb(255, 215, 0)',
+				'rgb(0, 255, 204)'
+			]
+		);
+		return {
+			width: `${percentage}%`,
+			backgroundColor: barColor,
+		};
+	});
+
+	return (
+		<View style={styles.timerBarParent}>
+			<Animated.View style={[styles.timerBar, animatedStyle]} />
+		</View>
+	);
+}
+
+export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, timeRemaining, movesRemaining }: GameHudProps) {
 	const [scoreText, setScoreText] = useState("0");
 	const [timeLeftText, setTimeLeftText] = useState("60");
+	const [movesLeftText, setMovesLeftText] = useState("30");
 	const scoreAnimValue = useSharedValue(0); // stores the score, used to interpolate the number for animation
 	const { width, height } = useWindowDimensions();
 	const isMobile = width < 600 || height < 700;
 	const isShortScreen = height < 700;
 	
-	const boardLength = gameMode === GameModeType.Chaos ? 10 : 8;
+	const modeConfig = gameMode ? getGameModeConfig(gameMode) : undefined;
+	const boardLength = modeConfig?.boardLength ?? 8;
+	const moveLimit = modeConfig?.moveLimit;
 	const { GRID_BLOCK_SIZE } = useGameSizes(boardLength);
 	const gridWidth = GRID_BLOCK_SIZE * boardLength + 6;
 
@@ -77,6 +108,14 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, tim
 	}, (current) => {
 		if (timeRemaining) {
 			runOnJS(setTimeLeftText)(String(Math.ceil(current)));
+		}
+	});
+
+	useAnimatedReaction(() => {
+		return movesRemaining ? movesRemaining.value : 0;
+	}, (current) => {
+		if (movesRemaining) {
+			runOnJS(setMovesLeftText)(String(Math.ceil(current)));
 		}
 	});
 
@@ -101,7 +140,19 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, tim
 				}}>{scoreText}</Text>
 			</View>
 			
-			{gameMode === GameModeType.TimeAttack && timeRemaining ? (
+			{moveLimit !== undefined && movesRemaining ? (
+				<View style={{ width: gridWidth, alignItems: 'center', marginVertical: 4 }}>
+					<Text style={{
+						fontFamily: 'Silkscreen',
+						color: '#FF5A66',
+						fontSize: isMobile ? 18 : 24,
+						marginBottom: 4
+					}}>
+						MOVES {movesLeftText}
+					</Text>
+					<MoveLimitBar movesRemaining={movesRemaining} moveLimit={moveLimit} />
+				</View>
+			) : modeConfig?.timeLimitSeconds !== undefined && timeRemaining ? (
 				<View style={{ width: gridWidth, alignItems: 'center', marginVertical: 4 }}>
 					<Text style={{
 						fontFamily: 'Silkscreen',

@@ -6,9 +6,11 @@ import { useAppState, MenuStateType, GameModeType } from '@/hooks/useAppState';
 export function useInviteListener(
     setMultiplayerRoomId: (id: string) => void,
     setMultiplayerRole: (role: "player1" | "player2") => void,
-    setMultiplayerGameMode: (mode: GameModeType) => void
+    setMultiplayerGameMode: (mode: GameModeType) => void,
+    setMultiplayerOpponentName: (name: string) => void,
+    setMultiplayerPlayerElo: (elo: number) => void,
 ) {
-    const [appState, setAppState] = useAppState();
+    const [, setAppState] = useAppState();
     const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
@@ -43,7 +45,7 @@ export function useInviteListener(
                                 // Update room to playing with current user
                                 const { data: profile } = await supabase
                                     .from('profiles')
-                                    .select('player_name')
+                                    .select('player_name, elo')
                                     .or(`auth_user_id.eq.${userId},player_id.eq.${userId}`)
                                     .limit(1)
                                     .maybeSingle();
@@ -63,6 +65,8 @@ export function useInviteListener(
                                 setMultiplayerRoomId(roomId);
                                 setMultiplayerRole("player2");
                                 setMultiplayerGameMode(nextGameMode);
+                                setMultiplayerOpponentName(hostName || 'Player 1');
+                                setMultiplayerPlayerElo(typeof profile?.elo === 'number' ? profile.elo : 0);
                                 setAppState(MenuStateType.MULTIPLAYER_GAME);
                             }
                         }
@@ -74,5 +78,5 @@ export function useInviteListener(
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [userId, setAppState, setMultiplayerRoomId, setMultiplayerRole, setMultiplayerGameMode]);
+    }, [userId, setAppState, setMultiplayerRoomId, setMultiplayerRole, setMultiplayerGameMode, setMultiplayerOpponentName, setMultiplayerPlayerElo]);
 }

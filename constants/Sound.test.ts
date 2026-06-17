@@ -31,6 +31,8 @@ describe("sound settings", () => {
 		expect(getMusicTrackKey("music_cave_echo")).toBe("musicNoir");
 		expect(getMusicTrackKey("music_space_void")).toBe("musicMarch");
 		expect(getMusicTrackKey("music_future_bass")).toBe("musicFutureBass");
+		expect(getMusicTrackKey("music_bossa_blocks")).toBe("musicBossaBlocks");
+		expect(getMusicTrackKey("music_cosmic_bell")).toBe("musicCosmicBell");
 	});
 
 	it("uses distinct generated sfx assets for shop sound packs", () => {
@@ -43,6 +45,8 @@ describe("sound settings", () => {
 		expect(mapSfxForPack("menuClick", "sfx_retro_coin")).toBe("sfxFireClick");
 		expect(mapSfxForPack("invalidPlacement", "sfx_metal_titan")).toBe("sfxSoftClick");
 		expect(mapSfxForPack("breakLine", "sfx_wind")).toBe("sfxWindClear");
+		expect(mapSfxForPack("placeBlock", "sfx_quartz")).toBe("sfxQuartzPlace");
+		expect(mapSfxForPack("menuClick", "sfx_void")).toBe("sfxVoidClick");
 		expect(mapSfxForPack("gameOver", "sfx_classic")).toBe("gameOver");
 	});
 

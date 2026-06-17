@@ -16,7 +16,15 @@ import Game from "@/components/game/Game";
 import { GameModeType } from '@/hooks/useAppState';
 import React, { useState, useEffect } from "react";
 import OptionsMenu from "@/components/OptionsMenu";
-import { MenuStateType, useAppState, multiplayerRoomIdAtom, multiplayerRoleAtom, multiplayerGameModeAtom } from "@/hooks/useAppState";
+import {
+	MenuStateType,
+	useAppState,
+	multiplayerRoomIdAtom,
+	multiplayerRoleAtom,
+	multiplayerGameModeAtom,
+	multiplayerOpponentNameAtom,
+	multiplayerPlayerEloAtom,
+} from "@/hooks/useAppState";
 import MainMenu from "@/components/MainMenu";
 import { useAtom, useAtomValue } from "jotai";
 import HighScores from "@/components/HighScoresMenu";
@@ -32,9 +40,9 @@ import MultiplayerConnectionGate from "@/components/MultiplayerConnectionGate";
 import AchievementsMenu from "@/components/AchievementsMenu";
 import ShopMenu from "@/components/ShopMenu";
 import ProfileMenu from "@/components/ProfileMenu";
+import MoreGamesMenu from "@/components/MoreGamesMenu";
 import { getBackgroundParticleConfig, shopStateAtom, useShopBootstrap } from "@/constants/Shop";
 import { useInviteListener } from "@/hooks/useInviteListener";
-import { DEFAULT_ELO } from "@/constants/Multiplayer";
 
 // Suppress noisy library-specific deprecation warnings in developer tools
 LogBox.ignoreLogs([
@@ -70,11 +78,17 @@ export default function App() {
 	// Multiplayer States
 	const [ multiplayerRoomId, setMultiplayerRoomId ] = useAtom(multiplayerRoomIdAtom);
 	const [ multiplayerRole, setMultiplayerRole ] = useAtom(multiplayerRoleAtom);
-	const [ opponentName, setOpponentName ] = useState('');
+	const [ opponentName, setOpponentName ] = useAtom(multiplayerOpponentNameAtom);
 	const [ multiplayerGameMode, setMultiplayerGameMode ] = useAtom(multiplayerGameModeAtom);
-	const [ multiplayerPlayerElo, setMultiplayerPlayerElo ] = useState(DEFAULT_ELO);
+	const [ multiplayerPlayerElo, setMultiplayerPlayerElo ] = useAtom(multiplayerPlayerEloAtom);
 
-	useInviteListener(setMultiplayerRoomId, setMultiplayerRole, setMultiplayerGameMode as any);
+	useInviteListener(
+		setMultiplayerRoomId,
+		setMultiplayerRole,
+		setMultiplayerGameMode as any,
+		setOpponentName,
+		setMultiplayerPlayerElo,
+	);
 
 	useEffect(() => {
 		// Initialize sounds at app startup
@@ -187,6 +201,10 @@ export default function App() {
 
 			{ appState.containsState(MenuStateType.DAILY_CHALLENGES) && (
 				<DailyChallengesMenu />
+			)}
+
+			{ appState.containsState(MenuStateType.MORE_GAMES) && (
+				<MoreGamesMenu />
 			)}
 
 			{ isMultiplayerGameVisible && (

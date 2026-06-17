@@ -5,13 +5,7 @@ import { useTheme } from "@/constants/Theme";
 import { cssColors } from "@/constants/Color";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
-
-function getModeLabel(gameMode: GameModeType): string {
-	if (gameMode === GameModeType.Classic) return "Classic";
-	if (gameMode === GameModeType.Chaos) return "Chaos";
-	if (gameMode === GameModeType.DailyPuzzle) return "Daily Puzzle";
-	return "Speed Game";
-}
+import { getGameModeConfig } from "@/constants/GameModes";
 
 export default function OfflinePlayPrompt({
 	gameMode,
@@ -28,7 +22,7 @@ export default function OfflinePlayPrompt({
 		<SimplePopupView style={[styles.popup, { backgroundColor: currentTheme.menuBackground }]}>
 			<Text style={[styles.title, { color: currentTheme.textPrimary }]}>No Internet</Text>
 			<Text style={[styles.message, { color: currentTheme.textSecondary }]}>
-				{getModeLabel(gameMode)} can run offline. Your score will be saved and synced to the global leaderboard when internet returns.
+				{getGameModeConfig(gameMode).title} can run offline. Your score will be saved and synced to the global leaderboard when internet returns.
 			</Text>
 			<View style={styles.buttonRow}>
 				<StylizedButton

@@ -21,6 +21,7 @@ import SecondChanceModal from '../SecondChanceModal';
 import { applySecondChancePenalty, canUseSecondChance, getSecondChanceCost, SECOND_CHANCE_COSTS } from '@/constants/SecondChance';
 import { getRandomPieceColor } from '@/constants/Piece';
 import { recordAchievementProgress } from '@/constants/Achievements';
+import { consumeMoveLimitMove, GameOverReason, getGameModeConfig, getInitialMovesRemaining, getInitialTimeRemaining, isMoveLimitComplete } from '@/constants/GameModes';
 
 
 const SPRING_CONFIG_MISSED_DRAG = {
@@ -54,15 +55,18 @@ function runPiecePlacedHaptic() {
 }
 
 export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initialState?: SavedGameState}) => {
-	const boardLength = gameMode === GameModeType.Chaos ? 10 : 8;
+	const modeConfig = getGameModeConfig(gameMode);
+	const boardLength = modeConfig.boardLength;
 	const { GRID_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardLength);
-	const handSize = gameMode === GameModeType.Chaos ? 5 : 3;
+	const handSize = modeConfig.handSize;
+	const timeLimitSeconds = modeConfig.timeLimitSeconds;
+	const allowSecondChance = modeConfig.allowSecondChance;
 
-	const isDaily = gameMode === GameModeType.DailyPuzzle;
+	const isDaily = modeConfig.seedKind === "daily";
 	const dailyKey = isDaily ? getDailyPuzzleKey() : undefined;
-	const dailySeed = isDaily ? getNumericSeedFromDate(`${dailyKey}:daily-puzzle-v2`) : 0;
+	const dailySeed = isDaily ? getNumericSeedFromDate(`${dailyKey}:${modeConfig.seedSalt}`) : 0;
 	const canUseInitialState = initialState && (!isDaily || initialState.dailyKey === dailyKey);
-	const handCount = useSharedValue(canUseInitialState ? (initialState as any).handCount || 0 : 0);
+	const handCount = useSharedValue(canUseInitialState ? initialState.handCount || 0 : 0);
 
 	const board = useSharedValue(
 		canUseInitialState 
@@ -82,12 +86,14 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const lastBrokenLine = useSharedValue(canUseInitialState ? initialState.lastBrokenLine : 0);
 
 	// Time Attack mode timer remaining state
-	const timeRemaining = useSharedValue(canUseInitialState ? (initialState as any).timeRemaining || 60 : 60);
+	const timeRemaining = useSharedValue(canUseInitialState ? initialState.timeRemaining ?? getInitialTimeRemaining(gameMode) : getInitialTimeRemaining(gameMode));
+	const movesRemaining = useSharedValue(canUseInitialState ? initialState.movesRemaining ?? getInitialMovesRemaining(gameMode) : getInitialMovesRemaining(gameMode));
 
 	// Состояние для отображения модального окна проигрыша
 	const [isGameOver, setIsGameOver] = useState(false);
 	const [secondChanceReason, setSecondChanceReason] = useState<SecondChanceReason | null>(null);
-	const secondChancesUsed = useSharedValue(canUseInitialState ? (initialState as any).secondChancesUsed || 0 : 0);
+	const [gameOverReason, setGameOverReason] = useState<GameOverReason | null>(null);
+	const secondChancesUsed = useSharedValue(canUseInitialState ? initialState.secondChancesUsed || 0 : 0);
 	const [scorePopups, setScorePopups] = useState<{id: number, points: number, x: number, y: number}[]>([]);
 	const scorePopupIdCounter = useRef(0);
 
@@ -146,7 +152,13 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		return nextBoard;
 	};
 
-	const saveCurrentGame = (nextBoard = board.value, nextHand = hand.value, nextSecondChancesUsed = secondChancesUsed.value) => {
+	const saveCurrentGame = (
+		nextBoard = board.value,
+		nextHand = hand.value,
+		nextSecondChancesUsed = secondChancesUsed.value,
+		nextMovesRemaining = movesRemaining.value,
+		immediate = false,
+	) => {
 		saveActiveGame({
 			gameMode,
 			board: nextBoard,
@@ -156,29 +168,38 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			lastBrokenLine: lastBrokenLine.value,
 			scoreStorageId: scoreStorageId.value,
 			timeRemaining: timeRemaining.value,
+			movesRemaining: nextMovesRemaining,
 			handCount: handCount.value,
 			dailyKey,
 			secondChancesUsed: nextSecondChancesUsed,
-		} as any);
+		}, { immediate });
 	};
 
-	const finishGame = () => {
+	const finishGame = (reason?: GameOverReason) => {
 		isGameOverRef.current = true;
 		setActiveCombo(0);
 		secondChanceDecisionLockedRef.current = true;
 		setSecondChanceReason(null);
+		setGameOverReason(reason ?? null);
 		setIsGameOver(true);
 		recordAchievementProgress({ soloGamesFinished: 1 });
+		if (scoreStorageId.value) {
+			updateHighScore(scoreStorageId.value, {
+				score: score.value,
+				date: new Date().getTime(),
+				type: gameMode,
+			}, { immediate: true });
+		}
 		clearActiveGame();
 	};
 
 	const startSecondChanceOrFinish = (reason: SecondChanceReason) => {
-		if (canUseSecondChance(secondChancesUsed.value)) {
+		if (allowSecondChance && canUseSecondChance(secondChancesUsed.value)) {
 			setSecondChanceReason(reason);
 			return;
 		}
 
-		finishGame();
+		finishGame(reason);
 	};
 
 	const acceptSecondChance = () => {
@@ -192,7 +213,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		hand.value = nextHand;
 		combo.value = 0;
 		lastBrokenLine.value = 0;
-		if (gameMode === GameModeType.TimeAttack) {
+		if (timeLimitSeconds !== undefined) {
 			timeRemaining.value = Math.max(timeRemaining.value, 15);
 		}
 
@@ -209,7 +230,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			});
 		}
 
-		saveCurrentGame(nextBoard, nextHand, nextSecondChancesUsed);
+		saveCurrentGame(nextBoard, nextHand, nextSecondChancesUsed, movesRemaining.value, true);
 	};
 
 	const pieceOverlapsRectangle = (layout: Rectangle, other: Rectangle) => {
@@ -236,7 +257,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	}, []);
 
 	useEffect(() => {
-		if (gameMode !== GameModeType.TimeAttack || isGameOver || secondChanceReason) return;
+		if (timeLimitSeconds === undefined || isGameOver || secondChanceReason) return;
 		
 		const timer = setInterval(() => {
 			if (timeRemaining.value > 0) {
@@ -248,7 +269,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		}, 1000);
 
 		return () => clearInterval(timer);
-	}, [gameMode, isGameOver, secondChanceReason]);
+	}, [timeLimitSeconds, isGameOver, secondChanceReason]);
 
 	useEffect(() => {
 		if (scoreStorageId.value !== undefined) return;
@@ -336,7 +357,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				score.value += pointsEarned;
 
 				// Time Attack: +5s per broken line
-				if (gameMode === GameModeType.TimeAttack) {
+				if (timeLimitSeconds !== undefined) {
 					timeRemaining.value = Math.min(99, timeRemaining.value + linesBroken * 5);
 				}
 			} else {
@@ -349,7 +370,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			}
 
 			// Time Attack: +1s per 15 points
-			if (gameMode === GameModeType.TimeAttack) {
+			if (timeLimitSeconds !== undefined) {
 				timeRemaining.value = Math.min(99, timeRemaining.value + Math.floor(pointsEarned / 15));
 			}
 			runOnJS(recordAchievementProgress)({ totalPiecesPlaced: 1, totalLinesCleared: linesBroken });
@@ -390,12 +411,16 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			hand.value = nextHand;
 			
 			board.value = newBoard;
+			const nextMovesRemaining = consumeMoveLimitMove(gameMode, movesRemaining.value, linesBroken, combo.value);
+			movesRemaining.value = nextMovesRemaining;
 
 			// Сохраняем состояние текущей игры
-			runOnJS(saveCurrentGame)(newBoard, nextHand, secondChancesUsed.value);
+			runOnJS(saveCurrentGame)(newBoard, nextHand, secondChancesUsed.value, nextMovesRemaining);
 			
 			// Проверка игры на окончание после обновления руки
-			if (!hasAnyPossibleMove(newBoard, nextHand)) {
+			if (isMoveLimitComplete(gameMode, nextMovesRemaining)) {
+				runOnJS(finishGame)("move_limit");
+			} else if (!hasAnyPossibleMove(newBoard, nextHand)) {
 				runOnJS(startSecondChanceOrFinish)("moves");
 			}
 		} else {
@@ -460,7 +485,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				<View style={styles.root}>
 					<StickyGameHud gameMode={gameMode} score={score}></StickyGameHud>
 					<DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
-						<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand} gameMode={gameMode} timeRemaining={timeRemaining}></StatsGameHud>
+						<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand} gameMode={gameMode} timeRemaining={timeRemaining} movesRemaining={movesRemaining}></StatsGameHud>
 						<BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
 						<View style={[StyleSheet.absoluteFill, { pointerEvents: 'none', zIndex: 9999 }]}>
 							{scorePopups.map(popup => (
@@ -477,7 +502,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 							hand={hand} 
 							boardSize={boardLength}
 							onHandChange={(newHand) => {
-								saveCurrentGame(board.value, newHand, secondChancesUsed.value);
+								saveCurrentGame(board.value, newHand, secondChancesUsed.value, movesRemaining.value);
 							}}
 						/>
 					</DndProvider>
@@ -489,12 +514,12 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 							chancesRemaining={Math.max(0, SECOND_CHANCE_COSTS.length - secondChancesUsed.value - 1)}
 							reason={secondChanceReason}
 							onAccept={acceptSecondChance}
-							onDecline={finishGame}
+							onDecline={() => finishGame("moves")}
 						/>
 					)}
 					
 					{isGameOver && (
-						<GameOverModal score={Math.floor(score.value)} gameMode={gameMode} />
+						<GameOverModal score={Math.floor(score.value)} gameMode={gameMode} reason={gameOverReason} />
 					)}
 				</View>
 			</GestureHandlerRootView>

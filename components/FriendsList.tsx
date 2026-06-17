@@ -3,9 +3,22 @@ import { View, Text, StyleSheet, ActivityIndicator, TextInput, ScrollView, Alert
 import { supabase } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
 import StylizedButton from './StylizedButton';
-import { colorToHex } from '@/constants/Color';
 import { useSetAtom } from 'jotai';
-import { multiplayerRoomIdAtom, multiplayerRoleAtom, multiplayerGameModeAtom, MenuStateType, useAppState, GameModeType } from '@/hooks/useAppState';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+    multiplayerRoomIdAtom,
+    multiplayerRoleAtom,
+    multiplayerGameModeAtom,
+    multiplayerOpponentNameAtom,
+    multiplayerPlayerEloAtom,
+    MenuStateType,
+    useAppState,
+    GameModeType,
+} from '@/hooks/useAppState';
+
+function escapeIlikePattern(value: string): string {
+    return value.replace(/[\\%_]/g, "\\$&");
+}
 
 interface FriendRecord {
     id: string;
@@ -103,8 +116,10 @@ export default function FriendsList({ userId }: { userId: string }) {
         const { data: profiles, error: profileError } = await supabase
             .from('profiles')
             .select('id, auth_user_id, player_id, player_name')
-            .ilike('player_name', cleanQuery)
-            .limit(1);
+            .not('auth_user_id', 'is', null)
+            .ilike('player_name', `%${escapeIlikePattern(cleanQuery)}%`)
+            .order('updated_at', { ascending: false })
+            .limit(5);
             
         if (profileError || !profiles || profiles.length === 0) {
             Alert.alert("Player not found", `Could not find a player named ${cleanQuery}`);
@@ -112,10 +127,13 @@ export default function FriendsList({ userId }: { userId: string }) {
             return;
         }
         
-        const targetProfile = profiles[0] as FriendProfile;
-        const targetId = targetProfile.auth_user_id || targetProfile.player_id;
+        const exactMatch = (profiles as FriendProfile[]).find(
+            (profile) => profile.player_name.toLowerCase() === cleanQuery.toLowerCase()
+        );
+        const targetProfile = exactMatch || profiles[0] as FriendProfile;
+        const targetId = targetProfile.auth_user_id;
         if (!targetId) {
-            Alert.alert("Error", "This player does not have a login-backed profile yet.");
+            Alert.alert("Error", "This player must log in before they can receive friend requests.");
             setSearchLoading(false);
             return;
         }
@@ -159,19 +177,34 @@ export default function FriendsList({ userId }: { userId: string }) {
     };
 
     const handleAcceptRequest = async (friendId: string) => {
-        await supabase.from('friends').update({ status: 'accepted' }).eq('id', friendId);
+        const { error } = await supabase
+            .from('friends')
+            .update({ status: 'accepted' })
+            .eq('id', friendId)
+            .eq('user_id_2', userId);
+
+        if (error) {
+            Alert.alert("Error", error.message || "Could not accept friend request.");
+            return;
+        }
         fetchFriends();
     };
 
     const handleDeleteOrCancel = async (friendId: string) => {
-        await supabase.from('friends').delete().eq('id', friendId);
+        const { error } = await supabase.from('friends').delete().eq('id', friendId);
+        if (error) {
+            Alert.alert("Error", error.message || "Could not update friend request.");
+            return;
+        }
         fetchFriends();
     };
 
     const setMultiplayerRoomId = useSetAtom(multiplayerRoomIdAtom);
     const setMultiplayerRole = useSetAtom(multiplayerRoleAtom);
     const setMultiplayerGameMode = useSetAtom(multiplayerGameModeAtom);
-    const [appState, setAppState] = useAppState();
+    const setMultiplayerOpponentName = useSetAtom(multiplayerOpponentNameAtom);
+    const setMultiplayerPlayerElo = useSetAtom(multiplayerPlayerEloAtom);
+    const [, setAppState] = useAppState();
 
     const handleInvite1v1 = async (friendId: string, friendName: string) => {
         Alert.alert(
@@ -197,11 +230,13 @@ export default function FriendsList({ userId }: { userId: string }) {
         // 1. Create a private room
         const { data: profile } = await supabase
             .from('profiles')
-            .select('player_name')
+            .select('player_name, elo')
             .or(`auth_user_id.eq.${userId},player_id.eq.${userId}`)
             .limit(1)
             .maybeSingle();
-        const myName = profile?.player_name || 'Player 1';
+        const storedName = await AsyncStorage.getItem('PLAYER_NAME');
+        const myName = profile?.player_name || storedName || 'Player 1';
+        const myElo = typeof profile?.elo === 'number' ? profile.elo : 0;
 
         const { data: room, error } = await supabase.from('matchmaking_rooms').insert({
             player1_id: userId,
@@ -217,8 +252,30 @@ export default function FriendsList({ userId }: { userId: string }) {
             return;
         }
 
-        // 2. Broadcast invite to the friend
-        await supabase.channel(`invites:${friendId}`).send({
+        // 2. Broadcast invite to the friend after realtime is subscribed.
+        const inviteChannel = supabase.channel(`invites:${friendId}`);
+        const subscribed = await new Promise<boolean>((resolve) => {
+            const timeout = setTimeout(() => resolve(false), 5000);
+            inviteChannel.subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    clearTimeout(timeout);
+                    resolve(true);
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                    clearTimeout(timeout);
+                    resolve(false);
+                }
+            });
+        });
+
+        if (!subscribed) {
+            await supabase.from('matchmaking_rooms').delete().eq('id', room.id).eq('status', 'waiting');
+            supabase.removeChannel(inviteChannel);
+            Alert.alert("Error", "Could not connect to realtime invites.");
+            setSearchLoading(false);
+            return;
+        }
+
+        const sendResult = await inviteChannel.send({
             type: 'broadcast',
             event: '1v1_invite',
             payload: {
@@ -227,11 +284,21 @@ export default function FriendsList({ userId }: { userId: string }) {
                 gameMode: gameMode
             }
         });
+        supabase.removeChannel(inviteChannel);
+
+        if (sendResult !== 'ok') {
+            await supabase.from('matchmaking_rooms').delete().eq('id', room.id).eq('status', 'waiting');
+            Alert.alert("Error", "Could not send the 1v1 invite.");
+            setSearchLoading(false);
+            return;
+        }
 
         // 3. Join the room as player1
         setMultiplayerRoomId(room.id);
         setMultiplayerRole('player1');
         setMultiplayerGameMode(gameMode);
+        setMultiplayerOpponentName(friendName);
+        setMultiplayerPlayerElo(myElo);
         setAppState(MenuStateType.MULTIPLAYER_GAME);
 
         setSearchLoading(false);

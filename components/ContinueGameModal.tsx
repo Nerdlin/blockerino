@@ -4,6 +4,8 @@ import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { useTheme } from "@/constants/Theme";
 import Animated, { FadeIn } from "react-native-reanimated";
+import { GameModeType } from "@/hooks/useAppState";
+import { getGameModeConfig } from "@/constants/GameModes";
 
 export default function ContinueGameModal({
     score,
@@ -12,11 +14,12 @@ export default function ContinueGameModal({
     onStartOver
 }: {
     score: number;
-    gameMode: string;
+    gameMode: GameModeType;
     onContinue: () => void;
     onStartOver: () => void;
 }) {
     const { currentTheme } = useTheme();
+    const modeTitle = getGameModeConfig(gameMode).title;
 
     return (
         <SimplePopupView style={[{ backgroundColor: currentTheme.menuBackground }]}>
@@ -43,7 +46,7 @@ export default function ContinueGameModal({
 
             <View style={styles.statsContainer}>
                 <Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>
-                    Mode: <Text style={{ color: currentTheme.textPrimary, textTransform: 'capitalize' }}>{gameMode}</Text>
+                    Mode: <Text style={{ color: currentTheme.textPrimary }}>{modeTitle}</Text>
                 </Text>
                 <Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>
                     Score: <Text style={{ color: currentTheme.accent, fontFamily: 'SilkscreenBold' }}>{score}</Text>

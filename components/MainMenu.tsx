@@ -73,7 +73,7 @@ export default function MainMenu() {
 		</Pressable>
 
 		<BlockerinoLogo style={{position: 'absolute', bottom: 10, left: 10}} blockSize={5}></BlockerinoLogo>
-		<Animated.Text entering={BounceInUp.duration(800)} style={[styles.logo, isShortScreen && { fontSize: 32, marginBottom: 20 }]}>
+		<Animated.Text entering={BounceInUp.duration(800)} style={[styles.logo, isShortScreen && { fontSize: 32, marginBottom: 16 }]}>
 			blockerino
 		</Animated.Text>
 
@@ -111,7 +111,15 @@ export default function MainMenu() {
 			}}
 			backgroundColor={"#FFD700"}
 			title={"Challenges"}
-			flavorText={"daily puzzle & speed mode"}
+			flavorText={"daily, speed & move trials"}
+		/>
+		<MainButton
+			onClick={() => {
+				appendAppState(MenuStateType.MORE_GAMES);
+			}}
+			backgroundColor={"#38BDF8"}
+			title={"More Games"}
+			flavorText={"battle, cards, chess & puzzles"}
 		/>
 		<MainButton onClick = {() => {
 			appendAppState(MenuStateType.HIGH_SCORES)
@@ -227,7 +235,7 @@ function MainButton({
 		<Pressable 
 			style={[
 				styles.buttonPressable,
-				isShortScreen && { height: 48, marginBottom: 12 }
+				isShortScreen && { height: 44, marginBottom: 8 }
 			]} 
 			onPress={onPress} 
 			onHoverIn={onHoverIn} 
@@ -245,7 +253,7 @@ function MainButton({
 				<Text style={[
 					styles.buttonText, 
 					textStyle ? textStyle : {},
-					isShortScreen && { fontSize: 20 }
+					isShortScreen && { fontSize: 18 }
 				]}>
 					{title}
 				</Text>
@@ -253,7 +261,7 @@ function MainButton({
 					<Text style={[
 						styles.buttonFlavorText, 
 						textStyle ? textStyle : {},
-						isShortScreen && { fontSize: 12 }
+						isShortScreen && { fontSize: 10 }
 					]}>
 						{flavorText}
 					</Text>
@@ -275,7 +283,7 @@ const styles = StyleSheet.create({
 		fontFamily: "Silkscreen",
 		fontSize: 40,
 		color: "#FFF",
-		marginBottom: 50,
+		marginBottom: 28,
 		textAlign: "center",
 	},
 	button: {
@@ -283,16 +291,16 @@ const styles = StyleSheet.create({
 		height: "100%",
 		justifyContent: "center",
 		alignItems: "center",
-		marginBottom: 20,
+		marginBottom: 14,
 		borderRadius: 8,
 		borderWidth: 2
 	},
 	buttonPressable: {
 		width: "80%",
-		height: 60,
+		height: 56,
 		justifyContent: "center",
 		alignItems: "center",
-		marginBottom: 20,
+		marginBottom: 14,
 		borderRadius: 10,
 		maxWidth: 420
 	},

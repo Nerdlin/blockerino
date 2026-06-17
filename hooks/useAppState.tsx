@@ -9,6 +9,7 @@ export enum MenuStateType {
 	MULTIPLAYER = 'multiplayer',
 	MULTIPLAYER_GAME = 'multiplayer_game',
 	DAILY_CHALLENGES = 'daily_challenges',
+	MORE_GAMES = 'more_games',
 	PROFILE = 'profile'
 }
 
@@ -16,12 +17,15 @@ export enum GameModeType {
 	Classic = 'classic',
 	Chaos = 'chaos',
 	DailyPuzzle = 'daily_puzzle',
-	TimeAttack = 'time_attack'
+	TimeAttack = 'time_attack',
+	MoveLimit = 'move_limit'
 }
 
 export const multiplayerRoomIdAtom = atom<string | null>(null);
 export const multiplayerRoleAtom = atom<'player1' | 'player2' | 'spectator'>('player1');
 export const multiplayerGameModeAtom = atom<GameModeType>(GameModeType.Classic);
+export const multiplayerOpponentNameAtom = atom<string>('');
+export const multiplayerPlayerEloAtom = atom<number>(0);
 
 type AppStateType = GameModeType | MenuStateType;
 type SetAppState = (value: AppStateType | AppState) => void;

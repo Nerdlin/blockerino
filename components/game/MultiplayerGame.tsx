@@ -24,6 +24,7 @@ import { useSoundSettings } from '@/constants/Sound';
 import { useAtom } from 'jotai';
 import { getEloBadge } from '@/components/MultiplayerMenu';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getGameModeConfig } from '@/constants/GameModes';
 import {
     ActivePlayerRole,
     MatchWinnerRole,
@@ -102,11 +103,12 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const isLargeScreen = width >= 980;
     const isShortScreen = height < 700;
     const mobileBottomPadding = !isLargeScreen ? Math.max(safeAreaInsets.bottom, Platform.OS === 'web' ? 42 : 22) : 0;
-    const boardLength = gameMode === GameModeType.Chaos ? 10 : 8;
+    const modeConfig = getGameModeConfig(gameMode);
+    const boardLength = modeConfig.boardLength;
 	
     // Game sizes
 	const { GRID_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardLength);
-    const handSize = gameMode === GameModeType.Chaos ? 5 : 3;
+    const handSize = modeConfig.handSize;
 	
     // Local player states
 	const board = useSharedValue(newEmptyBoard(boardLength));

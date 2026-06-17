@@ -1,0 +1,2 @@
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS highscore_move_limit INTEGER NOT NULL DEFAULT 0;

@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GameModeType } from "@/hooks/useAppState";
 import { getHighScores, HighScore } from "@/constants/Storage";
+import { LEADERBOARD_GAME_MODES } from "@/constants/GameModes";
 
 export interface AchievementStats {
 	soloGamesFinished: number;
@@ -49,21 +50,11 @@ function getModeSamplerProgress(scores: HighScore[]): number {
 			.map((score) => score.type)
 	);
 
-	return [
-		GameModeType.Classic,
-		GameModeType.Chaos,
-		GameModeType.DailyPuzzle,
-		GameModeType.TimeAttack,
-	].filter((mode) => completedModes.has(mode)).length;
+	return LEADERBOARD_GAME_MODES.filter((mode) => completedModes.has(mode)).length;
 }
 
 function getBestScoreTotal(scores: HighScore[]): number {
-	return [
-		GameModeType.Classic,
-		GameModeType.Chaos,
-		GameModeType.DailyPuzzle,
-		GameModeType.TimeAttack,
-	].reduce((total, mode) => total + getBestScoreForMode(scores, mode), 0);
+	return LEADERBOARD_GAME_MODES.reduce((total, mode) => total + getBestScoreForMode(scores, mode), 0);
 }
 
 export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
@@ -212,10 +203,18 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.DailyPuzzle),
 	},
 	{
+		id: "move_planner",
+		medal: "ML",
+		title: "Move Planner",
+		target: 1000,
+		howToUnlock: "Reach 1000 points in Move Limit.",
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.MoveLimit),
+	},
+	{
 		id: "mode_sampler",
 		medal: "🧩",
 		title: "Mode Sampler",
-		target: 4,
+		target: LEADERBOARD_GAME_MODES.length,
 		howToUnlock: "Score in every solo mode.",
 		getCurrent: (scores) => getModeSamplerProgress(scores),
 	},
@@ -225,6 +224,166 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 		title: "Score Collector",
 		target: 5000,
 		howToUnlock: "Build a 5000-point best-score total across modes.",
+		getCurrent: (scores) => getBestScoreTotal(scores),
+	},
+	{
+		id: "solo_grinder",
+		medal: "S100",
+		title: "Solo Grinder",
+		target: 100,
+		howToUnlock: "Finish 100 solo games.",
+		getCurrent: (_scores, stats) => stats.soloGamesFinished,
+	},
+	{
+		id: "solo_veteran",
+		medal: "S250",
+		title: "Solo Veteran",
+		target: 250,
+		howToUnlock: "Finish 250 solo games.",
+		getCurrent: (_scores, stats) => stats.soloGamesFinished,
+	},
+	{
+		id: "line_engineer",
+		medal: "L500",
+		title: "Line Engineer",
+		target: 500,
+		howToUnlock: "Clear 500 rows or columns.",
+		getCurrent: (_scores, stats) => stats.totalLinesCleared,
+	},
+	{
+		id: "line_tycoon",
+		medal: "L1K",
+		title: "Line Tycoon",
+		target: 1000,
+		howToUnlock: "Clear 1000 rows or columns.",
+		getCurrent: (_scores, stats) => stats.totalLinesCleared,
+	},
+	{
+		id: "line_myth",
+		medal: "L2K",
+		title: "Line Myth",
+		target: 2500,
+		howToUnlock: "Clear 2500 rows or columns.",
+		getCurrent: (_scores, stats) => stats.totalLinesCleared,
+	},
+	{
+		id: "piece_builder",
+		medal: "P2K",
+		title: "Piece Builder",
+		target: 2500,
+		howToUnlock: "Place 2500 pieces.",
+		getCurrent: (_scores, stats) => stats.totalPiecesPlaced,
+	},
+	{
+		id: "piece_factory",
+		medal: "P5K",
+		title: "Piece Factory",
+		target: 5000,
+		howToUnlock: "Place 5000 pieces.",
+		getCurrent: (_scores, stats) => stats.totalPiecesPlaced,
+	},
+	{
+		id: "piece_city",
+		medal: "P10K",
+		title: "Piece City",
+		target: 10000,
+		howToUnlock: "Place 10000 pieces.",
+		getCurrent: (_scores, stats) => stats.totalPiecesPlaced,
+	},
+	{
+		id: "score_titan",
+		medal: "25K",
+		title: "Score Titan",
+		target: 25000,
+		howToUnlock: "Reach 25000 points in one solo game.",
+		getCurrent: (scores) => getBestScore(scores),
+	},
+	{
+		id: "score_myth",
+		medal: "50K",
+		title: "Score Myth",
+		target: 50000,
+		howToUnlock: "Reach 50000 points in one solo game.",
+		getCurrent: (scores) => getBestScore(scores),
+	},
+	{
+		id: "classic_peak",
+		medal: "CL10",
+		title: "Classic Peak",
+		target: 10000,
+		howToUnlock: "Reach 10000 points in Classic.",
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.Classic),
+	},
+	{
+		id: "classic_orbit",
+		medal: "CL20",
+		title: "Classic Orbit",
+		target: 20000,
+		howToUnlock: "Reach 20000 points in Classic.",
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.Classic),
+	},
+	{
+		id: "chaos_overlord",
+		medal: "CH10",
+		title: "Chaos Overlord",
+		target: 10000,
+		howToUnlock: "Reach 10000 points in Chaos.",
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.Chaos),
+	},
+	{
+		id: "speed_flash",
+		medal: "SP5",
+		title: "Speed Flash",
+		target: 5000,
+		howToUnlock: "Reach 5000 points in Speed mode.",
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.TimeAttack),
+	},
+	{
+		id: "speed_blazer",
+		medal: "SP7",
+		title: "Speed Blazer",
+		target: 7500,
+		howToUnlock: "Reach 7500 points in Speed mode.",
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.TimeAttack),
+	},
+	{
+		id: "daily_regular",
+		medal: "D2K",
+		title: "Daily Regular",
+		target: 2500,
+		howToUnlock: "Reach 2500 points in Daily Puzzle.",
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.DailyPuzzle),
+	},
+	{
+		id: "daily_elite",
+		medal: "D5K",
+		title: "Daily Elite",
+		target: 5000,
+		howToUnlock: "Reach 5000 points in Daily Puzzle.",
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.DailyPuzzle),
+	},
+	{
+		id: "move_tactician",
+		medal: "ML2",
+		title: "Move Tactician",
+		target: 2000,
+		howToUnlock: "Reach 2000 points in Move Limit.",
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.MoveLimit),
+	},
+	{
+		id: "move_mastermind",
+		medal: "ML4",
+		title: "Move Mastermind",
+		target: 4000,
+		howToUnlock: "Reach 4000 points in Move Limit.",
+		getCurrent: (scores) => getBestScoreForMode(scores, GameModeType.MoveLimit),
+	},
+	{
+		id: "score_vault",
+		medal: "ALL",
+		title: "Score Vault",
+		target: 15000,
+		howToUnlock: "Build a 15000-point best-score total across modes.",
 		getCurrent: (scores) => getBestScoreTotal(scores),
 	},
 ];
@@ -326,12 +485,9 @@ export async function recordAchievementProgress(progress: Partial<AchievementSta
 
 export async function getAchievementRows(): Promise<AchievementRow[]> {
 	const stats = await getAchievementStats();
-	const scoreGroups = await Promise.all([
-		getHighScores(GameModeType.Classic, true, true),
-		getHighScores(GameModeType.Chaos, true, true),
-		getHighScores(GameModeType.DailyPuzzle, true, true),
-		getHighScores(GameModeType.TimeAttack, true, true),
-	]);
+	const scoreGroups = await Promise.all(
+		LEADERBOARD_GAME_MODES.map((mode) => getHighScores(mode, true, true))
+	);
 
 	return buildAchievementRows(scoreGroups.flat(), stats);
 }

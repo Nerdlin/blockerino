@@ -10,10 +10,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { normalizePlayerName } from "@/constants/Multiplayer";
 import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
 import { useShopState } from "@/constants/Shop";
+import { GameOverReason, getGameOverMessage } from "@/constants/GameModes";
 
 const PLAYER_NAME_KEY = 'PLAYER_NAME';
 
-export default function GameOverModal({ score, gameMode }: { score: number, gameMode: GameModeType }) {
+export default function GameOverModal({ score, gameMode, reason }: { score: number, gameMode: GameModeType, reason?: GameOverReason | null }) {
     const [setAppState, appendAppState] = useSetAppState();
     const { playSfx } = useSoundSettings();
     const { currentTheme } = useTheme();
@@ -224,9 +225,7 @@ export default function GameOverModal({ score, gameMode }: { score: number, game
                     color: currentTheme.id === ThemeType.BLUE ? 'rgb(0, 153, 255)' : currentTheme.textSecondary
                 }
             ]}>
-                {gameMode === GameModeType.TimeAttack 
-                    ? "Time ran out!" 
-                    : "No more space for blocks on the board."}
+                {getGameOverMessage(gameMode, reason)}
             </Text>
 
             <View style={styles.buttonContainer}>

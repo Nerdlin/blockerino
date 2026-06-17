@@ -209,17 +209,30 @@ export interface GlobalHighScore {
 }
 
 // Получить топ N глобальных рекордов
-type HighScoreColumn = 'highscore_classic' | 'highscore_chaos' | 'highscore_time_attack' | 'highscore_daily';
+type HighScoreColumn = 'highscore_classic' | 'highscore_chaos' | 'highscore_time_attack' | 'highscore_daily' | 'highscore_move_limit';
 type HighScoreProfileRow = {
     id?: string | number;
     player_name?: string;
     created_at?: string;
 } & Partial<Record<HighScoreColumn, number>>;
 
-const HIGH_SCORE_COLUMNS_SELECT = 'id, player_name, created_at, highscore_classic, highscore_chaos, highscore_time_attack, highscore_daily';
+function getHighScoreColumnsSelect(scoreColumn: HighScoreColumn): string {
+    return `id, player_name, created_at, ${scoreColumn}`;
+}
 
 function getHighScoreColumn(gameMode: string): HighScoreColumn {
-    return `highscore_${gameMode === 'daily_puzzle' ? 'daily' : gameMode}` as HighScoreColumn;
+    if (gameMode === 'daily_puzzle') return 'highscore_daily';
+    return `highscore_${gameMode}` as HighScoreColumn;
+}
+
+function isMissingHighScoreColumnError(error: unknown, scoreColumn: HighScoreColumn): boolean {
+    const err = error as { code?: string; message?: string; details?: string; hint?: string } | null;
+    const message = `${err?.code || ''} ${err?.message || ''} ${err?.details || ''} ${err?.hint || ''}`.toLowerCase();
+    return message.includes(scoreColumn.toLowerCase()) && (
+        message.includes('42703') ||
+        message.includes('does not exist') ||
+        message.includes('could not find')
+    );
 }
 
 export async function getGlobalHighScores(
@@ -230,11 +243,14 @@ export async function getGlobalHighScores(
         const scoreColumn = getHighScoreColumn(gameMode);
         const { data, error } = await supabase
             .from('profiles')
-            .select(HIGH_SCORE_COLUMNS_SELECT)
+            .select(getHighScoreColumnsSelect(scoreColumn))
             .order(scoreColumn, { ascending: false })
             .limit(limit * 5); // Fetch extra to account for duplicates
 
         if (error) {
+            if (isMissingHighScoreColumnError(error, scoreColumn)) {
+                return [];
+            }
             console.error('Error fetching global high scores:', error);
             return [];
         }
@@ -281,11 +297,14 @@ export async function getPlayerGlobalHighScore(
 
         const { data, error } = await supabase
             .from('profiles')
-            .select(HIGH_SCORE_COLUMNS_SELECT)
+            .select(getHighScoreColumnsSelect(scoreColumn))
             .ilike('player_name', escapedName)
             .limit(1);
 
         if (error || !data || data.length === 0) {
+            if (error && isMissingHighScoreColumnError(error, scoreColumn)) {
+                return null;
+            }
             return null;
         }
 
@@ -312,11 +331,14 @@ export async function submitGlobalHighScore(
         // Fetch existing profile
         const { data, error: fetchError } = await supabase
             .from('profiles')
-            .select(HIGH_SCORE_COLUMNS_SELECT)
+            .select(getHighScoreColumnsSelect(scoreColumn))
             .ilike('player_name', escapedName)
             .limit(1);
 
         if (fetchError) {
+            if (isMissingHighScoreColumnError(fetchError, scoreColumn)) {
+                return false;
+            }
             console.error('Error fetching existing score:', fetchError);
             return false;
         }
@@ -523,12 +545,15 @@ export async function isTopScore(
         const scoreColumn = getHighScoreColumn(gameMode);
         const { data, error } = await supabase
             .from('profiles')
-            .select(HIGH_SCORE_COLUMNS_SELECT)
+            .select(getHighScoreColumnsSelect(scoreColumn))
             .gt(scoreColumn, 0)
             .order(scoreColumn, { ascending: false })
             .limit(topN);
 
         if (error) {
+            if (isMissingHighScoreColumnError(error, scoreColumn)) {
+                return false;
+            }
             console.error('Error checking top score:', error);
             return true; // В случае ошибки разрешаем отправку
         }

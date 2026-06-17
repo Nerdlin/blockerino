@@ -12,9 +12,11 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { normalizePlayerName } from "@/constants/Multiplayer";
 import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
 import { useShopState } from "@/constants/Shop";
+import { CHALLENGE_LEADERBOARD_GAME_MODES, getGameModeConfig, MAIN_LEADERBOARD_GAME_MODES } from "@/constants/GameModes";
 
 const LEADERBOARD_LIMIT = 100;
 const LEADERBOARD_REFRESH_MS = 30000;
+type LeaderboardPage = "main" | "challenges";
 
 export default function HighScores() {
     const { width, height } = useWindowDimensions();
@@ -25,6 +27,7 @@ export default function HighScores() {
     const [ highScores, setHighScores ] = useState<HighScore[]>([]);
     const [ globalHighScores, setGlobalHighScores ] = useState<GlobalHighScore[]>([]);
     const [ gameMode, setGameMode ] = useState(GameModeType.Classic);
+    const [leaderboardPage, setLeaderboardPage] = useState<LeaderboardPage>("main");
     const [ loading, setLoading ] = useState(false);
     const [ syncing, setSyncing ] = useState(false);
     const [ playerName, setPlayerName ] = useState('');
@@ -33,6 +36,9 @@ export default function HighScores() {
     const [chaosClicks, setChaosClicks] = useState(0);
     const [secretMessage, setSecretMessage] = useState<string | null>(null);
     const { state: shopState, commit: commitShopState } = useShopState();
+    const currentModeConfig = getGameModeConfig(gameMode);
+    const localBestScore = highScores[0]?.score ?? 0;
+    const isChallengePage = leaderboardPage === "challenges";
 
     const handleChaosClick = async () => {
         setGameMode(GameModeType.Chaos);
@@ -54,13 +60,41 @@ export default function HighScores() {
         }
     };
 
+    const handleModeClick = (mode: GameModeType) => {
+        if (mode === GameModeType.Chaos) {
+            void handleChaosClick();
+            return;
+        }
+
+        setGameMode(mode);
+    };
+
+    const handleOpenChallenges = () => {
+        setLeaderboardPage("challenges");
+        if (!CHALLENGE_LEADERBOARD_GAME_MODES.includes(gameMode as typeof CHALLENGE_LEADERBOARD_GAME_MODES[number])) {
+            setGameMode(GameModeType.DailyPuzzle);
+        }
+    };
+
+    const handleBackToMainLeaderboards = useCallback(() => {
+        setLeaderboardPage("main");
+        if (!MAIN_LEADERBOARD_GAME_MODES.includes(gameMode as typeof MAIN_LEADERBOARD_GAME_MODES[number])) {
+            setGameMode(GameModeType.Classic);
+        }
+    }, [gameMode]);
+
     const syncInProgress = useRef(false);
     const refreshInProgress = useRef(false);
     const isMounted = useRef(true);
     const isActive = appState.current === MenuStateType.HIGH_SCORES;
     const handleBack = useCallback(() => {
+        if (leaderboardPage === "challenges") {
+            handleBackToMainLeaderboards();
+            return;
+        }
+
         popAppState();
-    }, [popAppState]);
+    }, [handleBackToMainLeaderboards, leaderboardPage, popAppState]);
 
     useEscapeKey(handleBack);
 
@@ -186,25 +220,38 @@ export default function HighScores() {
             )}
         </View>
 
-        <Text style={[styles.subHeader, { color: currentTheme.textSecondary }, isMobile && { fontSize: 18 }]}>
-            {"Select a game mode..."}
-        </Text>
+        <View style={styles.modeHeaderRow}>
+            <Text style={[styles.subHeader, styles.modeHeaderText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 18 }]}>
+                {isChallengePage ? "Challenge leaderboards" : "Select a game mode..."}
+            </Text>
+        </View>
         <View style={styles.modeRow}>
-            <StylizedButton
-                text="Classic"
-                onClick={() => { setGameMode(GameModeType.Classic) }}
-                backgroundColor={gameMode === GameModeType.Classic ? currentTheme.buttonPrimary : cssColors.spaceGray}
-                style={styles.modeButton}
-                textStyle={isMobile && styles.mobileButtonText}
-            />
-            <StylizedButton
-                text="Chaos"
-                onClick={handleChaosClick}
-                backgroundColor={gameMode === GameModeType.Chaos ? cssColors.pitchBlack : cssColors.spaceGray}
-                borderColor={gameMode === GameModeType.Chaos ? "white" : undefined}
-                style={styles.modeButton}
-                textStyle={isMobile && styles.mobileButtonText}
-            />
+            {(isChallengePage ? CHALLENGE_LEADERBOARD_GAME_MODES : MAIN_LEADERBOARD_GAME_MODES).map((mode) => {
+                const config = getGameModeConfig(mode);
+                const isSelected = gameMode === mode;
+                const modeColor = config.challenge?.color ?? (mode === GameModeType.Chaos ? cssColors.pitchBlack : currentTheme.buttonPrimary);
+
+                return (
+                    <StylizedButton
+                        key={mode}
+                        text={config.shortTitle}
+                        onClick={() => handleModeClick(mode)}
+                        backgroundColor={isSelected ? modeColor : cssColors.spaceGray}
+                        borderColor={isSelected && mode === GameModeType.Chaos ? "white" : undefined}
+                        style={styles.modeButton}
+                        textStyle={isMobile && styles.mobileButtonText}
+                    />
+                );
+            })}
+            {!isChallengePage && (
+                <StylizedButton
+                    text="Challenges"
+                    onClick={handleOpenChallenges}
+                    backgroundColor={cssColors.spaceGray}
+                    style={[styles.modeButton, styles.challengeEntryButton]}
+                    textStyle={isMobile && styles.mobileButtonText}
+                />
+            )}
         </View>
         {secretMessage && (
             <Text style={{ fontFamily: 'Silkscreen', fontSize: 12, color: '#FFD700', marginTop: 5, textAlign: 'center' }}>
@@ -212,11 +259,11 @@ export default function HighScores() {
             </Text>
         )}
         <Text style={[styles.header, { color: currentTheme.textPrimary }, isMobile && { fontSize: 22 }]}>
-            {"Global Leaderboard (Top 100)"}
+            {`${currentModeConfig.leaderboardTitle} Leaderboard`}
         </Text>
         <View style={styles.leaderboardMetaRow}>
             <Text style={[styles.subHeader, styles.leaderboardSortText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 16 }]}>
-                {"Sorted from high to low."}
+                {`Local best: ${localBestScore}`}
             </Text>
             <StylizedButton
                 text={loading ? "..." : "Refresh"}
@@ -243,12 +290,9 @@ export default function HighScores() {
                 <Text style={[styles.noScoresText, { color: currentTheme.textPrimary }, isMobile && { fontSize: 20 }]}>
                     {"No global scores for this mode yet."}
                 </Text>
-                <StylizedButton text="Play Classic" onClick={() => {
-                    setAppState(GameModeType.Classic)
-                }} backgroundColor={currentTheme.buttonPrimary}></StylizedButton>
-                <StylizedButton text="Play Chaos" onClick={() => {
-                    setAppState(GameModeType.Chaos)
-                }} backgroundColor={cssColors.pitchBlack} borderColor="white"></StylizedButton>
+                <StylizedButton text={`Play ${currentModeConfig.shortTitle}`} onClick={() => {
+                    setAppState(gameMode)
+                }} backgroundColor={currentModeConfig.challenge?.color ?? currentTheme.buttonPrimary}></StylizedButton>
             </>
         }
     </SimplePopupView>
@@ -342,13 +386,30 @@ const styles = StyleSheet.create({
     },
     modeRow: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         gap: 10,
         justifyContent: 'center',
         width: '90%',
     },
-    modeButton: {
+    modeHeaderRow: {
+        width: '90%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginTop: 4,
+    },
+    modeHeaderText: {
         flex: 1,
-        minWidth: 120,
+        textAlign: 'center',
+    },
+    modeButton: {
+        minWidth: 112,
+        maxWidth: 150,
+        flexGrow: 1,
+        flexBasis: 112,
+    },
+    challengeEntryButton: {
         maxWidth: 180,
     },
     leaderboardMetaRow: {

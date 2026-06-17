@@ -1,10 +1,10 @@
 param(
   [string]$ApkPath = "builds/blockerino-release.apk",
-  [string]$Version = "1.0.2",
-  [int]$BuildNumber = 3,
+  [string]$Version = "1.0.3",
+  [int]$BuildNumber = 4,
   [string]$ProjectRef = "ptcglecvavdvpxadqfqd",
   [string]$BucketPath = "android/blockerino-release.apk",
-  [string]$ReleaseNotes = "Android release with stable shop audio playback, smoother music looping, safer profile sync, fixed friend requests, and match history ELO deltas.",
+  [string]$ReleaseNotes = "Android release with fixed challenge leaderboard back navigation, Move Limit bonus moves, safer friend requests and 1v1 invites, web 404 page, and reduced Android permissions.",
   [switch]$Mandatory
 )
 
