@@ -2,7 +2,7 @@ import { getHighScores, HighScore } from "@/constants/Storage";
 import { getGlobalHighScores, GlobalHighScore } from "@/constants/Supabase";
 import SimplePopupView from "./SimplePopupView";
 import { useCallback, useEffect, useState, useRef } from "react";
-import { StyleSheet, Text, View, ActivityIndicator, TextInput, useWindowDimensions } from "react-native";
+import { StyleSheet, Text, View, ActivityIndicator, TextInput, useWindowDimensions, Image } from "react-native";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { GameModeType, MenuStateType, useAppStateValue, useSetAppState } from "@/hooks/useAppState";
@@ -310,10 +310,17 @@ function GlobalScore({score, rank}: {score: GlobalHighScore, rank: number}) {
             <Text style={[styles.scoreRankText, { color: currentTheme.textPrimary }, isMobile && styles.mobileScoreRankText]}>
                 #{rank}
             </Text>
-            <View style={styles.scoreNameColumn}>
-                <Text style={[styles.scoreNameText, { color: currentTheme.textPrimary }, isMobile && styles.mobileScoreNameText]} numberOfLines={1}>
-                    {score.player_name}
-                </Text>
+			<View style={styles.scoreNameColumn}>
+				<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+					{score.avatar_url && score.avatar_url.startsWith("http") ? (
+						<Image source={{ uri: score.avatar_url }} style={{ width: 18, height: 18, borderRadius: 9, marginRight: 6, backgroundColor: 'transparent' }} />
+					) : score.avatar_url ? (
+						<Text style={{ fontSize: 14, marginRight: 6 }}>{score.avatar_url}</Text>
+					) : null}
+					<Text style={[styles.scoreNameText, { color: currentTheme.textPrimary }, isMobile && styles.mobileScoreNameText]} numberOfLines={1}>
+						{score.player_name}
+					</Text>
+				</View>
                 <Text style={[styles.scoreTimeText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 10 }]} numberOfLines={1}>
                     {score.created_at ? createTimeAgoString(new Date(score.created_at).getTime(), t) : t("hs.unknownTime")}
                 </Text>

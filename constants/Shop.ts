@@ -3,7 +3,7 @@ import { atom, useAtom } from "jotai";
 import { useCallback, useEffect } from "react";
 import { supabase } from "./Supabase";
 
-export type ShopCategory = "piece_skin" | "background" | "music" | "sfx";
+export type ShopCategory = "piece_skin" | "background" | "music" | "sfx" | "chess_piece" | "chess_board" | "sea_skin" | "card_skin" | "sudoku_theme" | "mahjong_theme";
 export type BackgroundScene = "classic" | "ender" | "sunset" | "ice" | "cyber";
 
 export interface ShopItem {
@@ -24,6 +24,12 @@ export interface EquippedCosmetics {
 	background: string;
 	music: string;
 	sfx: string;
+	chess_piece: string;
+	chess_board: string;
+	sea_skin: string;
+	card_skin: string;
+	sudoku_theme: string;
+	mahjong_theme: string;
 }
 
 export type ShopProfileField = "coins" | "owned_item_ids" | "equipped";
@@ -48,11 +54,39 @@ export const DEFAULT_EQUIPPED_COSMETICS: EquippedCosmetics = {
 	background: "background_classic",
 	music: "music_classic",
 	sfx: "sfx_classic",
+	chess_piece: "chess_piece_classic",
+	chess_board: "chess_board_slate",
+	sea_skin: "sea_skin_navy",
+	card_skin: "card_skin_classic",
+	sudoku_theme: "sudoku_theme_wood",
+	mahjong_theme: "mahjong_theme_jade",
 };
 
 export const FREE_SHOP_ITEM_IDS = Object.values(DEFAULT_EQUIPPED_COSMETICS);
 
 const BASE_SHOP_ITEMS: ShopItem[] = [
+	// EXTRA GAMES
+	{ id: "chess_piece_classic", category: "chess_piece", title: "Classic", description: "Standard pixel chess pieces.", price: 0, accent: "#C4B5FD", previewColors: ["#FFF", "#000"] },
+	{ id: "chess_piece_royal", category: "chess_piece", title: "Royal", description: "Ornate pieces fit for a king.", price: 500, accent: "#C4B5FD", previewColors: ["#FDE047", "#000"] },
+	{ id: "chess_piece_club", category: "chess_piece", title: "Club", description: "Heavy tournament style pieces.", price: 800, accent: "#C4B5FD", previewColors: ["#D1D5DB", "#1F2937"] },
+	
+	{ id: "chess_board_slate", category: "chess_board", title: "Slate", description: "Classic dark slate and light tiles.", price: 0, accent: "#8B5CF6", previewColors: ["#E2E8F0", "#475569"] },
+	{ id: "chess_board_violet", category: "chess_board", title: "Violet", description: "Deep purple and lavender tiles.", price: 300, accent: "#8B5CF6", previewColors: ["#C4B5FD", "#7C3AED"] },
+	{ id: "chess_board_walnut", category: "chess_board", title: "Walnut", description: "Warm wood tones for a cozy game.", price: 600, accent: "#8B5CF6", previewColors: ["#FDE68A", "#92400E"] },
+
+	{ id: "sea_skin_navy", category: "sea_skin", title: "Navy Sea", description: "Standard tactical blue radar grid.", price: 0, accent: "#38BDF8", previewColors: ["#1E3A8A"] },
+	{ id: "sea_skin_paper", category: "sea_skin", title: "Paper Sea", description: "Hand-drawn on crumpled notepad paper.", price: 400, accent: "#38BDF8", previewColors: ["#F8FAFC"] },
+
+	{ id: "card_skin_classic", category: "card_skin", title: "Classic Cards", description: "Standard high visibility playing cards.", price: 0, accent: "#F97316", previewColors: ["#FFF"] },
+	{ id: "card_skin_casino", category: "card_skin", title: "Casino Cards", description: "Premium red backed cards with gold trim.", price: 750, accent: "#F97316", previewColors: ["#DC2626", "#FACC15"] },
+
+	{ id: "sudoku_theme_wood", category: "sudoku_theme", title: "Wood Board", description: "Classic light wooden board.", price: 0, accent: "#A3E635", previewColors: ["#FEF3C7"] },
+	{ id: "sudoku_theme_night", category: "sudoku_theme", title: "Night Mode", description: "Dark sleek neon mode.", price: 300, accent: "#A3E635", previewColors: ["#111827"] },
+
+	{ id: "mahjong_theme_jade", category: "mahjong_theme", title: "Jade Tiles", description: "Traditional green backed jade tiles.", price: 0, accent: "#2DD4BF", previewColors: ["#34D399"] },
+	{ id: "mahjong_theme_ivory", category: "mahjong_theme", title: "Ivory Tiles", description: "Clean white carved ivory tiles.", price: 500, accent: "#2DD4BF", previewColors: ["#FDF8F6"] },
+
+	// ORIGINAL BLOCKERINO
 	{
 		id: "piece_classic",
 		category: "piece_skin",

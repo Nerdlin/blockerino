@@ -1,5 +1,5 @@
 import { GameModeType, useAppState } from "@/hooks/useAppState";
-import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, ActivityIndicator } from "react-native";
+import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, ActivityIndicator, Image, Pressable } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -11,7 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { Session, User } from "@supabase/supabase-js";
 import { loadShopState, syncShopStateWithProfile, useShopState } from "@/constants/Shop";
-import { PlayerProfile, getPlayerElo, getPlayerGlobalHighScore, upsertAuthenticatedProfile } from "@/constants/Supabase";
+import { PlayerProfile, getPlayerElo, getPlayerGlobalHighScore, upsertAuthenticatedProfile, updateProfileAvatar } from "@/constants/Supabase";
 import { getHighScores, createHighScore } from "@/constants/Storage";
 import MatchHistoryList from "./MatchHistoryList";
 import FriendsList from "./FriendsList";
@@ -116,6 +116,9 @@ export default function ProfileMenu() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [playerName, setPlayerName] = useState("");
+	const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+	const [showAvatarPopup, setShowAvatarPopup] = useState(false);
+	const [customAvatarInput, setCustomAvatarInput] = useState("");
 	const [playerElo, setPlayerElo] = useState<number | null>(null);
 	const [classicScore, setClassicScore] = useState<number>(0);
 	const [chaosScore, setChaosScore] = useState<number>(0);
@@ -173,6 +176,8 @@ export default function ProfileMenu() {
 
 	const applyProfile = useCallback(async (profile: PlayerProfile | null, user: User) => {
 		const nextName = profile?.player_name || user.user_metadata?.player_name || user.user_metadata?.name || user.email?.split("@")[0] || "";
+		const nextAvatar = profile?.avatar_url || user.user_metadata?.avatar_url || null;
+		setAvatarUrl(nextAvatar);
 		if (nextName) {
 			setPlayerName(nextName);
 			await AsyncStorage.setItem(PLAYER_NAME_KEY, nextName);
@@ -372,8 +377,9 @@ export default function ProfileMenu() {
 	const [activeTab, setActiveTab] = useState<"stats" | "history" | "friends">("stats");
 
 	return (
-		<SimplePopupView style={[
-			{ backgroundColor: currentTheme.menuBackground },
+		<>
+			<SimplePopupView style={[
+				{ backgroundColor: currentTheme.menuBackground },
 			isMobile && { width: '92%', height: '85%', paddingHorizontal: 10 }
 		]}>
 			<Text style={[styles.sectionHeader, { color: currentTheme.textPrimary }]}>{t("profile.title")}</Text>
@@ -383,9 +389,16 @@ export default function ProfileMenu() {
 					<ActivityIndicator size="large" color={currentTheme.accent} />
 				) : session ? (
 					<View style={[styles.profileContainer, isMobile && styles.mobileProfileContainer]}>
-						<View style={styles.avatarPlaceholder}>
-							<Text style={styles.avatarText}>{playerName ? playerName.charAt(0).toUpperCase() : '?'}</Text>
-						</View>
+						<Pressable onPress={() => setShowAvatarPopup(true)} style={{ position: "relative" }}>
+							{avatarUrl && avatarUrl.startsWith("http") ? (
+								<Image source={{ uri: avatarUrl }} style={[styles.avatarPlaceholder, { backgroundColor: "transparent" }]} />
+							) : (
+								<View style={styles.avatarPlaceholder}>
+									<Text style={styles.avatarText}>{avatarUrl || (playerName ? playerName.charAt(0).toUpperCase() : '?')}</Text>
+								</View>
+							)}
+							<View style={styles.editAvatarBadge}><Text style={{ fontSize: 10 }}>✏️</Text></View>
+						</Pressable>
 						<Text style={[styles.welcomeText, { color: currentTheme.textPrimary }]}>
 							{playerName || session.user.email}
 						</Text>
@@ -538,6 +551,51 @@ export default function ProfileMenu() {
 				/>
 			</View>
 		</SimplePopupView>
+
+		{showAvatarPopup && (
+			<SimplePopupView style={[
+				{ backgroundColor: currentTheme.menuBackground, position: "absolute", zIndex: 100 },
+				isMobile && { width: '92%', height: '85%', paddingHorizontal: 10 }
+			]}>
+				<Text style={[styles.sectionHeader, { color: currentTheme.textPrimary }]}>{t("profile.avatarTitle", "CHOOSE AVATAR")}</Text>
+				<ScrollView style={{ width: "100%", marginTop: 20 }}>
+					<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
+						{["👾", "🤖", "🧙", "🥷", "👑", "🦊", "🐱", "🐶", "🐼", "💀", "👽", "👻", "🔥", "💎", "⭐"].map(emoji => (
+							<Pressable key={emoji} onPress={async () => {
+								if (!session?.user) return;
+								setAvatarUrl(emoji);
+								setShowAvatarPopup(false);
+								await updateProfileAvatar(session.user.id, emoji);
+							}} style={[styles.emojiAvatarBtn, avatarUrl === emoji && { borderColor: currentTheme.accent }]}>
+								<Text style={{ fontSize: 32 }}>{emoji}</Text>
+							</Pressable>
+						))}
+					</View>
+					
+					<Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginTop: 30, textAlign: "center" }]}>{t("profile.avatarUrlLabel", "OR CUSTOM IMAGE URL")}</Text>
+					<TextInput 
+						style={[styles.input, { borderColor: currentTheme.gridBorder, color: currentTheme.textPrimary, backgroundColor: 'rgba(0,0,0,0.2)' }]}
+						placeholder="https://..."
+						placeholderTextColor={currentTheme.textSecondary}
+						value={customAvatarInput}
+						onChangeText={setCustomAvatarInput}
+					/>
+					<StylizedButton 
+						onClick={async () => {
+							if (!session?.user || !customAvatarInput.trim()) return;
+							setAvatarUrl(customAvatarInput.trim());
+							setShowAvatarPopup(false);
+							await updateProfileAvatar(session.user.id, customAvatarInput.trim());
+						}}
+						text={t("common.save", "SAVE")}
+						backgroundColor={currentTheme.buttonPrimary}
+						style={{ marginTop: 10 }}
+					/>
+				</ScrollView>
+				<StylizedButton onClick={() => setShowAvatarPopup(false)} text={t("common.cancel", "CANCEL")} backgroundColor={currentTheme.buttonSecondary} style={{ marginTop: 20 }} />
+			</SimplePopupView>
+		)}
+		</>
 	);
 }
 
@@ -646,13 +704,39 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 	},
 	avatarPlaceholder: {
+		width: 80,
+		height: 80,
+		borderRadius: 40,
+		backgroundColor: 'rgba(255,255,255,0.2)',
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginBottom: 16,
+		overflow: 'hidden',
+	},
+	editAvatarBadge: {
+		position: 'absolute',
+		bottom: 16,
+		right: 0,
+		width: 24,
+		height: 24,
+		borderRadius: 12,
+		backgroundColor: '#FFF',
+		alignItems: 'center',
+		justifyContent: 'center',
+		shadowColor: "#000",
+		shadowOpacity: 0.3,
+		shadowRadius: 2,
+		shadowOffset: { width: 0, height: 1 },
+	},
+	emojiAvatarBtn: {
 		width: 60,
 		height: 60,
 		borderRadius: 30,
-		backgroundColor: '#444',
+		backgroundColor: 'rgba(255,255,255,0.1)',
 		alignItems: 'center',
 		justifyContent: 'center',
-		marginBottom: 10,
+		borderWidth: 2,
+		borderColor: 'transparent',
 	},
 	avatarText: {
 		color: '#fff',

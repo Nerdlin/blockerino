@@ -1,7 +1,7 @@
 import { PieceData, getBlockCount } from '@/constants/Piece';
 import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-dnd';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, View, useWindowDimensions, ActivityIndicator, ScrollView } from 'react-native';
+import { Platform, StyleSheet, Text, View, useWindowDimensions, ActivityIndicator, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
 import Animated, { ReduceMotion, runOnJS, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
@@ -12,7 +12,7 @@ import BlockGrid, { ReadOnlyBlockGrid } from '@/components/game/BlockGrid';
 import { Hand, createRandomHand, createRandomHandWorklet } from '@/constants/Hand';
 import HandPieces, { ReadOnlyHandPieces } from '@/components/game/HandPieces';
 import { GameModeType, MenuStateType, useAppState, activeComboAtom } from '@/hooks/useAppState';
-import { supabase, getPlayerElo } from '@/constants/Supabase';
+import { supabase, getPlayerElo, getPlayerProfileData } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
@@ -126,6 +126,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const [playerElo, setPlayerElo] = useState<number>(initialPlayerElo);
     const playerEloRef = useRef(initialPlayerElo);
     const [opponentElo, setOpponentElo] = useState<number | null>(null);
+    const [playerAvatar, setPlayerAvatar] = useState<string | null>(null);
+    const [opponentAvatar, setOpponentAvatar] = useState<string | null>(null);
 
     // Opponent states
     const [opponentBoard, setOpponentBoard] = useState<Board>(newEmptyBoard(boardLength));
@@ -378,6 +380,21 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
             AsyncStorage.getItem('PLAYER_NAME')
         ]).then(([nameVal]) => {
             const loadedName = normalizePlayerName(nameVal || '');
+            playerNameRef.current = loadedName;
+
+            if (myRole !== 'spectator') {
+                getPlayerProfileData(loadedName).then(data => {
+                    if (data && isMounted.current) {
+                        setPlayerAvatar(data.avatar_url);
+                    }
+                });
+                getPlayerProfileData(opponentName).then(data => {
+                    if (data && isMounted.current) {
+                        setOpponentAvatar(data.avatar_url);
+                    }
+                });
+            }
+
             if (!loadedName && isActivePlayerRole(myRole)) {
                 setAppState(MenuStateType.MULTIPLAYER);
                 return;
@@ -422,6 +439,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                         if (typeof data.score === 'number') setOpponentScore(data.score);
                         if (typeof data.isGameOver === 'boolean') setOpponentIsGameOver(data.isGameOver);
                         if (typeof data.elo === 'number') setOpponentElo(data.elo);
+                        if (data.avatarUrl !== undefined) setOpponentAvatar(data.avatarUrl);
                     }
                 })
                 .on('broadcast', { event: 'hover_state' }, (payload) => {
@@ -549,6 +567,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                     score: currentScore,
                     isGameOver: currentIsGameOver,
                     elo: playerElo,
+                    avatarUrl: playerAvatar,
                     playerName: persistentName,
                     role: myRole
                 }
@@ -965,9 +984,20 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                     </View>
 
                     <View style={styles.opponentHeader}>
-                        <Text style={[styles.opponentNameText, { color: currentTheme.textPrimary }]} numberOfLines={1}>
-                            {opponentName} {oppBadge ? `[${oppBadge.tier} - ${opponentElo}]` : ""} {opponentIsGameOver && "(GameOver)"}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            {opponentAvatar && opponentAvatar.startsWith("http") ? (
+                                <Image source={{ uri: opponentAvatar }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6, backgroundColor: 'transparent' }} />
+                            ) : opponentAvatar ? (
+                                <Text style={{ fontSize: 18, marginRight: 6 }}>{opponentAvatar}</Text>
+                            ) : (
+                                <View style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}>
+                                    <Text style={{ fontSize: 12, color: '#fff' }}>{opponentName.charAt(0).toUpperCase()}</Text>
+                                </View>
+                            )}
+                            <Text style={[styles.opponentNameText, { color: currentTheme.textPrimary, flexShrink: 1 }]} numberOfLines={1}>
+                                {opponentName} {oppBadge ? `[${oppBadge.tier} - ${opponentElo}]` : ""} {opponentIsGameOver && "(GameOver)"}
+                            </Text>
+                        </View>
                         <Text style={[styles.opponentScoreText, { color: currentTheme.accent }]}>
                             Score: {opponentScore}
                         </Text>
@@ -1074,9 +1104,20 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 						{!isLargeScreen && (
 							<View style={[styles.opponentMiniContainer, isShortScreen && { padding: 6, marginTop: 15 }]}>
 								<View style={[styles.opponentMiniTopRow, isShortScreen && { marginBottom: 2 }]}>
-									<Text style={[styles.opponentNameText, { color: currentTheme.textSecondary }, isShortScreen && { fontSize: 14 }]} numberOfLines={1}>
-										{opponentName} {oppBadge ? `[${oppBadge.tier}]` : ""} {opponentIsGameOver && "(Dead)"}
-									</Text>
+									<View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
+										{opponentAvatar && opponentAvatar.startsWith("http") ? (
+											<Image source={{ uri: opponentAvatar }} style={{ width: 18, height: 18, borderRadius: 9, marginRight: 4, backgroundColor: 'transparent' }} />
+										) : opponentAvatar ? (
+											<Text style={{ fontSize: 14, marginRight: 4 }}>{opponentAvatar}</Text>
+										) : (
+											<View style={{ width: 18, height: 18, borderRadius: 9, marginRight: 4, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}>
+												<Text style={{ fontSize: 10, color: '#fff' }}>{opponentName.charAt(0).toUpperCase()}</Text>
+											</View>
+										)}
+										<Text style={[styles.opponentNameText, { color: currentTheme.textSecondary }, isShortScreen && { fontSize: 14 }]} numberOfLines={1}>
+											{opponentName} {oppBadge ? `[${oppBadge.tier}]` : ""} {opponentIsGameOver && "(Dead)"}
+										</Text>
+									</View>
 									<Text style={[styles.opponentScoreText, { color: currentTheme.accent }, isShortScreen && { fontSize: 16 }]}>
 										{opponentScore} pts
 									</Text>
@@ -1119,10 +1160,21 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 						{/* Local Player's board */}
 						<View style={styles.gameColumn}>
 							{isLargeScreen && (
-                                <Text style={[styles.playerNameText, { color: currentTheme.textPrimary }]}>
-                                    You [{myBadge.tier} - {playerElo}]
-                                </Text>
-                            )}
+								<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+									{playerAvatar && playerAvatar.startsWith("http") ? (
+										<Image source={{ uri: playerAvatar }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6, backgroundColor: 'transparent' }} />
+									) : playerAvatar ? (
+										<Text style={{ fontSize: 18, marginRight: 6 }}>{playerAvatar}</Text>
+									) : (
+										<View style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}>
+											<Text style={{ fontSize: 12, color: '#fff' }}>Y</Text>
+										</View>
+									)}
+									<Text style={[styles.playerNameText, { color: currentTheme.textPrimary, marginBottom: 0 }]}>
+										You [{myBadge.tier} - {playerElo}]
+									</Text>
+								</View>
+							)}
 							<DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
 								<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand}></StatsGameHud>
 								<View style={{ position: 'relative' }}>
@@ -1175,9 +1227,20 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 						{isLargeScreen && (
 							<View style={styles.opponentColumn}>
 								<View style={styles.opponentHeader}>
-									<Text style={[styles.opponentNameText, { color: currentTheme.textSecondary }]}>
-										{opponentName} {oppBadge ? `[${oppBadge.tier} - ${opponentElo}]` : ""} {opponentIsGameOver && "(GameOver)"}
-									</Text>
+									<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+										{opponentAvatar && opponentAvatar.startsWith("http") ? (
+											<Image source={{ uri: opponentAvatar }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6, backgroundColor: 'transparent' }} />
+										) : opponentAvatar ? (
+											<Text style={{ fontSize: 18, marginRight: 6 }}>{opponentAvatar}</Text>
+										) : (
+											<View style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}>
+												<Text style={{ fontSize: 12, color: '#fff' }}>{opponentName.charAt(0).toUpperCase()}</Text>
+											</View>
+										)}
+										<Text style={[styles.opponentNameText, { color: currentTheme.textSecondary, flexShrink: 1 }]}>
+											{opponentName} {oppBadge ? `[${oppBadge.tier} - ${opponentElo}]` : ""} {opponentIsGameOver && "(GameOver)"}
+										</Text>
+									</View>
 									<Text style={[styles.opponentScoreText, { color: currentTheme.accent }]}>
 										Score: {opponentScore}
 									</Text>

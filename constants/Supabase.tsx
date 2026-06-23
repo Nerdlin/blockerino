@@ -200,26 +200,46 @@ export async function upsertAuthenticatedProfile(user: User, preferredName?: str
     return (resultData as PlayerProfile) || null;
 }
 
+export async function updateProfileAvatar(userId: string, avatarUrl: string | null): Promise<boolean> {
+    try {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ avatar_url: avatarUrl })
+            .eq('auth_user_id', userId);
+        
+        if (error) {
+            console.error('Error updating profile avatar:', error);
+            return false;
+        }
+        return true;
+    } catch (e) {
+        console.error('Exception updating profile avatar:', e);
+        return false;
+    }
+}
+
 export interface GlobalHighScore {
-    id?: number;
-    player_name: string;
-    score: number;
-    game_mode: string;
-    created_at?: string;
+	id?: number;
+	player_name: string;
+	score: number;
+	game_mode: string;
+	created_at?: string;
+	avatar_url?: string;
 }
 
 // Получить топ N глобальных рекордов
 type HighScoreColumn = 'highscore_classic' | 'highscore_chaos' | 'highscore_time_attack' | 'highscore_daily' | 'highscore_move_limit';
 type HighScoreProfileRow = {
-    id?: string | number;
-    player_name?: string;
-    created_at?: string;
+	id?: string | number;
+	player_name?: string;
+	avatar_url?: string;
+	created_at?: string;
 } & Partial<Record<HighScoreColumn, number>>;
 const MISSING_HIGH_SCORE_COLUMN_RETRY_MS = 5 * 60 * 1000;
 const missingHighScoreColumnRetryAt: Partial<Record<HighScoreColumn, number>> = {};
 
 function getHighScoreColumnsSelect(scoreColumn: HighScoreColumn): string {
-    return `id, player_name, created_at, ${scoreColumn}`;
+    return `id, player_name, avatar_url, created_at, ${scoreColumn}`;
 }
 
 function getHighScoreColumn(gameMode: string): HighScoreColumn {
@@ -296,7 +316,8 @@ export async function getGlobalHighScores(
             player_name: r.player_name || 'Player',
             score: r[scoreColumn] || 0,
             game_mode: gameMode,
-            created_at: r.created_at
+            created_at: r.created_at,
+            avatar_url: r.avatar_url
         }));
     } catch (error) {
         console.error('Error fetching global high scores:', error);
@@ -423,6 +444,7 @@ export async function submitGlobalHighScore(
 export interface EloRating {
     id?: number | string;
     player_name: string;
+    avatar_url?: string | null;
     elo: number;
     updated_at?: string;
 }
@@ -492,11 +514,32 @@ export async function getPlayerElo(playerName: string): Promise<number | null> {
     }
 }
 
+export async function getPlayerProfileData(playerName: string): Promise<{ elo: number, avatar_url: string | null } | null> {
+    try {
+        const finalPlayerName = playerName.trim();
+        if (!finalPlayerName) return null;
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('elo, avatar_url')
+            .ilike('player_name', escapeIlike(finalPlayerName))
+            .limit(1);
+
+        if (error || !data || data.length === 0) {
+            return null;
+        }
+        return { elo: data[0].elo, avatar_url: data[0].avatar_url };
+    } catch (error) {
+        console.error('Error fetching player profile data:', error);
+        return null;
+    }
+}
+
 export async function getTopEloRatings(limit: number = 100): Promise<EloRating[]> {
     try {
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, player_name, elo, updated_at')
+            .select('id, player_name, avatar_url, elo, updated_at')
             .order('elo', { ascending: false })
             .limit(limit);
 
@@ -528,6 +571,7 @@ export interface MoreGameRating {
     last_result?: 'win' | 'loss' | 'draw' | null;
     last_played_at?: string | null;
     updated_at?: string | null;
+    avatar_url?: string | null;
 }
 
 export interface MoreGameRatingResult extends MoreGameRating {
@@ -571,7 +615,24 @@ export async function getMoreGameLeaderboard(
             return [];
         }
 
-        return (data || []) as MoreGameRating[];
+        const ratings = (data || []) as MoreGameRating[];
+        
+        if (ratings.length > 0) {
+            const playerNames = ratings.map(r => r.player_name);
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('player_name, avatar_url')
+                .in('player_name', playerNames);
+                
+            if (profiles) {
+                const avatarMap = new Map(profiles.map(p => [p.player_name.toLowerCase(), p.avatar_url]));
+                ratings.forEach(r => {
+                    r.avatar_url = avatarMap.get(r.player_name.toLowerCase()) || null;
+                });
+            }
+        }
+        
+        return ratings;
     } catch (error) {
         console.error('Error fetching more game leaderboard:', error);
         return [];

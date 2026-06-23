@@ -1,7 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Chess } from "chess.js";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, Image, ActivityIndicator, Clipboard, LayoutAnimation, UIManager } from "react-native";
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+	UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+import Slider from '@react-native-community/slider';
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
@@ -13,12 +18,14 @@ import {
 	submitMoreGameMatchResult,
 	submitMoreGameSoloResult,
 	supabase,
+	getPlayerProfileData,
 } from "@/constants/Supabase";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
-import { useShopState } from "@/constants/Shop";
+import { useShopState, ShopItem, ShopCategory, getVisibleShopItemsByCategory } from "@/constants/Shop";
 import { useAppState } from "@/hooks/useAppState";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
+import PixelIcon from "@/components/PixelIcon";
 
 type MoreGameId = "shop" | "battleship" | "durak" | "chess" | "sudoku" | "tictactoe" | "mahjong";
 type OnlineRole = "player1" | "player2" | "player3" | "player4" | "player5" | "player6";
@@ -26,7 +33,7 @@ type DuelRole = "player1" | "player2";
 type RoomStatus = "offline" | "connecting" | "connected" | "error";
 type TicMark = "X" | "O";
 type ShipOrientation = "h" | "v";
-type DurakVariant = "throw_in" | "transfer" | "cheat";
+type DurakVariant = "throw_in" | "transfer" | "cheat" | "neighbors" | "classic" | "all" | "fair" | "draw";
 type RatedMoreGameId = Exclude<MoreGameId, "shop">;
 
 interface MoreGameCard {
@@ -78,7 +85,7 @@ interface DurakState {
 	attacker: OnlineRole;
 	defender: OnlineRole;
 	playerCount: number;
-	variant: DurakVariant;
+	variants: DurakVariant[];
 	phase: "attack" | "defend" | "throw";
 	discardCount: number;
 	winner: OnlineRole | null;
@@ -90,7 +97,7 @@ interface DurakState {
 
 const DURAK_BET_PRESETS = [100, 1000, 10000, 100000, 1000000, 10000000];
 const DURAK_DECK_SIZES = [24, 36, 52] as const;
-const DURAK_EMOJIS = ["😀", "😂", "😎", "😉", "😅", "🤔", "😴", "😡", "😭", "🤯", "👍", "👎", "👋", "🤝", "🔥", "💰", "🃏", "❤️", "💀", "🎉"];
+const DURAK_EMOJIS = ["face-happy", "face-sad", "skull", "heart", "coin", "medal", "crown", "gear", "fire", "star", "bomb", "shield", "sword", "diamond", "ghost", "alien"];
 
 // Everyone antes once. The winner receives the full pot, so their net gain is
 // (players - 1) * bet: 1v1 @100 -> +100, 6 players @100 -> +500.
@@ -369,27 +376,71 @@ function OnlineRoomControls({
 	setRoomCode,
 	role,
 	status,
+	opponentReady,
+	playerCount,
+	connectedPlayersCount,
 	onHost,
 	onJoin,
 	onDisconnect,
 	joinText,
+	disabled,
 }: {
 	roomCode: string;
 	setRoomCode: (value: string) => void;
 	role: OnlineRole | null;
 	status: RoomStatus;
+	opponentReady?: boolean;
+	playerCount?: number;
+	connectedPlayersCount?: number;
 	onHost: () => void;
 	onJoin: () => void;
 	onDisconnect: () => void;
 	joinText?: string;
+	disabled?: boolean;
 }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
 
+	const { isMobile } = useIsMobile();
+
+	if (role) {
+		const isReady = opponentReady || (playerCount && connectedPlayersCount && connectedPlayersCount >= playerCount);
+		if (!isReady) {
+			if (role === "player1") {
+				return (
+					<View style={styles.waitingContainer}>
+						<Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>{t("mp.roomCreated", "ROOM CREATED")}</Text>
+						<Text style={[styles.waitingSub, { color: currentTheme.textSecondary }]}>{t("mp.shareCode", "SHARE CODE WITH A FRIEND")}</Text>
+	
+						<View style={[styles.codeDisplayContainer, isMobile && { width: '95%' }]}>
+							<Text style={[styles.codeText, { color: currentTheme.accent }, isMobile && { fontSize: 24 }]} adjustsFontSizeToFit numberOfLines={1}>{roomCode}</Text>
+							<StylizedButton text={t("mp.copy", "COPY")} onClick={() => Clipboard.setString(roomCode)} backgroundColor={currentTheme.buttonPrimary} style={{ width: 100 }} />
+						</View>
+	
+						<Text style={[styles.waitingStatus, { color: currentTheme.textSecondary }]}>
+							{playerCount && connectedPlayersCount ? `WAITING FOR PLAYERS (${connectedPlayersCount}/${playerCount})...` : t("mp.waitingFriend", "WAITING FOR FRIEND TO JOIN...")}
+						</Text>
+						<ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 20 }} />
+	
+						<StylizedButton text={t("mp.cancel", "CANCEL")} onClick={onDisconnect} backgroundColor={cssColors.spaceGray} />
+					</View>
+				);
+			} else {
+				return (
+					<View style={styles.waitingContainer}>
+						<Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>{t("mp.connecting", "CONNECTING")}</Text>
+						<ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 30 }} />
+						<StylizedButton text={t("mp.cancel", "CANCEL")} onClick={onDisconnect} backgroundColor={cssColors.spaceGray} />
+					</View>
+				);
+			}
+		}
+	}
+
 	return (
 		<View style={styles.roomPanel}>
 			<View style={styles.roomRow}>
-				<StylizedButton text={t("common.host")} onClick={onHost} backgroundColor={currentTheme.buttonPrimary} style={styles.roomButton} textStyle={styles.smallButtonText} />
+				<StylizedButton text={t("common.host")} onClick={onHost} backgroundColor={disabled ? '#555' : currentTheme.buttonPrimary} style={styles.roomButton} textStyle={styles.smallButtonText} disabled={disabled} />
 				<TextInput
 					value={roomCode}
 					onChangeText={(value) => setRoomCode(value.toUpperCase())}
@@ -397,9 +448,10 @@ function OnlineRoomControls({
 					placeholderTextColor={currentTheme.textSecondary}
 					autoCapitalize="characters"
 					maxLength={5}
-					style={[styles.roomInput, { color: currentTheme.textPrimary, borderColor: currentTheme.gridBorder }]}
+					style={[styles.roomInput, { color: currentTheme.textPrimary, borderColor: currentTheme.gridBorder }, disabled && { opacity: 0.5 }]}
+					editable={!disabled}
 				/>
-				<StylizedButton text={joinText ?? t("common.join")} onClick={onJoin} backgroundColor={currentTheme.buttonSecondary} style={styles.roomButton} textStyle={styles.smallButtonText} />
+				<StylizedButton text={joinText ?? t("common.join")} onClick={onJoin} backgroundColor={disabled ? '#555' : currentTheme.buttonSecondary} style={styles.roomButton} textStyle={styles.smallButtonText} disabled={disabled} />
 			</View>
 			<View style={styles.roomMetaRow}>
 				<Text style={[styles.roomMeta, { color: currentTheme.textSecondary }]}>
@@ -411,6 +463,11 @@ function OnlineRoomControls({
 			</View>
 		</View>
 	);
+}
+
+function useIsMobile() {
+	const { width } = useWindowDimensions();
+	return { isMobile: width <= 768 };
 }
 
 function SegmentButton<T extends string>({
@@ -461,7 +518,28 @@ function RuleToggle({ label, active, onPress, accent }: { label: string; active:
 		</Pressable>
 	);
 }
-
+function DurakModeToggleColumn({
+	topLabel, topIcon, topActive, onTopPress,
+	bottomLabel, bottomIcon, bottomActive, onBottomPress
+}: {
+	topLabel: string; topIcon: string; topActive: boolean; onTopPress: () => void;
+	bottomLabel: string; bottomIcon: string; bottomActive: boolean; onBottomPress: () => void;
+}) {
+	return (
+		<View style={styles.durakModeColumn}>
+			<Pressable style={[styles.durakModeCell, topActive && styles.durakModeCellActive, { borderBottomWidth: 1, borderColor: "rgba(255,255,255,0.2)" }]} onPress={onTopPress}>
+				<Text style={styles.durakModeIcon}>{topIcon}</Text>
+				<Text style={[styles.durakModeLabel, topActive && styles.durakModeLabelActive]}>{topLabel}</Text>
+				{topActive && <View style={styles.durakModeCheck}><Text style={styles.durakModeCheckText}>✓</Text></View>}
+			</Pressable>
+			<Pressable style={[styles.durakModeCell, bottomActive && styles.durakModeCellActive]} onPress={onBottomPress}>
+				<Text style={styles.durakModeIcon}>{bottomIcon}</Text>
+				<Text style={[styles.durakModeLabel, bottomActive && styles.durakModeLabelActive]}>{bottomLabel}</Text>
+				{bottomActive && <View style={styles.durakModeCheck}><Text style={styles.durakModeCheckText}>✓</Text></View>}
+			</Pressable>
+		</View>
+	);
+}
 export default function MoreGamesMenu() {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
@@ -469,7 +547,17 @@ export default function MoreGamesMenu() {
 	const { width } = useWindowDimensions();
 	const isMobile = width < 600;
 	const [activeGame, setActiveGame] = useState<MoreGameId | null>(null);
-	const [cosmetics, setCosmetics] = useState<ExtraGameCosmetics>(DEFAULT_EXTRA_COSMETICS);
+	const { state: shopState } = useShopState();
+	
+	const cosmetics: ExtraGameCosmetics = useMemo(() => ({
+		chessPieces: (shopState.equipped.chess_piece?.replace("chess_piece_", "") || "classic") as ExtraGameCosmetics["chessPieces"],
+		chessBoard: (shopState.equipped.chess_board?.replace("chess_board_", "") || "slate") as ExtraGameCosmetics["chessBoard"],
+		sudokuTheme: (shopState.equipped.sudoku_theme?.replace("sudoku_theme_", "") || "wood") as ExtraGameCosmetics["sudokuTheme"],
+		mahjongTheme: (shopState.equipped.mahjong_theme?.replace("mahjong_theme_", "") || "jade") as ExtraGameCosmetics["mahjongTheme"],
+		cardSkin: (shopState.equipped.card_skin?.replace("card_skin_", "") || "classic") as ExtraGameCosmetics["cardSkin"],
+		seaSkin: (shopState.equipped.sea_skin?.replace("sea_skin_", "") || "navy") as ExtraGameCosmetics["seaSkin"],
+	}), [shopState.equipped]);
+
 	const [playerName, setPlayerName] = useState(DEFAULT_MORE_GAME_PLAYER_NAME);
 	const [draftPlayerName, setDraftPlayerName] = useState(DEFAULT_MORE_GAME_PLAYER_NAME);
 	const [ratingGame, setRatingGame] = useState<RatedMoreGameId>("durak");
@@ -479,25 +567,11 @@ export default function MoreGamesMenu() {
 	const [ratingPanel, setRatingPanel] = useState<"list" | "leaderboard">("list");
 
 	useEffect(() => {
-		AsyncStorage.getItem(EXTRA_COSMETICS_KEY).then((raw) => {
-			if (!raw) return;
-			try {
-				setCosmetics({ ...DEFAULT_EXTRA_COSMETICS, ...JSON.parse(raw) });
-			} catch {}
-		});
-	}, []);
-
-	useEffect(() => {
 		AsyncStorage.getItem(PLAYER_NAME_KEY).then((rawName) => {
 			const nextName = normalizeStoredPlayerName(rawName);
 			setPlayerName(nextName);
 			setDraftPlayerName(nextName);
 		});
-	}, []);
-
-	const updateCosmetics = useCallback((next: ExtraGameCosmetics) => {
-		setCosmetics(next);
-		void AsyncStorage.setItem(EXTRA_COSMETICS_KEY, JSON.stringify(next));
 	}, []);
 
 	const loadRatings = useCallback(async (game: RatedMoreGameId = ratingGame, name: string = playerName) => {
@@ -651,7 +725,7 @@ export default function MoreGamesMenu() {
 				</ScrollView>
 			) : (
 				<View style={styles.gameSurface}>
-					{activeGame === "shop" && <ExtraGameShop cosmetics={cosmetics} onChange={updateCosmetics} />}
+					{activeGame === "shop" && <ExtraGameShop />}
 					{activeGame === "tictactoe" && <TicTacToeGame playerName={playerName} onRatingChange={() => loadRatings("tictactoe")} />}
 					{activeGame === "sudoku" && <SudokuGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("sudoku")} />}
 					{activeGame === "mahjong" && <MahjongGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("mahjong")} />}
@@ -676,7 +750,7 @@ function RatingBadge({ elo, small = false }: { elo: number; small?: boolean }) {
 function MoreGameTabs({ selected, onChange }: { selected: RatedMoreGameId; onChange: (game: RatedMoreGameId) => void }) {
 	const { t } = useLanguage();
 	return (
-		<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ratingTabs}>
+		<View style={styles.ratingTabsWrapper}>
 			{RATED_MORE_GAME_IDS.map((gameId) => {
 				const card = MORE_GAME_CARDS.find((item) => item.id === gameId);
 				const active = selected === gameId;
@@ -698,7 +772,7 @@ function MoreGameTabs({ selected, onChange }: { selected: RatedMoreGameId; onCha
 					</Pressable>
 				);
 			})}
-		</ScrollView>
+		</View>
 	);
 }
 
@@ -755,9 +829,20 @@ function MoreGameLeaderboardPanel({
 					return (
 						<View key={`${entry.game_id}-${entry.player_key || entry.player_name}`} style={[styles.leaderboardRow, isMe && { borderColor: badge.color, backgroundColor: "rgba(255,255,255,0.06)" }]}>
 							<Text style={[styles.leaderboardRank, { flex: 0.35, color: currentTheme.textPrimary }]}>{index + 1}</Text>
-							<Text style={[styles.leaderboardName, { flex: 1.75, color: currentTheme.textPrimary }]} numberOfLines={1}>
-								{entry.player_name}{isMe ? ` (${t("moregames.you")})` : ""}
-							</Text>
+							<View style={{ flex: 1.75, flexDirection: 'row', alignItems: 'center' }}>
+								{entry.avatar_url && entry.avatar_url.startsWith("http") ? (
+									<Image source={{ uri: entry.avatar_url }} style={{ width: 18, height: 18, borderRadius: 9, marginRight: 6, backgroundColor: 'transparent' }} />
+								) : entry.avatar_url ? (
+									<Text style={{ fontSize: 14, marginRight: 6 }}>{entry.avatar_url}</Text>
+								) : (
+									<View style={{ width: 18, height: 18, borderRadius: 9, marginRight: 6, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}>
+										<Text style={{ fontSize: 10, color: '#fff' }}>{entry.player_name.charAt(0).toUpperCase()}</Text>
+									</View>
+								)}
+								<Text style={[styles.leaderboardName, { flexShrink: 1, color: currentTheme.textPrimary }]} numberOfLines={1}>
+									{entry.player_name}{isMe ? ` (${t("moregames.you")})` : ""}
+								</Text>
+							</View>
 							<View style={[styles.leaderboardTier, { flex: 1, backgroundColor: badge.color }]}>
 								<Text style={styles.leaderboardTierEmoji}>{badge.icon}</Text>
 								<Text style={styles.leaderboardTierText}>{t(`moregames.tier.${badge.tier}`)}</Text>
@@ -771,50 +856,100 @@ function MoreGameLeaderboardPanel({
 	);
 }
 
-function ExtraGameShop({ cosmetics, onChange }: { cosmetics: ExtraGameCosmetics; onChange: (value: ExtraGameCosmetics) => void }) {
+const EXTRA_CATEGORIES: { id: ShopCategory; labelKey: string }[] = [
+	{ id: "chess_piece", labelKey: "moregames.shop.chessPieces" },
+	{ id: "chess_board", labelKey: "moregames.shop.chessBoard" },
+	{ id: "sea_skin", labelKey: "moregames.shop.seaSkins" },
+	{ id: "card_skin", labelKey: "moregames.shop.cardSkins" },
+	{ id: "sudoku_theme", labelKey: "moregames.shop.sudokuThemes" },
+	{ id: "mahjong_theme", labelKey: "moregames.shop.mahjongThemes" },
+];
+
+function ExtraGameShop() {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
+	const { state, equip, purchaseAndEquip } = useShopState();
+	const [message, setMessage] = useState(t("moregames.shopHint"));
 
-	const setCosmetic = <K extends keyof ExtraGameCosmetics>(key: K, value: ExtraGameCosmetics[K]) => {
-		onChange({ ...cosmetics, [key]: value });
+	const [activeCategory, setActiveCategory] = useState<ShopCategory>("chess_piece");
+
+	const handleItemPress = async (item: ShopItem) => {
+		const isOwned = state.ownedItemIds.includes(item.id);
+		const result = isOwned ? await equip(item.id) : await purchaseAndEquip(item.id);
+		if (result.ok) {
+			setMessage(isOwned ? t("shop.equippedMsg", { name: item.title }) : t("shop.boughtMsg", { name: item.title }));
+		} else {
+			setMessage(result.error ?? t("shop.couldNotBuy"));
+		}
 	};
+
+	const items = getVisibleShopItemsByCategory(activeCategory, state.ownedItemIds);
 
 	return (
 		<ScrollView style={styles.moreList} contentContainerStyle={styles.shopContent}>
-			<Text style={[styles.gameStatus, { color: currentTheme.textPrimary }]}>{t("moregames.styleShop")}</Text>
-			<Text style={[styles.shopHint, { color: currentTheme.textSecondary }]}>{t("moregames.shopHint")}</Text>
-			<CosmeticSection title={t("moregames.shop.chessPieces")} accent="#C4B5FD">
-				<SegmentButton value="classic" selected={cosmetics.chessPieces} label={t("moregames.cos.classic")} onPress={(value) => setCosmetic("chessPieces", value)} accent="#C4B5FD" />
-				<SegmentButton value="royal" selected={cosmetics.chessPieces} label={t("moregames.cos.royal")} onPress={(value) => setCosmetic("chessPieces", value)} accent="#C4B5FD" />
-				<SegmentButton value="club" selected={cosmetics.chessPieces} label={t("moregames.cos.club")} onPress={(value) => setCosmetic("chessPieces", value)} accent="#C4B5FD" />
-			</CosmeticSection>
-			<CosmeticSection title={t("moregames.shop.chessBoard")} accent="#8B5CF6">
-				<SegmentButton value="slate" selected={cosmetics.chessBoard} label={t("moregames.cos.slate")} onPress={(value) => setCosmetic("chessBoard", value)} accent="#8B5CF6" />
-				<SegmentButton value="violet" selected={cosmetics.chessBoard} label={t("moregames.cos.violet")} onPress={(value) => setCosmetic("chessBoard", value)} accent="#8B5CF6" />
-				<SegmentButton value="walnut" selected={cosmetics.chessBoard} label={t("moregames.cos.walnut")} onPress={(value) => setCosmetic("chessBoard", value)} accent="#8B5CF6" />
-			</CosmeticSection>
-			<CosmeticSection title={t("moregames.shop.tableSkins")} accent="#38BDF8">
-				<SegmentButton value="paper" selected={cosmetics.seaSkin} label={t("moregames.cos.paperSea")} onPress={(value) => setCosmetic("seaSkin", value)} accent="#38BDF8" />
-				<SegmentButton value="navy" selected={cosmetics.seaSkin} label={t("moregames.cos.navySea")} onPress={(value) => setCosmetic("seaSkin", value)} accent="#38BDF8" />
-				<SegmentButton value="classic" selected={cosmetics.cardSkin} label={t("moregames.cos.classicCards")} onPress={(value) => setCosmetic("cardSkin", value)} accent="#F97316" />
-				<SegmentButton value="casino" selected={cosmetics.cardSkin} label={t("moregames.cos.casinoCards")} onPress={(value) => setCosmetic("cardSkin", value)} accent="#F97316" />
-			</CosmeticSection>
-			<CosmeticSection title={t("moregames.shop.soloSkins")} accent="#2DD4BF">
-				<SegmentButton value="wood" selected={cosmetics.sudokuTheme} label={t("moregames.cos.woodSudoku")} onPress={(value) => setCosmetic("sudokuTheme", value)} accent="#A3E635" />
-				<SegmentButton value="night" selected={cosmetics.sudokuTheme} label={t("moregames.cos.nightSudoku")} onPress={(value) => setCosmetic("sudokuTheme", value)} accent="#A3E635" />
-				<SegmentButton value="jade" selected={cosmetics.mahjongTheme} label={t("moregames.cos.jadeMahjong")} onPress={(value) => setCosmetic("mahjongTheme", value)} accent="#2DD4BF" />
-				<SegmentButton value="ivory" selected={cosmetics.mahjongTheme} label={t("moregames.cos.ivoryMahjong")} onPress={(value) => setCosmetic("mahjongTheme", value)} accent="#2DD4BF" />
-			</CosmeticSection>
-		</ScrollView>
-	);
-}
+			<View style={{ alignItems: 'center', marginBottom: 16 }}>
+				<Text style={[styles.gameStatus, { color: currentTheme.textPrimary }]}>EXTRA GAME SHOP</Text>
+				<Text style={[styles.shopHint, { color: currentTheme.accent, fontSize: 14, marginTop: 4 }]}>
+					{t("shop.coins", { count: state.balance })}
+				</Text>
+				<Text style={[styles.shopHint, { color: currentTheme.textSecondary }]}>{message}</Text>
+			</View>
 
-function CosmeticSection({ title, accent, children }: { title: string; accent: string; children: React.ReactNode }) {
-	return (
-		<View style={[styles.cosmeticSection, { borderColor: accent }]}>
-			<Text style={[styles.cosmeticTitle, { color: accent }]}>{title}</Text>
-			<View style={styles.segmentRow}>{children}</View>
-		</View>
+			<View style={{ width: "100%", flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+				{EXTRA_CATEGORIES.map((cat) => {
+					const isActive = activeCategory === cat.id;
+					return (
+						<Pressable
+							key={cat.id}
+							onPress={() => setActiveCategory(cat.id)}
+							style={{
+								borderWidth: 2,
+								borderRadius: 8,
+								paddingHorizontal: 10,
+								paddingVertical: 8,
+								alignItems: "center",
+								borderColor: isActive ? currentTheme.accent : "rgba(255,255,255,0.15)",
+								backgroundColor: isActive ? currentTheme.buttonPrimary : "rgba(255,255,255,0.06)"
+							}}
+						>
+							<Text style={{ fontFamily: "Silkscreen", fontSize: 10, textAlign: "center", color: isActive ? "white" : currentTheme.textSecondary }}>
+								{t(cat.labelKey)}
+							</Text>
+						</Pressable>
+					);
+				})}
+			</View>
+
+			<View style={{ width: "100%", marginBottom: 24, alignItems: "center" }}>
+				<View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 10 }}>
+					{items.map((item) => {
+						const isOwned = state.ownedItemIds.includes(item.id);
+						const isEquipped = state.equipped[item.category] === item.id;
+						const canAfford = state.balance >= item.price;
+						const buttonText = isEquipped ? t("shop.equipped") : isOwned || item.price === 0 ? t("shop.equip") : t("shop.buy", { price: item.price });
+						const disabled = isEquipped || (!isOwned && !canAfford);
+
+						return (
+							<View key={item.id} style={[{ width: 150, minHeight: 180, borderWidth: 2, borderRadius: 8, padding: 8, alignItems: "center", justifyContent: "space-between", borderColor: isEquipped ? item.accent : "rgba(255,255,255,0.12)", backgroundColor: "rgba(0, 0, 0, 0.38)" }]}>
+								<View style={{ width: "100%", height: 40, borderRadius: 6, borderWidth: 1, borderColor: "rgba(255,255,255,0.16)", overflow: "hidden", backgroundColor: "rgba(255,255,255,0.04)", justifyContent: "center", alignItems: "center" }}>
+									<View style={{ flexDirection: "row", gap: 4 }}>
+										{item.previewColors.map((color, idx) => (
+											<View key={idx} style={{ width: 16, height: 16, borderWidth: 2, borderColor: "rgba(255,255,255,0.24)", backgroundColor: color }} />
+										))}
+									</View>
+								</View>
+								<Text style={{ fontFamily: "Silkscreen", fontSize: 11, textAlign: "center", marginTop: 8, color: currentTheme.textPrimary }} numberOfLines={1} adjustsFontSizeToFit>{item.title}</Text>
+								<Text style={{ fontFamily: "Silkscreen", fontSize: 8, lineHeight: 11, textAlign: "center", minHeight: 34, color: currentTheme.textSecondary }} numberOfLines={3}>{item.description}</Text>
+								<Text style={{ fontFamily: "Silkscreen", fontSize: 9, textAlign: "center", color: isOwned ? item.accent : currentTheme.textSecondary, marginBottom: 4 }}>
+									{isOwned ? t("shop.owned") : t("shop.price", { price: item.price })}
+								</Text>
+								<StylizedButton text={buttonText} onClick={() => handleItemPress(item)} backgroundColor={isOwned ? item.accent : currentTheme.buttonPrimary} disabled={disabled} style={{ minWidth: 100, minHeight: 28, paddingHorizontal: 4, margin: 0 }} textStyle={{ fontSize: 10 }} />
+							</View>
+						);
+					})}
+				</View>
+			</View>
+		</ScrollView>
 	);
 }
 
@@ -913,18 +1048,26 @@ function TicTacToeGame({ playerName, onRatingChange }: { playerName: string; onR
 		}).then(() => onRatingChange());
 	}, [board, isDraw, onRatingChange, opponentName, playerName, remoteResult, room.isConnected, room.role, room.roomCode, winner]);
 
+	if (room.role && !opponentReady) {
+		return (
+			<View style={[styles.onlineGame, { minHeight: 400, justifyContent: 'center' }]}>
+				<OnlineRoomControls
+					roomCode={room.roomCode}
+					setRoomCode={room.setRoomCode}
+					role={room.role}
+					status={room.status}
+					opponentReady={opponentReady}
+					onHost={() => { reset(); setOpponentReady(false); room.connect("player1"); }}
+					onJoin={() => { reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
+					onDisconnect={room.disconnect}
+				/>
+			</View>
+		);
+	}
+
 	return (
 		<View style={styles.onlineGame}>
-			<OnlineRoomControls
-				roomCode={room.roomCode}
-				setRoomCode={room.setRoomCode}
-				role={room.role}
-				status={room.status}
-				onHost={() => { reset(); setOpponentReady(false); room.connect("player1"); }}
-				onJoin={() => { reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
-				onDisconnect={room.disconnect}
-			/>
-			<Text style={[styles.gameStatus, { color: winner || remoteResult ? currentTheme.accent : currentTheme.textPrimary }]}>{status}</Text>
+			<Text style={[styles.gameStatus, { color: winner || remoteResult ? currentTheme.accent : currentTheme.textPrimary, marginTop: 10 }]}>{status}</Text>
 			<View style={styles.ticBoard}>
 				{board.map((value, index) => (
 					<Pressable
@@ -937,6 +1080,18 @@ function TicTacToeGame({ playerName, onRatingChange }: { playerName: string; onR
 				))}
 			</View>
 			<StylizedButton text={t("moregames.reset")} onClick={reset} backgroundColor={currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
+			<View style={{ marginTop: 20, alignItems: "center" }}>
+				<OnlineRoomControls
+					roomCode={room.roomCode}
+					setRoomCode={room.setRoomCode}
+					role={room.role}
+					status={room.status}
+					opponentReady={opponentReady}
+					onHost={() => { reset(); setOpponentReady(false); room.connect("player1"); }}
+					onJoin={() => { reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
+					onDisconnect={room.disconnect}
+				/>
+			</View>
 		</View>
 	);
 }
@@ -1368,8 +1523,8 @@ function MahjongGame({ cosmetics, playerName, onRatingChange }: { cosmetics: Ext
 							style={[
 								styles.mahjongLayerTile,
 								{
-									left: 20 + tile.x * 42 + tile.z * 6,
-									top: 8 + tile.y * 46 - tile.z * 8,
+									left: 20 + tile.x * 51 + tile.z * 7,
+									top: 10 + tile.y * 56 - tile.z * 10,
 									zIndex: tile.z * 20 + tile.y,
 									opacity: free ? 1 : 0.58,
 									borderColor: selected ? "#FACC15" : hinted ? "#22D3EE" : jade ? "#0F766E" : "#B45309",
@@ -1405,16 +1560,16 @@ const BATTLE_BOARD_SIZE = 10;
 
 function createDefaultFleet(): BattleShip[] {
 	return [
-		{ id: "b4", name: "Carrier", length: 4, x: 0, y: 0, orientation: "h" },
-		{ id: "b3a", name: "Cruiser A", length: 3, x: 0, y: 2, orientation: "h" },
-		{ id: "b3b", name: "Cruiser B", length: 3, x: 6, y: 0, orientation: "v" },
-		{ id: "b2a", name: "Destroyer A", length: 2, x: 0, y: 4, orientation: "h" },
-		{ id: "b2b", name: "Destroyer B", length: 2, x: 3, y: 4, orientation: "h" },
-		{ id: "b2c", name: "Destroyer C", length: 2, x: 6, y: 5, orientation: "v" },
-		{ id: "b1a", name: "Boat A", length: 1, x: 0, y: 7, orientation: "h" },
-		{ id: "b1b", name: "Boat B", length: 1, x: 2, y: 7, orientation: "h" },
-		{ id: "b1c", name: "Boat C", length: 1, x: 4, y: 7, orientation: "h" },
-		{ id: "b1d", name: "Boat D", length: 1, x: 8, y: 8, orientation: "h" },
+		{ id: "b4", name: "Carrier", length: 4, x: -99, y: 0, orientation: "h" },
+		{ id: "b3a", name: "Cruiser A", length: 3, x: -99, y: 2, orientation: "h" },
+		{ id: "b3b", name: "Cruiser B", length: 3, x: -99, y: 0, orientation: "v" },
+		{ id: "b2a", name: "Destroyer A", length: 2, x: -99, y: 4, orientation: "h" },
+		{ id: "b2b", name: "Destroyer B", length: 2, x: -99, y: 4, orientation: "h" },
+		{ id: "b2c", name: "Destroyer C", length: 2, x: -99, y: 5, orientation: "v" },
+		{ id: "b1a", name: "Boat A", length: 1, x: -99, y: 7, orientation: "h" },
+		{ id: "b1b", name: "Boat B", length: 1, x: -99, y: 7, orientation: "h" },
+		{ id: "b1c", name: "Boat C", length: 1, x: -99, y: 7, orientation: "h" },
+		{ id: "b1d", name: "Boat D", length: 1, x: -99, y: 8, orientation: "h" },
 	];
 }
 
@@ -1433,8 +1588,27 @@ export function isShipPlacementValid(candidate: BattleShip, fleet: BattleShip[])
 		return x < 0 || y < 0 || x >= BATTLE_BOARD_SIZE || y >= BATTLE_BOARD_SIZE;
 	})) return false;
 
-	const occupiedByOthers = new Set(fleet.filter((ship) => ship.id !== candidate.id).flatMap(getShipCells));
-	return cells.every((cell) => !occupiedByOthers.has(cell));
+	// Получаем все клетки других кораблей и их соседей (по 8 направлениям)
+	const otherShips = fleet.filter((ship) => ship.id !== candidate.id);
+	const forbiddenCells = new Set<string>();
+
+	for (const ship of otherShips) {
+		const shipCells = getShipCells(ship);
+		for (const cell of shipCells) {
+			const [x, y] = cell.split(",").map(Number);
+			// Добавляем саму клетку корабля
+			forbiddenCells.add(cell);
+			// Добавляем все 8 соседних клеток (включая диагонали)
+			for (let dx = -1; dx <= 1; dx++) {
+				for (let dy = -1; dy <= 1; dy++) {
+					if (dx === 0 && dy === 0) continue;
+					forbiddenCells.add(`${x + dx},${y + dy}`);
+				}
+			}
+		}
+	}
+
+	return cells.every((cell) => !forbiddenCells.has(cell));
 }
 
 function occupiedFleetCells(fleet: BattleShip[]) {
@@ -1454,9 +1628,13 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 	const [ready, setReady] = useState(false);
 	const [opponentReady, setOpponentReady] = useState(false);
 	const [opponentName, setOpponentName] = useState("Opponent");
+	const [timeLeft, setTimeLeft] = useState(60);
+	const [boardLayout, setBoardLayout] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+	const [dragPreview, setDragPreview] = useState<{ shipId: string; x: number; y: number; valid: boolean } | null>(null);
 	const ratingSubmittedRef = useRef<string | null>(null);
 	const fleetRef = useRef(fleet);
 	const incomingRef = useRef(incomingShots);
+	const boardRef = useRef<View>(null);
 
 	useEffect(() => {
 		fleetRef.current = fleet;
@@ -1482,6 +1660,13 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 			setOpponentReady(Boolean(payload.ready));
 			return;
 		}
+		if (event === "timeout_pass") {
+			const currentRole = roomRef.current.role;
+			if (!isDuelRole(currentRole) || payload.to !== currentRole) return;
+			setTurn(currentRole);
+			setTimeLeft(60);
+			return;
+		}
 		if (event === "shot") {
 			const currentRole = roomRef.current.role;
 			if (!isDuelRole(currentRole) || payload.to !== currentRole) return;
@@ -1502,7 +1687,10 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 				result: hit ? "hit" : "miss",
 				winner: lost ? payload.from : null,
 			});
-			if (!lost) setTurn(currentRole);
+			if (!lost) {
+				setTurn(currentRole);
+				setTimeLeft(60);
+			}
 			return;
 		}
 		if (event === "shot_result") {
@@ -1514,6 +1702,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 				setWinner(payload.winner);
 			} else {
 				setTurn(getDuelOpponent(currentRole));
+				setTimeLeft(60);
 			}
 		}
 	}, [ready]);
@@ -1523,6 +1712,23 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 	useEffect(() => {
 		roomRef.current = { role: room.role, send: room.send };
 	}, [room.role, room.send]);
+
+	useEffect(() => {
+		if (!ready || !opponentReady || winner) return;
+		const timer = setInterval(() => {
+			setTimeLeft((prev) => {
+				if (prev <= 1) {
+					if (turn === roomRef.current.role && isDuelRole(roomRef.current.role)) {
+						roomRef.current.send("timeout_pass", { from: roomRef.current.role, to: getDuelOpponent(roomRef.current.role) });
+						setTurn(null);
+					}
+					return 60;
+				}
+				return prev - 1;
+			});
+		}, 1000);
+		return () => clearInterval(timer);
+	}, [ready, opponentReady, winner, turn]);
 
 	const resetLocal = () => {
 		setFleet(createDefaultFleet());
@@ -1534,6 +1740,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 		setWinnerSource(null);
 		setReady(false);
 		setOpponentReady(false);
+		setTimeLeft(60);
 		ratingSubmittedRef.current = null;
 	};
 
@@ -1544,10 +1751,55 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 			const selected = current.find((ship) => ship.id === selectedShipId);
 			if (!selected) return current;
 			const nextShip = { ...selected, x, y };
-			if (!isShipPlacementValid(nextShip, current)) return current;
-			return current.map((ship) => ship.id === selectedShipId ? nextShip : ship);
+			if (isShipPlacementValid(nextShip, current)) {
+				return current.map((ship) => (ship.id === selectedShipId ? nextShip : ship));
+			}
+			return current;
 		});
 	};
+
+	const onDropShip = useCallback((shipId: string, pageX: number, pageY: number) => {
+		if (!boardLayout) return;
+		const { x, y, w, h } = boardLayout;
+		if (pageX >= x && pageX <= x + w && pageY >= y && pageY <= y + h) {
+			const cellX = Math.floor((pageX - x) / (w / 10));
+			const cellY = Math.floor((pageY - y) / (h / 10));
+
+			setFleet((current) => {
+				const selected = current.find((ship) => ship.id === shipId);
+				if (!selected) return current;
+				const nextShip = { ...selected, x: cellX, y: cellY };
+				if (isShipPlacementValid(nextShip, current)) {
+					return current.map((ship) => (ship.id === shipId ? nextShip : ship));
+				}
+				return current;
+			});
+		}
+		setDragPreview(null);
+	}, [boardLayout]);
+
+	const onDragMove = useCallback((shipId: string, pageX: number, pageY: number) => {
+		if (!boardLayout) return;
+		const { x, y, w, h } = boardLayout;
+		if (pageX >= x && pageX <= x + w && pageY >= y && pageY <= y + h) {
+			const cellX = Math.floor((pageX - x) / (w / 10));
+			const cellY = Math.floor((pageY - y) / (h / 10));
+
+			const ship = fleet.find((s) => s.id === shipId);
+			if (!ship) return;
+
+			const candidateShip = { ...ship, x: cellX, y: cellY };
+			const valid = isShipPlacementValid(candidateShip, fleet);
+
+			setDragPreview({ shipId, x: cellX, y: cellY, valid });
+		} else {
+			setDragPreview(null);
+		}
+	}, [boardLayout, fleet]);
+
+	const onDragEnd = useCallback(() => {
+		setDragPreview(null);
+	}, []);
 
 	const rotateSelectedShip = () => {
 		if (ready) return;
@@ -1558,6 +1810,47 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 			if (!isShipPlacementValid(nextShip, current)) return current;
 			return current.map((ship) => ship.id === selectedShipId ? nextShip : ship);
 		});
+	};
+
+	const randomizeFleet = () => {
+		if (ready) return;
+		const shipSizes = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
+		const shipNames = ["Carrier", "Cruiser A", "Cruiser B", "Destroyer A", "Destroyer B", "Destroyer C", "Boat A", "Boat B", "Boat C", "Boat D"];
+		const newFleet: BattleShip[] = [];
+
+		for (let i = 0; i < shipSizes.length; i++) {
+			const size = shipSizes[i];
+			let attempts = 0;
+			let placed = false;
+
+			while (!placed && attempts < 100) {
+				const orientation: ShipOrientation = Math.random() < 0.5 ? "h" : "v";
+				const x = Math.floor(Math.random() * BATTLE_BOARD_SIZE);
+				const y = Math.floor(Math.random() * BATTLE_BOARD_SIZE);
+
+				const candidate: BattleShip = {
+					id: `b${size}-${i}`,
+					name: shipNames[i],
+					length: size,
+					x,
+					y,
+					orientation,
+				};
+
+				if (isShipPlacementValid(candidate, newFleet)) {
+					newFleet.push(candidate);
+					placed = true;
+				}
+				attempts++;
+			}
+
+			if (!placed) {
+				// Если не удалось разместить, начинаем сначала
+				return randomizeFleet();
+			}
+		}
+
+		setFleet(newFleet);
 	};
 
 	const markReady = () => {
@@ -1590,40 +1883,219 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 		}).then(() => onRatingChange());
 	}, [onRatingChange, opponentName, playerName, room.isConnected, room.role, room.roomCode, winner, winnerSource]);
 
+	const allShipsPlaced = fleet.every(s => s.x >= 0 && s.x < BATTLE_BOARD_SIZE);
+
+	if (!room.role) {
+		// Pre-lobby: place ships first, then host or join
+		return (
+			<View style={styles.onlineGame}>
+				<Text style={[styles.gameStatus, { color: currentTheme.textPrimary }]}>{t("moregames.placeShips")}</Text>
+				<View style={styles.battlePlayArea}>
+					<View style={[styles.battleLeftPanel, { zIndex: 200, elevation: 200 }]}>
+						<View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+							<Pressable onPress={rotateSelectedShip} style={styles.battleRotateButton}>
+								<Text style={{ fontSize: 22, color: '#FFF', lineHeight: 26 }}>↻</Text>
+							</Pressable>
+							<Pressable onPress={randomizeFleet} style={styles.battleRotateButton}>
+								<Text style={{ fontSize: 16, color: '#FFF', lineHeight: 26 }}>🎲</Text>
+							</Pressable>
+						</View>
+						<View style={[styles.fleetVerticalList, { overflow: 'visible' }]}>
+							{fleet.map((ship) => (
+								<ShipDragItem
+									key={ship.id}
+									ship={ship}
+									selected={ship.id === selectedShipId}
+									onSelect={() => setSelectedShipId(ship.id)}
+									onDrop={onDropShip}
+									onDragMove={onDragMove}
+									onDragEnd={onDragEnd}
+									paper={cosmetics.seaSkin === "paper"}
+								/>
+							))}
+						</View>
+						{!allShipsPlaced && (
+							<Text style={{ color: '#FACC15', fontFamily: 'Silkscreen', fontSize: 8, textAlign: 'center', marginTop: 4 }}>
+								{`${fleet.filter(s => s.x >= 0).length}/${fleet.length}`}
+							</Text>
+						)}
+					</View>
+					<View style={[styles.battleBoardsVertical, { zIndex: 1 }]}>
+						<View ref={boardRef} onLayout={() => {
+							boardRef.current?.measure((x, y, w, h, pageX, pageY) => {
+								setBoardLayout({ x: pageX, y: pageY, w, h });
+							});
+						}}>
+							<BattleGrid title={t("moregames.myFleet")} cells={incomingShots} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
+						</View>
+						<View style={styles.battleLobbyButtons}>
+							<OnlineRoomControls
+								roomCode={room.roomCode}
+								setRoomCode={room.setRoomCode}
+								role={room.role}
+								status={room.status}
+								onHost={() => { room.connect("player1"); }}
+								onJoin={() => { room.connect("player2", room.roomCode); }}
+								onDisconnect={room.disconnect}
+								disabled={!allShipsPlaced}
+							/>
+							{!allShipsPlaced && (
+								<Text style={{ color: '#F87171', fontFamily: 'Silkscreen', fontSize: 9, textAlign: 'center', marginTop: 6 }}>
+									Place all ships first!
+								</Text>
+							)}
+						</View>
+					</View>
+				</View>
+			</View>
+		);
+	}
+
+	if (room.role && !opponentReady) {
+		return (
+			<View style={[styles.onlineGame, { minHeight: 400, justifyContent: 'center' }]}>
+				<OnlineRoomControls
+					roomCode={room.roomCode}
+					setRoomCode={room.setRoomCode}
+					role={room.role}
+					status={room.status}
+					opponentReady={opponentReady}
+					onHost={() => { resetLocal(); room.connect("player1"); }}
+					onJoin={() => { resetLocal(); room.connect("player2", room.roomCode); }}
+					onDisconnect={room.disconnect}
+				/>
+			</View>
+		);
+	}
+
 	return (
 		<View style={styles.onlineGame}>
-			<OnlineRoomControls
-				roomCode={room.roomCode}
-				setRoomCode={room.setRoomCode}
-				role={room.role}
-				status={room.status}
-				onHost={() => { resetLocal(); room.connect("player1"); }}
-				onJoin={() => { resetLocal(); room.connect("player2", room.roomCode); }}
-				onDisconnect={room.disconnect}
-			/>
-			<Text style={[styles.gameStatus, { color: winner ? currentTheme.accent : currentTheme.textPrimary }]}>
-				{winner ? t("moregames.wins", { name: roleLabel(winner) }) : ready && opponentReady ? t("moregames.turn", { name: turn ? roleLabel(turn) : t("moregames.wait") }) : t("moregames.placeShips")}
-			</Text>
-			<View style={styles.battleToolbar}>
-				<ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.fleetScroll} contentContainerStyle={styles.fleetList}>
-					{fleet.map((ship) => (
-						<Pressable
-							key={ship.id}
-							onPress={() => setSelectedShipId(ship.id)}
-							style={[styles.fleetChip, { borderColor: ship.id === selectedShipId ? "#FACC15" : currentTheme.gridBorder }]}
-						>
-							<Text style={[styles.fleetChipText, { color: currentTheme.textPrimary }]}>{ship.length}x</Text>
-						</Pressable>
-					))}
-				</ScrollView>
-				<StylizedButton text={t("moregames.rotate")} onClick={rotateSelectedShip} backgroundColor={cssColors.spaceGray} style={styles.miniActionButton} textStyle={styles.tinyButtonText} disabled={ready} />
-				<StylizedButton text={t("moregames.ready")} onClick={markReady} backgroundColor={ready ? "#16A34A" : currentTheme.buttonPrimary} style={styles.miniActionButton} textStyle={styles.tinyButtonText} disabled={ready} />
-			</View>
-			<View style={styles.battleBoards}>
-				<BattleGrid title={t("moregames.target")} cells={targetShots} onPress={fire} cosmetics={cosmetics} />
-				<BattleGrid title={t("moregames.myFleet")} cells={incomingShots} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} />
+
+			{ready && opponentReady && !winner ? (
+				<View style={styles.battlePlayersHeader}>
+					<View style={[styles.battlePlayerBadge, turn === room.role ? styles.battleTurnActive : null]}>
+						<Text style={styles.battlePlayerName}>{playerName}</Text>
+						<Text style={styles.battlePlayerLabel}>{t("moregames.you")}</Text>
+					</View>
+					
+					<View style={styles.battleTimerCenter}>
+						<Text style={styles.battleTimerText}>{t("battleship.timer", { time: timeLeft })}</Text>
+						<Text style={styles.battleTurnArrow}>
+							{turn === room.role ? "←" : "→"}
+						</Text>
+					</View>
+					
+					<View style={[styles.battlePlayerBadge, turn !== room.role ? styles.battleTurnActive : null]}>
+						<Text style={styles.battlePlayerName}>{opponentName}</Text>
+						<Text style={styles.battlePlayerLabel}>{t("moregames.colPlayer")}</Text>
+					</View>
+				</View>
+			) : (
+				<Text style={[styles.gameStatus, { color: winner ? currentTheme.accent : currentTheme.textPrimary }]}>
+					{winner ? t("moregames.wins", { name: roleLabel(winner) }) : t("moregames.placeShips")}
+				</Text>
+			)}
+			<View style={styles.battlePlayArea}>
+				{!ready && (
+					<View style={[styles.battleLeftPanel, { zIndex: 200, elevation: 200 }]}>
+						<View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+							<Pressable onPress={rotateSelectedShip} style={styles.battleRotateButton}>
+								<Text style={{ fontSize: 22, color: '#FFF', lineHeight: 26 }}>↻</Text>
+							</Pressable>
+							<Pressable onPress={randomizeFleet} style={styles.battleRotateButton}>
+								<Text style={{ fontSize: 16, color: '#FFF', lineHeight: 26 }}>🎲</Text>
+							</Pressable>
+						</View>
+						<View style={[styles.fleetVerticalList, { overflow: 'visible' }]}>
+							{fleet.map((ship) => (
+								<ShipDragItem
+									key={ship.id}
+									ship={ship}
+									selected={ship.id === selectedShipId}
+									onSelect={() => setSelectedShipId(ship.id)}
+									onDrop={onDropShip}
+									onDragMove={onDragMove}
+									onDragEnd={onDragEnd}
+									paper={cosmetics.seaSkin === "paper"}
+								/>
+							))}
+						</View>
+						<StylizedButton text={t("moregames.ready")} onClick={markReady} backgroundColor={allShipsPlaced ? currentTheme.buttonPrimary : '#555'} style={[styles.miniActionButton, { width: '100%', marginTop: 10 }]} textStyle={styles.tinyButtonText} disabled={ready || !allShipsPlaced} />
+					</View>
+				)}
+				<View style={[styles.battleBoardsVertical, { zIndex: 1 }]}>
+					{ready ? <BattleGrid title={t("moregames.target")} cells={targetShots} onPress={fire} cosmetics={cosmetics} /> : null}
+					<View ref={boardRef} onLayout={() => {
+						boardRef.current?.measure((x, y, w, h, pageX, pageY) => {
+							setBoardLayout({ x: pageX, y: pageY, w, h });
+						});
+					}}>
+						<BattleGrid title={t("moregames.myFleet")} cells={incomingShots} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
+					</View>
+				</View>
 			</View>
 		</View>
+	);
+}
+
+function ShipDragItem({ ship, onDrop, selected, onSelect, paper, onDragMove, onDragEnd }: {
+	ship: BattleShip,
+	onDrop: (id: string, x: number, y: number) => void,
+	selected: boolean,
+	onSelect: () => void,
+	paper: boolean,
+	onDragMove?: (shipId: string, pageX: number, pageY: number) => void,
+	onDragEnd?: () => void
+}) {
+	const pan = useRef(new Animated.ValueXY()).current;
+	const isDragging = useRef(false);
+	const panResponder = useMemo(() => PanResponder.create({
+		onStartShouldSetPanResponder: () => true,
+		onMoveShouldSetPanResponder: () => true,
+		onPanResponderGrant: () => {
+			isDragging.current = true;
+			onSelect();
+			pan.setOffset({ x: (pan.x as any)._value, y: (pan.y as any)._value });
+			pan.setValue({ x: 0, y: 0 });
+		},
+		onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
+			useNativeDriver: false,
+			listener: (e: any) => {
+				if (onDragMove && isDragging.current) {
+					onDragMove(ship.id, e.nativeEvent.pageX, e.nativeEvent.pageY);
+				}
+			}
+		}),
+		onPanResponderRelease: (e) => {
+			isDragging.current = false;
+			pan.flattenOffset();
+			onDrop(ship.id, e.nativeEvent.pageX, e.nativeEvent.pageY);
+			if (onDragEnd) onDragEnd();
+			Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
+		}
+	}), [ship.id, onDrop, onSelect, onDragMove, onDragEnd]);
+
+	const cellSize = 18;
+	const w = ship.orientation === "h" ? ship.length * cellSize : cellSize;
+	const h = ship.orientation === "v" ? ship.length * cellSize : cellSize;
+
+	return (
+		<Animated.View
+			{...panResponder.panHandlers}
+			style={[
+				{ width: w, height: h, marginVertical: 6 },
+				pan.getLayout(),
+				{ zIndex: selected ? 9999 : 10, elevation: selected ? 9999 : 10 }
+			]}
+		>
+			<View style={{ flexDirection: ship.orientation === 'h' ? 'row' : 'column', width: '100%', height: '100%' }}>
+				{Array.from({ length: ship.length }).map((_, i) => (
+					<View key={i} style={{ width: cellSize, height: cellSize }}>
+						<ShipCellArt length={ship.length} orientation={ship.orientation} paper={paper} segmentIndex={i} selected={selected} />
+					</View>
+				))}
+			</View>
+		</Animated.View>
 	);
 }
 
@@ -1634,6 +2106,7 @@ function BattleGrid({
 	selectedShipId,
 	onPress,
 	cosmetics,
+	dragPreview,
 }: {
 	title: string;
 	cells: Record<string, string>;
@@ -1641,11 +2114,24 @@ function BattleGrid({
 	selectedShipId?: string;
 	onPress?: (cell: string) => void;
 	cosmetics: ExtraGameCosmetics;
+	dragPreview?: { shipId: string; x: number; y: number; valid: boolean } | null;
 }) {
 	const { currentTheme } = useTheme();
+	// Only show ships that are placed on the board (x >= 0)
+	const placedShips = ships?.filter(s => s.x >= 0 && s.x < BATTLE_BOARD_SIZE) ?? [];
 	const shipByCell = new Map<string, BattleShip>();
-	ships?.forEach((ship) => getShipCells(ship).forEach((cell) => shipByCell.set(cell, ship)));
+	placedShips.forEach((ship) => getShipCells(ship).forEach((cell) => shipByCell.set(cell, ship)));
 	const paper = cosmetics.seaSkin === "paper";
+
+	// Получаем клетки для превью
+	const previewCells = new Set<string>();
+	if (dragPreview && ships) {
+		const previewShip = ships.find(s => s.id === dragPreview.shipId);
+		if (previewShip) {
+			const previewShipData = { ...previewShip, x: dragPreview.x, y: dragPreview.y };
+			getShipCells(previewShipData).forEach(cell => previewCells.add(cell));
+		}
+	}
 
 	return (
 		<View style={styles.battleGridWrap}>
@@ -1657,7 +2143,11 @@ function BattleGrid({
 					const ship = shipByCell.get(cell);
 					const shipCells = ship ? getShipCells(ship) : [];
 					const shipSegmentIndex = ship ? shipCells.indexOf(cell) : -1;
-					const backgroundColor = status === "hit"
+					const isPreviewCell = previewCells.has(cell);
+					const previewColor = dragPreview?.valid ? "rgba(34, 197, 94, 0.5)" : "rgba(239, 68, 68, 0.5)";
+					const backgroundColor = isPreviewCell
+						? previewColor
+						: status === "hit"
 						? "#DC2626"
 						: status === "miss"
 							? paper ? "#CBD5E1" : "#1E40AF"
@@ -1677,7 +2167,7 @@ function BattleGrid({
 									selected={ship.id === selectedShipId}
 								/>
 							) : null}
-							<Text style={[styles.battleCellText, { color: paper ? "#1E3A8A" : "#FFFFFF" }]}>{status === "hit" ? "X" : status === "miss" ? "." : ship ? "■" : ""}</Text>
+							<Text style={[styles.battleCellText, { color: paper ? "#1E3A8A" : "#FFFFFF", fontSize: status ? 12 : 10 }]}>{status === "hit" ? "🔥" : status === "miss" ? "🌊" : ""}</Text>
 						</Pressable>
 					);
 				})}
@@ -1701,32 +2191,42 @@ function ShipCellArt({
 }) {
 	const isStart = segmentIndex === 0;
 	const isEnd = segmentIndex === length - 1;
-	const roundedCaps = orientation === "h"
+	const isHorizontal = orientation === "h";
+	
+	const shipStyle = {
+		position: "absolute" as const,
+		top: isHorizontal ? 2 : isStart ? 2 : 0,
+		bottom: isHorizontal ? 2 : isEnd ? 2 : 0,
+		left: !isHorizontal ? 2 : isStart ? 2 : 0,
+		right: !isHorizontal ? 2 : isEnd ? 2 : 0,
+		backgroundColor: paper ? "rgba(30,58,138,0.2)" : (selected ? "#FACC15" : "#475569"),
+		borderColor: paper ? "#1E3A8A" : (selected ? "#FEF9C3" : "#94A3B8"),
+		borderWidth: paper ? 1.5 : 1,
+		borderStyle: paper ? "solid" as const : "solid" as const,
+	};
+	
+	const roundedCaps = isHorizontal
 		? {
-			borderTopLeftRadius: isStart ? 8 : 2,
-			borderBottomLeftRadius: isStart ? 8 : 2,
-			borderTopRightRadius: isEnd ? 8 : 2,
-			borderBottomRightRadius: isEnd ? 8 : 2,
+			borderTopLeftRadius: isStart ? 16 : 0,
+			borderBottomLeftRadius: isStart ? 16 : 0,
+			borderTopRightRadius: isEnd ? 4 : 0,
+			borderBottomRightRadius: isEnd ? 4 : 0,
 		}
 		: {
-			borderTopLeftRadius: isStart ? 8 : 2,
-			borderTopRightRadius: isStart ? 8 : 2,
-			borderBottomLeftRadius: isEnd ? 8 : 2,
-			borderBottomRightRadius: isEnd ? 8 : 2,
+			borderTopLeftRadius: isStart ? 16 : 0,
+			borderTopRightRadius: isStart ? 16 : 0,
+			borderBottomLeftRadius: isEnd ? 4 : 0,
+			borderBottomRightRadius: isEnd ? 4 : 0,
 		};
 
 	return (
-		<View
-			pointerEvents="none"
-			style={[
-				styles.shipSegment,
-				orientation === "h" ? styles.shipSegmentHorizontal : styles.shipSegmentVertical,
-				paper && styles.shipSegmentPaper,
-				selected && styles.shipSegmentSelected,
-				roundedCaps,
-			]}
-		>
-			<View style={styles.shipPorthole} />
+		<View style={[shipStyle, roundedCaps]} pointerEvents="none">
+			{paper && (
+				<View style={{ flex: 1, margin: 2, borderWidth: 1, borderColor: "rgba(30,58,138,0.4)", borderRadius: isStart ? 10 : 2, borderStyle: "dotted", justifyContent: 'center', alignItems: 'center' }}>
+					{isStart && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: "#1E3A8A" }} />}
+					{!isStart && !isEnd && <View style={{ width: 6, height: 6, borderWidth: 1, borderColor: "#1E3A8A", borderRadius: 3 }} />}
+				</View>
+			)}
 		</View>
 	);
 }
@@ -1748,17 +2248,19 @@ function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
 	const [fen, setFen] = useState(new Chess().fen());
+	const [history, setHistory] = useState<string[]>([]);
 	const [selected, setSelected] = useState<string | null>(null);
 	const [opponentReady, setOpponentReady] = useState(false);
 	const [opponentName, setOpponentName] = useState("Opponent");
 	const [remoteResult, setRemoteResult] = useState<string | null>(null);
+	const [showColorChoice, setShowColorChoice] = useState(false);
 	const ratingSubmittedRef = useRef<string | null>(null);
 
 	const handleEvent = useCallback((event: string, payload: any, senderRole?: OnlineRole) => {
 		if (event === "system_joined" && senderRole) {
 			setOpponentReady(true);
 			setOpponentName(normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)));
-			roomRef.current?.send("sync", { fen });
+			roomRef.current?.send("sync", { fen, history });
 			return;
 		}
 		if (event === "system_left" && senderRole && roomRef.current.role) {
@@ -1767,18 +2269,30 @@ function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 			return;
 		}
 		if (event === "sync" && payload.fen) {
+			LayoutAnimation.configureNext({ duration: 350, update: { type: 'easeInEaseOut' } });
 			setFen(payload.fen);
+			setHistory(payload.history || []);
 			setOpponentReady(true);
 			setSelected(null);
 			setRemoteResult(null);
+			setShowColorChoice(false);
 			return;
 		}
 		if (event === "move" && payload.fen) {
+			LayoutAnimation.configureNext({ duration: 350, update: { type: 'easeInEaseOut' } });
 			setFen(payload.fen);
+			setHistory(payload.history || []);
 			setSelected(null);
 			setRemoteResult(null);
 		}
-	}, [fen, t]);
+		if (event === "playAgain") {
+			setShowColorChoice(true);
+		}
+		if (event === "gameEndLeave") {
+			// Оппонент вышел после завершения игры - отключаем и себя
+			roomRef.current?.send("leave", {});
+		}
+	}, [fen, history, t]);
 
 	const room = useMiniGameRoom("chess", handleEvent, playerName);
 	const roomRef = useRef({ role: room.role, send: room.send });
@@ -1798,10 +2312,10 @@ function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 	const displayFiles = room.role === "player2" ? [...CHESS_FILES].reverse() : CHESS_FILES;
 
 	const pressSquare = (square: string) => {
-		if (isDuelRole(room.role) && (room.role !== turnRole || !opponentReady || remoteResult)) return;
+		const myColor = room.role === "player2" ? "b" : "w";
+		if (isDuelRole(room.role) && (room.role !== turnRole || !opponentReady || remoteResult || game.turn() !== myColor)) return;
 		if (!room.role && game.isGameOver()) return;
 		const piece = game.get(square as any);
-		const myColor = room.role === "player2" ? "b" : "w";
 
 		if (!selected) {
 			if (!room.role || piece?.color === myColor) setSelected(square);
@@ -1813,8 +2327,11 @@ function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 			const move = nextGame.move({ from: selected, to: square, promotion: "q" } as any);
 			if (move) {
 				const nextFen = nextGame.fen();
+				const nextHistory = [...history, move.san];
+				LayoutAnimation.configureNext({ duration: 350, update: { type: 'easeInEaseOut' } });
 				setFen(nextFen);
-				room.send("move", { fen: nextFen, move: `${selected}-${square}` });
+				setHistory(nextHistory);
+				room.send("move", { fen: nextFen, move: `${selected}-${square}`, history: nextHistory });
 			}
 		} catch {}
 		setSelected(null);
@@ -1823,10 +2340,62 @@ function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 	const reset = () => {
 		const nextFen = new Chess().fen();
 		setFen(nextFen);
+		setHistory([]);
 		setSelected(null);
 		setRemoteResult(null);
 		ratingSubmittedRef.current = null;
-		room.send("sync", { fen: nextFen });
+		room.send("sync", { fen: nextFen, history: [] });
+	};
+
+	const handlePlayAgain = () => {
+		const game = new Chess(fen);
+		const isGameOver = game.isCheckmate() || game.isDraw() || remoteResult;
+		if (!isGameOver || !room.role || !isDuelRole(room.role)) return;
+
+		// Определяем результат игры
+		let result: "player1" | "player2" | "draw";
+		if (remoteResult) {
+			// Оппонент вышел - текущий игрок победил
+			result = room.role as "player1" | "player2";
+		} else if (game.isDraw()) {
+			result = "draw";
+		} else {
+			// Мат - выигрывает тот, кто НЕ ходит сейчас
+			result = turnRole === "player1" ? "player2" : "player1";
+		}
+
+		if (result === room.role || result === "draw") {
+			// Проигравший или ничья - показываем выбор цвета
+			setShowColorChoice(true);
+		} else {
+			// Победитель ждёт выбора проигравшего
+			room.send("playAgain", {});
+		}
+	};
+
+	const handleDisconnect = () => {
+		const isGameOver = game.isCheckmate() || game.isDraw() || remoteResult;
+		if (isGameOver && isDuelRole(room.role)) {
+			// При завершенной игре отправляем событие оппоненту
+			room.send("gameEndLeave", {});
+		}
+		room.disconnect();
+	};
+
+	const handleColorChoice = (chooseWhite: boolean) => {
+		setShowColorChoice(false);
+		const nextFen = new Chess().fen();
+		setFen(nextFen);
+		setHistory([]);
+		setSelected(null);
+		setRemoteResult(null);
+		ratingSubmittedRef.current = null;
+
+		// Если выбрали белых - становимся player1, иначе player2
+		const newRole: DuelRole = chooseWhite ? "player1" : "player2";
+		const opponentRole: DuelRole = chooseWhite ? "player2" : "player1";
+
+		room.send("sync", { fen: nextFen, history: [], swapRoles: true, newRole, opponentRole });
 	};
 
 	useEffect(() => {
@@ -1854,24 +2423,49 @@ function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 		}).then(() => onRatingChange());
 	}, [fen, game, onRatingChange, opponentName, playerName, remoteResult, room.isConnected, room.role, room.roomCode, turnRole]);
 
+	if (room.role && !opponentReady) {
+		return (
+			<View style={[styles.onlineGame, { minHeight: 400, justifyContent: 'center' }]}>
+				<OnlineRoomControls
+					roomCode={room.roomCode}
+					setRoomCode={room.setRoomCode}
+					role={room.role}
+					status={room.status}
+					opponentReady={opponentReady}
+					onHost={() => { reset(); setOpponentReady(false); room.connect("player1"); }}
+					onJoin={() => { reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
+					onDisconnect={room.disconnect}
+				/>
+			</View>
+		);
+	}
+
+	const pieceCounts: Record<string, number> = {};
+	const animatedPieces = game.board().flatMap((row, r) => row.map((piece, f) => {
+		if (!piece) return null;
+		const keyPrefix = `${piece.color}${piece.type}`;
+		pieceCounts[keyPrefix] = (pieceCounts[keyPrefix] || 0) + 1;
+		const rank = CHESS_RANKS[r];
+		const file = CHESS_FILES[f];
+		const displayR = displayRanks.indexOf(rank);
+		const displayF = displayFiles.indexOf(file);
+		return {
+			...piece,
+			id: `${keyPrefix}-${pieceCounts[keyPrefix]}`,
+			label: UNICODE_PIECES[`${piece.color}${piece.type}`],
+			top: `${displayR * 12.5}%`,
+			left: `${displayF * 12.5}%`
+		};
+	})).filter(Boolean);
+
 	return (
 		<View style={styles.onlineGame}>
-			<OnlineRoomControls
-				roomCode={room.roomCode}
-				setRoomCode={room.setRoomCode}
-				role={room.role}
-				status={room.status}
-				onHost={() => { reset(); setOpponentReady(false); room.connect("player1"); }}
-				onJoin={() => { reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
-				onDisconnect={room.disconnect}
-			/>
+
 			<Text style={[styles.gameStatus, { color: game.isCheckmate() || remoteResult ? currentTheme.accent : currentTheme.textPrimary }]}>{room.role && !opponentReady ? t("moregames.waitingOpponent") : status}</Text>
 			<View style={styles.chessBoard}>
 				{displayRanks.map((rank) => displayFiles.map((file) => {
 					const square = `${file}${rank}`;
-					const piece = game.get(square as any);
 					const dark = (CHESS_FILES.indexOf(file) + Number(rank)) % 2 === 0;
-					const label = piece ? UNICODE_PIECES[`${piece.color}${piece.type}`] : "";
 					const legal = legalTargets.includes(square);
 					const boardColor = getChessBoardColors(cosmetics.chessBoard, dark);
 
@@ -1885,20 +2479,112 @@ function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 							]}
 						>
 							{legal && <View style={styles.legalDot} />}
-							<Text
-								style={[
-									styles.chessPiece,
-									cosmetics.chessPieces === "club" && styles.chessPieceClub,
-									{ color: piece?.color === "b" ? "#111827" : "#FFFFFF" },
-								]}
-							>
-								{label}
-							</Text>
 						</Pressable>
 					);
 				}))}
+
+				{animatedPieces.map((p) => (
+					<View 
+						key={p!.id} 
+						pointerEvents="none"
+						style={{
+							position: 'absolute',
+							width: '12.5%',
+							height: '12.5%',
+							top: p!.top as any,
+							left: p!.left as any,
+							alignItems: 'center',
+							justifyContent: 'center',
+						}}
+					>
+						<Text
+							style={[
+								styles.chessPiece,
+								cosmetics.chessPieces === "club" && styles.chessPieceClub,
+								{ color: p!.color === "b" ? "#111827" : "#FFFFFF" },
+							]}
+						>
+							{p!.label}
+						</Text>
+					</View>
+				))}
 			</View>
-			<StylizedButton text={t("moregames.resetBoard")} onClick={reset} backgroundColor={currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
+			
+			{history.length > 0 && (
+				<View style={{ width: "100%", maxWidth: 400, marginTop: 12, paddingHorizontal: 8, alignItems: 'center' }}>
+					{(() => {
+						const lastMoveIndex = history.length - 1;
+						const isWhiteMove = lastMoveIndex % 2 === 0;
+						const lastMove = history[lastMoveIndex];
+						const colorText = isWhiteMove ? "White" : "Black";
+						return (
+							<View style={{ flexDirection: 'row' }}>
+								<Text style={{ fontFamily: 'Silkscreen', fontSize: 10, color: currentTheme.textSecondary, marginRight: 4 }}>
+									{colorText}
+								</Text>
+								<Text style={{ fontFamily: 'SilkscreenBold', fontSize: 12, color: currentTheme.textPrimary }}>{lastMove}</Text>
+							</View>
+						);
+					})()}
+				</View>
+			)}
+
+			{(() => {
+				const isGameOver = game.isCheckmate() || game.isDraw() || remoteResult;
+
+				if (showColorChoice) {
+					return (
+						<View style={{ marginTop: 20, alignItems: "center", gap: 10 }}>
+							<Text style={{ fontFamily: 'Silkscreen', fontSize: 12, color: currentTheme.textPrimary, marginBottom: 8 }}>
+								{t("moregames.chooseColor")}
+							</Text>
+							<View style={{ flexDirection: 'row', gap: 12 }}>
+								<StylizedButton
+									text={t("moregames.playAsWhite")}
+									onClick={() => handleColorChoice(true)}
+									backgroundColor={currentTheme.buttonPrimary}
+									style={styles.resetButton}
+									textStyle={styles.smallButtonText}
+								/>
+								<StylizedButton
+									text={t("moregames.playAsBlack")}
+									onClick={() => handleColorChoice(false)}
+									backgroundColor={currentTheme.buttonPrimary}
+									style={styles.resetButton}
+									textStyle={styles.smallButtonText}
+								/>
+							</View>
+						</View>
+					);
+				}
+
+				if (isGameOver && isDuelRole(room.role)) {
+					return (
+						<StylizedButton
+							text={t("moregames.playAgain")}
+							onClick={handlePlayAgain}
+							backgroundColor={currentTheme.accent}
+							style={styles.resetButton}
+							textStyle={styles.smallButtonText}
+						/>
+					);
+				}
+
+				return null;
+			})()}
+
+			<View style={{ marginTop: 20, alignItems: "center" }}>
+				<OnlineRoomControls
+					roomCode={room.roomCode}
+					setRoomCode={room.setRoomCode}
+					role={room.role}
+					status={room.status}
+					opponentReady={opponentReady}
+					onHost={() => { reset(); setOpponentReady(false); room.connect("player1"); }}
+					onJoin={() => { reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
+					onDisconnect={handleDisconnect}
+				/>
+			</View>
 		</View>
 	);
 }
@@ -1930,7 +2616,7 @@ function createEmptyHands(): Record<OnlineRole, string[]> {
 	};
 }
 
-function createDurakState(playerCount: number, variant: DurakVariant, deckSize: number = 36, bet: number = 0): DurakState {
+function createDurakState(playerCount: number, variants: DurakVariant[], deckSize: number = 36, bet: number = 0): DurakState {
 	const deck = createDurakDeck(deckSize);
 	const hands = createEmptyHands();
 	const roles = getActiveDurakRoles(playerCount);
@@ -1949,7 +2635,7 @@ function createDurakState(playerCount: number, variant: DurakVariant, deckSize: 
 		attacker: "player1",
 		defender: "player2",
 		playerCount,
-		variant,
+		variants,
 		phase: "attack",
 		discardCount: 0,
 		winner: null,
@@ -1972,8 +2658,8 @@ function cardSuit(card: string) {
 	return card.slice(-1);
 }
 
-export function canBeatDurakCard(defense: string, attack: string, trump: string, variant: DurakVariant = "throw_in") {
-	if (variant === "cheat" && cardSuit(defense) === cardSuit(attack) && cardRankValue(defense) >= cardRankValue(attack)) return true;
+export function canBeatDurakCard(defense: string, attack: string, trump: string, variants: DurakVariant[] = ["throw_in"]) {
+	if (variants.includes("cheat") && cardSuit(defense) === cardSuit(attack) && cardRankValue(defense) >= cardRankValue(attack)) return true;
 	if (cardSuit(defense) === cardSuit(attack)) return cardRankValue(defense) > cardRankValue(attack);
 	return cardSuit(defense) === trump && cardSuit(attack) !== trump;
 }
@@ -2024,18 +2710,35 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 	const [playerCount, setPlayerCount] = useState<"2" | "3" | "4" | "5" | "6">("2");
 	const [deckSize, setDeckSize] = useState<number>(36);
 	const [bet, setBet] = useState<number>(100);
-	const [allowTransfer, setAllowTransfer] = useState(true);
-	const [allowCheat, setAllowCheat] = useState(false);
+	const [activeVariants, setActiveVariants] = useState<DurakVariant[]>(["throw_in"]);
 	const [joinSeat, setJoinSeat] = useState<OnlineRole>("player2");
-	const [, setOpponentReady] = useState(false);
+	const [opponentReady, setOpponentReady] = useState(false);
 	const [playerNames, setPlayerNames] = useState<Partial<Record<OnlineRole, string>>>({});
+	const [playerAvatars, setPlayerAvatars] = useState<Partial<Record<OnlineRole, string>>>({});
 	const [emotes, setEmotes] = useState<Partial<Record<OnlineRole, { emoji: string; id: number }>>>({});
 	const [showEmojis, setShowEmojis] = useState(false);
+	const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+	const [localHandOrder, setLocalHandOrder] = useState<string[]>([]);
 	const [coinResult, setCoinResult] = useState<number | null>(null);
 	const [betError, setBetError] = useState<string | null>(null);
+	const [restartStatus, setRestartStatus] = useState<'idle' | 'waiting' | 'requested'>('idle');
+	const [restartAccepts, setRestartAccepts] = useState<string[]>([]);
 	const ratingSubmittedRef = useRef<string | null>(null);
+	const pendingStateRef = useRef<DurakState | null>(null);
 	const antePaidRef = useRef<Set<string>>(new Set());
 	const settledRef = useRef<Set<string>>(new Set());
+	
+	const shakeAnim = useRef(new Animated.Value(0)).current;
+
+	const triggerShake = useCallback(() => {
+		Animated.sequence([
+			Animated.timing(shakeAnim, { toValue: 8, duration: 40, useNativeDriver: true }),
+			Animated.timing(shakeAnim, { toValue: -8, duration: 40, useNativeDriver: true }),
+			Animated.timing(shakeAnim, { toValue: 8, duration: 40, useNativeDriver: true }),
+			Animated.timing(shakeAnim, { toValue: -8, duration: 40, useNativeDriver: true }),
+			Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true })
+		]).start();
+	}, [shakeAnim]);
 	const balanceRef = useRef(shopState.balance);
 
 	useEffect(() => { balanceRef.current = shopState.balance; }, [shopState.balance]);
@@ -2056,6 +2759,7 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 	}, []);
 
 	const syncState = (nextState: DurakState) => {
+		LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 		setState(nextState);
 		roomRef.current?.send("sync", { state: nextState });
 	};
@@ -2066,9 +2770,7 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 			return;
 		}
 		if (event === "system_joined" && senderRole) {
-			setOpponentReady(true);
 			setPlayerNames((current) => ({ ...current, [senderRole]: normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)) }));
-			if (roomRef.current.role === "player1" && state) roomRef.current.send("sync", { state });
 			return;
 		}
 		if (event === "system_left" && senderRole && state) {
@@ -2080,16 +2782,52 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 			return;
 		}
 		if (event === "sync" && payload.state) {
+			LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 			setState(payload.state);
 			setOpponentReady(true);
+			setRestartStatus('idle');
+			setRestartAccepts([]);
+		}
+		if (event === "restart_request" && senderRole) {
+			setRestartStatus("requested");
+		}
+		if (event === "restart_accept" && senderRole) {
+			setRestartAccepts((prev) => {
+				const next = prev.includes(senderRole) ? prev : [...prev, senderRole];
+				if (next.length === state?.playerCount && roomRef.current.role === "player1") {
+					// All players accepted, player1 starts a new game
+					const nextState = createDurakState(state.playerCount, state.variants, state.deck.length + Object.values(state.hands).flat().length + state.table.flatMap(b => [b.attack, b.defense]).filter(Boolean).length, state.bet);
+					setState(nextState);
+					roomRef.current.send("sync", { state: nextState });
+				}
+				return next;
+			});
+		}
+		if (event === "restart_decline") {
+			roomRef.current.disconnect();
+			setState(null);
+			setRestartStatus("idle");
+			setRestartAccepts([]);
 		}
 	}, [showEmote, state]);
 
 	const room = useMiniGameRoom("durak", handleEvent, playerName);
-	const roomRef = useRef({ role: room.role, send: room.send });
+	const roomRef = useRef({ role: room.role, send: room.send, disconnect: room.disconnect });
 	useEffect(() => {
-		roomRef.current = { role: room.role, send: room.send };
-	}, [room.role, room.send]);
+		roomRef.current = { role: room.role, send: room.send, disconnect: room.disconnect };
+	}, [room.role, room.send, room.disconnect]);
+
+	useEffect(() => {
+		if (room.role === "player1" && pendingStateRef.current && !opponentReady) {
+			const count = Object.keys(playerNames).length;
+			if (count >= Number(playerCount)) {
+				const nextState = pendingStateRef.current;
+				setState(nextState);
+				setOpponentReady(true);
+				roomRef.current.send("sync", { state: nextState });
+			}
+		}
+	}, [playerNames, room.role, opponentReady, playerCount]);
 
 	// Ante: each participant pays their bet once per table (host on deal, joiners on sync).
 	useEffect(() => {
@@ -2099,6 +2837,24 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 		adjustCoins(-state.bet);
 	}, [adjustCoins, room.role, state]);
 
+	useEffect(() => {
+		const fetchAvatars = async () => {
+			const fetchList = Object.entries(playerNames).filter(([role, name]) => name && playerAvatars[role as OnlineRole] === undefined);
+			if (fetchList.length === 0) return;
+			const nextAvatars = { ...playerAvatars };
+			for (const [role, name] of fetchList) {
+				try {
+					const data = await getPlayerProfileData(name as string);
+					nextAvatars[role as OnlineRole] = data?.avatar_url || "";
+				} catch (e) {
+					nextAvatars[role as OnlineRole] = "";
+				}
+			}
+			setPlayerAvatars(nextAvatars);
+		};
+		void fetchAvatars();
+	}, [playerNames]);
+
 	const sendEmoji = (emoji: string) => {
 		setShowEmojis(false);
 		if (!room.role) return;
@@ -2107,9 +2863,52 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 	};
 
 	const myHand = room.role && state ? state.hands[room.role] : [];
+
+	// Sync localHandOrder whenever the actual hand changes (cards drawn/removed)
+	useEffect(() => {
+		setLocalHandOrder((prev) => {
+			if (myHand.length === 0) return [];
+			// Keep existing order for cards still in hand, append new cards at end
+			const existing = prev.filter(c => myHand.includes(c));
+			const newCards = myHand.filter(c => !prev.includes(c));
+			return [...existing, ...newCards];
+		});
+	}, [myHand.join(',')]);
+
+	const orderedHand = localHandOrder.filter(c => myHand.includes(c));
+	const handToRender = orderedHand.length === myHand.length ? orderedHand : myHand;
+
+	const reorderCard = (fromIndex: number, toIndex: number) => {
+		if (fromIndex === toIndex) return;
+		setLocalHandOrder(prev => {
+			const arr = [...prev];
+			const [moved] = arr.splice(fromIndex, 1);
+			arr.splice(toIndex, 0, moved);
+			return arr;
+		});
+	};
+
 	const allDefended = Boolean(state?.table.length) && state!.table.every((bout) => Boolean(bout.defense));
 	const activeRoles = state ? getActiveDurakRoles(state.playerCount) : getActiveDurakRoles(Number(playerCount));
-	const variant: DurakVariant = allowCheat ? "cheat" : allowTransfer ? "transfer" : "throw_in";
+	const toggleVariant = (v: DurakVariant) => {
+		if (v === "all" && Number(playerCount) < 4) {
+			triggerShake();
+			return;
+		}
+		setActiveVariants((prev) => {
+			let next = [...prev];
+			if (v === "throw_in") next = next.filter(x => x !== "transfer");
+			if (v === "transfer") next = next.filter(x => x !== "throw_in");
+			if (v === "neighbors") next = next.filter(x => x !== "all");
+			if (v === "all") next = next.filter(x => x !== "neighbors");
+			if (v === "cheat") next = next.filter(x => x !== "fair");
+			if (v === "fair") next = next.filter(x => x !== "cheat");
+			if (v === "classic") next = next.filter(x => x !== "draw");
+			if (v === "draw") next = next.filter(x => x !== "classic");
+			
+			return next.includes(v) ? next.filter(x => x !== v) : [...next, v];
+		});
+	};
 
 	const playCard = (card: string) => {
 		if (!state || !room.role || state.winner) return;
@@ -2131,7 +2930,7 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 			const openBout = state.table[openIndex];
 			if (!openBout) return;
 
-			if ((state.variant === "transfer" || state.variant === "cheat") && state.table.every((bout) => !bout.defense) && cardRank(card) === cardRank(openBout.attack)) {
+			if ((state.variants.includes("transfer") || state.variants.includes("cheat")) && state.table.every((bout) => !bout.defense) && cardRank(card) === cardRank(openBout.attack)) {
 				const nextDefender = getNextDurakRole(state.defender, state.playerCount, state.hands, true);
 				const next: DurakState = {
 					...state,
@@ -2145,7 +2944,7 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 				return;
 			}
 
-			if (!canBeatDurakCard(card, openBout.attack, state.trump, state.variant)) return;
+			if (!canBeatDurakCard(card, openBout.attack, state.trump, state.variants)) return;
 			const nextTable = state.table.map((bout, index) => index === openIndex ? { ...bout, defense: card } : bout);
 			const defended = nextTable.every((bout) => bout.defense);
 			const next: DurakState = {
@@ -2194,8 +2993,9 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 		if (bet > 0 && shopState.balance < bet) { setBetError(t("durak.notEnough")); return; }
 		setBetError(null);
 		setCoinResult(null);
-		const nextState = createDurakState(Number(playerCount), variant, deckSize, bet);
-		setState(nextState);
+		const nextState = createDurakState(Number(playerCount), activeVariants, deckSize, bet);
+		pendingStateRef.current = nextState;
+		setState(null);
 		setOpponentReady(false);
 		setPlayerNames({ player1: playerName });
 		ratingSubmittedRef.current = null;
@@ -2249,7 +3049,7 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 				player2Name: loserName,
 				result: "player1",
 				roomCode: room.roomCode,
-				metadata: { playerCount: state.playerCount, variant: state.variant, source: forfeit ? "forfeit" : "normal" },
+				metadata: { playerCount: state.playerCount, variants: state.variants, source: forfeit ? "forfeit" : "normal" },
 			});
 		})).then(() => onRatingChange());
 	}, [adjustCoins, onRatingChange, playerName, playerNames, room.isConnected, room.role, room.roomCode, state]);
@@ -2257,18 +3057,27 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 	const pot = bet * Number(playerCount);
 	const prize = getDurakNetPrize(bet, Number(playerCount));
 
+	if (room.role && !opponentReady) {
+		return (
+			<View style={[styles.onlineGame, { minHeight: 400, justifyContent: 'center' }]}>
+				<OnlineRoomControls
+					roomCode={room.roomCode}
+					setRoomCode={room.setRoomCode}
+					role={room.role}
+					status={room.status}
+					opponentReady={opponentReady}
+					playerCount={Number(playerCount)}
+					connectedPlayersCount={Object.keys(playerNames).length}
+					onHost={host}
+					onJoin={join}
+					onDisconnect={room.disconnect}
+				/>
+			</View>
+		);
+	}
+
 	return (
 		<View style={styles.onlineGame}>
-			<OnlineRoomControls
-				roomCode={room.roomCode}
-				setRoomCode={room.setRoomCode}
-				role={room.role}
-				status={room.status}
-				onHost={host}
-				onJoin={join}
-				onDisconnect={room.disconnect}
-				joinText={`${t("common.join")} ${roleLabel(joinSeat)}`}
-			/>
 			{!state ? (
 				<ScrollView style={styles.moreList} contentContainerStyle={styles.durakPrep}>
 					<View style={[styles.durakBalanceRow, { borderColor: currentTheme.accent }]}>
@@ -2276,29 +3085,19 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 					</View>
 
 					<Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary }]}>{t("durak.yourBet")}</Text>
-					<View style={styles.segmentRow}>
-						{DURAK_BET_PRESETS.map((preset) => {
-							const affordable = preset <= shopState.balance;
-							const active = bet === preset;
-							return (
-								<Pressable
-									key={preset}
-									disabled={!affordable}
-									onPress={() => { setBet(preset); setBetError(null); }}
-									style={[styles.durakBetButton, { borderColor: active ? "#FACC15" : currentTheme.gridBorder, backgroundColor: active ? "#FACC15" : "rgba(255,255,255,0.06)" }, !affordable && styles.disabledControl]}
-								>
-									<Text style={[styles.durakBetButtonText, { color: active ? "#111827" : currentTheme.textPrimary }]}>{formatCoins(preset)}</Text>
-								</Pressable>
-							);
-						})}
-					</View>
+					<BetSlider value={bet} onChange={(v) => { setBet(v); setBetError(null); }} maxBalance={shopState.balance} />
 
-					<Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary }]}>{t("durak.players")}</Text>
-					<View style={styles.segmentRow}>
+					<Animated.Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary, transform: [{ translateX: shakeAnim }] }]}>{t("durak.players")}</Animated.Text>
+					<Animated.View style={[styles.segmentRow, { transform: [{ translateX: shakeAnim }] }]}>
 						{(["2", "3", "4", "5", "6"] as const).map((count) => (
-							<SegmentButton key={count} value={count} selected={playerCount} label={`${count}P`} onPress={setPlayerCount} accent="#FACC15" />
+							<SegmentButton key={count} value={count} selected={playerCount} label={`${count}P`} onPress={(val) => {
+								setPlayerCount(val);
+								if (Number(val) < 4 && activeVariants.includes("all")) {
+									setActiveVariants(prev => prev.filter(x => x !== "all"));
+								}
+							}} accent="#FACC15" />
 						))}
-					</View>
+					</Animated.View>
 
 					<Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary }]}>{t("durak.deck")}</Text>
 					<View style={styles.segmentRow}>
@@ -2307,80 +3106,210 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 						))}
 					</View>
 
-					<Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary }]}>{t("durak.modes")}</Text>
-					<View style={styles.segmentRow}>
-						<RuleToggle label={t("durak.modeThrowIn")} active={!allowTransfer && !allowCheat} onPress={() => { setAllowTransfer(false); setAllowCheat(false); }} accent="#F97316" />
-						<RuleToggle label={t("durak.modeTransfer")} active={allowTransfer || allowCheat} onPress={() => setAllowTransfer((value) => !value)} accent="#38BDF8" />
-						<RuleToggle label={t("durak.modeCheat")} active={allowCheat} onPress={() => { setAllowCheat((value) => !value); setAllowTransfer(true); }} accent="#FACC15" />
+					<Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary, marginTop: 40 }]}>{t("durak.modes")}</Text>
+					<Animated.View style={[styles.segmentRow, { alignItems: "flex-start", gap: 8, transform: [{ translateX: shakeAnim }] }]}>
+						<DurakModeToggleColumn
+							topLabel={t("durak.modeThrowIn")} topIcon="➡️" topActive={activeVariants.includes("throw_in")} onTopPress={() => toggleVariant("throw_in")}
+							bottomLabel={t("durak.modeTransfer")} bottomIcon="🔄" bottomActive={activeVariants.includes("transfer")} onBottomPress={() => toggleVariant("transfer")}
+						/>
+						<DurakModeToggleColumn
+							topLabel={t("durak.modeNeighbors")} topIcon="👥" topActive={activeVariants.includes("neighbors")} onTopPress={() => toggleVariant("neighbors")}
+							bottomLabel={t("durak.modeAll")} bottomIcon="🌐" bottomActive={activeVariants.includes("all")} onBottomPress={() => toggleVariant("all")}
+						/>
+						<DurakModeToggleColumn
+							topLabel={t("durak.modeCheat")} topIcon="🕵️" topActive={activeVariants.includes("cheat")} onTopPress={() => toggleVariant("cheat")}
+							bottomLabel={t("durak.modeFair")} bottomIcon="🤝" bottomActive={activeVariants.includes("fair")} onBottomPress={() => toggleVariant("fair")}
+						/>
+						<DurakModeToggleColumn
+							topLabel={t("durak.modeClassic")} topIcon="🃏" topActive={activeVariants.includes("classic")} onTopPress={() => toggleVariant("classic")}
+							bottomLabel={t("durak.modeDraw")} bottomIcon="⚖️" bottomActive={activeVariants.includes("draw")} onBottomPress={() => toggleVariant("draw")}
+						/>
+					</Animated.View>
+
+					<View style={{ marginTop: 40, alignItems: "center" }}>
+						<OnlineRoomControls
+							roomCode={room.roomCode}
+							setRoomCode={room.setRoomCode}
+							role={room.role}
+							status={room.status}
+							onHost={host}
+							onJoin={join}
+							onDisconnect={room.disconnect}
+						/>
 					</View>
 
-					<Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary }]}>{t("durak.players")} ({t("common.join")})</Text>
-					<View style={styles.segmentRow}>
-						{getActiveDurakRoles(Number(playerCount)).slice(1).map((seat) => (
-							<SegmentButton key={seat} value={seat} selected={joinSeat} label={roleLabel(seat)} onPress={setJoinSeat} accent="#38BDF8" />
-						))}
-					</View>
-
-					<Text style={[styles.durakPotText, { color: currentTheme.accent }]}>
-						{t("durak.bank", { bet: formatCoins(bet), pot: formatCoins(pot), prize: formatCoins(prize) })}
-					</Text>
 					{betError && <Text style={styles.durakBetError}>{betError}</Text>}
-					<Text style={[styles.gameStatus, { color: currentTheme.textSecondary }]}>{t("durak.hostDeals")}</Text>
 				</ScrollView>
 			) : (
 				<>
-					<Text style={[styles.gameStatus, { color: state.winner ? currentTheme.accent : currentTheme.textPrimary }]}>
-						{state.winner ? t("durak.wins", { seat: roleLabel(state.winner) }) : `${t("durak.trump")} ${SUIT_SYMBOLS[state.trump]} | ${roleLabel(state.attacker)} → ${roleLabel(state.defender)}`}
-					</Text>
+					{state.winner ? (
+						<Text style={[styles.gameStatus, { color: currentTheme.accent }]}>
+							{t("durak.wins", { seat: roleLabel(state.winner) })}
+						</Text>
+					) : null}
 					{coinResult !== null && (
 						<Text style={[styles.durakCoinResult, { color: coinResult >= 0 ? "#22C55E" : "#F87171" }]}>
 							{coinResult >= 0 ? t("durak.youWon", { amount: coinResult }) : t("durak.youLost", { amount: Math.abs(coinResult) })}
 						</Text>
 					)}
 					<View style={styles.durakTable}>
-						<Text style={[styles.gridLabel, { color: currentTheme.textSecondary }]}>
-							{t("durak.deckLabel", { deck: state.deck.length, discard: state.discardCount })}
-						</Text>
-						<Text style={[styles.gridLabel, { color: currentTheme.textSecondary }]}>{state.message}</Text>
-						<View style={styles.durakPlayersRow}>
-							{activeRoles.map((role) => (
-								<View key={role} style={[styles.durakPlayerPill, role === room.role && { borderColor: currentTheme.accent }, role === state.defender && { backgroundColor: "rgba(56,189,248,0.18)" }, role === state.attacker && { backgroundColor: "rgba(249,115,22,0.18)" }]}>
-									{emotes[role] ? <Text style={styles.durakEmote}>{emotes[role]!.emoji}</Text> : null}
-									<Text style={[styles.durakPlayerText, { color: currentTheme.textPrimary }]}>{roleLabel(role)} {state.hands[role].length}</Text>
+						{/* Deck & Discard info */}
+						<View style={styles.durakDeckArea}>
+							{state.deck.length > 0 && (
+								<View style={styles.durakTrumpUnder}>
+									<DurakCardView card={state.deck.length > 1 ? `${state.trump}0` : state.deck[0]} trump={state.trump} cosmetics={cosmetics} small />
 								</View>
-							))}
-						</View>
-						<View style={styles.durakCenter}>
-							{state.table.length === 0 ? (
-								<Text style={[styles.cardText, { color: currentTheme.textSecondary }]}>{state.message}</Text>
-							) : (
-								state.table.map((bout, index) => (
-									<View key={`${bout.attack}-${index}`} style={styles.durakBout}>
-										<DurakCardView card={bout.attack} trump={state.trump} cosmetics={cosmetics} small />
-										{bout.defense ? <DurakCardView card={bout.defense} trump={state.trump} cosmetics={cosmetics} small /> : <View style={styles.emptyDefenseSlot}><Text style={styles.emptyDefenseText}>?</Text></View>}
+							)}
+							{state.deck.length > 1 && (
+								<View style={styles.durakDeckStack}>
+									<DurakCardView card="back" trump={state.trump} cosmetics={cosmetics} small />
+									<View style={styles.durakDeckCountBadge}>
+										<Text style={styles.durakDeckCountText}>{state.deck.length}</Text>
 									</View>
-								))
+								</View>
 							)}
 						</View>
-						<View style={styles.cardHand}>
-							{myHand.map((card, index) => (
-								<Pressable key={`${card}-${index}`} onPress={() => playCard(card)}>
-									<DurakCardView card={card} trump={state.trump} cosmetics={cosmetics} />
+
+						{/* Opponents */}
+						<View style={styles.durakTopOpponents}>
+							{activeRoles.map((role) => {
+								const isMe = role === room.role;
+								const avatar = playerAvatars[role];
+								const isAttacker = role === state.attacker;
+								const isDefender = role === state.defender;
+								const name = isMe ? playerName : (playerNames[role] || roleLabel(role));
+								const handSize = state.hands[role].length;
+								const emote = emotes[role];
+								return (
+									<View key={role} style={[styles.durakAvatarContainer, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+										{/* Emoji bubble appears to the LEFT of the avatar */}
+										{emote ? (
+											<View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.7)', borderWidth: 1, borderColor: '#FACC15', alignItems: 'center', justifyContent: 'center' }}>
+												<PixelIcon name={emote.emoji as any} size={18} />
+											</View>
+										) : (
+											<View style={{ width: 34, height: 34 }} />
+										)}
+										<View style={{ alignItems: 'center', gap: 4 }}>
+											<View style={[styles.durakAvatarBorder, isAttacker && { borderColor: "#F97316" }, isDefender && { borderColor: "#38BDF8" }, isMe && { borderColor: '#22C55E', borderWidth: 2 }]}>
+												{avatar && avatar.startsWith("http") ? (
+													<Image source={{ uri: avatar }} style={styles.durakAvatarImage} />
+												) : (
+													<View style={[styles.durakAvatarImage, { justifyContent: 'center', alignItems: 'center' }]}>
+														<Text style={{ fontFamily: "Silkscreen", fontSize: 16, color: '#FFF' }}>{name.charAt(0).toUpperCase()}</Text>
+													</View>
+												)}
+												<View style={styles.durakAvatarBadge}>
+													<Text style={styles.durakAvatarBadgeText}>{handSize}</Text>
+												</View>
+											</View>
+											<Text style={[styles.durakAvatarName, isMe && { color: '#86EFAC' }]} numberOfLines={1}>{name}{isMe ? ' (you)' : ''}</Text>
+										</View>
+									</View>
+								);
+							})}
+						</View>
+
+						<Text style={[styles.gridLabel, { color: 'rgba(255,255,255,0.7)', marginTop: 10 }]}>{state.message}</Text>
+						
+						{/* Center Bouts */}
+						<View style={styles.durakCenter}>
+							{state.table.length === 0 ? null : (
+								state.table.map((bout, index) => {
+									const rotations = ['-4deg', '3deg', '-2deg', '5deg', '-6deg', '2deg'];
+									const baseRotation = rotations[index % rotations.length];
+									return (
+										<DurakBoutAnimated key={`${bout.attack}-${index}`} rotate={baseRotation} attack={bout.attack} defense={bout.defense} trump={state.trump} cosmetics={cosmetics} />
+									);
+								})
+							)}
+						</View>
+
+						{/* Fanned Player Hand */}
+						<View style={[styles.fannedHandContainer, { overflow: 'visible' }]}>
+							{handToRender.map((card, index) => {
+								const total = handToRender.length;
+								const mid = (total - 1) / 2;
+								const offset = index - mid;
+								const baseY = Math.abs(offset) * Math.abs(offset) * 1.5;
+								return (
+									<DraggableHandCard
+										key={card}
+										card={card}
+										index={index}
+										total={total}
+										baseY={baseY}
+										offset={offset}
+										trump={state.trump}
+										cosmetics={cosmetics}
+										onPlay={() => playCard(card)}
+										onReorder={reorderCard}
+										cardWidth={50}
+									/>
+								);
+							})}
+						</View>
+
+						{state.winner ? (
+							<View style={[styles.controlRow, { position: 'absolute', bottom: 120, zIndex: 100 }]}>
+								{restartStatus === 'idle' && (
+									<>
+										<StylizedButton text="Play Again" onClick={() => {
+											setRestartStatus('waiting');
+											roomRef.current.send('restart_request', { role: room.role });
+										}} backgroundColor={currentTheme.buttonPrimary} style={{ height: 40 }} textStyle={{ fontSize: 12 }} />
+										<StylizedButton text="Leave" onClick={() => {
+											roomRef.current.send('restart_decline', { role: room.role });
+											roomRef.current.disconnect();
+											setState(null);
+											setRestartStatus('idle');
+											setRestartAccepts([]);
+										}} backgroundColor={cssColors.spaceGray} style={{ height: 40 }} textStyle={{ fontSize: 12 }} />
+									</>
+								)}
+								{restartStatus === 'waiting' && (
+									<Text style={{ color: currentTheme.textSecondary, fontFamily: 'Silkscreen' }}>Waiting for players...</Text>
+								)}
+								{restartStatus === 'requested' && (
+									<>
+										<Text style={{ color: currentTheme.textPrimary, fontFamily: 'Silkscreen', fontSize: 10, marginRight: 10 }}>Restart?</Text>
+										<StylizedButton text="Accept" onClick={() => {
+											setRestartStatus('waiting');
+											roomRef.current.send('restart_accept', { role: room.role });
+											setRestartAccepts(prev => {
+												const next = prev.includes(room.role!) ? prev : [...prev, room.role!];
+												if (next.length === state?.playerCount && roomRef.current.role === "player1") {
+													const nextState = createDurakState(state.playerCount, state.variants, state.deck.length + Object.values(state.hands).flat().length + state.table.flatMap(b => [b.attack, b.defense]).filter(Boolean).length, state.bet);
+													setState(nextState);
+													roomRef.current.send("sync", { state: nextState });
+												}
+												return next;
+											});
+										}} backgroundColor={currentTheme.buttonPrimary} style={{ height: 40 }} textStyle={{ fontSize: 12 }} />
+										<StylizedButton text="Decline" onClick={() => {
+											roomRef.current.send('restart_decline', { role: room.role });
+											roomRef.current.disconnect();
+											setState(null);
+											setRestartStatus('idle');
+											setRestartAccepts([]);
+										}} backgroundColor="#EF4444" style={{ height: 40 }} textStyle={{ fontSize: 12 }} />
+									</>
+								)}
+							</View>
+						) : (
+							<View style={[styles.controlRow, { position: 'absolute', bottom: 120, zIndex: 100 }]}>
+								<StylizedButton text={t("durak.pass")} onClick={passRound} backgroundColor="#9E4B3E" style={[styles.miniActionButton, { width: 100 }]} textStyle={{ fontSize: 10 }} disabled={room.role !== state.attacker || !allDefended} />
+								<StylizedButton text={t("durak.take")} onClick={takeRound} backgroundColor="#3D5A46" style={[styles.miniActionButton, { width: 100 }]} textStyle={{ fontSize: 10 }} disabled={room.role !== state.defender || state.table.every(b => !b.attack)} />
+								<Pressable onPress={() => setShowEmojis(!showEmojis)} style={[styles.durakEmojiButton, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: currentTheme.accent }]}>
+									<PixelIcon name="face-happy" size={20} color="#FACC15" />
 								</Pressable>
-							))}
-						</View>
-						<View style={styles.controlRow}>
-							<StylizedButton text={t("durak.pass")} onClick={passRound} backgroundColor={currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} disabled={!allDefended || room.role !== state.attacker} />
-							<StylizedButton text={t("durak.take")} onClick={takeRound} backgroundColor={cssColors.spaceGray} style={styles.resetButton} textStyle={styles.smallButtonText} disabled={room.role !== state.defender} />
-							<Pressable onPress={() => setShowEmojis((value) => !value)} style={[styles.durakEmojiButton, { borderColor: currentTheme.accent }]}>
-								<Text style={styles.durakEmojiButtonText}>🙂</Text>
-							</Pressable>
-						</View>
+							</View>
+						)}
 						{showEmojis && (
 							<View style={styles.durakEmojiPicker}>
 								{DURAK_EMOJIS.map((emoji) => (
 									<Pressable key={emoji} onPress={() => sendEmoji(emoji)} style={styles.durakEmojiOption}>
-										<Text style={styles.durakEmojiOptionText}>{emoji}</Text>
+										<PixelIcon name={emoji as any} size={20} />
 									</Pressable>
 								))}
 							</View>
@@ -2392,10 +3321,180 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 	);
 }
 
+/** Draggable card in player's hand:
+ *  - Drag UP (dy < -90) → plays the card on the table
+ *  - Drag LEFT/RIGHT (|dx| > 30, |dy| < 60) → reorder in hand
+ *  - Release in place → snap back (no action)
+ */
+function DraggableHandCard({
+	card, index, total, baseY, offset, trump, cosmetics, onPlay, onReorder, cardWidth
+}: {
+	card: string; index: number; total: number; baseY: number; offset: number;
+	trump: string; cosmetics: ExtraGameCosmetics;
+	onPlay: () => void; onReorder: (from: number, to: number) => void; cardWidth: number;
+}) {
+	const dragX = useRef(new Animated.Value(0)).current;
+	const dragY = useRef(new Animated.Value(0)).current;
+	const [dragging, setDragging] = useState(false);
+	const [willPlay, setWillPlay] = useState(false);
+
+	const rotate = `${offset * 4}deg`;
+
+	// During drag: card follows finger; lifted = baseY - 28 (slightly up)
+	// When willPlay, tint the card green (we do this via border highlight)
+
+	const panResponder = useMemo(() => PanResponder.create({
+		onStartShouldSetPanResponder: () => true,
+		onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dx) > 6 || Math.abs(gs.dy) > 6,
+		onPanResponderGrant: () => {
+			setDragging(true);
+			setWillPlay(false);
+			dragX.setValue(0);
+			dragY.setValue(0);
+		},
+		onPanResponderMove: (_, gs) => {
+			dragX.setValue(gs.dx);
+			dragY.setValue(gs.dy);
+			// Preview: if dragging up far enough → mark as "will play"
+			setWillPlay(gs.dy < -80);
+		},
+		onPanResponderRelease: (_, gs) => {
+			setDragging(false);
+			setWillPlay(false);
+
+			const movedUp = gs.dy < -80;
+			const movedHorizontal = Math.abs(gs.dx) > 30 && Math.abs(gs.dy) < 60;
+
+			if (movedUp) {
+				// Fly card up and play it
+				Animated.parallel([
+					Animated.timing(dragY, { toValue: -300, duration: 200, useNativeDriver: true }),
+					Animated.timing(dragX, { toValue: gs.dx * 0.5, duration: 200, useNativeDriver: true }),
+				]).start(() => {
+					dragX.setValue(0);
+					dragY.setValue(0);
+					onPlay();
+				});
+			} else if (movedHorizontal) {
+				// Reorder
+				const step = Math.max(cardWidth - 25, 15);
+				const targetIndex = Math.max(0, Math.min(total - 1, Math.round(index + gs.dx / step)));
+				Animated.parallel([
+					Animated.spring(dragX, { toValue: 0, useNativeDriver: true }),
+					Animated.spring(dragY, { toValue: 0, useNativeDriver: true }),
+				]).start();
+				onReorder(index, targetIndex);
+			} else {
+				// Snap back
+				Animated.parallel([
+					Animated.spring(dragX, { toValue: 0, useNativeDriver: true }),
+					Animated.spring(dragY, { toValue: 0, useNativeDriver: true }),
+				]).start();
+			}
+		},
+		onPanResponderTerminate: () => {
+			setDragging(false);
+			setWillPlay(false);
+			Animated.parallel([
+				Animated.spring(dragX, { toValue: 0, useNativeDriver: true }),
+				Animated.spring(dragY, { toValue: 0, useNativeDriver: true }),
+			]).start();
+		},
+	}), [index, total, cardWidth, onPlay, onReorder]);
+
+	const baseTranslateY = dragging ? baseY - 20 : baseY;
+
+	return (
+		<Animated.View
+			{...panResponder.panHandlers}
+			style={{
+				transform: [
+					{ rotate },
+					{ translateY: baseTranslateY },
+					{ translateX: dragX },
+					{ translateY: dragY },
+				],
+				zIndex: dragging ? 999 : index,
+				elevation: dragging ? 999 : index,
+				marginLeft: index === 0 ? 0 : -25,
+			}}
+		>
+			{/* Green glow ring when dragged to table zone */}
+			<View style={{
+				borderRadius: 8,
+				borderWidth: willPlay ? 3 : 0,
+				borderColor: '#22C55E',
+				shadowColor: willPlay ? '#22C55E' : 'transparent',
+				shadowRadius: willPlay ? 12 : 0,
+				shadowOpacity: willPlay ? 1 : 0,
+			}}>
+				<DurakCardView card={card} trump={trump} cosmetics={cosmetics} />
+			</View>
+			{/* Hint arrow: shows when slightly dragging up */}
+			{dragging && !willPlay && (
+				<View style={{ position: 'absolute', top: -20, left: 0, right: 0, alignItems: 'center' }}>
+					<Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>↑</Text>
+				</View>
+			)}
+			{willPlay && (
+				<View style={{ position: 'absolute', top: -24, left: 0, right: 0, alignItems: 'center' }}>
+					<Text style={{ color: '#22C55E', fontSize: 11, fontFamily: 'Silkscreen' }}>PLAY!</Text>
+				</View>
+			)}
+		</Animated.View>
+	);
+}
+
+
+/** Animates a single bout card flying in from below when it appears */
+function DurakBoutAnimated({ rotate, attack, defense, trump, cosmetics }: { rotate: string; attack: string; defense: string | null; trump: string; cosmetics: ExtraGameCosmetics }) {
+	const attackAnim = useRef(new Animated.Value(80)).current;
+	const attackOpacity = useRef(new Animated.Value(0)).current;
+	const defenseAnim = useRef(new Animated.Value(40)).current;
+	const defenseOpacity = useRef(new Animated.Value(0)).current;
+
+	useEffect(() => {
+		Animated.parallel([
+			Animated.spring(attackAnim, { toValue: 0, useNativeDriver: true, damping: 14, stiffness: 160 }),
+			Animated.timing(attackOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+		]).start();
+	}, []);
+
+	useEffect(() => {
+		if (!defense) return;
+		Animated.parallel([
+			Animated.spring(defenseAnim, { toValue: 0, useNativeDriver: true, damping: 14, stiffness: 160 }),
+			Animated.timing(defenseOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+		]).start();
+	}, [defense]);
+
+	return (
+		<View style={[styles.durakBout, { transform: [{ rotate }] }]}>
+			<Animated.View style={{ position: 'absolute', top: 0, left: 0, opacity: attackOpacity, transform: [{ translateY: attackAnim }] }}>
+				<DurakCardView card={attack} trump={trump} cosmetics={cosmetics} small />
+			</Animated.View>
+			{defense && (
+				<Animated.View style={{ position: 'absolute', top: 10, left: 8, transform: [{ rotate: '8deg' }, { translateY: defenseAnim }], opacity: defenseOpacity }}>
+					<DurakCardView card={defense} trump={trump} cosmetics={cosmetics} small />
+				</Animated.View>
+			)}
+		</View>
+	);
+}
+
 function DurakCardView({ card, trump, cosmetics, small = false }: { card: string; trump: string; cosmetics: ExtraGameCosmetics; small?: boolean }) {
+	const casino = cosmetics.cardSkin === "casino";
+	if (card === "back") {
+		const isRed = trump === "D" || trump === "H";
+		return (
+			<View style={[styles.playingCard, small && styles.smallPlayingCard, casino && styles.casinoCard, { backgroundColor: '#1E40AF', borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }]}>
+				<Text style={{ color: '#60A5FA', fontSize: small ? 14 : 24, position: 'absolute', opacity: 0.3 }}>🂠</Text>
+				<Text style={{ color: isRed ? '#DC2626' : '#111827', fontSize: small ? 16 : 24, zIndex: 2, textShadowColor: 'rgba(255,255,255,0.8)', textShadowRadius: 2 }}>{SUIT_SYMBOLS[trump]}</Text>
+			</View>
+		);
+	}
 	const suit = cardSuit(card);
 	const red = suit === "D" || suit === "H";
-	const casino = cosmetics.cardSkin === "casino";
 	return (
 		<View style={[styles.playingCard, small && styles.smallPlayingCard, casino && styles.casinoCard, cardSuit(card) === trump && styles.trumpCard]}>
 			<Text style={[styles.cardCorner, small && styles.smallCardCorner, { color: red ? "#DC2626" : "#111827" }]}>{cardRank(card)}</Text>
@@ -2598,6 +3697,15 @@ const styles = StyleSheet.create({
 		paddingBottom: 2,
 		alignItems: "center",
 	},
+	ratingTabsWrapper: {
+		width: "100%",
+		flexDirection: "row",
+		flexWrap: "wrap",
+		justifyContent: "center",
+		gap: 6,
+		paddingHorizontal: 4,
+		paddingBottom: 2,
+	},
 	ratingTab: {
 		minHeight: 30,
 		borderWidth: 2,
@@ -2658,6 +3766,61 @@ const styles = StyleSheet.create({
 		gap: 8,
 	},
 	leaderboardSub: {
+		fontFamily: "Silkscreen",
+		fontSize: 10,
+		textTransform: "uppercase",
+	},
+	roomMetaRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		width: "100%",
+	},
+	waitingContainer: {
+		alignItems: 'center',
+		justifyContent: 'center',
+		width: '100%',
+		paddingHorizontal: 20,
+		paddingVertical: 40,
+	},
+	waitingTitle: {
+		fontSize: 26,
+		fontFamily: 'Silkscreen',
+		marginBottom: 10,
+		textAlign: 'center',
+	},
+	waitingSub: {
+		fontSize: 16,
+		fontFamily: 'Silkscreen',
+		marginBottom: 20,
+		textAlign: 'center',
+	},
+	waitingStatus: {
+		fontSize: 14,
+		fontFamily: 'Silkscreen',
+		marginTop: 10,
+		textAlign: 'center',
+	},
+	codeDisplayContainer: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		flexWrap: 'wrap',
+		gap: 15,
+		backgroundColor: 'rgba(0,0,0,0.5)',
+		padding: 15,
+		borderRadius: 8,
+		borderWidth: 1,
+		borderColor: '#555',
+		marginVertical: 15,
+	},
+	codeText: {
+		fontSize: 32,
+		fontFamily: 'SilkscreenBold',
+		letterSpacing: 2,
+		textAlign: 'center',
+	},
+	leaveRoomButton: {
 		fontFamily: "Silkscreen",
 		fontSize: 10,
 		textTransform: "uppercase",
@@ -3064,8 +4227,8 @@ const styles = StyleSheet.create({
 		margin: 0,
 	},
 	mahjongLayerBoard: {
-		width: 322,
-		height: 304,
+		width: 370,
+		height: 360,
 		borderRadius: 10,
 		borderWidth: 2,
 		position: "relative",
@@ -3081,8 +4244,8 @@ const styles = StyleSheet.create({
 	},
 	mahjongLayerTile: {
 		position: "absolute",
-		width: 48,
-		height: 58,
+		width: 58,
+		height: 70,
 		borderWidth: 2,
 		borderRadius: 8,
 		alignItems: "center",
@@ -3094,7 +4257,7 @@ const styles = StyleSheet.create({
 	},
 	mahjongText: {
 		fontFamily: Platform.select({ web: "Georgia, serif", default: "SilkscreenBold" }),
-		fontSize: 24,
+		fontSize: 32,
 		fontWeight: "700",
 	},
 	roomPanel: {
@@ -3125,29 +4288,64 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 		paddingHorizontal: 6,
 	},
-	roomMetaRow: {
-		flexDirection: "row",
-		justifyContent: "center",
-		alignItems: "center",
-		gap: 8,
-	},
 	roomMeta: {
 		fontFamily: "Silkscreen",
 		fontSize: 9,
 		textAlign: "center",
 	},
-	leaveRoomButton: {
-		minWidth: 58,
-		height: 26,
-		minHeight: 26,
-		margin: 0,
-		paddingHorizontal: 4,
-	},
 	onlineGame: {
-		width: "100%",
 		flex: 1,
+		width: "100%",
+		maxWidth: 600,
+		alignSelf: "center",
 		alignItems: "center",
-		gap: 8,
+		paddingVertical: 10,
+		gap: 12,
+	},
+	battlePlayersHeader: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		width: "100%",
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		backgroundColor: "rgba(15,23,42,0.6)",
+		borderRadius: 16,
+		marginBottom: 10,
+	},
+	battlePlayerBadge: {
+		alignItems: "center",
+		padding: 10,
+		borderRadius: 12,
+		borderWidth: 2,
+		borderColor: "transparent",
+	},
+	battleTurnActive: {
+		borderColor: "#FACC15",
+		backgroundColor: "rgba(250,204,21,0.1)",
+	},
+	battlePlayerName: {
+		fontFamily: "Silkscreen",
+		color: "#FFFFFF",
+		fontSize: 14,
+	},
+	battlePlayerLabel: {
+		color: "#9CA3AF",
+		fontSize: 10,
+		marginTop: 4,
+	},
+	battleTimerCenter: {
+		alignItems: "center",
+	},
+	battleTimerText: {
+		fontFamily: "Silkscreen",
+		color: "#EF4444",
+		fontSize: 18,
+	},
+	battleTurnArrow: {
+		color: "#FACC15",
+		fontSize: 24,
+		marginTop: 4,
 	},
 	durakPrep: {
 		width: "100%",
@@ -3228,18 +4426,7 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		lineHeight: 22,
 	},
-	durakEmojiPicker: {
-		width: "96%",
-		flexDirection: "row",
-		flexWrap: "wrap",
-		justifyContent: "center",
-		gap: 7,
-		padding: 8,
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.22)",
-		borderRadius: 8,
-		backgroundColor: "rgba(0,0,0,0.22)",
-	},
+
 	durakEmojiOption: {
 		width: 34,
 		height: 34,
@@ -3258,36 +4445,49 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		gap: 8,
 	},
-	battleToolbar: {
+	battlePlayArea: {
 		width: "100%",
 		flexDirection: "row",
-		flexWrap: "wrap",
+		justifyContent: "center",
+		alignItems: "flex-start",
+		gap: 16,
+		paddingHorizontal: 10,
+		overflow: 'visible' as const,
+	},
+	battleLeftPanel: {
+		width: 70,
+		alignItems: "center",
+		gap: 8,
+		overflow: 'visible' as const,
+	},
+	battleRotateButton: {
+		width: 44,
+		height: 44,
+		borderRadius: 22,
+		backgroundColor: "rgba(255,255,255,0.15)",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 6,
-	},
-	fleetScroll: {
-		flexGrow: 1,
-		flexShrink: 1,
-		maxWidth: 300,
-	},
-	fleetList: {
-		gap: 5,
-		paddingHorizontal: 4,
-		alignItems: "center",
-	},
-	fleetChip: {
-		minWidth: 38,
-		height: 30,
 		borderWidth: 2,
-		borderRadius: 6,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "rgba(255,255,255,0.08)",
+		borderColor: "rgba(255,255,255,0.3)",
 	},
-	fleetChipText: {
-		fontFamily: "SilkscreenBold",
-		fontSize: 9,
+	fleetVerticalScroll: {
+		flexGrow: 1,
+		maxHeight: 400,
+	},
+	fleetVerticalList: {
+		alignItems: "center",
+		paddingVertical: 10,
+		gap: 8,
+	},
+	battleBoardsVertical: {
+		flex: 1,
+		alignItems: "center",
+		gap: 16,
+	},
+	battleLobbyButtons: {
+		width: "100%",
+		alignItems: "center",
+		marginTop: 8,
 	},
 	miniActionButton: {
 		minWidth: 70,
@@ -3296,13 +4496,7 @@ const styles = StyleSheet.create({
 		margin: 0,
 		paddingHorizontal: 4,
 	},
-	battleBoards: {
-		width: "100%",
-		flexDirection: "row",
-		flexWrap: "wrap",
-		justifyContent: "center",
-		gap: 12,
-	},
+
 	battleGridWrap: {
 		alignItems: "center",
 		gap: 5,
@@ -3426,55 +4620,188 @@ const styles = StyleSheet.create({
 	},
 	durakTable: {
 		width: "100%",
+		height: 560,
 		alignItems: "center",
-		gap: 8,
-		borderWidth: 2,
-		borderColor: "rgba(250,204,21,0.45)",
-		borderRadius: 14,
-		padding: 10,
-		backgroundColor: "#0F3B2E",
-		shadowColor: "#000",
-		shadowOpacity: 0.35,
-		shadowRadius: 8,
-		shadowOffset: { width: 0, height: 4 },
+		backgroundColor: "#2F5C43",
+		borderRadius: 16,
+		overflow: "hidden",
+		position: "relative",
 	},
-	durakPlayersRow: {
+	durakDeckArea: {
+		position: 'absolute',
+		top: 180,
+		left: 10,
+		zIndex: 5,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	durakTrumpUnder: {
+		position: 'absolute',
+		transform: [{ rotate: '90deg' }, { translateX: 0 }, { translateY: 20 }],
+	},
+	durakDeckStack: {
+		shadowColor: "#000",
+		shadowOpacity: 0.5,
+		shadowRadius: 5,
+		shadowOffset: { width: 2, height: 2 },
+	},
+	durakEmojiPicker: {
+		position: 'absolute',
+		bottom: 160,
+		right: 20,
+		backgroundColor: 'rgba(0,0,0,0.85)',
+		borderRadius: 16,
+		padding: 10,
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		width: 160,
+		gap: 12,
+		justifyContent: 'center',
+		borderWidth: 1,
+		borderColor: '#FACC15',
+		zIndex: 1000,
+	},
+	durakDeckCountBadge: {
+		position: 'absolute',
+		top: -8,
+		right: -8,
+		backgroundColor: '#FFF',
+		borderRadius: 12,
+		minWidth: 24,
+		height: 24,
+		alignItems: 'center',
+		justifyContent: 'center',
+		borderWidth: 2,
+		borderColor: '#000',
+	},
+	durakDeckCountText: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 10,
+		color: '#000',
+	},
+	durakTopOpponents: {
+		width: "100%",
+		flexDirection: "row",
+		justifyContent: "center",
+		gap: 24,
+		marginTop: 20,
+		zIndex: 10,
+	},
+	durakAvatarContainer: {
+		alignItems: "center",
+		gap: 4,
+	},
+	durakAvatarBorder: {
+		borderRadius: 26,
+		borderWidth: 2,
+		borderColor: "rgba(255,255,255,0.8)",
+	},
+	durakAvatarImage: {
+		width: 48,
+		height: 48,
+		borderRadius: 24,
+		backgroundColor: "rgba(0,0,0,0.3)",
+	},
+	durakAvatarBadge: {
+		position: "absolute",
+		bottom: -5,
+		right: -5,
+		backgroundColor: "#FACC15",
+		borderRadius: 10,
+		minWidth: 20,
+		paddingHorizontal: 4,
+		alignItems: "center",
+		justifyContent: "center",
+		borderWidth: 1,
+		borderColor: "#000",
+	},
+	durakAvatarBadgeText: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 10,
+		color: "#000",
+	},
+	durakAvatarName: {
+		fontFamily: "Silkscreen",
+		fontSize: 10,
+		color: "#FFF",
+		backgroundColor: "rgba(0,0,0,0.5)",
+		paddingHorizontal: 6,
+		paddingVertical: 2,
+		borderRadius: 4,
+	},
+	durakCenter: {
+		flex: 1,
 		width: "100%",
 		flexDirection: "row",
 		flexWrap: "wrap",
-		justifyContent: "center",
-		gap: 5,
-	},
-	durakPlayerPill: {
-		borderWidth: 1.5,
-		borderColor: "rgba(255,255,255,0.24)",
-		borderRadius: 6,
-		paddingHorizontal: 7,
-		paddingVertical: 4,
-		backgroundColor: "rgba(255,255,255,0.06)",
-	},
-	durakPlayerText: {
-		fontFamily: "Silkscreen",
-		fontSize: 9,
-	},
-	durakCenter: {
-		width: "96%",
-		minHeight: 104,
-		borderRadius: 12,
-		borderWidth: 2,
-		borderColor: "rgba(250,204,21,0.28)",
-		flexDirection: "row",
-		flexWrap: "wrap",
 		alignItems: "center",
 		justifyContent: "center",
 		gap: 8,
-		backgroundColor: "#14533F",
-		padding: 8,
+		padding: 20,
+	},
+	fannedHandContainer: {
+		width: "100%",
+		flexDirection: "row",
+		justifyContent: "center",
+		alignItems: "flex-end",
+		position: "absolute",
+		bottom: 10,
+		zIndex: 50,
+		height: 120,
 	},
 	durakBout: {
-		flexDirection: "row",
+		position: "relative",
+		width: 48,
+		height: 66,
+		marginHorizontal: 4,
+		marginVertical: 4,
+	},
+	durakModeColumn: {
+		flexDirection: "column",
+		width: 78,
+		borderRadius: 16,
+		backgroundColor: "rgba(255,255,255,0.15)",
+		overflow: "hidden",
+	},
+	durakModeCell: {
 		alignItems: "center",
-		gap: 2,
+		justifyContent: "center",
+		paddingVertical: 10,
+		paddingHorizontal: 4,
+		minHeight: 74,
+		position: "relative",
+	},
+	durakModeCellActive: {
+		backgroundColor: "#FFFFFF",
+	},
+	durakModeIcon: {
+		fontSize: 28,
+		marginBottom: 4,
+	},
+	durakModeLabel: {
+		fontFamily: "Silkscreen",
+		fontSize: 9,
+		color: "#FFFFFF",
+		textAlign: "center",
+	},
+	durakModeLabelActive: {
+		color: "#DC2626",
+	},
+	durakModeCheck: {
+		position: "absolute",
+		top: 6,
+		right: 6,
+		width: 14,
+		height: 14,
+		borderRadius: 7,
+		backgroundColor: "#EF4444",
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	durakModeCheckText: {
+		color: "#FFFFFF",
+		fontSize: 9,
+		fontWeight: "bold",
 	},
 	cardHand: {
 		width: "100%",
@@ -3549,4 +4876,109 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 		textAlign: "center",
 	},
+	sliderContainer: {
+		width: "100%",
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		alignItems: "center",
+	},
+	sliderTrack: {
+		width: "100%",
+		height: 12,
+		borderRadius: 6,
+		position: "relative",
+		justifyContent: "center",
+	},
+	sliderFill: {
+		height: "100%",
+		borderRadius: 6,
+		position: "absolute",
+		left: 0,
+		top: 0,
+	},
+	sliderThumb: {
+		width: 24,
+		height: 24,
+		borderRadius: 12,
+		position: "absolute",
+		top: -6,
+		marginLeft: -12,
+		shadowColor: "#000",
+		shadowOpacity: 0.3,
+		shadowRadius: 4,
+		shadowOffset: { width: 0, height: 2 },
+	},
+	sliderLabels: {
+		width: "100%",
+		flexDirection: "row",
+		justifyContent: "space-between",
+		marginTop: 8,
+	},
+	sliderLabelText: {
+		fontFamily: "Silkscreen",
+		fontSize: 10,
+	},
 });
+
+function BetSlider({
+	value,
+	onChange,
+	maxBalance,
+}: {
+	value: number;
+	onChange: (val: number) => void;
+	maxBalance: number;
+}) {
+	const { currentTheme } = useTheme();
+
+	const getRealValue = (sliderVal: number) => {
+		const val = Math.pow(10, 2 + sliderVal);
+		return Number(val.toPrecision(2));
+	};
+
+	const getSliderVal = (realVal: number) => {
+		if (realVal < 100) return 0;
+		return Math.log10(realVal) - 2;
+	};
+
+	const BET_STOPS = [100, 1000, 10000, 100000, 1000000, 10000000];
+	const BET_LABELS = ["100", "1K", "10K", "100K", "1M", "10M"];
+
+	const sliderMaxVal = Math.max(0.001, Math.min(5, getSliderVal(maxBalance)));
+	const sliderWidthPct = `${(sliderMaxVal / 5) * 100}%`;
+
+	return (
+		<View style={styles.sliderContainer}>
+			<View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingHorizontal: 10, marginBottom: -5 }}>
+				<Text style={[styles.sliderLabelText, { color: currentTheme.textPrimary, fontSize: 14 }]}>
+					{formatCoins(value)}
+				</Text>
+			</View>
+			<View style={{ width: '100%' }}>
+				<Slider
+					style={{ width: sliderWidthPct, height: 40 }}
+					minimumValue={0}
+					maximumValue={sliderMaxVal}
+					step={0.01}
+					value={Math.min(sliderMaxVal, getSliderVal(value))}
+				onValueChange={(val) => {
+					let next = getRealValue(val);
+					if (next > maxBalance) next = maxBalance;
+					if (next < 100) next = 100;
+					if (next !== value) onChange(next);
+				}}
+				minimumTrackTintColor="#38BDF8"
+				maximumTrackTintColor="rgba(255,255,255,0.2)"
+				thumbTintColor="#FFFFFF"
+			/>
+			</View>
+			<View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingHorizontal: 10 }}>
+				{BET_LABELS.map((label, index) => (
+					<Text key={label} style={[styles.sliderLabelText, { color: currentTheme.textSecondary, opacity: maxBalance >= BET_STOPS[index] ? 1 : 0.4 }]}>
+						{label}
+					</Text>
+				))}
+			</View>
+		</View>
+	);
+}

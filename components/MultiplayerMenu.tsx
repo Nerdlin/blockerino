@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import { StyleSheet, Text, View, TextInput, ActivityIndicator, Clipboard, useWindowDimensions, ScrollView, Pressable, Platform } from "react-native";
+import { StyleSheet, Text, View, TextInput, ActivityIndicator, Clipboard, useWindowDimensions, ScrollView, Pressable, Platform, Image } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { GameModeType, useAppState } from "@/hooks/useAppState";
@@ -673,16 +673,6 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                 placeholderTextColor={currentTheme.textSecondary}
                             />
                         </View>
-                        <View style={styles.eloBadgeContainer}>
-                            <Text style={[styles.eloLabel, { color: currentTheme.textSecondary }]}>{t("mp.eloRating")}</Text>
-                            <View style={[styles.eloBadge, { backgroundColor: getEloBadge(playerElo).color }]}>
-                                <View style={styles.eloBadgeContent}>
-                                    <Text style={styles.eloBadgeIcon}>{getEloBadge(playerElo).icon}</Text>
-                                    <Text style={styles.eloBadgeText}>{getEloBadge(playerElo).tier}</Text>
-                                </View>
-                            </View>
-                            <Text style={[styles.eloText, { color: currentTheme.textPrimary }]}>{t("mp.eloValue", { elo: playerElo })}</Text>
-                        </View>
                     </View>
 
                     {matchError !== "" && (
@@ -826,48 +816,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         )}
                     </ScrollView>
 
-                    {/* ELO Rating Card Button — above Back */}
-                    <View style={{ width: '90%', marginTop: 12, marginBottom: 6 }}>
-                        <Pressable 
-                            onPress={() => setShowEloScreen(true)}
-                            style={({ pressed }) => [
-                                styles.eloCardButton,
-                                { 
-                                    borderColor: getEloBadge(playerElo).color,
-                                    opacity: pressed ? 0.7 : 1,
-                                }
-                            ]}
-                        >
-                            {(() => {
-                                const details = getEloDetails(playerElo);
-                                return (
-                                    <>
-                                        <View style={styles.eloCardRow}>
-                                            <Text style={[styles.eloEmojiText, { fontSize: 20 }]}>{details.currentTier.icon}</Text>
-                                            <View style={{ flex: 1, marginLeft: 8 }}>
-                                                <Text style={[styles.eloCardTier, { color: details.currentTier.color }]}>
-                                                    {details.currentTier.tier}
-                                                </Text>
-                                                <Text style={styles.eloCardValue}>{playerElo} ELO</Text>
-                                            </View>
-                                            <Text style={styles.eloCardArrow}>▸</Text>
-                                        </View>
-                                        <View style={styles.eloProgressBarBg}>
-                                            <View style={[styles.eloProgressBarFill, { 
-                                                width: `${Math.round(details.progress * 100)}%`,
-                                                backgroundColor: details.currentTier.color 
-                                            }]} />
-                                        </View>
-                                        {details.nextTier && (
-                                            <Text style={styles.eloCardNext}>
-                                                {t("mp.cardToTier", { points: details.nextTier.min - playerElo, tier: details.nextTier.tier, icon: "" }).trimEnd()} <Text style={styles.inlineEmojiText}>{details.nextTier.icon}</Text>
-                                            </Text>
-                                        )}
-                                    </>
-                                );
-                            })()}
-                        </Pressable>
-                    </View>
+
 
                     <StylizedButton text={t("mp.back")} onClick={popAppState} backgroundColor={cssColors.spaceGray} />
                 </Animated.View>
@@ -981,13 +930,24 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                             <Text style={[styles.eloLBRank, { color: currentTheme.textPrimary, flex: 0.4 }]}>
                                                 {index + 1}
                                             </Text>
-                                             <Text style={[styles.eloLBName, { 
-                                                 color: currentTheme.textPrimary, 
-                                                 flex: 2,
-                                                 fontFamily: isMe ? 'SilkscreenBold' : 'Silkscreen',
-                                             }]} numberOfLines={1}>
-                                                {entry.player_name}{isMe ? t("mp.you") : ''}
-                                            </Text>
+                                             <View style={{ flex: 2, flexDirection: "row", alignItems: "center" }}>
+                                                 {entry.avatar_url && entry.avatar_url.startsWith("http") ? (
+                                                     <Image source={{ uri: entry.avatar_url }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6, backgroundColor: "transparent" }} />
+                                                 ) : entry.avatar_url ? (
+                                                     <Text style={{ fontSize: 18, marginRight: 6 }}>{entry.avatar_url}</Text>
+                                                 ) : (
+                                                     <View style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}>
+                                                         <Text style={{ fontSize: 12, color: '#fff' }}>{entry.player_name.charAt(0).toUpperCase()}</Text>
+                                                     </View>
+                                                 )}
+                                                 <Text style={[styles.eloLBName, { 
+                                                     color: currentTheme.textPrimary, 
+                                                     fontFamily: isMe ? 'SilkscreenBold' : 'Silkscreen',
+                                                     flexShrink: 1
+                                                 }]} numberOfLines={1}>
+                                                    {entry.player_name}{isMe ? t("mp.you") : ''}
+                                                 </Text>
+                                             </View>
                                             <View style={[styles.eloLBBadge, { backgroundColor: badge.color, flex: 0.8, alignSelf: 'center' }]}>
                                                 <View style={styles.eloLBBadgeContent}>
                                                     <Text style={styles.eloLBBadgeIcon}>{badge.icon}</Text>
