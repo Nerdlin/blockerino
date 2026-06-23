@@ -6,6 +6,7 @@ import { useTheme } from "@/constants/Theme";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { GameModeType } from "@/hooks/useAppState";
 import { getGameModeConfig } from "@/constants/GameModes";
+import { useLanguage } from "@/constants/Localization";
 
 export default function ContinueGameModal({
     score,
@@ -19,6 +20,7 @@ export default function ContinueGameModal({
     onStartOver: () => void;
 }) {
     const { currentTheme } = useTheme();
+    const { t } = useLanguage();
     const modeTitle = getGameModeConfig(gameMode).title;
 
     return (
@@ -32,7 +34,7 @@ export default function ContinueGameModal({
                     }
                 ]}
             >
-                Unfinished Game
+                {t("over.unfinishedGame")}
             </Animated.Text>
 
             <Text style={[
@@ -41,27 +43,27 @@ export default function ContinueGameModal({
                     color: currentTheme.textPrimary
                 }
             ]}>
-                You have a saved game!
+                {t("over.savedGame")}
             </Text>
 
             <View style={styles.statsContainer}>
                 <Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>
-                    Mode: <Text style={{ color: currentTheme.textPrimary }}>{modeTitle}</Text>
+                    {t("over.mode")} <Text style={{ color: currentTheme.textPrimary }}>{modeTitle}</Text>
                 </Text>
                 <Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>
-                    Score: <Text style={{ color: currentTheme.accent, fontFamily: 'SilkscreenBold' }}>{score}</Text>
+                    {t("over.score")} <Text style={{ color: currentTheme.accent, fontFamily: 'SilkscreenBold' }}>{score}</Text>
                 </Text>
             </View>
 
             <View style={styles.buttonContainer}>
                 <StylizedButton
-                    text="Continue"
+                    text={t("over.continue")}
                     onClick={onContinue}
                     backgroundColor={currentTheme.buttonPrimary}
                 />
 
                 <StylizedButton
-                    text="Start Over"
+                    text={t("over.startOver")}
                     onClick={onStartOver}
                     backgroundColor={currentTheme.buttonSecondary}
                 />

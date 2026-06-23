@@ -26,7 +26,8 @@ import {
 	multiplayerPlayerEloAtom,
 } from "@/hooks/useAppState";
 import MainMenu from "@/components/MainMenu";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { languageAtom, loadStoredLanguage, type Language } from "@/constants/Localization";
 import HighScores from "@/components/HighScoresMenu";
 import { PieceParticle } from "@/components/PieceParticle";
 import AnimatedBackground from "@/components/AnimatedBackground";
@@ -57,15 +58,43 @@ configureReanimatedLogger({
 });
 
 export default function App() {
+	const setLanguage = useSetAtom(languageAtom);
+	const [bootLanguage, setBootLanguage] = useState<Language | null>(null);
+
+	useEffect(() => {
+		let active = true;
+		loadStoredLanguage().then((language) => {
+			if (!active) return;
+			setLanguage(language);
+			setBootLanguage(language);
+		});
+		return () => { active = false; };
+	}, [setLanguage]);
+
+	// Hold first paint until the saved language is known so the pixel font can be
+	// loaded with the right glyph coverage (Latin Silkscreen vs Cyrillic Pixelify).
+	if (!bootLanguage) return null;
+
+	return <AppContent bootLanguage={bootLanguage} />;
+}
+
+function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 	const { initialize: initSounds } = useSoundSettings({ manageMusicPlayback: true });
 	useShopBootstrap();
 	const shopState = useAtomValue(shopStateAtom);
 
+	// Russian needs a Cyrillic-capable pixel face; map it onto the Silkscreen family
+	// names so every existing styled Text renders Cyrillic without per-component edits.
+	const useCyrillicPixelFont = bootLanguage === "ru";
 	const [loaded] = useFonts({
 		"Press-Start-2P": require("../assets/fonts/PressStart2P-Regular.ttf"),
 		SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-		Silkscreen: require("../assets/fonts/Silkscreen-Regular.ttf"),
-		SilkscreenBold: require("../assets/fonts/Silkscreen-Bold.ttf"),
+		Silkscreen: useCyrillicPixelFont
+			? require("../assets/fonts/PixelifySans-Variable.ttf")
+			: require("../assets/fonts/Silkscreen-Regular.ttf"),
+		SilkscreenBold: useCyrillicPixelFont
+			? require("../assets/fonts/PixelifySans-Variable.ttf")
+			: require("../assets/fonts/Silkscreen-Bold.ttf"),
 	});
 
 	const [ appState, setAppState, , popAppState ] = useAppState();

@@ -11,6 +11,7 @@ import { normalizePlayerName } from "@/constants/Multiplayer";
 import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
 import { useShopState } from "@/constants/Shop";
 import { GameOverReason, getGameOverMessage } from "@/constants/GameModes";
+import { useLanguage } from "@/constants/Localization";
 
 const PLAYER_NAME_KEY = 'PLAYER_NAME';
 
@@ -18,6 +19,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
     const [setAppState, appendAppState] = useSetAppState();
     const { playSfx } = useSoundSettings();
     const { currentTheme } = useTheme();
+    const { t } = useLanguage();
     const scale = useSharedValue(1);
     const [playerName, setPlayerName] = useState('');
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'queued' | 'failed' | 'needs_name'>('idle');
@@ -135,7 +137,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                     animatedTextStyle
                 ]}
             >
-                Game Over
+                {t("over.gameOver")}
             </Animated.Text>
 
             <Text style={[
@@ -144,7 +146,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                     color: currentTheme.id === ThemeType.BLUE ? 'rgb(0, 153, 255)' : currentTheme.textPrimary
                 }
             ]}>
-                Your Score
+                {t("over.yourScore")}
             </Text>
 
             <Text style={[
@@ -158,7 +160,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
 
             {coinsAwarded > 0 && (
                 <Text style={[styles.coinsText, { color: currentTheme.accent }]}>
-                    +{coinsAwarded} shop coins
+                    {t("over.coinsAwarded", { coins: coinsAwarded })}
                 </Text>
             )}
 
@@ -166,7 +168,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                 {canEditNickname && (
                     <View style={{ width: '100%', alignItems: 'center', gap: 10 }}>
                         <Text style={[styles.messageText, { color: currentTheme.textSecondary, marginBottom: 5, paddingHorizontal: 0 }]}>
-                            Enter a nickname to save your score!
+                            {t("over.enterNickname")}
                         </Text>
                         <TextInput
                             style={[styles.nicknameInput, {
@@ -181,12 +183,12 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                                     setSubmitStatus('idle');
                                 }
                             }}
-                            placeholder="Your Nickname"
+                            placeholder={t("over.nicknamePlaceholder")}
                             placeholderTextColor="gray"
                             maxLength={15}
                         />
                         <StylizedButton
-                            text="Save Score"
+                            text={t("over.saveScore")}
                             onClick={handleManualSubmit}
                             backgroundColor={currentTheme.buttonPrimary}
                         />
@@ -194,27 +196,27 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                 )}
                 {submitStatus === 'submitting' && (
                     <Text style={[styles.statusText, { color: currentTheme.textSecondary }]}>
-                        Saving score to global leaderboard...
+                        {t("over.saving")}
                     </Text>
                 )}
                 {submitStatus === 'success' && (
                     <Text style={[styles.statusText, { color: 'rgb(0, 200, 80)' }]}>
-                        Score saved under "{playerName}"!
+                        {t("over.saved", { name: playerName })}
                     </Text>
                 )}
                 {submitStatus === 'queued' && (
                     <Text style={[styles.statusText, { color: currentTheme.accent }]}>
-                        Score saved offline. It will sync when internet returns.
+                        {t("over.savedOffline")}
                     </Text>
                 )}
                 {submitStatus === 'failed' && (
                     <Text style={[styles.statusText, { color: 'rgb(255, 80, 80)' }]}>
-                        Could not sync score to leaderboard.
+                        {t("over.syncFailed")}
                     </Text>
                 )}
                 {submitStatus === 'needs_name' && (
                     <Text style={[styles.statusText, { color: 'rgb(255, 80, 80)' }]}>
-                        Enter a nickname first.
+                        {t("over.needName")}
                     </Text>
                 )}
             </View>
@@ -230,13 +232,13 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
 
             <View style={styles.buttonContainer}>
                 <StylizedButton
-                    text="Play Again"
+                    text={t("over.playAgain")}
                     onClick={handlePlayAgain}
                     backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(0, 153, 51)' : currentTheme.buttonPrimary}
                 />
 
                 <StylizedButton
-                    text="Main Menu"
+                    text={t("over.mainMenu")}
                     onClick={handleMainMenu}
                     backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(0, 102, 204)' : currentTheme.buttonSecondary}
                 />

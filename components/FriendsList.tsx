@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TextInput, ScrollView, Alert } from 'react-native';
 import { supabase } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
+import { useLanguage } from '@/constants/Localization';
 import StylizedButton from './StylizedButton';
 import { useSetAtom } from 'jotai';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -39,6 +40,7 @@ interface FriendProfile {
 
 export default function FriendsList({ userId }: { userId: string }) {
     const { currentTheme } = useTheme();
+    const { t } = useLanguage();
     const [friends, setFriends] = useState<FriendRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -122,7 +124,7 @@ export default function FriendsList({ userId }: { userId: string }) {
             .limit(5);
             
         if (profileError || !profiles || profiles.length === 0) {
-            Alert.alert("Player not found", `Could not find a player named ${cleanQuery}`);
+            Alert.alert(t("friends.notFoundTitle"), t("friends.notFoundMessage", { name: cleanQuery }));
             setSearchLoading(false);
             return;
         }
@@ -133,13 +135,13 @@ export default function FriendsList({ userId }: { userId: string }) {
         const targetProfile = exactMatch || profiles[0] as FriendProfile;
         const targetId = targetProfile.auth_user_id;
         if (!targetId) {
-            Alert.alert("Error", "This player must log in before they can receive friend requests.");
+            Alert.alert(t("friends.errorTitle"), t("friends.mustLogin"));
             setSearchLoading(false);
             return;
         }
         
         if (targetId === userId) {
-            Alert.alert("Oops", "You can't add yourself as a friend!");
+            Alert.alert(t("friends.oopsTitle"), t("friends.cantAddSelf"));
             setSearchLoading(false);
             return;
         }
@@ -151,7 +153,7 @@ export default function FriendsList({ userId }: { userId: string }) {
             .or(`and(user_id_1.eq.${userId},user_id_2.eq.${targetId}),and(user_id_1.eq.${targetId},user_id_2.eq.${userId})`);
             
         if (existing && existing.length > 0) {
-            Alert.alert("Info", `Friendship status is already: ${existing[0].status}`);
+            Alert.alert(t("friends.infoTitle"), t("friends.alreadyStatus", { status: existing[0].status }));
             setSearchLoading(false);
             return;
         }
@@ -167,9 +169,9 @@ export default function FriendsList({ userId }: { userId: string }) {
 
         if (insertError) {
             console.error("Could not send friend request:", insertError);
-            Alert.alert("Error", insertError.message || "Could not send friend request.");
+            Alert.alert(t("friends.errorTitle"), insertError.message || t("friends.requestFailed"));
         } else {
-            Alert.alert("Success", "Friend request sent!");
+            Alert.alert(t("friends.successTitle"), t("friends.requestSent"));
             setSearchQuery('');
             fetchFriends();
         }
@@ -184,7 +186,7 @@ export default function FriendsList({ userId }: { userId: string }) {
             .eq('user_id_2', userId);
 
         if (error) {
-            Alert.alert("Error", error.message || "Could not accept friend request.");
+            Alert.alert(t("friends.errorTitle"), error.message || t("friends.acceptFailed"));
             return;
         }
         fetchFriends();
@@ -193,7 +195,7 @@ export default function FriendsList({ userId }: { userId: string }) {
     const handleDeleteOrCancel = async (friendId: string) => {
         const { error } = await supabase.from('friends').delete().eq('id', friendId);
         if (error) {
-            Alert.alert("Error", error.message || "Could not update friend request.");
+            Alert.alert(t("friends.errorTitle"), error.message || t("friends.updateFailed"));
             return;
         }
         fetchFriends();
@@ -208,16 +210,16 @@ export default function FriendsList({ userId }: { userId: string }) {
 
     const handleInvite1v1 = async (friendId: string, friendName: string) => {
         Alert.alert(
-            "Game Mode",
-            "Choose a game mode for 1v1",
+            t("friends.gameModeTitle"),
+            t("friends.gameModeMessage"),
             [
-                { text: "Cancel", style: "cancel" },
-                { 
-                    text: "Casual", 
-                    onPress: () => sendInvite(friendId, friendName, GameModeType.Classic) 
+                { text: t("friends.cancel"), style: "cancel" },
+                {
+                    text: t("friends.casual"),
+                    onPress: () => sendInvite(friendId, friendName, GameModeType.Classic)
                 },
-                { 
-                    text: "Ranked", 
+                {
+                    text: t("friends.ranked"),
                     onPress: () => sendInvite(friendId, friendName, GameModeType.Classic) // Using Classic as Ranked for now
                 }
             ]
@@ -247,7 +249,7 @@ export default function FriendsList({ userId }: { userId: string }) {
         }).select().single();
 
         if (error || !room) {
-            Alert.alert("Error", "Could not create private room.");
+            Alert.alert(t("friends.errorTitle"), t("friends.createRoomFailed"));
             setSearchLoading(false);
             return;
         }
@@ -270,7 +272,7 @@ export default function FriendsList({ userId }: { userId: string }) {
         if (!subscribed) {
             await supabase.from('matchmaking_rooms').delete().eq('id', room.id).eq('status', 'waiting');
             supabase.removeChannel(inviteChannel);
-            Alert.alert("Error", "Could not connect to realtime invites.");
+            Alert.alert(t("friends.errorTitle"), t("friends.realtimeFailed"));
             setSearchLoading(false);
             return;
         }
@@ -288,7 +290,7 @@ export default function FriendsList({ userId }: { userId: string }) {
 
         if (sendResult !== 'ok') {
             await supabase.from('matchmaking_rooms').delete().eq('id', room.id).eq('status', 'waiting');
-            Alert.alert("Error", "Could not send the 1v1 invite.");
+            Alert.alert(t("friends.errorTitle"), t("friends.inviteSendFailed"));
             setSearchLoading(false);
             return;
         }
@@ -322,14 +324,14 @@ export default function FriendsList({ userId }: { userId: string }) {
             <View style={styles.searchRow}>
                 <TextInput
                     style={[styles.input, { color: currentTheme.textPrimary, borderColor: currentTheme.gridBorder }]}
-                    placeholder="Search by nickname..."
+                    placeholder={t("friends.searchPlaceholder")}
                     placeholderTextColor={currentTheme.textSecondary}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     onSubmitEditing={handleSearchAndAdd}
                 />
                 <StylizedButton 
-                    text={searchLoading ? "..." : "Add"} 
+                    text={searchLoading ? "..." : t("friends.add")}
                     onClick={handleSearchAndAdd} 
                     backgroundColor={currentTheme.buttonPrimary} 
                     style={styles.addButton}
@@ -339,7 +341,7 @@ export default function FriendsList({ userId }: { userId: string }) {
             {/* Incoming Requests */}
             {incomingRequests.length > 0 && (
                 <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: currentTheme.textSecondary }]}>Friend Requests</Text>
+                    <Text style={[styles.sectionTitle, { color: currentTheme.textSecondary }]}>{t("friends.requestsTitle")}</Text>
                     {incomingRequests.map(f => (
                         <View key={f.id} style={[styles.friendRow, { backgroundColor: currentTheme.emptyBlockBorder }]}>
                             <Text style={[styles.friendName, { color: currentTheme.textPrimary }]}>{getFriendName(f)}</Text>
@@ -355,11 +357,11 @@ export default function FriendsList({ userId }: { userId: string }) {
             {/* Outgoing Requests */}
             {outgoingRequests.length > 0 && (
                 <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: currentTheme.textSecondary }]}>Sent Requests</Text>
+                    <Text style={[styles.sectionTitle, { color: currentTheme.textSecondary }]}>{t("friends.sentTitle")}</Text>
                     {outgoingRequests.map(f => (
                         <View key={f.id} style={[styles.friendRow, { backgroundColor: currentTheme.emptyBlockBorder }]}>
-                            <Text style={[styles.friendName, { color: currentTheme.textSecondary }]}>{getFriendName(f)} (Pending)</Text>
-                            <StylizedButton text="Cancel" onClick={() => handleDeleteOrCancel(f.id)} backgroundColor="rgb(150,150,150)" style={styles.cancelBtn} textStyle={styles.actionBtnText}/>
+                            <Text style={[styles.friendName, { color: currentTheme.textSecondary }]}>{t("friends.pending", { name: getFriendName(f) })}</Text>
+                            <StylizedButton text={t("friends.cancel")} onClick={() => handleDeleteOrCancel(f.id)} backgroundColor="rgb(150,150,150)" style={styles.cancelBtn} textStyle={styles.actionBtnText}/>
                         </View>
                     ))}
                 </View>
@@ -367,16 +369,16 @@ export default function FriendsList({ userId }: { userId: string }) {
 
             {/* Friends List */}
             <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: currentTheme.textPrimary }]}>My Friends ({acceptedFriends.length})</Text>
+                <Text style={[styles.sectionTitle, { color: currentTheme.textPrimary }]}>{t("friends.myFriends", { count: acceptedFriends.length })}</Text>
                 {acceptedFriends.length === 0 ? (
-                    <Text style={[styles.emptyText, { color: currentTheme.textSecondary }]}>No friends yet.</Text>
+                    <Text style={[styles.emptyText, { color: currentTheme.textSecondary }]}>{t("friends.empty")}</Text>
                 ) : (
                     acceptedFriends.map(f => (
                         <View key={f.id} style={[styles.friendRow, { backgroundColor: currentTheme.emptyBlockBorder }]}>
                             <Text style={[styles.friendName, { color: currentTheme.textPrimary }]}>{getFriendName(f)}</Text>
                             <View style={styles.actionsRow}>
-                                <StylizedButton text="1v1" onClick={() => handleInvite1v1(f.user_id_1 === userId ? f.user_id_2 : f.user_id_1, getFriendName(f))} backgroundColor={currentTheme.accent} style={styles.inviteBtn} textStyle={styles.actionBtnText}/>
-                                <StylizedButton text="Remove" onClick={() => handleDeleteOrCancel(f.id)} backgroundColor="rgb(200,50,50)" style={styles.cancelBtn} textStyle={styles.actionBtnText}/>
+                                <StylizedButton text={t("friends.invite1v1")} onClick={() => handleInvite1v1(f.user_id_1 === userId ? f.user_id_2 : f.user_id_1, getFriendName(f))} backgroundColor={currentTheme.accent} style={styles.inviteBtn} textStyle={styles.actionBtnText}/>
+                                <StylizedButton text={t("friends.remove")} onClick={() => handleDeleteOrCancel(f.id)} backgroundColor="rgb(200,50,50)" style={styles.cancelBtn} textStyle={styles.actionBtnText}/>
                             </View>
                         </View>
                     ))

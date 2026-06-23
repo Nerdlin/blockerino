@@ -11,13 +11,15 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import * as Crypto from "expo-crypto";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { DEFAULT_ELO, getJoinRoomUpdate, isPlayerNameReady, isVisiblePublicRoom, normalizePlayerName } from "@/constants/Multiplayer";
+import { useLanguage } from "@/constants/Localization";
 
 interface MultiplayerMenuProps {
     onStartGame: (roomId: string, role: 'player1' | 'player2' | 'spectator', opponentName: string, gameMode: GameModeType, playerElo: number) => void;
 }
 
-const NAME_REQUIRED_MESSAGE = "Enter a nickname to play multiplayer.";
-const NAME_READY_MESSAGE = "Nickname set. You can play now!";
+// Sentinel identifiers used for equality checks; displayed via t("mp.nameRequired") / t("mp.nameReady").
+const NAME_REQUIRED_MESSAGE = "mp.nameRequired";
+const NAME_READY_MESSAGE = "mp.nameReady";
 
 export function getEloBadge(elo: number): { tier: string; color: string; icon: string } {
     if (elo < 800) return { tier: "Bronze", color: "#CD7F32", icon: "🥉" };
@@ -47,6 +49,7 @@ function getEloDetails(elo: number) {
 
 export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const { currentTheme } = useTheme();
+    const { t } = useLanguage();
     const [, , , popAppState] = useAppState();
     const { width } = useWindowDimensions();
     const isMobile = width < 600;
@@ -353,7 +356,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         // Game starts!
                         cleanupLobby();
                         const opponentName = myRole === 'player1' ? room.player2_name : room.player1_name;
-                        onStartGame(roomId, myRole, opponentName || 'Opponent', room.game_mode as GameModeType, playerElo);
+                        onStartGame(roomId, myRole, opponentName || t("mp.opponent"), room.game_mode as GameModeType, playerElo);
                     }
                 }
             )
@@ -369,7 +372,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             if (data && data.status === 'playing') {
                                 cleanupLobby();
                                 const opponentName = myRole === 'player1' ? data.player2_name : data.player1_name;
-                                onStartGame(roomId, myRole, opponentName || 'Opponent', data.game_mode as GameModeType, playerElo);
+                                onStartGame(roomId, myRole, opponentName || t("mp.opponent"), data.game_mode as GameModeType, playerElo);
                             }
                         });
                 }
@@ -456,7 +459,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             }
         } catch (e) {
             console.error("Matchmaking error:", e);
-            setMatchError("Connection error. Please try again.");
+            setMatchError(t("mp.connectionError"));
             setLobbyState('idle');
         }
     };
@@ -502,7 +505,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             }
         } catch (e) {
             console.error("Create room error:", e);
-            setMatchError("Failed to create room.");
+            setMatchError(t("mp.createRoomFailed"));
             setLobbyState('idle');
         }
     };
@@ -515,7 +518,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
 
         const code = joinCode.trim().toLowerCase();
         if (code.length < 6) {
-            setMatchError("Room code must be 6 characters");
+            setMatchError(t("mp.codeLength"));
             return;
         }
 
@@ -544,7 +547,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
 
             if (room) {
                 if (room.player1_id === activePlayerId) {
-                    setMatchError("You cannot join your own room!");
+                    setMatchError(t("mp.ownRoom"));
                     setLobbyState('idle');
                     return;
                 }
@@ -563,16 +566,16 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     const finalRoom = updatedRoom[0];
                     onStartGame(finalRoom.id, 'player2', finalRoom.player1_name, finalRoom.game_mode as GameModeType, playerElo);
                 } else {
-                    setMatchError("Room is already full or closed");
+                    setMatchError(t("mp.roomFull"));
                     setLobbyState('idle');
                 }
             } else {
-                setMatchError("Room not found or not waiting for players");
+                setMatchError(t("mp.roomNotFound"));
                 setLobbyState('idle');
             }
         } catch (e) {
             console.error("Join room error:", e);
-            setMatchError("Failed to join room.");
+            setMatchError(t("mp.joinRoomFailed"));
             setLobbyState('idle');
         }
     };
@@ -609,23 +612,32 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                 const finalRoom = updatedRoom[0];
                 onStartGame(finalRoom.id, 'player2', finalRoom.player1_name, finalRoom.game_mode as GameModeType, playerElo);
             } else {
-                setMatchError("Room is already full or closed");
+                setMatchError(t("mp.roomFull"));
                 setLobbyState('idle');
             }
         } catch (e) {
             console.error("Join room error:", e);
-            setMatchError("Failed to join room.");
+            setMatchError(t("mp.joinRoomFailed"));
             setLobbyState('idle');
         }
     };
 
     const handleSpectateRoom = (room: any) => {
         cleanupLobby();
-        onStartGame(room.id, 'spectator', `${room.player1_name} vs ${room.player2_name || 'Opponent'}`, room.game_mode as GameModeType, playerElo);
+        onStartGame(room.id, 'spectator', `${room.player1_name} vs ${room.player2_name || t("mp.opponent")}`, room.game_mode as GameModeType, playerElo);
     };
 
     const copyToClipboard = () => {
         Clipboard.setString(roomCode);
+    };
+
+    // Feedback values are either an i18n sentinel key (set by handlers) or an
+    // already-translated string; translate the known sentinels for display.
+    const displayFeedback = (value: string) => {
+        if (value === NAME_REQUIRED_MESSAGE || value === NAME_READY_MESSAGE) {
+            return t(value);
+        }
+        return value;
     };
 
     return (
@@ -639,11 +651,11 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             {lobbyState === 'idle' && !showEloScreen && !showEloLeaderboard && (
                 <Animated.View entering={FadeIn} style={styles.contentContainer}>
                     
-                    <Text style={[styles.header, { color: currentTheme.textPrimary, marginVertical: 8 }]}>Versus Mode</Text>
+                    <Text style={[styles.header, { color: currentTheme.textPrimary, marginVertical: 8 }]}>{t("mp.title")}</Text>
 
                     <View style={styles.inputRow}>
                         <View style={{ flex: 1 }}>
-                            <Text style={[styles.label, { color: currentTheme.textSecondary, fontSize: 13 }]}>Nickname:</Text>
+                            <Text style={[styles.label, { color: currentTheme.textSecondary, fontSize: 13 }]}>{t("mp.nickname")}</Text>
                             <TextInput
                                 ref={nicknameInputRef}
                                 style={[styles.nicknameInput, {
@@ -657,27 +669,27 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                 value={playerName}
                                 onChangeText={handlePlayerNameChange}
                                 maxLength={20}
-                                placeholder="Your Nickname"
+                                placeholder={t("mp.nicknamePlaceholder")}
                                 placeholderTextColor={currentTheme.textSecondary}
                             />
                         </View>
                         <View style={styles.eloBadgeContainer}>
-                            <Text style={[styles.eloLabel, { color: currentTheme.textSecondary }]}>ELO Rating:</Text>
+                            <Text style={[styles.eloLabel, { color: currentTheme.textSecondary }]}>{t("mp.eloRating")}</Text>
                             <View style={[styles.eloBadge, { backgroundColor: getEloBadge(playerElo).color }]}>
                                 <View style={styles.eloBadgeContent}>
                                     <Text style={styles.eloBadgeIcon}>{getEloBadge(playerElo).icon}</Text>
                                     <Text style={styles.eloBadgeText}>{getEloBadge(playerElo).tier}</Text>
                                 </View>
                             </View>
-                            <Text style={[styles.eloText, { color: currentTheme.textPrimary }]}>{playerElo} ELO</Text>
+                            <Text style={[styles.eloText, { color: currentTheme.textPrimary }]}>{t("mp.eloValue", { elo: playerElo })}</Text>
                         </View>
                     </View>
 
                     {matchError !== "" && (
-                        <Text style={[styles.errorText, { color: cssColors.brightNiceRed, marginTop: 4 }]}>{matchError}</Text>
+                        <Text style={[styles.errorText, { color: cssColors.brightNiceRed, marginTop: 4 }]}>{displayFeedback(matchError)}</Text>
                     )}
                     {successMessage !== "" && (
-                        <Text style={[styles.errorText, { color: currentTheme.accent, marginTop: 4 }]}>{successMessage}</Text>
+                        <Text style={[styles.errorText, { color: currentTheme.accent, marginTop: 4 }]}>{displayFeedback(successMessage)}</Text>
                     )}
 
                     <Pressable
@@ -690,26 +702,26 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             { opacity: pressed ? 0.7 : 1 }
                         ]}
                     >
-                        <Text style={styles.eloLeaderboardIcon}>TOP</Text>
+                        <Text style={styles.eloLeaderboardIcon}>{t("mp.top")}</Text>
                         <Text style={[styles.eloLeaderboardBtnText, { color: currentTheme.accent }]}>
-                            ELO Leaderboard
+                            {t("mp.eloLeaderboard")}
                         </Text>
                         <Text style={styles.eloCardArrow}>▸</Text>
                     </Pressable>
 
-                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary, alignSelf: 'center', marginLeft: 0, marginTop: 4 }]}>Select Mode:</Text>
+                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary, alignSelf: 'center', marginLeft: 0, marginTop: 4 }]}>{t("mp.selectMode")}</Text>
                     <View style={styles.row}>
-                        <StylizedButton 
-                            text="Classic" 
-                            onClick={() => setSelectedMode(GameModeType.Classic)} 
+                        <StylizedButton
+                            text={t("mp.classic")}
+                            onClick={() => setSelectedMode(GameModeType.Classic)}
                             backgroundColor={selectedMode === GameModeType.Classic ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
                             borderColor={selectedMode === GameModeType.Classic ? currentTheme.accent : undefined}
                             style={{ flex: 1, minWidth: 100, height: 36 }}
                             textStyle={{ fontSize: 13 }}
                         />
-                        <StylizedButton 
-                            text="Chaos" 
-                            onClick={() => setSelectedMode(GameModeType.Chaos)} 
+                        <StylizedButton
+                            text={t("mp.chaos")}
+                            onClick={() => setSelectedMode(GameModeType.Chaos)}
                             backgroundColor={selectedMode === GameModeType.Chaos ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
                             borderColor={selectedMode === GameModeType.Chaos ? currentTheme.accent : undefined}
                             style={{ flex: 1, minWidth: 100, height: 36 }}
@@ -718,24 +730,24 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     </View>
 
                     <View style={styles.row}>
-                        <StylizedButton 
-                            text="Quick Match" 
-                            onClick={() => handleQuickMatch(selectedMode)} 
+                        <StylizedButton
+                            text={t("mp.quickMatch")}
+                            onClick={() => handleQuickMatch(selectedMode)}
                             backgroundColor={selectedMode === GameModeType.Chaos ? cssColors.pitchBlack : currentTheme.buttonPrimary} 
                             borderColor={selectedMode === GameModeType.Chaos ? "white" : undefined}
                             style={{ flex: 1, minWidth: 100, height: 36 }}
                             textStyle={{ fontSize: isMobile ? 11 : 13 }}
                         />
-                        <StylizedButton 
-                            text="Create Room" 
-                            onClick={() => handleCreateRoom(selectedMode)} 
+                        <StylizedButton
+                            text={t("mp.createRoom")}
+                            onClick={() => handleCreateRoom(selectedMode)}
                             backgroundColor={cssColors.pink} 
                             style={{ flex: 1, minWidth: 100, height: 36 }}
                             textStyle={{ fontSize: isMobile ? 11 : 13 }}
                         />
                     </View>
 
-                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary, marginTop: 10, alignSelf: 'center' }]}>Join with Code:</Text>
+                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary, marginTop: 10, alignSelf: 'center' }]}>{t("mp.joinWithCode")}</Text>
                     <View style={[styles.joinContainer, { borderColor: currentTheme.textSecondary, borderTopWidth: 0, paddingTop: 0, marginTop: 4, paddingBottom: 8 }]}>
                         <TextInput
                             style={[styles.codeInput, {
@@ -747,12 +759,12 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             }]}
                             value={joinCode}
                             onChangeText={setJoinCode}
-                            placeholder="ROOM CODE"
+                            placeholder={t("mp.roomCodePlaceholder")}
                             placeholderTextColor={currentTheme.textSecondary}
                             autoCapitalize="characters"
                             maxLength={6}
                         />
-                        <StylizedButton text="Join" onClick={handleJoinRoom} backgroundColor={currentTheme.buttonPrimary} style={{ minWidth: 100, height: 32 }} textStyle={{ fontSize: 13 }} />
+                        <StylizedButton text={t("mp.join")} onClick={handleJoinRoom} backgroundColor={currentTheme.buttonPrimary} style={{ minWidth: 100, height: 32 }} textStyle={{ fontSize: 13 }} />
                     </View>
 
                     <View style={styles.publicRoomsHeaderRow}>
@@ -761,10 +773,10 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             styles.publicRoomsHeaderText,
                             { color: currentTheme.textSecondary }
                         ]}>
-                            Public Rooms:
+                            {t("mp.publicRooms")}
                         </Text>
                         <StylizedButton
-                            text={refreshingPublicRooms ? "..." : "Refresh"}
+                            text={refreshingPublicRooms ? "..." : t("mp.refresh")}
                             onClick={handleRefreshPublicRooms}
                             backgroundColor={currentTheme.buttonSecondary}
                             disabled={refreshingPublicRooms}
@@ -774,7 +786,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     </View>
                     <ScrollView style={[styles.publicRoomsList, { borderColor: currentTheme.textSecondary }]} nestedScrollEnabled={true}>
                         {publicRooms.length === 0 ? (
-                            <Text style={[styles.noRoomsText, { color: currentTheme.textSecondary }]}>No public rooms active.</Text>
+                            <Text style={[styles.noRoomsText, { color: currentTheme.textSecondary }]}>{t("mp.noRooms")}</Text>
                         ) : (
                             publicRooms.map((room) => {
                                 const isMyRoom = room.player1_id === playerId;
@@ -782,26 +794,26 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                     <View key={room.id} style={[styles.roomRow, { backgroundColor: 'rgba(0,0,0,0.2)' }]}>
                                         <View style={{ flex: 1 }}>
                                             <Text style={[styles.roomNameText, { color: currentTheme.textPrimary }]}>
-                                                {room.player1_name}'s Room
+                                                {t("mp.playersRoom", { name: room.player1_name })}
                                             </Text>
                                             <Text style={[styles.roomSubText, { color: currentTheme.textSecondary }]}>
-                                                Mode: {room.game_mode.toUpperCase()} | Status: {room.status}
+                                                {t("mp.roomMeta", { mode: room.game_mode.toUpperCase(), status: room.status })}
                                             </Text>
                                         </View>
                                         <View>
                                             {room.status === 'waiting' ? (
-                                                <StylizedButton 
-                                                    text={isMyRoom ? "Host" : "Join"} 
-                                                    onClick={() => !isMyRoom && handleJoinSpecificRoom(room)} 
+                                                <StylizedButton
+                                                    text={isMyRoom ? t("mp.host") : t("mp.join")}
+                                                    onClick={() => !isMyRoom && handleJoinSpecificRoom(room)}
                                                     backgroundColor={isMyRoom ? cssColors.spaceGray : currentTheme.buttonPrimary} 
                                                     disabled={isMyRoom}
                                                     style={{ minWidth: 80, height: 32 }}
                                                     textStyle={{ fontSize: 11 }}
                                                 />
                                             ) : (
-                                                <StylizedButton 
-                                                    text="Spectate" 
-                                                    onClick={() => handleSpectateRoom(room)} 
+                                                <StylizedButton
+                                                    text={t("mp.spectate")}
+                                                    onClick={() => handleSpectateRoom(room)}
                                                     backgroundColor={cssColors.pink} 
                                                     style={{ minWidth: 80, height: 32 }}
                                                     textStyle={{ fontSize: 11 }}
@@ -848,7 +860,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                         </View>
                                         {details.nextTier && (
                                             <Text style={styles.eloCardNext}>
-                                                {details.nextTier.min - playerElo} to {details.nextTier.tier} <Text style={styles.inlineEmojiText}>{details.nextTier.icon}</Text>
+                                                {t("mp.cardToTier", { points: details.nextTier.min - playerElo, tier: details.nextTier.tier, icon: "" }).trimEnd()} <Text style={styles.inlineEmojiText}>{details.nextTier.icon}</Text>
                                             </Text>
                                         )}
                                     </>
@@ -857,14 +869,14 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         </Pressable>
                     </View>
 
-                    <StylizedButton text="Back" onClick={popAppState} backgroundColor={cssColors.spaceGray} />
+                    <StylizedButton text={t("mp.back")} onClick={popAppState} backgroundColor={cssColors.spaceGray} />
                 </Animated.View>
             )}
 
             {lobbyState === 'idle' && showEloScreen && (
                 <Animated.View entering={FadeIn} style={styles.contentContainer}>
                     <View style={styles.eloScreenHeader}>
-                        <Text style={[styles.header, { color: currentTheme.textPrimary, marginBottom: 5 }]}>My Rating</Text>
+                        <Text style={[styles.header, { color: currentTheme.textPrimary, marginBottom: 5 }]}>{t("mp.myRating")}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                             <Text style={[styles.eloEmojiText, { fontSize: 40 }]}>{getEloDetails(playerElo).currentTier.icon}</Text>
                             <View>
@@ -872,7 +884,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                     {getEloBadge(playerElo).tier}
                                 </Text>
                                 <Text style={[styles.eloDetailValue, { color: currentTheme.textPrimary }]}>
-                                    {playerElo} ELO
+                                    {t("mp.eloValue", { elo: playerElo })}
                                 </Text>
                             </View>
                         </View>
@@ -884,13 +896,13 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         </View>
                         {getEloDetails(playerElo).nextTier && (
                             <Text style={[styles.eloDetailNext, { color: currentTheme.textSecondary }]}>
-                                {getEloDetails(playerElo).nextTier!.min - playerElo} points to {getEloDetails(playerElo).nextTier!.tier}
+                                {t("mp.pointsToTier", { points: getEloDetails(playerElo).nextTier!.min - playerElo, tier: getEloDetails(playerElo).nextTier!.tier })}
                             </Text>
                         )}
                     </View>
 
                     <Text style={[styles.subHeader, { color: currentTheme.textSecondary, marginTop: 16, marginBottom: 8, alignSelf: 'center', marginLeft: 0 }]}>
-                        Rating Tiers
+                        {t("mp.ratingTiers")}
                     </Text>
                     <ScrollView style={styles.eloTierList} nestedScrollEnabled={true}>
                         {ELO_TIERS.map((tierInfo) => {
@@ -903,10 +915,10 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                     <Text style={[styles.eloEmojiText, { fontSize: 24 }]}>{tierInfo.icon}</Text>
                                     <View style={{ flex: 1, marginLeft: 10 }}>
                                         <Text style={[styles.eloTierName, { color: isCurrent ? tierInfo.color : currentTheme.textPrimary }]}>
-                                            {tierInfo.tier}{isCurrent ? ' (You are here)' : ''}
+                                            {tierInfo.tier}{isCurrent ? t("mp.youAreHere") : ''}
                                         </Text>
                                         <Text style={[styles.eloTierRange, { color: currentTheme.textSecondary }]}>
-                                            {tierInfo.min} – {tierInfo.max === 2000 ? '2000+' : tierInfo.max} ELO
+                                            {t("mp.tierRange", { min: tierInfo.min, max: tierInfo.max === 2000 ? t("mp.maxRange") : tierInfo.max })}
                                         </Text>
                                     </View>
                                 </View>
@@ -915,25 +927,25 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     </ScrollView>
 
                     <View style={styles.eloInfoBox}>
-                        <Text style={[styles.eloInfoTitle, { color: currentTheme.accent }]}>How ELO Works</Text>
+                        <Text style={[styles.eloInfoTitle, { color: currentTheme.accent }]}>{t("mp.howEloTitle")}</Text>
                         <Text style={[styles.eloInfoText, { color: currentTheme.textSecondary }]}>
-                            Win a match to gain ELO. Lose and you lose ELO. Your skill tier is determined by your rating. Climb the ranks from Bronze to Legend!
+                            {t("mp.howEloText")}
                         </Text>
                     </View>
 
-                    <StylizedButton text="Back" onClick={() => setShowEloScreen(false)} backgroundColor={cssColors.spaceGray} />
+                    <StylizedButton text={t("mp.back")} onClick={() => setShowEloScreen(false)} backgroundColor={cssColors.spaceGray} />
                 </Animated.View>
             )}
 
             {lobbyState === 'idle' && showEloLeaderboard && (
                 <Animated.View entering={FadeIn} style={styles.contentContainer}>
-                    <Text style={[styles.header, { color: currentTheme.textPrimary, marginBottom: 8 }]}>ELO Leaderboard</Text>
+                    <Text style={[styles.header, { color: currentTheme.textPrimary, marginBottom: 8 }]}>{t("mp.eloLeaderboard")}</Text>
                     <View style={styles.eloLeaderboardTopRow}>
                         <Text style={[styles.eloLeaderboardSub, { color: currentTheme.textSecondary }]}>
-                            Top 100 Players
+                            {t("mp.top100")}
                         </Text>
                         <StylizedButton
-                            text={loadingLeaderboard ? "..." : "Refresh"}
+                            text={loadingLeaderboard ? "..." : t("mp.refresh")}
                             onClick={loadEloLeaderboard}
                             backgroundColor={currentTheme.buttonSecondary}
                             disabled={loadingLeaderboard}
@@ -944,9 +956,9 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
 
                     <View style={styles.eloLeaderboardHeader}>
                         <Text style={[styles.eloLBHText, { color: currentTheme.textSecondary, flex: 0.4 }]}>#</Text>
-                        <Text style={[styles.eloLBHText, { color: currentTheme.textSecondary, flex: 2 }]}>Player</Text>
-                        <Text style={[styles.eloLBHText, { color: currentTheme.textSecondary, flex: 0.8, textAlign: 'right' }]}>Tier</Text>
-                        <Text style={[styles.eloLBHText, { color: currentTheme.textSecondary, flex: 0.8, textAlign: 'right' }]}>ELO</Text>
+                        <Text style={[styles.eloLBHText, { color: currentTheme.textSecondary, flex: 2 }]}>{t("mp.player")}</Text>
+                        <Text style={[styles.eloLBHText, { color: currentTheme.textSecondary, flex: 0.8, textAlign: 'right' }]}>{t("mp.tier")}</Text>
+                        <Text style={[styles.eloLBHText, { color: currentTheme.textSecondary, flex: 0.8, textAlign: 'right' }]}>{t("mp.elo")}</Text>
                     </View>
 
                     {loadingLeaderboard ? (
@@ -955,7 +967,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         <ScrollView style={styles.eloLeaderboardList} nestedScrollEnabled={true}>
                             {topEloList.length === 0 ? (
                                 <Text style={[styles.noRoomsText, { color: currentTheme.textSecondary }]}>
-                                    No ratings yet. Play multiplayer matches!
+                                    {t("mp.noRatings")}
                                 </Text>
                             ) : (
                                 topEloList.map((entry, index) => {
@@ -974,7 +986,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                                  flex: 2,
                                                  fontFamily: isMe ? 'SilkscreenBold' : 'Silkscreen',
                                              }]} numberOfLines={1}>
-                                                {entry.player_name}{isMe ? ' (You)' : ''}
+                                                {entry.player_name}{isMe ? t("mp.you") : ''}
                                             </Text>
                                             <View style={[styles.eloLBBadge, { backgroundColor: badge.color, flex: 0.8, alignSelf: 'center' }]}>
                                                 <View style={styles.eloLBBadgeContent}>
@@ -992,39 +1004,39 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         </ScrollView>
                     )}
 
-                    <StylizedButton text="Back" onClick={() => setShowEloLeaderboard(false)} backgroundColor={cssColors.spaceGray} />
+                    <StylizedButton text={t("mp.back")} onClick={() => setShowEloLeaderboard(false)} backgroundColor={cssColors.spaceGray} />
                 </Animated.View>
             )}
 
             {lobbyState === 'searching' && (
                 <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.waitingContainer}>
-                    <Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>Searching Match</Text>
-                    <Text style={[styles.waitingSub, { color: currentTheme.textSecondary }]}>Mode: {gameMode.toUpperCase()}</Text>
+                    <Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>{t("mp.searchingMatch")}</Text>
+                    <Text style={[styles.waitingSub, { color: currentTheme.textSecondary }]}>{t("mp.modeLabel", { mode: gameMode.toUpperCase() })}</Text>
                     <ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 30 }} />
-                    <StylizedButton text="Cancel" onClick={cleanupLobby} backgroundColor={cssColors.spaceGray} />
+                    <StylizedButton text={t("mp.cancel")} onClick={cleanupLobby} backgroundColor={cssColors.spaceGray} />
                 </Animated.View>
             )}
 
             {lobbyState === 'hosting' && (
                 <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.waitingContainer}>
-                    <Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>Room Created</Text>
-                    <Text style={[styles.waitingSub, { color: currentTheme.textSecondary }]}>Share code with a friend:</Text>
-                    
+                    <Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>{t("mp.roomCreated")}</Text>
+                    <Text style={[styles.waitingSub, { color: currentTheme.textSecondary }]}>{t("mp.shareCode")}</Text>
+
                     <View style={[styles.codeDisplayContainer, isMobile && { width: '95%' }]}>
                         <Text style={[styles.codeText, { color: currentTheme.accent }, isMobile && { fontSize: 24 }]} adjustsFontSizeToFit numberOfLines={1}>{roomCode}</Text>
-                        <StylizedButton text="Copy" onClick={copyToClipboard} backgroundColor={currentTheme.buttonPrimary} style={{ width: 100 }} />
+                        <StylizedButton text={t("mp.copy")} onClick={copyToClipboard} backgroundColor={currentTheme.buttonPrimary} style={{ width: 100 }} />
                     </View>
 
-                    <Text style={[styles.waitingStatus, { color: currentTheme.textSecondary }]}>Waiting for friend to join...</Text>
+                    <Text style={[styles.waitingStatus, { color: currentTheme.textSecondary }]}>{t("mp.waitingFriend")}</Text>
                     <ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 20 }} />
-                    
-                    <StylizedButton text="Cancel" onClick={cleanupLobby} backgroundColor={cssColors.spaceGray} />
+
+                    <StylizedButton text={t("mp.cancel")} onClick={cleanupLobby} backgroundColor={cssColors.spaceGray} />
                 </Animated.View>
             )}
 
             {lobbyState === 'joining' && (
                 <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.waitingContainer}>
-                    <Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>Connecting...</Text>
+                    <Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>{t("mp.connecting")}</Text>
                     <ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 30 }} />
                 </Animated.View>
             )}

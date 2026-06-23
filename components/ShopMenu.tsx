@@ -13,12 +13,13 @@ import {
 } from "@/constants/Shop";
 import { useSoundSettings } from "@/constants/Sound";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
+import { useLanguage } from "@/constants/Localization";
 
-const CATEGORIES: { id: ShopCategory; label: string }[] = [
-	{ id: "piece_skin", label: "Pieces" },
-	{ id: "background", label: "Background" },
-	{ id: "music", label: "Music" },
-	{ id: "sfx", label: "Sounds" },
+const CATEGORIES: { id: ShopCategory; labelKey: string }[] = [
+	{ id: "piece_skin", labelKey: "shop.category.pieces" },
+	{ id: "background", labelKey: "shop.category.background" },
+	{ id: "music", labelKey: "shop.category.music" },
+	{ id: "sfx", labelKey: "shop.category.sounds" },
 ];
 
 export default function ShopMenu() {
@@ -26,10 +27,11 @@ export default function ShopMenu() {
 	const { currentTheme } = useTheme();
 	const { state, equip, purchaseAndEquip } = useShopState();
 	const { playSfx } = useSoundSettings();
+	const { t } = useLanguage();
 	const { width } = useWindowDimensions();
 	const isMobile = width < 620;
 	const [activeCategory, setActiveCategory] = useState<ShopCategory>("piece_skin");
-	const [message, setMessage] = useState("Earn coins after solo games. Spend them here.");
+	const [message, setMessage] = useState(t("shop.caption"));
 
 	const items = useMemo(
 		() => getVisibleShopItemsByCategory(activeCategory, state.ownedItemIds),
@@ -61,10 +63,10 @@ export default function ShopMenu() {
 
 		if (result.ok) {
 			playSfx("menuClick");
-			setMessage(isOwned ? `${item.title} equipped.` : `${item.title} bought and equipped.`);
+			setMessage(isOwned ? t("shop.equippedMsg", { name: item.title }) : t("shop.boughtMsg", { name: item.title }));
 		} else {
 			playSfx("invalidPlacement");
-			setMessage(result.error ?? "Could not buy this item.");
+			setMessage(result.error ?? t("shop.couldNotBuy"));
 		}
 	};
 
@@ -76,15 +78,15 @@ export default function ShopMenu() {
 			<View style={styles.header}>
 				<View style={styles.topBar}>
 					<StylizedButton
-						text="Back"
+						text={t("shop.back")}
 						onClick={close}
 						backgroundColor={currentTheme.buttonSecondary}
 						style={styles.topBackButton}
 						textStyle={styles.topBackButtonText}
 					/>
 					<View style={styles.headerTitleBlock}>
-						<Text style={[styles.title, { color: currentTheme.textPrimary }]}>Shop</Text>
-						<Text style={[styles.balance, { color: currentTheme.accent }]}>Coins: {state.balance}</Text>
+						<Text style={[styles.title, { color: currentTheme.textPrimary }]}>{t("shop.title")}</Text>
+						<Text style={[styles.balance, { color: currentTheme.accent }]}>{t("shop.coins", { count: state.balance })}</Text>
 					</View>
 					<View style={styles.topBarSpacer} />
 				</View>
@@ -107,7 +109,7 @@ export default function ShopMenu() {
 							]}
 						>
 							<Text style={[styles.tabText, { color: selected ? "white" : currentTheme.textSecondary }]}>
-								{category.label}
+								{t(category.labelKey)}
 							</Text>
 						</Pressable>
 					);
@@ -115,7 +117,7 @@ export default function ShopMenu() {
 			</View>
 
 			<View style={styles.equippedRow}>
-				<Text style={[styles.equippedLabel, { color: currentTheme.textSecondary }]}>Equipped</Text>
+				<Text style={[styles.equippedLabel, { color: currentTheme.textSecondary }]}>{t("shop.equipped")}</Text>
 				<Text style={[styles.equippedValue, { color: currentTheme.textPrimary }]} numberOfLines={1}>
 					{equippedItem.title}
 				</Text>
@@ -135,11 +137,11 @@ export default function ShopMenu() {
 			</View>
 
 			<Text style={[styles.catalogCount, { color: currentTheme.textSecondary }]}>
-				{visibleCatalogCount} cosmetics available
+				{t("shop.catalogCount", { count: visibleCatalogCount })}
 			</Text>
 
 			<StylizedButton
-				text="Back"
+				text={t("shop.back")}
 				onClick={close}
 				backgroundColor={currentTheme.buttonSecondary}
 				style={isMobile && styles.mobileBackButton}
@@ -163,7 +165,12 @@ function ShopItemCard({
 	onPress: () => void;
 }) {
 	const { currentTheme } = useTheme();
-	const buttonText = isEquipped ? "Equipped" : isOwned ? "Equip" : item.price === 0 ? "Equip" : `Buy ${item.price}`;
+	const { t } = useLanguage();
+	const buttonText = isEquipped
+		? t("shop.equipped")
+		: isOwned || item.price === 0
+			? t("shop.equip")
+			: t("shop.buy", { price: item.price });
 	const disabled = isEquipped || (!isOwned && !canAfford);
 
 	return (
@@ -182,7 +189,7 @@ function ShopItemCard({
 				{item.description}
 			</Text>
 			<Text style={[styles.itemStatus, { color: isOwned ? item.accent : currentTheme.textSecondary }]}>
-				{isOwned ? "Owned" : `${item.price} coins`}
+				{isOwned ? t("shop.owned") : t("shop.price", { price: item.price })}
 			</Text>
 			<StylizedButton
 				text={buttonText}

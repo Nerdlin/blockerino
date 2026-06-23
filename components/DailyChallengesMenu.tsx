@@ -10,6 +10,7 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { shouldCheckConnectionBeforeStart } from "@/constants/GameStart";
 import { CHALLENGE_MODE_CARDS, ChallengeCard, getGameModeConfig } from "@/constants/GameModes";
+import { useLanguage } from "@/constants/Localization";
 
 type BestScoreMap = Partial<Record<GameModeType, number>>;
 
@@ -19,6 +20,7 @@ function isPlayableCard(card: ChallengeCard): card is Extract<ChallengeCard, { t
 
 export default function DailyChallengesMenu() {
     const { currentTheme } = useTheme();
+    const { t } = useLanguage();
     const [, setAppState, , popAppState] = useAppState();
     const { width } = useWindowDimensions();
     const isMobile = width < 600;
@@ -110,13 +112,13 @@ export default function DailyChallengesMenu() {
 
                 <View style={[styles.cardAction, isMobile && styles.mobileCardAction]}>
                     <Text style={[styles.bestScoreText, { color: currentTheme.textSecondary }]}>
-                        Best
+                        {t("ch.best")}
                     </Text>
                     <Text style={[styles.bestScoreValue, { color: currentTheme.accent }]} numberOfLines={1} adjustsFontSizeToFit>
                         {isPlayable ? bestScore : "-"}
                     </Text>
                     <StylizedButton
-                        text={isPlayable ? (isChecking ? "Checking" : config?.challenge?.buttonText ?? "Play") : "Next"}
+                        text={isPlayable ? (isChecking ? t("ch.checking") : config?.challenge?.buttonText ?? t("ch.play")) : t("ch.next")}
                         onClick={isPlayable ? () => startMode(card.mode) : undefined}
                         backgroundColor={isPlayable ? color : cssColors.spaceGray}
                         disabled={!isPlayable || isChecking}
@@ -134,10 +136,10 @@ export default function DailyChallengesMenu() {
             isMobile && { width: "92%", height: "90%", paddingHorizontal: 8 }
         ]}>
             <Animated.View entering={FadeIn} style={styles.contentContainer}>
-                <StylizedButton text="Back" onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.backBtn} />
+                <StylizedButton text={t("ch.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.backBtn} />
 
-                <Text style={[styles.header, { color: currentTheme.textPrimary }]}>Challenges</Text>
-                <Text style={[styles.subHeader, { color: currentTheme.textSecondary }]}>Daily tests, speed runs, and tactical trials</Text>
+                <Text style={[styles.header, { color: currentTheme.textPrimary }]}>{t("ch.header")}</Text>
+                <Text style={[styles.subHeader, { color: currentTheme.textSecondary }]}>{t("ch.subHeader")}</Text>
 
                 <View style={styles.challengeList}>
                     {CHALLENGE_MODE_CARDS.map(renderCard)}

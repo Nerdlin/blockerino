@@ -204,7 +204,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "move_planner",
-		medal: "ML",
+		medal: "🧠",
 		title: "Move Planner",
 		target: 1000,
 		howToUnlock: "Reach 1000 points in Move Limit.",
@@ -228,7 +228,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "solo_grinder",
-		medal: "S100",
+		medal: "🥉",
 		title: "Solo Grinder",
 		target: 100,
 		howToUnlock: "Finish 100 solo games.",
@@ -236,7 +236,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "solo_veteran",
-		medal: "S250",
+		medal: "🎖️",
 		title: "Solo Veteran",
 		target: 250,
 		howToUnlock: "Finish 250 solo games.",
@@ -244,7 +244,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "line_engineer",
-		medal: "L500",
+		medal: "⚙️",
 		title: "Line Engineer",
 		target: 500,
 		howToUnlock: "Clear 500 rows or columns.",
@@ -252,7 +252,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "line_tycoon",
-		medal: "L1K",
+		medal: "🔗",
 		title: "Line Tycoon",
 		target: 1000,
 		howToUnlock: "Clear 1000 rows or columns.",
@@ -260,7 +260,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "line_myth",
-		medal: "L2K",
+		medal: "🌟",
 		title: "Line Myth",
 		target: 2500,
 		howToUnlock: "Clear 2500 rows or columns.",
@@ -268,7 +268,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "piece_builder",
-		medal: "P2K",
+		medal: "🏛️",
 		title: "Piece Builder",
 		target: 2500,
 		howToUnlock: "Place 2500 pieces.",
@@ -276,7 +276,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "piece_factory",
-		medal: "P5K",
+		medal: "🏭",
 		title: "Piece Factory",
 		target: 5000,
 		howToUnlock: "Place 5000 pieces.",
@@ -284,7 +284,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "piece_city",
-		medal: "P10K",
+		medal: "🌆",
 		title: "Piece City",
 		target: 10000,
 		howToUnlock: "Place 10000 pieces.",
@@ -292,7 +292,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_titan",
-		medal: "25K",
+		medal: "⭐",
 		title: "Score Titan",
 		target: 25000,
 		howToUnlock: "Reach 25000 points in one solo game.",
@@ -300,7 +300,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_myth",
-		medal: "50K",
+		medal: "💫",
 		title: "Score Myth",
 		target: 50000,
 		howToUnlock: "Reach 50000 points in one solo game.",
@@ -308,7 +308,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "classic_peak",
-		medal: "CL10",
+		medal: "♟️",
 		title: "Classic Peak",
 		target: 10000,
 		howToUnlock: "Reach 10000 points in Classic.",
@@ -316,7 +316,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "classic_orbit",
-		medal: "CL20",
+		medal: "🎴",
 		title: "Classic Orbit",
 		target: 20000,
 		howToUnlock: "Reach 20000 points in Classic.",
@@ -324,7 +324,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "chaos_overlord",
-		medal: "CH10",
+		medal: "🌋",
 		title: "Chaos Overlord",
 		target: 10000,
 		howToUnlock: "Reach 10000 points in Chaos.",
@@ -332,7 +332,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "speed_flash",
-		medal: "SP5",
+		medal: "⏱️",
 		title: "Speed Flash",
 		target: 5000,
 		howToUnlock: "Reach 5000 points in Speed mode.",
@@ -340,7 +340,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "speed_blazer",
-		medal: "SP7",
+		medal: "💨",
 		title: "Speed Blazer",
 		target: 7500,
 		howToUnlock: "Reach 7500 points in Speed mode.",
@@ -348,7 +348,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "daily_regular",
-		medal: "D2K",
+		medal: "📆",
 		title: "Daily Regular",
 		target: 2500,
 		howToUnlock: "Reach 2500 points in Daily Puzzle.",
@@ -356,7 +356,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "daily_elite",
-		medal: "D5K",
+		medal: "🗓️",
 		title: "Daily Elite",
 		target: 5000,
 		howToUnlock: "Reach 5000 points in Daily Puzzle.",
@@ -364,7 +364,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "move_tactician",
-		medal: "ML2",
+		medal: "🧭",
 		title: "Move Tactician",
 		target: 2000,
 		howToUnlock: "Reach 2000 points in Move Limit.",
@@ -372,7 +372,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "move_mastermind",
-		medal: "ML4",
+		medal: "👑",
 		title: "Move Mastermind",
 		target: 4000,
 		howToUnlock: "Reach 4000 points in Move Limit.",
@@ -380,7 +380,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_vault",
-		medal: "ALL",
+		medal: "🏦",
 		title: "Score Vault",
 		target: 15000,
 		howToUnlock: "Build a 15000-point best-score total across modes.",

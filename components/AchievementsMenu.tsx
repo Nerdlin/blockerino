@@ -8,9 +8,11 @@ import { AchievementRow, getAchievementRows } from "@/constants/Achievements";
 import { useAppState } from "@/hooks/useAppState";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useShopState } from "@/constants/Shop";
+import { useLanguage } from "@/constants/Localization";
 
 export default function AchievementsMenu() {
 	const { currentTheme } = useTheme();
+	const { t } = useLanguage();
 	const [, , , popAppState] = useAppState();
 	const { width } = useWindowDimensions();
 	const isMobile = width < 600;
@@ -64,10 +66,10 @@ export default function AchievementsMenu() {
 			{ backgroundColor: currentTheme.menuBackground, height: "88%" },
 			isMobile && { width: "92%", height: "88%", paddingHorizontal: 8 },
 		]}>
-			<Text style={[styles.header, { color: currentTheme.textPrimary }]}>Achievements</Text>
+			<Text style={[styles.header, { color: currentTheme.textPrimary }]}>{t("ach.header")}</Text>
 			{!loading && (
 				<Text style={[styles.summary, { color: currentTheme.textSecondary }]}>
-					Completed {completedCount}/{achievements.length}
+					{t("ach.completed", { done: completedCount, total: achievements.length })}
 				</Text>
 			)}
 			{secretMessage && (
@@ -119,7 +121,7 @@ export default function AchievementsMenu() {
 									</View>
 									<View style={styles.titleBlock}>
 										<Text style={[styles.title, { color: currentTheme.textPrimary }]} numberOfLines={1}>
-											{achievement.title}
+											{t(`ach.${achievement.id}.title`)}
 										</Text>
 										<Text style={[styles.progress, { color: achievement.progress.complete ? currentTheme.accent : currentTheme.textSecondary }]}>
 											{achievement.progress.current}/{achievement.progress.target}
@@ -138,7 +140,7 @@ export default function AchievementsMenu() {
 									</View>
 								</View>
 								<Text style={[styles.howTo, { color: currentTheme.textSecondary }]}>
-									{achievement.howToUnlock}
+									{t(`ach.${achievement.id}.unlock`)}
 								</Text>
 							</Pressable>
 						);
@@ -148,14 +150,14 @@ export default function AchievementsMenu() {
 
 			<View style={styles.buttons}>
 				<StylizedButton
-					text="Refresh"
+					text={t("ach.refresh")}
 					onClick={loadAchievements}
 					backgroundColor={currentTheme.buttonPrimary}
 					style={styles.button}
 					textStyle={styles.buttonText}
 				/>
 				<StylizedButton
-					text="Back"
+					text={t("ach.back")}
 					onClick={popAppState}
 					backgroundColor={cssColors.spaceGray}
 					style={styles.button}
@@ -217,7 +219,7 @@ const styles = StyleSheet.create({
 	medalText: {
 		width: "100%",
 		fontFamily: Platform.select({ web: "system-ui, Apple Color Emoji, Segoe UI Emoji, sans-serif" }),
-		fontSize: 18,
+		fontSize: 20,
 		textAlign: "center",
 	},
 	titleBlock: {

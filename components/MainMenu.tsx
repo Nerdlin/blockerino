@@ -10,6 +10,7 @@ import { shopStateAtom } from "@/constants/Shop";
 import { useAtomValue } from "jotai";
 import { shouldCheckConnectionBeforeStart } from "@/constants/GameStart";
 import PixelIcon from "./PixelIcon";
+import { useLanguage } from "@/constants/Localization";
 
 const logoBPiece: PieceData = {
 	matrix: [
@@ -43,6 +44,7 @@ function BlockerinoLogo({blockSize, style}: {blockSize: number, style: ViewStyle
 }
 
 export default function MainMenu() {
+	const { t } = useLanguage();
 	const [ , appendAppState ] = useSetAppState();
 	const { height } = useWindowDimensions();
 	const isShortScreen = height < 700;
@@ -61,7 +63,7 @@ export default function MainMenu() {
 			onPress={() => appendAppState(MenuStateType.SHOP)}
 			style={styles.shopButton}
 		>
-			<Text style={styles.shopButtonText}>SHOP</Text>
+			<Text style={styles.shopButtonText}>{t("mainmenu.shop")}</Text>
 			<Text style={styles.shopBalanceText}>{shopBalance}</Text>
 		</Pressable>
 
@@ -82,8 +84,8 @@ export default function MainMenu() {
 				startSoloMode(GameModeType.Classic);
 			}}
 			backgroundColor={cssColors.brightNiceRed}
-			title={"Classic 8x8"}
-			flavorText={"classical line breaking"}
+			title={t("mainmenu.classicTitle")}
+			flavorText={t("mainmenu.classicFlavor")}
 			idleBounce={true}
 		/>
 		<MainButton
@@ -91,8 +93,8 @@ export default function MainMenu() {
 				startSoloMode(GameModeType.Chaos);
 			}}
 			backgroundColor={cssColors.pitchBlack}
-			title={"Chaos !?"}
-			flavorText={"10x10, 5 piece hand!?"}
+			title={t("mainmenu.chaosTitle")}
+			flavorText={t("mainmenu.chaosFlavor")}
 			style={{ borderWidth: 2, borderColor: "rgb(50, 50, 50)" }}
 			textStyle={{ color: "white" }}
 			idleBounceRotate={true}
@@ -102,34 +104,34 @@ export default function MainMenu() {
 				appendAppState(MenuStateType.MULTIPLAYER);
 			}}
 			backgroundColor={cssColors.versusBlue}
-			title={"Versus 1v1"}
-			flavorText={"real-time duel"}
+			title={t("mainmenu.versusTitle")}
+			flavorText={t("mainmenu.versusFlavor")}
 		/>
 		<MainButton
 			onClick={() => {
 				appendAppState(MenuStateType.DAILY_CHALLENGES);
 			}}
 			backgroundColor={"#FFD700"}
-			title={"Challenges"}
-			flavorText={"daily, speed & move trials"}
+			title={t("mainmenu.challengesTitle")}
+			flavorText={t("mainmenu.challengesFlavor")}
 		/>
 		<MainButton
 			onClick={() => {
 				appendAppState(MenuStateType.MORE_GAMES);
 			}}
 			backgroundColor={"#38BDF8"}
-			title={"More Games"}
-			flavorText={"battle, cards, chess & puzzles"}
+			title={t("mainmenu.moreGamesTitle")}
+			flavorText={t("mainmenu.moreGamesFlavor")}
 		/>
 		<MainButton onClick = {() => {
 			appendAppState(MenuStateType.HIGH_SCORES)
-		}} backgroundColor={cssColors.pink} title={"High Scores"} />
+		}} backgroundColor={cssColors.pink} title={t("mainmenu.highScoresTitle")} />
 		<MainButton onClick = {() => {
 			appendAppState(MenuStateType.OPTIONS)
-		}} backgroundColor={cssColors.green} title={"Options"} />
+		}} backgroundColor={cssColors.green} title={t("mainmenu.optionsTitle")} />
 
 		<Animated.Text entering={FadeIn} style={styles.footer}>
-			beta version
+			{t("mainmenu.betaVersion")}
 		</Animated.Text>
 	</View>
 }

@@ -215,6 +215,8 @@ type HighScoreProfileRow = {
     player_name?: string;
     created_at?: string;
 } & Partial<Record<HighScoreColumn, number>>;
+const MISSING_HIGH_SCORE_COLUMN_RETRY_MS = 5 * 60 * 1000;
+const missingHighScoreColumnRetryAt: Partial<Record<HighScoreColumn, number>> = {};
 
 function getHighScoreColumnsSelect(scoreColumn: HighScoreColumn): string {
     return `id, player_name, created_at, ${scoreColumn}`;
@@ -235,12 +237,30 @@ function isMissingHighScoreColumnError(error: unknown, scoreColumn: HighScoreCol
     );
 }
 
+function isHighScoreColumnTemporarilyUnavailable(scoreColumn: HighScoreColumn): boolean {
+    const retryAt = missingHighScoreColumnRetryAt[scoreColumn];
+    if (!retryAt) return false;
+
+    if (Date.now() >= retryAt) {
+        delete missingHighScoreColumnRetryAt[scoreColumn];
+        return false;
+    }
+
+    return true;
+}
+
+function rememberMissingHighScoreColumn(scoreColumn: HighScoreColumn): void {
+    missingHighScoreColumnRetryAt[scoreColumn] = Date.now() + MISSING_HIGH_SCORE_COLUMN_RETRY_MS;
+}
+
 export async function getGlobalHighScores(
     gameMode: string,
     limit: number = 10
 ): Promise<GlobalHighScore[]> {
     try {
         const scoreColumn = getHighScoreColumn(gameMode);
+        if (isHighScoreColumnTemporarilyUnavailable(scoreColumn)) return [];
+
         const { data, error } = await supabase
             .from('profiles')
             .select(getHighScoreColumnsSelect(scoreColumn))
@@ -249,6 +269,7 @@ export async function getGlobalHighScores(
 
         if (error) {
             if (isMissingHighScoreColumnError(error, scoreColumn)) {
+                rememberMissingHighScoreColumn(scoreColumn);
                 return [];
             }
             console.error('Error fetching global high scores:', error);
@@ -294,6 +315,7 @@ export async function getPlayerGlobalHighScore(
 
         const escapedName = escapeIlike(finalPlayerName);
         const scoreColumn = getHighScoreColumn(gameMode);
+        if (isHighScoreColumnTemporarilyUnavailable(scoreColumn)) return null;
 
         const { data, error } = await supabase
             .from('profiles')
@@ -303,6 +325,7 @@ export async function getPlayerGlobalHighScore(
 
         if (error || !data || data.length === 0) {
             if (error && isMissingHighScoreColumnError(error, scoreColumn)) {
+                rememberMissingHighScoreColumn(scoreColumn);
                 return null;
             }
             return null;
@@ -327,6 +350,7 @@ export async function submitGlobalHighScore(
 
         const escapedName = escapeIlike(finalPlayerName);
         const scoreColumn = getHighScoreColumn(gameMode);
+        if (isHighScoreColumnTemporarilyUnavailable(scoreColumn)) return false;
 
         // Fetch existing profile
         const { data, error: fetchError } = await supabase
@@ -337,6 +361,7 @@ export async function submitGlobalHighScore(
 
         if (fetchError) {
             if (isMissingHighScoreColumnError(fetchError, scoreColumn)) {
+                rememberMissingHighScoreColumn(scoreColumn);
                 return false;
             }
             console.error('Error fetching existing score:', fetchError);
@@ -357,7 +382,12 @@ export async function submitGlobalHighScore(
                     })
                     .eq('id', existingRecord.id);
 
-                if (updateError) return false;
+                if (updateError) {
+                    if (isMissingHighScoreColumnError(updateError, scoreColumn)) {
+                        rememberMissingHighScoreColumn(scoreColumn);
+                    }
+                    return false;
+                }
             } else if (finalPlayerName !== existingRecord.player_name) {
                 const { error: updateError } = await supabase
                     .from('profiles')
@@ -376,7 +406,12 @@ export async function submitGlobalHighScore(
                     [scoreColumn]: score
                 }]);
 
-            if (insertError) return false;
+            if (insertError) {
+                if (isMissingHighScoreColumnError(insertError, scoreColumn)) {
+                    rememberMissingHighScoreColumn(scoreColumn);
+                }
+                return false;
+            }
             return true;
         }
     } catch (error) {
@@ -477,6 +512,183 @@ export async function getTopEloRatings(limit: number = 100): Promise<EloRating[]
 }
 
 // Проверить, попал ли счет в топ N
+export type MoreGameRatingGameId = 'battleship' | 'durak' | 'chess' | 'tictactoe' | 'sudoku' | 'mahjong';
+export type MoreGameMatchResult = 'player1' | 'player2' | 'draw';
+
+export interface MoreGameRating {
+    id?: string;
+    game_id: MoreGameRatingGameId;
+    player_key?: string;
+    player_name: string;
+    elo: number;
+    wins: number;
+    losses: number;
+    draws: number;
+    games_played: number;
+    last_result?: 'win' | 'loss' | 'draw' | null;
+    last_played_at?: string | null;
+    updated_at?: string | null;
+}
+
+export interface MoreGameRatingResult extends MoreGameRating {
+    old_elo?: number;
+    elo_change?: number;
+}
+
+function normalizeMoreGameName(playerName: string): string {
+    return playerName.trim().slice(0, 24);
+}
+
+function isMoreGameRatingsUnavailable(error: unknown): boolean {
+    const err = error as { code?: string; message?: string; details?: string; hint?: string } | null;
+    const message = `${err?.code || ''} ${err?.message || ''} ${err?.details || ''} ${err?.hint || ''}`.toLowerCase();
+    return message.includes('more_game_ratings') ||
+        message.includes('record_more_game_match') ||
+        message.includes('record_more_game_solo_result') ||
+        message.includes('pgrst202') ||
+        message.includes('42p01') ||
+        message.includes('does not exist') ||
+        message.includes('could not find');
+}
+
+export async function getMoreGameLeaderboard(
+    gameId: MoreGameRatingGameId,
+    limit: number = 100
+): Promise<MoreGameRating[]> {
+    try {
+        const { data, error } = await supabase
+            .from('more_game_ratings')
+            .select('id, game_id, player_key, player_name, elo, wins, losses, draws, games_played, last_result, last_played_at, updated_at')
+            .eq('game_id', gameId)
+            .order('elo', { ascending: false })
+            .order('updated_at', { ascending: false })
+            .limit(limit);
+
+        if (error) {
+            if (!isMoreGameRatingsUnavailable(error)) {
+                console.error('Error fetching more game leaderboard:', error);
+            }
+            return [];
+        }
+
+        return (data || []) as MoreGameRating[];
+    } catch (error) {
+        console.error('Error fetching more game leaderboard:', error);
+        return [];
+    }
+}
+
+export async function getPlayerMoreGameRating(
+    playerName: string,
+    gameId: MoreGameRatingGameId
+): Promise<MoreGameRating | null> {
+    try {
+        const finalPlayerName = normalizeMoreGameName(playerName);
+        if (!finalPlayerName) return null;
+
+        const { data, error } = await supabase
+            .from('more_game_ratings')
+            .select('id, game_id, player_key, player_name, elo, wins, losses, draws, games_played, last_result, last_played_at, updated_at')
+            .eq('game_id', gameId)
+            .eq('player_key', finalPlayerName.toLowerCase())
+            .limit(1);
+
+        if (error) {
+            if (!isMoreGameRatingsUnavailable(error)) {
+                console.error('Error fetching more game rating:', error);
+            }
+            return null;
+        }
+
+        return ((data || []) as MoreGameRating[])[0] || null;
+    } catch (error) {
+        console.error('Error fetching more game rating:', error);
+        return null;
+    }
+}
+
+export async function submitMoreGameMatchResult({
+    gameId,
+    player1Name,
+    player2Name,
+    result,
+    roomCode,
+    metadata = {},
+}: {
+    gameId: MoreGameRatingGameId;
+    player1Name: string;
+    player2Name: string;
+    result: MoreGameMatchResult;
+    roomCode?: string;
+    metadata?: Record<string, unknown>;
+}): Promise<MoreGameRatingResult[]> {
+    try {
+        const finalPlayer1Name = normalizeMoreGameName(player1Name);
+        const finalPlayer2Name = normalizeMoreGameName(player2Name);
+        if (!finalPlayer1Name || !finalPlayer2Name || finalPlayer1Name.toLowerCase() === finalPlayer2Name.toLowerCase()) return [];
+
+        const { data, error } = await supabase.rpc('record_more_game_match', {
+            p_game_id: gameId,
+            p_player1_name: finalPlayer1Name,
+            p_player2_name: finalPlayer2Name,
+            p_result: result,
+            p_room_code: roomCode || null,
+            p_metadata: metadata,
+        });
+
+        if (error) {
+            if (!isMoreGameRatingsUnavailable(error)) {
+                console.error('Error submitting more game match result:', error);
+            }
+            return [];
+        }
+
+        return (data || []) as MoreGameRatingResult[];
+    } catch (error) {
+        console.error('Error submitting more game match result:', error);
+        return [];
+    }
+}
+
+export async function submitMoreGameSoloResult({
+    gameId,
+    playerName,
+    won = true,
+    score,
+    metadata = {},
+}: {
+    gameId: Extract<MoreGameRatingGameId, 'sudoku' | 'mahjong'>;
+    playerName: string;
+    won?: boolean;
+    score?: number;
+    metadata?: Record<string, unknown>;
+}): Promise<MoreGameRatingResult | null> {
+    try {
+        const finalPlayerName = normalizeMoreGameName(playerName);
+        if (!finalPlayerName) return null;
+
+        const { data, error } = await supabase.rpc('record_more_game_solo_result', {
+            p_game_id: gameId,
+            p_player_name: finalPlayerName,
+            p_won: won,
+            p_score: typeof score === 'number' ? score : null,
+            p_metadata: metadata,
+        });
+
+        if (error) {
+            if (!isMoreGameRatingsUnavailable(error)) {
+                console.error('Error submitting more game solo result:', error);
+            }
+            return null;
+        }
+
+        return ((data || []) as MoreGameRatingResult[])[0] || null;
+    } catch (error) {
+        console.error('Error submitting more game solo result:', error);
+        return null;
+    }
+}
+
 export async function cleanupMatchmakingRooms(): Promise<boolean> {
     try {
         const { error } = await supabase.rpc(ROOM_CLEANUP_RPC);
@@ -543,6 +755,8 @@ export async function isTopScore(
 ): Promise<boolean> {
     try {
         const scoreColumn = getHighScoreColumn(gameMode);
+        if (isHighScoreColumnTemporarilyUnavailable(scoreColumn)) return false;
+
         const { data, error } = await supabase
             .from('profiles')
             .select(getHighScoreColumnsSelect(scoreColumn))
@@ -552,6 +766,7 @@ export async function isTopScore(
 
         if (error) {
             if (isMissingHighScoreColumnError(error, scoreColumn)) {
+                rememberMissingHighScoreColumn(scoreColumn);
                 return false;
             }
             console.error('Error checking top score:', error);

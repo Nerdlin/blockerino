@@ -10,6 +10,7 @@ import {
 	useSoundSettings,
 } from "@/constants/Sound";
 import { Theme, ThemeType, useTheme } from "@/constants/Theme";
+import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, useLanguage, type Language } from "@/constants/Localization";
 import Animated, { FadeIn } from "react-native-reanimated";
 import Slider from "@react-native-community/slider";
 import { clearActiveGame } from "@/constants/Storage";
@@ -35,6 +36,7 @@ export default function OptionsMenu() {
 	} = useSoundSettings();
 
 	const { currentTheme, changeTheme, loadTheme, availableThemes } = useTheme();
+	const { language, changeLanguage, loadLanguage, t } = useLanguage();
 	const { state: shopState } = useShopState();
 	const [customMusicUrl, setCustomMusicUrl] = useState("");
 	const [customSfxUrl, setCustomSfxUrl] = useState("");
@@ -55,7 +57,14 @@ export default function OptionsMenu() {
 	useEffect(() => {
 		initialize();
 		loadTheme();
+		loadLanguage();
 	}, []);
+
+	const handleLanguageChange = (next: Language) => {
+		if (next === language) return;
+		playSfx('menuClick');
+		void changeLanguage(next);
+	};
 
 	const handleButtonPress = useCallback(() => {
 		playSfx('menuClick');
@@ -105,7 +114,7 @@ export default function OptionsMenu() {
 			{ backgroundColor: currentTheme.menuBackground },
 			isMobile && { width: '92%', height: '85%', paddingHorizontal: 10 }
 		]}>
-			<Text style={[styles.sectionHeader, { color: currentTheme.textPrimary }]}>Settings</Text>
+			<Text style={[styles.sectionHeader, { color: currentTheme.textPrimary }]}>{t("settings.title")}</Text>
 
 			<ScrollView
 				style={styles.optionsScroll}
@@ -114,7 +123,7 @@ export default function OptionsMenu() {
 				showsVerticalScrollIndicator={false}
 			>
 				<View style={styles.settingSection}>
-					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>Sound</Text>
+					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>{t("settings.sound")}</Text>
 
 					<SettingLabel
 						title="Music"
@@ -202,7 +211,7 @@ export default function OptionsMenu() {
 				</View>
 
 				<View style={styles.settingSection}>
-					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>Theme</Text>
+					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>{t("settings.theme")}</Text>
 
 					<View style={styles.themesContainer}>
 						{availableThemes.map((theme) => (
@@ -213,6 +222,25 @@ export default function OptionsMenu() {
 								onPress={() => handleThemeChange(theme.id)}
 								isMobile={isMobile}
 							/>
+						))}
+					</View>
+				</View>
+
+				<View style={styles.settingSection}>
+					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>{t("settings.language")}</Text>
+					<Text style={[styles.settingDesc, { color: currentTheme.textSecondary, marginBottom: 10 }]}>{t("settings.languageDesc")}</Text>
+
+					<View style={styles.themesContainer}>
+						{SUPPORTED_LANGUAGES.map((lang) => (
+							<Animated.View key={lang} entering={FadeIn}>
+								<StylizedButton
+									text={LANGUAGE_LABELS[lang]}
+									onClick={() => handleLanguageChange(lang)}
+									backgroundColor={currentTheme.buttonPrimary}
+									borderColor={language === lang ? currentTheme.accent : "transparent"}
+									style={isMobile ? { minWidth: 110, margin: 4 } : { minWidth: 130, margin: 4 }}
+								/>
+							</Animated.View>
 						))}
 					</View>
 				</View>

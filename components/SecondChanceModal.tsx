@@ -5,6 +5,7 @@ import StylizedButton from "./StylizedButton";
 import { useTheme } from "@/constants/Theme";
 import { cssColors } from "@/constants/Color";
 import { SECOND_CHANCE_DECISION_SECONDS } from "@/constants/SecondChance";
+import { useLanguage } from "@/constants/Localization";
 
 export default function SecondChanceModal({
 	cost,
@@ -22,6 +23,7 @@ export default function SecondChanceModal({
 	onDecline: () => void;
 }) {
 	const { currentTheme } = useTheme();
+	const { t } = useLanguage();
 	const [secondsLeft, setSecondsLeft] = useState(SECOND_CHANCE_DECISION_SECONDS);
 	const notEnoughPoints = currentScore < cost;
 
@@ -44,24 +46,24 @@ export default function SecondChanceModal({
 
 	return (
 		<SimplePopupView style={[styles.popup, { backgroundColor: currentTheme.menuBackground }]}>
-			<Text style={[styles.title, { color: currentTheme.buttonPrimary }]}>Extra Chance?</Text>
-			<Text style={[styles.timer, { color: currentTheme.accent }]}>{secondsLeft}s</Text>
+			<Text style={[styles.title, { color: currentTheme.buttonPrimary }]}>{t("over.extraChance")}</Text>
+			<Text style={[styles.timer, { color: currentTheme.accent }]}>{t("over.seconds", { seconds: secondsLeft })}</Text>
 			<Text style={[styles.message, { color: currentTheme.textSecondary }]}>
-				{reason === "time" ? "Time ran out." : "No moves left."}
+				{reason === "time" ? t("over.timeRanOut") : t("over.noMovesLeft")}
 			</Text>
-			<Text style={[styles.cost, { color: notEnoughPoints ? cssColors.brightNiceRed : currentTheme.textSecondary }]}>-{cost} points</Text>
+			<Text style={[styles.cost, { color: notEnoughPoints ? cssColors.brightNiceRed : currentTheme.textSecondary }]}>{t("over.costPoints", { cost })}</Text>
 			{notEnoughPoints && (
 				<Text style={[styles.message, { color: cssColors.brightNiceRed, marginTop: 4 }]}>
-					Not enough points!
+					{t("over.notEnoughPoints")}
 				</Text>
 			)}
 			<Text style={[styles.remaining, { color: currentTheme.textSecondary }]}>
-				Chances left: {chancesRemaining}
+				{t("over.chancesLeft", { count: chancesRemaining })}
 			</Text>
 
 			<View style={styles.buttons}>
 				<StylizedButton
-					text="Continue"
+					text={t("over.continue")}
 					onClick={onAccept}
 					backgroundColor={currentTheme.buttonPrimary}
 					disabled={notEnoughPoints}
@@ -69,7 +71,7 @@ export default function SecondChanceModal({
 					textStyle={styles.buttonText}
 				/>
 				<StylizedButton
-					text="No"
+					text={t("over.no")}
 					onClick={onDecline}
 					backgroundColor={currentTheme.buttonSecondary}
 					style={styles.button}

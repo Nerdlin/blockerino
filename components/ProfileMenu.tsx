@@ -5,6 +5,7 @@ import StylizedButton from "./StylizedButton";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSoundSettings } from "@/constants/Sound";
 import { useTheme } from "@/constants/Theme";
+import { useLanguage } from "@/constants/Localization";
 import { supabase } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
@@ -107,6 +108,7 @@ export default function ProfileMenu() {
 	const isMobile = width < 600;
 	const { playSfx } = useSoundSettings();
 	const { currentTheme } = useTheme();
+	const { t } = useLanguage();
 
 	const [session, setSession] = useState<Session | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -252,7 +254,7 @@ export default function ProfileMenu() {
 
 	const handleAuth = async () => {
 		if (!email || !password) {
-			setErrorMessage("Please fill all fields");
+			setErrorMessage(t("profile.fillAllFields"));
 			return;
 		}
 		
@@ -263,7 +265,7 @@ export default function ProfileMenu() {
 		try {
 			if (authMode === "register") {
 				if (!playerName) {
-					setErrorMessage("Please enter a player name");
+					setErrorMessage(t("profile.enterPlayerName"));
 					setAuthLoading(false);
 					return;
 				}
@@ -282,7 +284,7 @@ export default function ProfileMenu() {
 				} else if (data.user) {
 					const profile = await upsertAuthenticatedProfile(data.user, playerName);
 					await applyProfile(profile, data.user);
-					setErrorMessage("Success! Check your email to verify (if required), or you are logged in.");
+					setErrorMessage(t("profile.signUpSuccess"));
 				}
 			} else {
 				const { error, data } = await supabase.auth.signInWithPassword({
@@ -298,7 +300,7 @@ export default function ProfileMenu() {
 				}
 			}
 		} catch (e: any) {
-			setErrorMessage(e.message || "Authentication failed");
+			setErrorMessage(e.message || t("profile.authFailed"));
 		} finally {
 			setAuthLoading(false);
 		}
@@ -311,7 +313,7 @@ export default function ProfileMenu() {
 		try {
 			if (Platform.OS === "web") {
 				if (typeof window === "undefined") {
-					throw new Error("Google OAuth is unavailable in this environment.");
+					throw new Error(t("profile.googleUnavailable"));
 				}
 				clearWebAuthCallbackParams();
 				const redirectTo = getWebOAuthRedirectTo();
@@ -325,7 +327,7 @@ export default function ProfileMenu() {
 					},
 				});
 				if (error) throw error;
-				if (!data.url) throw new Error("Google did not return a sign-in URL.");
+				if (!data.url) throw new Error(t("profile.googleNoUrl"));
 				window.location.assign(data.url);
 				return;
 			}
@@ -346,11 +348,11 @@ export default function ProfileMenu() {
 					await applyProfile(profile, data.user);
 				}
 			} else {
-				throw new Error("Google did not return an ID token. Check Android OAuth client SHA/package settings.");
+				throw new Error(t("profile.googleNoToken"));
 			}
 		} catch (e: any) {
 			console.error(e);
-			setErrorMessage(e.message || "Google Sign-In failed or was cancelled.");
+			setErrorMessage(e.message || t("profile.googleFailed"));
 		} finally {
 			setAuthLoading(false);
 		}
@@ -374,7 +376,7 @@ export default function ProfileMenu() {
 			{ backgroundColor: currentTheme.menuBackground },
 			isMobile && { width: '92%', height: '85%', paddingHorizontal: 10 }
 		]}>
-			<Text style={[styles.sectionHeader, { color: currentTheme.textPrimary }]}>Profile</Text>
+			<Text style={[styles.sectionHeader, { color: currentTheme.textPrimary }]}>{t("profile.title")}</Text>
 			
 			<ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
 				{loading ? (
@@ -390,22 +392,22 @@ export default function ProfileMenu() {
 
 						<View style={[styles.tabsContainer, isMobile && styles.mobileTabsContainer]}>
 							<StylizedButton 
-								onClick={() => { playSfx('menuClick'); setActiveTab("stats"); }} 
-								text="Stats" 
+								onClick={() => { playSfx('menuClick'); setActiveTab("stats"); }}
+								text={t("profile.tabStats")}
 								backgroundColor={activeTab === "stats" ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
 								style={[styles.tabButton, isMobile && styles.mobileTabButton]}
 								textStyle={[styles.tabButtonText, isMobile && styles.mobileTabButtonText]}
 							/>
 							<StylizedButton 
-								onClick={() => { playSfx('menuClick'); setActiveTab("history"); }} 
-								text="History" 
+								onClick={() => { playSfx('menuClick'); setActiveTab("history"); }}
+								text={t("profile.tabHistory")}
 								backgroundColor={activeTab === "history" ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
 								style={[styles.tabButton, isMobile && styles.mobileTabButton]}
 								textStyle={[styles.tabButtonText, isMobile && styles.mobileTabButtonText]}
 							/>
 							<StylizedButton 
-								onClick={() => { playSfx('menuClick'); setActiveTab("friends"); }} 
-								text="Friends" 
+								onClick={() => { playSfx('menuClick'); setActiveTab("friends"); }}
+								text={t("profile.tabFriends")}
 								backgroundColor={activeTab === "friends" ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
 								style={[styles.tabButton, isMobile && styles.mobileTabButton]}
 								textStyle={[styles.tabButtonText, isMobile && styles.mobileTabButtonText]}
@@ -416,23 +418,23 @@ export default function ProfileMenu() {
 							<View style={styles.statsContainer}>
 								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
 									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{shopState.balance}</Text>
-									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>Coins</Text>
+									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.coins")}</Text>
 								</View>
 								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
 									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{playerElo !== null ? playerElo : "N/A"}</Text>
-									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>Elo</Text>
+									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.elo")}</Text>
 								</View>
 								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
 									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{classicScore}</Text>
-									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>Classic</Text>
+									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.classic")}</Text>
 								</View>
 								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
 									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{chaosScore}</Text>
-									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>Chaos</Text>
+									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.chaos")}</Text>
 								</View>
 								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
 									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{gamesPlayed}</Text>
-									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>Matches</Text>
+									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.matches")}</Text>
 								</View>
 							</View>
 						)}
@@ -450,8 +452,8 @@ export default function ProfileMenu() {
 						)}
 
 						<StylizedButton 
-							onClick={handleLogout} 
-							text="Log Out" 
+							onClick={handleLogout}
+							text={t("profile.logOut")}
 							backgroundColor="rgb(204, 51, 0)"
 							style={{ marginTop: 20 }}
 						/>
@@ -459,13 +461,13 @@ export default function ProfileMenu() {
 				) : (
 					<View style={[styles.authContainer, isMobile && styles.mobileAuthContainer]}>
 						<Text style={[styles.authTitle, { color: currentTheme.textPrimary }]}>
-							{authMode === "login" ? "Login to Sync" : "Create Account"}
+							{authMode === "login" ? t("profile.loginTitle") : t("profile.createAccountTitle")}
 						</Text>
 
 						{authMode === "register" && (
 							<TextInput
 								style={[styles.input, { color: currentTheme.textPrimary, borderColor: currentTheme.gridBorder }]}
-								placeholder="Player Name"
+								placeholder={t("profile.playerNamePlaceholder")}
 								placeholderTextColor={currentTheme.textSecondary}
 								value={playerName}
 								onChangeText={setPlayerName}
@@ -474,7 +476,7 @@ export default function ProfileMenu() {
 
 						<TextInput
 							style={[styles.input, { color: currentTheme.textPrimary, borderColor: currentTheme.gridBorder }]}
-							placeholder="Email"
+							placeholder={t("profile.emailPlaceholder")}
 							placeholderTextColor={currentTheme.textSecondary}
 							value={email}
 							onChangeText={setEmail}
@@ -483,7 +485,7 @@ export default function ProfileMenu() {
 						/>
 						<TextInput
 							style={[styles.input, { color: currentTheme.textPrimary, borderColor: currentTheme.gridBorder }]}
-							placeholder="Password"
+							placeholder={t("profile.passwordPlaceholder")}
 							placeholderTextColor={currentTheme.textSecondary}
 							value={password}
 							onChangeText={setPassword}
@@ -496,15 +498,15 @@ export default function ProfileMenu() {
 
 						<StylizedButton 
 							onClick={handleAuth} 
-							text={authLoading ? "..." : (authMode === "login" ? "Log In" : "Register")} 
+							text={authLoading ? "..." : (authMode === "login" ? t("profile.logIn") : t("profile.register"))}
 							backgroundColor={currentTheme.buttonPrimary}
 							style={[styles.authButton, isMobile && styles.mobileAuthButton]}
 							textStyle={isMobile && styles.mobileAuthButtonText}
 						/>
 
 						<StylizedButton 
-							onClick={handleGoogleSignIn} 
-							text="Sign in with Google" 
+							onClick={handleGoogleSignIn}
+							text={t("profile.googleSignIn")}
 							backgroundColor="rgb(220, 70, 50)"
 							style={[styles.authButton, isMobile && styles.mobileAuthButton]}
 							textStyle={isMobile && styles.mobileAuthButtonText}
@@ -516,7 +518,7 @@ export default function ProfileMenu() {
 								setAuthMode(authMode === "login" ? "register" : "login");
 								setErrorMessage("");
 							}} 
-							text={authMode === "login" ? "Need an account?" : "Already have an account?"} 
+							text={authMode === "login" ? t("profile.needAccount") : t("profile.haveAccount")}
 							backgroundColor="transparent"
 							borderColor="transparent"
 							textStyle={{ fontSize: 12, color: currentTheme.textSecondary }}
@@ -528,8 +530,8 @@ export default function ProfileMenu() {
 
 			<View style={styles.buttonsContainer}>
 				<StylizedButton 
-					onClick={handleButtonPress} 
-					text="Back" 
+					onClick={handleButtonPress}
+					text={t("profile.back")}
 					backgroundColor={currentTheme.buttonSecondary}
 					style={isMobile && styles.mobileBottomButton}
 					textStyle={isMobile && styles.mobileBottomButtonText}

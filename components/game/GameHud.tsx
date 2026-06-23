@@ -9,6 +9,7 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useGameSizes } from "@/constants/Board";
 import PixelIcon from "@/components/PixelIcon";
 import { getGameModeConfig } from "@/constants/GameModes";
+import { useLanguage } from "@/constants/Localization";
 
 const comboBarGoodColor = colorToHex({r: 0, g: 255, b: 0});
 const comboBarBadColor = colorToHex({r: 255, g: 51, b: 51});
@@ -77,6 +78,7 @@ function MoveLimitBar({ movesRemaining, moveLimit }: { movesRemaining: SharedVal
 }
 
 export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, timeRemaining, movesRemaining }: GameHudProps) {
+	const { t } = useLanguage();
 	const [scoreText, setScoreText] = useState("0");
 	const [timeLeftText, setTimeLeftText] = useState("60");
 	const [movesLeftText, setMovesLeftText] = useState("30");
@@ -148,7 +150,7 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, tim
 						fontSize: isMobile ? 18 : 24,
 						marginBottom: 4
 					}}>
-						MOVES {movesLeftText}
+						{t("hud.moves", { count: movesLeftText })}
 					</Text>
 					<MoveLimitBar movesRemaining={movesRemaining} moveLimit={moveLimit} />
 				</View>
@@ -160,7 +162,7 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, tim
 						fontSize: isMobile ? 18 : 24,
 						marginBottom: 4
 					}}>
-						TIME {timeLeftText}s
+						{t("hud.time", { seconds: timeLeftText })}
 					</Text>
 					<TimerBar timeRemaining={timeRemaining} />
 				</View>

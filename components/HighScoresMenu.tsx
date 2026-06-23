@@ -13,6 +13,7 @@ import { normalizePlayerName } from "@/constants/Multiplayer";
 import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
 import { useShopState } from "@/constants/Shop";
 import { CHALLENGE_LEADERBOARD_GAME_MODES, getGameModeConfig, MAIN_LEADERBOARD_GAME_MODES } from "@/constants/GameModes";
+import { useLanguage, TranslateVars } from "@/constants/Localization";
 
 const LEADERBOARD_LIMIT = 100;
 const LEADERBOARD_REFRESH_MS = 30000;
@@ -21,6 +22,7 @@ type LeaderboardPage = "main" | "challenges";
 export default function HighScores() {
     const { width, height } = useWindowDimensions();
     const isMobile = width < 600 || height < 700;
+    const { t } = useLanguage();
     const { currentTheme } = useTheme();
     const [ setAppState, , popAppState ] = useSetAppState();
     const appState = useAppStateValue();
@@ -193,11 +195,11 @@ export default function HighScores() {
     const hasScores = globalHighScores.length > 0;
 
     return <SimplePopupView style={[{justifyContent: 'flex-start', backgroundColor: currentTheme.menuBackground}]}>
-        <StylizedButton text="Back" onClick={handleBack} backgroundColor={cssColors.spaceGray}></StylizedButton>
+        <StylizedButton text={t("hs.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray}></StylizedButton>
 
         <View style={styles.nicknameContainer}>
             <Text style={[styles.subHeader, { color: currentTheme.textSecondary, fontSize: 18, marginBottom: 5 }, isMobile && { fontSize: 14 }]}>
-                {"Your Nickname:"}
+                {t("hs.yourNickname")}
             </Text>
             <TextInput
                 style={[styles.nicknameInput, {
@@ -209,20 +211,20 @@ export default function HighScores() {
                 onChangeText={handlePlayerNameChange}
                 onBlur={handlePlayerNameBlur}
                 onSubmitEditing={handlePlayerNameBlur}
-                placeholder="Enter Nickname"
+                placeholder={t("hs.enterNickname")}
                 placeholderTextColor={currentTheme.textSecondary}
                 maxLength={20}
             />
             {syncing && (
                 <Text style={{ fontFamily: 'Silkscreen', fontSize: 12, color: currentTheme.textSecondary, marginTop: 5 }}>
-                    Syncing best score...
+                    {t("hs.syncingBest")}
                 </Text>
             )}
         </View>
 
         <View style={styles.modeHeaderRow}>
             <Text style={[styles.subHeader, styles.modeHeaderText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 18 }]}>
-                {isChallengePage ? "Challenge leaderboards" : "Select a game mode..."}
+                {isChallengePage ? t("hs.challengeLeaderboards") : t("hs.selectMode")}
             </Text>
         </View>
         <View style={styles.modeRow}>
@@ -245,7 +247,7 @@ export default function HighScores() {
             })}
             {!isChallengePage && (
                 <StylizedButton
-                    text="Challenges"
+                    text={t("hs.challenges")}
                     onClick={handleOpenChallenges}
                     backgroundColor={cssColors.spaceGray}
                     style={[styles.modeButton, styles.challengeEntryButton]}
@@ -259,14 +261,14 @@ export default function HighScores() {
             </Text>
         )}
         <Text style={[styles.header, { color: currentTheme.textPrimary }, isMobile && { fontSize: 22 }]}>
-            {`${currentModeConfig.leaderboardTitle} Leaderboard`}
+            {t("hs.leaderboardTitle", { mode: currentModeConfig.leaderboardTitle })}
         </Text>
         <View style={styles.leaderboardMetaRow}>
             <Text style={[styles.subHeader, styles.leaderboardSortText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 16 }]}>
-                {`Local best: ${localBestScore}`}
+                {t("hs.localBest", { score: localBestScore })}
             </Text>
             <StylizedButton
-                text={loading ? "..." : "Refresh"}
+                text={loading ? "..." : t("hs.refresh")}
                 onClick={() => refreshScores(true)}
                 backgroundColor={currentTheme.buttonSecondary}
                 disabled={loading}
@@ -288,9 +290,9 @@ export default function HighScores() {
         { !hasScores && !loading &&
             <>
                 <Text style={[styles.noScoresText, { color: currentTheme.textPrimary }, isMobile && { fontSize: 20 }]}>
-                    {"No global scores for this mode yet."}
+                    {t("hs.noGlobalScores")}
                 </Text>
-                <StylizedButton text={`Play ${currentModeConfig.shortTitle}`} onClick={() => {
+                <StylizedButton text={t("hs.play", { mode: currentModeConfig.shortTitle })} onClick={() => {
                     setAppState(gameMode)
                 }} backgroundColor={currentModeConfig.challenge?.color ?? currentTheme.buttonPrimary}></StylizedButton>
             </>
@@ -299,6 +301,7 @@ export default function HighScores() {
 }
 
 function GlobalScore({score, rank}: {score: GlobalHighScore, rank: number}) {
+    const { t } = useLanguage();
     const { currentTheme } = useTheme();
     const { width, height } = useWindowDimensions();
     const isMobile = width < 600 || height < 700;
@@ -312,7 +315,7 @@ function GlobalScore({score, rank}: {score: GlobalHighScore, rank: number}) {
                     {score.player_name}
                 </Text>
                 <Text style={[styles.scoreTimeText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 10 }]} numberOfLines={1}>
-                    {score.created_at ? createTimeAgoString(new Date(score.created_at).getTime()) : 'Unknown time'}
+                    {score.created_at ? createTimeAgoString(new Date(score.created_at).getTime(), t) : t("hs.unknownTime")}
                 </Text>
             </View>
             <Text style={[styles.scoreNumberText, { color: currentTheme.textPrimary }, isMobile && styles.mobileScoreNumberText]} numberOfLines={1} adjustsFontSizeToFit>
@@ -322,7 +325,7 @@ function GlobalScore({score, rank}: {score: GlobalHighScore, rank: number}) {
     );
 }
 
-function createTimeAgoString(date: number): string {
+function createTimeAgoString(date: number, t: (key: string, vars?: TranslateVars) => string): string {
     const now = new Date();
     const seconds = Math.round((now.getTime() - date) / 1000);
     const minutes = Math.round(seconds / 60);
@@ -330,19 +333,19 @@ function createTimeAgoString(date: number): string {
     const days = Math.round(hours / 24);
     const months = Math.round(days / 30);
     const years = Math.round(days / 365);
-  
+
     if (seconds < 60) {
-      return seconds <= 0 ? 'now' : `${seconds} seconds ago`;
+      return seconds <= 0 ? t("hs.timeNow") : t("hs.secondsAgo", { count: seconds });
     } else if (minutes < 60) {
-      return `${minutes} minutes ago`;
+      return t("hs.minutesAgo", { count: minutes });
     } else if (hours < 24) {
-      return `${hours} hours ago`;
+      return t("hs.hoursAgo", { count: hours });
     } else if (days < 30) {
-      return `${days} days ago`;
+      return t("hs.daysAgo", { count: days });
     } else if (months < 12) {
-      return `${months} months ago`;
+      return t("hs.monthsAgo", { count: months });
     } else {
-      return `${years} years ago`;
+      return t("hs.yearsAgo", { count: years });
     }
   }
 
