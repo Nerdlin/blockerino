@@ -409,28 +409,28 @@ function OnlineRoomControls({
 			if (role === "player1") {
 				return (
 					<View style={styles.waitingContainer}>
-						<Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>{t("mp.roomCreated", "ROOM CREATED")}</Text>
-						<Text style={[styles.waitingSub, { color: currentTheme.textSecondary }]}>{t("mp.shareCode", "SHARE CODE WITH A FRIEND")}</Text>
+						<Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>{t("mp.roomCreated")}</Text>
+						<Text style={[styles.waitingSub, { color: currentTheme.textSecondary }]}>{t("mp.shareCode")}</Text>
 	
 						<View style={[styles.codeDisplayContainer, isMobile && { width: '95%' }]}>
 							<Text style={[styles.codeText, { color: currentTheme.accent }, isMobile && { fontSize: 24 }]} adjustsFontSizeToFit numberOfLines={1}>{roomCode}</Text>
-							<StylizedButton text={t("mp.copy", "COPY")} onClick={() => Clipboard.setString(roomCode)} backgroundColor={currentTheme.buttonPrimary} style={{ width: 100 }} />
+							<StylizedButton text={t("mp.copy")} onClick={() => Clipboard.setString(roomCode)} backgroundColor={currentTheme.buttonPrimary} style={{ width: 100 }} />
 						</View>
 	
 						<Text style={[styles.waitingStatus, { color: currentTheme.textSecondary }]}>
-							{playerCount && connectedPlayersCount ? `WAITING FOR PLAYERS (${connectedPlayersCount}/${playerCount})...` : t("mp.waitingFriend", "WAITING FOR FRIEND TO JOIN...")}
+							{playerCount && connectedPlayersCount ? `WAITING FOR PLAYERS (${connectedPlayersCount}/${playerCount})...` : t("mp.waitingFriend")}
 						</Text>
 						<ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 20 }} />
 	
-						<StylizedButton text={t("mp.cancel", "CANCEL")} onClick={onDisconnect} backgroundColor={cssColors.spaceGray} />
+						<StylizedButton text={t("mp.cancel")} onClick={onDisconnect} backgroundColor={cssColors.spaceGray} />
 					</View>
 				);
 			} else {
 				return (
 					<View style={styles.waitingContainer}>
-						<Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>{t("mp.connecting", "CONNECTING")}</Text>
+						<Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>{t("mp.connecting")}</Text>
 						<ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 30 }} />
-						<StylizedButton text={t("mp.cancel", "CANCEL")} onClick={onDisconnect} backgroundColor={cssColors.spaceGray} />
+						<StylizedButton text={t("mp.cancel")} onClick={onDisconnect} backgroundColor={cssColors.spaceGray} />
 					</View>
 				);
 			}

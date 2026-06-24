@@ -174,6 +174,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const playerNameRef = useRef("");
     const opponentNameRef = useRef(opponentName);
     const opponentEloRef = useRef<number | null>(null);
+    const isMounted = useRef(true);
     const [playerName, setPlayerName] = useState("");
     const [scorePopups, setScorePopups] = useState<{id: number, points: number, x: number, y: number}[]>([]);
     const scorePopupIdCounter = useRef(0);
@@ -528,6 +529,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         });
 
         return () => {
+            isMounted.current = false;
             setActiveCombo(0);
             if (hoverThrottleTimer.current) {
                 clearInterval(hoverThrottleTimer.current);
