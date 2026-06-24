@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, forwardRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Chess } from "chess.js";
 import { Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, Image, ActivityIndicator, Clipboard, LayoutAnimation, UIManager } from "react-native";
@@ -93,6 +93,7 @@ interface DurakState {
 	bet: number;
 	deckSize: number;
 	tableId: string;
+	bustedCheaters?: OnlineRole[];
 }
 
 const DURAK_BET_PRESETS = [100, 1000, 10000, 100000, 1000000, 10000000];
@@ -247,7 +248,7 @@ function getNextDurakRole(role: OnlineRole, playerCount: number, hands?: Record<
 	return roles[(start + 1) % roles.length];
 }
 
-function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, payload: any, senderRole?: OnlineRole) => void, playerName: string = DEFAULT_MORE_GAME_PLAYER_NAME) {
+function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, payload: any, senderRole?: OnlineRole) => void, playerName: string = DEFAULT_MORE_GAME_PLAYER_NAME, avatarUrl?: string) {
 	const [roomCode, setRoomCode] = useState("");
 	const [role, setRole] = useState<OnlineRole | null>(null);
 	const [status, setStatus] = useState<RoomStatus>("offline");
@@ -255,6 +256,7 @@ function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, payload: a
 	const roleRef = useRef<OnlineRole | null>(null);
 	const onEventRef = useRef(onEvent);
 	const playerNameRef = useRef(playerName);
+	const avatarUrlRef = useRef(avatarUrl);
 	const clientIdRef = useRef(createRoomCode());
 
 	useEffect(() => {
@@ -264,6 +266,10 @@ function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, payload: a
 	useEffect(() => {
 		playerNameRef.current = playerName;
 	}, [playerName]);
+
+	useEffect(() => {
+		avatarUrlRef.current = avatarUrl;
+	}, [avatarUrl]);
 
 	const disconnect = useCallback(() => {
 		const channel = channelRef.current;
@@ -327,7 +333,7 @@ function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, payload: a
 					event: "mini_game",
 					payload: {
 						event: "system_joined",
-						payload: { role: nextRole, playerName: playerNameRef.current },
+						payload: { role: nextRole, playerName: playerNameRef.current, avatar: avatarUrlRef.current },
 						role: nextRole,
 						senderId: clientIdRef.current,
 					},
@@ -2643,6 +2649,7 @@ function createDurakState(playerCount: number, variants: DurakVariant[], deckSiz
 		bet,
 		deckSize,
 		tableId: createRoomCode(),
+		bustedCheaters: [],
 	};
 }
 
@@ -2658,8 +2665,8 @@ function cardSuit(card: string) {
 	return card.slice(-1);
 }
 
-export function canBeatDurakCard(defense: string, attack: string, trump: string, variants: DurakVariant[] = ["throw_in"]) {
-	if (variants.includes("cheat") && cardSuit(defense) === cardSuit(attack) && cardRankValue(defense) >= cardRankValue(attack)) return true;
+export function canBeatDurakCard(defense: string, attack: string, trump: string, variants: DurakVariant[] = ["throw_in"], canCheat: boolean = false) {
+	if (canCheat) return true;
 	if (cardSuit(defense) === cardSuit(attack)) return cardRankValue(defense) > cardRankValue(attack);
 	return cardSuit(defense) === trump && cardSuit(attack) !== trump;
 }
@@ -2674,10 +2681,72 @@ function getTableCards(table: DurakBout[]) {
 	return table.flatMap((bout) => [bout.attack, bout.defense].filter(Boolean) as string[]);
 }
 
-function canThrowDurakCard(state: DurakState, card: string) {
+function canThrowDurakCard(state: DurakState, card: string, role: OnlineRole) {
+	const canCheat = state.variants.includes("cheat") && !state.bustedCheaters?.includes(role);
+	if (canCheat) return true;
 	if (state.table.length === 0) return true;
 	const ranks = new Set(getTableCards(state.table).map(cardRank));
 	return ranks.has(cardRank(card));
+}
+
+function getDurakVariantLabel(variant: DurakVariant) {
+	if (variant === "throw_in") return "durak.modeThrowIn";
+	if (variant === "transfer") return "durak.modeTransfer";
+	if (variant === "neighbors") return "durak.modeNeighbors";
+	if (variant === "all") return "durak.modeAll";
+	if (variant === "cheat") return "durak.modeCheat";
+	if (variant === "fair") return "durak.modeFair";
+	if (variant === "classic") return "durak.modeClassic";
+	return "durak.modeDraw";
+}
+
+export function resolveDurakCardTarget(
+	table: DurakBout[],
+	card: string,
+	trump: string,
+	variants: DurakVariant[] = ["throw_in"],
+	preferredIndex?: number | null,
+	canCheat: boolean = false,
+) {
+	const openIndexes = table
+		.map((bout, index) => (!bout.defense ? index : -1))
+		.filter((index) => index >= 0);
+	if (openIndexes.length === 0) return null;
+
+	const orderedIndexes = preferredIndex !== undefined && preferredIndex !== null
+		? [preferredIndex, ...openIndexes.filter((index) => index !== preferredIndex)]
+		: openIndexes;
+	const transferAllowed = variants.includes("transfer") || variants.includes("cheat");
+	const preferredBout = preferredIndex !== undefined && preferredIndex !== null ? table[preferredIndex] : null;
+
+	if (preferredBout && !preferredBout.defense) {
+		if (canBeatDurakCard(card, preferredBout.attack, trump, variants, canCheat)) {
+			return { index: preferredIndex as number, action: "defend" as const };
+		}
+		if (transferAllowed && table.every((bout) => !bout.defense) && cardRank(card) === cardRank(preferredBout.attack)) {
+			return { index: preferredIndex as number, action: "transfer" as const };
+		}
+	}
+
+	if (transferAllowed && table.every((bout) => !bout.defense)) {
+		for (const index of orderedIndexes) {
+			const bout = table[index];
+			if (!bout || bout.defense) continue;
+			if (cardRank(card) === cardRank(bout.attack)) {
+				return { index, action: "transfer" as const };
+			}
+		}
+	}
+
+	for (const index of orderedIndexes) {
+		const bout = table[index];
+		if (!bout || bout.defense) continue;
+		if (canBeatDurakCard(card, bout.attack, trump, variants, canCheat)) {
+			return { index, action: "defend" as const };
+		}
+	}
+
+	return null;
 }
 
 function drawDurakCards(state: DurakState, startRole: OnlineRole) {
@@ -2704,13 +2773,13 @@ function drawDurakCards(state: DurakState, startRole: OnlineRole) {
 
 function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
 	const { currentTheme } = useTheme();
-	const { t } = useLanguage();
+const { t } = useLanguage();
 	const { state: shopState, commit } = useShopState();
 	const [state, setState] = useState<DurakState | null>(null);
 	const [playerCount, setPlayerCount] = useState<"2" | "3" | "4" | "5" | "6">("2");
 	const [deckSize, setDeckSize] = useState<number>(36);
 	const [bet, setBet] = useState<number>(100);
-	const [activeVariants, setActiveVariants] = useState<DurakVariant[]>(["throw_in"]);
+	const [activeVariants, setActiveVariants] = useState<DurakVariant[]>(["throw_in", "neighbors", "cheat", "classic"]);
 	const [joinSeat, setJoinSeat] = useState<OnlineRole>("player2");
 	const [opponentReady, setOpponentReady] = useState(false);
 	const [playerNames, setPlayerNames] = useState<Partial<Record<OnlineRole, string>>>({});
@@ -2727,6 +2796,9 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 	const pendingStateRef = useRef<DurakState | null>(null);
 	const antePaidRef = useRef<Set<string>>(new Set());
 	const settledRef = useRef<Set<string>>(new Set());
+	const [hoveredDurakTargetIndex, setHoveredDurakTargetIndex] = useState<number | null>(null);
+	const boutRefs = useRef<(View | null)[]>([]);
+	const boutRects = useRef<Array<{ x: number, y: number, w: number, h: number }>>([]);
 	
 	const shakeAnim = useRef(new Animated.Value(0)).current;
 
@@ -2771,6 +2843,15 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 		}
 		if (event === "system_joined" && senderRole) {
 			setPlayerNames((current) => ({ ...current, [senderRole]: normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)) }));
+			if (payload?.avatar) setPlayerAvatars((current) => ({ ...current, [senderRole]: payload.avatar }));
+			if (roomRef.current.role && senderRole !== roomRef.current.role) {
+				roomRef.current.send("system_welcome", { playerName, avatar: "" });
+			}
+			return;
+		}
+		if (event === "system_welcome" && senderRole) {
+			setPlayerNames((current) => ({ ...current, [senderRole]: normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)) }));
+			if (payload?.avatar) setPlayerAvatars((current) => ({ ...current, [senderRole]: payload.avatar }));
 			return;
 		}
 		if (event === "system_left" && senderRole && state) {
@@ -2878,6 +2959,10 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 	const orderedHand = localHandOrder.filter(c => myHand.includes(c));
 	const handToRender = orderedHand.length === myHand.length ? orderedHand : myHand;
 
+	useEffect(() => {
+		setHoveredDurakTargetIndex(null);
+	}, [state?.table.length, state?.phase, state?.attacker, state?.defender, state?.winner]);
+
 	const reorderCard = (fromIndex: number, toIndex: number) => {
 		if (fromIndex === toIndex) return;
 		setLocalHandOrder(prev => {
@@ -2906,14 +2991,53 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 			if (v === "classic") next = next.filter(x => x !== "draw");
 			if (v === "draw") next = next.filter(x => x !== "classic");
 			
-			return next.includes(v) ? next.filter(x => x !== v) : [...next, v];
+			return next.includes(v) ? next : [...next, v];
 		});
 	};
 
-	const playCard = (card: string) => {
+	const callOutCheat = (boutIndex: number, isDefense: boolean) => {
+		if (!state || !room.role || !state.variants.includes("cheat")) return;
+		const bout = state.table[boutIndex];
+		if (!bout) return;
+
+		if (isDefense && bout.defense) {
+			if (state.defender === room.role) return; // Cannot accuse yourself
+			const isLegal = canBeatDurakCard(bout.defense, bout.attack, state.trump, ["throw_in"]);
+			if (!isLegal) {
+				const next: DurakState = {
+					...state,
+					hands: { ...state.hands, [state.defender]: [...state.hands[state.defender], bout.defense] },
+					table: state.table.map((b, i) => i === boutIndex ? { ...b, defense: null } : b),
+					phase: "defend",
+					bustedCheaters: [...(state.bustedCheaters || []), state.defender],
+					message: `${roleLabel(state.defender)} busted!`,
+				};
+				syncState(next);
+			}
+		} else if (!isDefense) {
+			if (boutIndex === 0 && state.table.length === 1) return;
+			if (state.attacker === room.role) return; // Cannot accuse yourself
+			const previousCards = state.table.slice(0, boutIndex).flatMap(b => [b.attack, b.defense]).filter(Boolean) as string[];
+			if (previousCards.length === 0) return;
+			const validRanks = new Set(previousCards.map(cardRank));
+			const isLegal = validRanks.has(cardRank(bout.attack));
+			if (!isLegal) {
+				const next: DurakState = {
+					...state,
+					hands: { ...state.hands, [state.attacker]: [...state.hands[state.attacker], bout.attack] },
+					table: state.table.filter((_, i) => i !== boutIndex),
+					bustedCheaters: [...(state.bustedCheaters || []), state.attacker],
+					message: `${roleLabel(state.attacker)} busted!`,
+				};
+				syncState(next);
+			}
+		}
+	};
+
+	const playCard = (card: string, targetIndexOverride?: number) => {
 		if (!state || !room.role || state.winner) return;
-		if (room.role === state.attacker && (state.phase === "attack" || state.phase === "throw")) {
-			if (!canThrowDurakCard(state, card) || state.table.length >= Math.min(6, state.hands[state.defender].length + state.table.filter((bout) => bout.defense).length)) return;
+		if (room.role === state.attacker && (state.phase === "attack" || state.phase === "throw" || state.phase === "defend")) {
+			if (!canThrowDurakCard(state, card, room.role) || state.table.length >= Math.min(6, state.hands[state.defender].length + state.table.filter((bout) => bout.defense).length)) return;
 			const next: DurakState = {
 				...state,
 				hands: { ...state.hands, [room.role]: removeCard(state.hands[room.role], card) },
@@ -2926,11 +3050,11 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 		}
 
 		if (room.role === state.defender && state.phase === "defend") {
-			const openIndex = state.table.findIndex((bout) => !bout.defense);
-			const openBout = state.table[openIndex];
-			if (!openBout) return;
+			const canCheat = state.variants.includes("cheat") && !state.bustedCheaters?.includes(room.role);
+			const target = resolveDurakCardTarget(state.table, card, state.trump, state.variants, targetIndexOverride, canCheat);
+			if (!target) return;
 
-			if ((state.variants.includes("transfer") || state.variants.includes("cheat")) && state.table.every((bout) => !bout.defense) && cardRank(card) === cardRank(openBout.attack)) {
+			if (target.action === "transfer") {
 				const nextDefender = getNextDurakRole(state.defender, state.playerCount, state.hands, true);
 				const next: DurakState = {
 					...state,
@@ -2944,8 +3068,7 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 				return;
 			}
 
-			if (!canBeatDurakCard(card, openBout.attack, state.trump, state.variants)) return;
-			const nextTable = state.table.map((bout, index) => index === openIndex ? { ...bout, defense: card } : bout);
+			const nextTable = state.table.map((bout, index) => index === target.index ? { ...bout, defense: card } : bout);
 			const defended = nextTable.every((bout) => bout.defense);
 			const next: DurakState = {
 				...state,
@@ -3057,6 +3180,20 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 	const pot = bet * Number(playerCount);
 	const prize = getDurakNetPrize(bet, Number(playerCount));
 
+	const displayMessage = useMemo(() => {
+		if (!state?.message) return "";
+		let msg = state.message;
+		const roles = ["player1", "player2", "player3", "player4", "player5", "player6"];
+		for (const role of roles) {
+			const label = roleLabel(role as OnlineRole);
+			if (msg.includes(label)) {
+				const name = role === room.role ? `${playerName} (you)` : (playerNames[role as OnlineRole] || label);
+				msg = msg.replace(new RegExp(`\\b${label}\\b`, 'g'), name);
+			}
+		}
+		return msg;
+	}, [state?.message, playerNames, playerName, room.role]);
+
 	if (room.role && !opponentReady) {
 		return (
 			<View style={[styles.onlineGame, { minHeight: 400, justifyContent: 'center' }]}>
@@ -3153,16 +3290,24 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 						</Text>
 					)}
 					<View style={styles.durakTable}>
+						<View style={[styles.durakStatusBar, { borderColor: currentTheme.accent, backgroundColor: "rgba(0,0,0,0.4)" }]}>
+							<Text style={[styles.durakStatusText, { color: currentTheme.textPrimary }]}>
+								{t("durak.players")}: {state.playerCount} · {t("durak.deck")}: {state.deckSize} · {t("durak.yourBet")}: {state.bet} 💰
+							</Text>
+							<Text style={[styles.durakStatusText, { color: currentTheme.textSecondary }]}>
+								{state.variants.map((variant) => t(getDurakVariantLabel(variant))).join(" · ")}
+							</Text>
+						</View>
 						{/* Deck & Discard info */}
 						<View style={styles.durakDeckArea}>
 							{state.deck.length > 0 && (
-								<View style={styles.durakTrumpUnder}>
-									<DurakCardView card={state.deck.length > 1 ? `${state.trump}0` : state.deck[0]} trump={state.trump} cosmetics={cosmetics} small />
+								<View style={[styles.durakTrumpUnder, { transform: [{ rotate: '90deg' }, { translateX: 0 }, { translateY: 20 }, { scale: 1.2 }] }]}>
+									<DurakCardView card={state.deck.length > 1 ? `${state.trump}0` : state.deck[0]} trump={state.trump} cosmetics={cosmetics} />
 								</View>
 							)}
 							{state.deck.length > 1 && (
-								<View style={styles.durakDeckStack}>
-									<DurakCardView card="back" trump={state.trump} cosmetics={cosmetics} small />
+								<View style={[styles.durakDeckStack, { transform: [{ scale: 1.2 }] }]}>
+									<DurakCardView card="back" trump={state.trump} cosmetics={cosmetics} />
 									<View style={styles.durakDeckCountBadge}>
 										<Text style={styles.durakDeckCountText}>{state.deck.length}</Text>
 									</View>
@@ -3180,6 +3325,7 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 								const name = isMe ? playerName : (playerNames[role] || roleLabel(role));
 								const handSize = state.hands[role].length;
 								const emote = emotes[role];
+								const isBusted = state.bustedCheaters?.includes(role);
 								return (
 									<View key={role} style={[styles.durakAvatarContainer, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
 										{/* Emoji bubble appears to the LEFT of the avatar */}
@@ -3202,6 +3348,11 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 												<View style={styles.durakAvatarBadge}>
 													<Text style={styles.durakAvatarBadgeText}>{handSize}</Text>
 												</View>
+												{isBusted && (
+													<View style={{ position: 'absolute', top: -8, right: -8, zIndex: 10, backgroundColor: '#111827', borderRadius: 12, padding: 2 }}>
+														<Text style={{ fontSize: 16 }}>👮‍♂️</Text>
+													</View>
+												)}
 											</View>
 											<Text style={[styles.durakAvatarName, isMe && { color: '#86EFAC' }]} numberOfLines={1}>{name}{isMe ? ' (you)' : ''}</Text>
 										</View>
@@ -3210,7 +3361,7 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 							})}
 						</View>
 
-						<Text style={[styles.gridLabel, { color: 'rgba(255,255,255,0.7)', marginTop: 10 }]}>{state.message}</Text>
+						<Text style={[styles.gridLabel, { color: 'rgba(255,255,255,0.7)', marginTop: 10 }]}>{displayMessage}</Text>
 						
 						{/* Center Bouts */}
 						<View style={styles.durakCenter}>
@@ -3219,7 +3370,18 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 									const rotations = ['-4deg', '3deg', '-2deg', '5deg', '-6deg', '2deg'];
 									const baseRotation = rotations[index % rotations.length];
 									return (
-										<DurakBoutAnimated key={`${bout.attack}-${index}`} rotate={baseRotation} attack={bout.attack} defense={bout.defense} trump={state.trump} cosmetics={cosmetics} />
+										<DurakBoutAnimated
+											key={`bout-${index}`}
+											ref={(el: View | null) => { boutRefs.current[index] = el; }}
+											rotate={baseRotation}
+											attack={bout.attack}
+											defense={bout.defense}
+											trump={state.trump}
+											cosmetics={cosmetics}
+											isHoverTarget={hoveredDurakTargetIndex === index}
+											onAttackPress={() => callOutCheat(index, false)}
+											onDefensePress={() => callOutCheat(index, true)}
+										/>
 									);
 								})
 							)}
@@ -3242,9 +3404,35 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 										offset={offset}
 										trump={state.trump}
 										cosmetics={cosmetics}
-										onPlay={() => playCard(card)}
+										onPlay={(targetIndexOverride) => playCard(card, targetIndexOverride)}
 										onReorder={reorderCard}
 										cardWidth={50}
+										onDragStart={() => {
+											boutRefs.current.forEach((ref, i) => {
+												if (ref) {
+													ref.measure((x, y, w, h, px, py) => {
+														boutRects.current[i] = { x: px, y: py, w, h };
+													});
+												}
+											});
+										}}
+										onDragMove={(x, y) => {
+											if (room.role !== state.defender) return;
+											const hoveredIndex = boutRects.current.findIndex((rect, i) => {
+												if (!rect || state.table[i]?.defense) return false;
+												return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
+											});
+											if (hoveredIndex !== -1 && hoveredDurakTargetIndex !== hoveredIndex) {
+												setHoveredDurakTargetIndex(hoveredIndex);
+											} else if (hoveredIndex === -1 && hoveredDurakTargetIndex !== null) {
+												setHoveredDurakTargetIndex(null);
+											}
+										}}
+										onDragEnd={(x, y, movedUp) => {
+											const finalHoverIndex = hoveredDurakTargetIndex;
+											setHoveredDurakTargetIndex(null);
+											return finalHoverIndex !== null ? finalHoverIndex : null;
+										}}
 									/>
 								);
 							})}
@@ -3298,8 +3486,8 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 							</View>
 						) : (
 							<View style={[styles.controlRow, { position: 'absolute', bottom: 120, zIndex: 100 }]}>
-								<StylizedButton text={t("durak.pass")} onClick={passRound} backgroundColor="#9E4B3E" style={[styles.miniActionButton, { width: 100 }]} textStyle={{ fontSize: 10 }} disabled={room.role !== state.attacker || !allDefended} />
-								<StylizedButton text={t("durak.take")} onClick={takeRound} backgroundColor="#3D5A46" style={[styles.miniActionButton, { width: 100 }]} textStyle={{ fontSize: 10 }} disabled={room.role !== state.defender || state.table.every(b => !b.attack)} />
+								<StylizedButton text={t("durak.pass")} onClick={passRound} backgroundColor="#B45309" borderColor="#FDE68A" style={[styles.miniActionButton, styles.durakPassButton, { width: 100 }]} textStyle={{ fontSize: 10 }} disabled={room.role !== state.attacker || !allDefended} />
+								<StylizedButton text={t("durak.take")} onClick={takeRound} backgroundColor="#166534" borderColor="#86EFAC" style={[styles.miniActionButton, styles.durakTakeButton, { width: 100 }]} textStyle={{ fontSize: 10 }} disabled={room.role !== state.defender || state.table.every(b => !b.attack)} />
 								<Pressable onPress={() => setShowEmojis(!showEmojis)} style={[styles.durakEmojiButton, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: currentTheme.accent }]}>
 									<PixelIcon name="face-happy" size={20} color="#FACC15" />
 								</Pressable>
@@ -3327,18 +3515,40 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
  *  - Release in place → snap back (no action)
  */
 function DraggableHandCard({
-	card, index, total, baseY, offset, trump, cosmetics, onPlay, onReorder, cardWidth
+	card, index, total, baseY, offset, trump, cosmetics, onPlay, onReorder, cardWidth, onDragStart, onDragMove, onDragEnd
 }: {
 	card: string; index: number; total: number; baseY: number; offset: number;
 	trump: string; cosmetics: ExtraGameCosmetics;
-	onPlay: () => void; onReorder: (from: number, to: number) => void; cardWidth: number;
+	onPlay: (targetIndexOverride?: number) => void; onReorder: (from: number, to: number) => void; cardWidth: number;
+	onDragStart?: () => void;
+	onDragMove?: (x: number, y: number) => void;
+	onDragEnd?: (x: number, y: number, movedUp: boolean) => number | null; // Returns target index if valid drop
 }) {
 	const dragX = useRef(new Animated.Value(0)).current;
 	const dragY = useRef(new Animated.Value(0)).current;
 	const [dragging, setDragging] = useState(false);
 	const [willPlay, setWillPlay] = useState(false);
+	const [isHovered, setIsHovered] = useState(false);
 
-	const rotate = `${offset * 4}deg`;
+	const animOffset = useRef(new Animated.Value(offset)).current;
+	const animBaseY = useRef(new Animated.Value(baseY)).current;
+	const hoverAnim = useRef(new Animated.Value(0)).current;
+
+	useEffect(() => {
+		Animated.spring(animOffset, { toValue: offset, useNativeDriver: true }).start();
+		Animated.spring(animBaseY, { toValue: baseY, useNativeDriver: true }).start();
+	}, [offset, baseY]);
+
+	useEffect(() => {
+		Animated.spring(hoverAnim, { toValue: isHovered && !dragging ? -15 : 0, useNativeDriver: true }).start();
+	}, [isHovered, dragging]);
+
+	const rotate = animOffset.interpolate({ inputRange: [-10, 10], outputRange: ['-40deg', '40deg'] });
+
+	const callbacksRef = useRef({ onPlay, onReorder, onDragStart, onDragMove, onDragEnd });
+	useEffect(() => {
+		callbacksRef.current = { onPlay, onReorder, onDragStart, onDragMove, onDragEnd };
+	});
 
 	// During drag: card follows finger; lifted = baseY - 28 (slightly up)
 	// When willPlay, tint the card green (we do this via border highlight)
@@ -3351,12 +3561,13 @@ function DraggableHandCard({
 			setWillPlay(false);
 			dragX.setValue(0);
 			dragY.setValue(0);
+			if (callbacksRef.current.onDragStart) callbacksRef.current.onDragStart();
 		},
 		onPanResponderMove: (_, gs) => {
 			dragX.setValue(gs.dx);
 			dragY.setValue(gs.dy);
-			// Preview: if dragging up far enough → mark as "will play"
 			setWillPlay(gs.dy < -80);
+			if (callbacksRef.current.onDragMove) callbacksRef.current.onDragMove(gs.moveX, gs.moveY);
 		},
 		onPanResponderRelease: (_, gs) => {
 			setDragging(false);
@@ -3364,8 +3575,9 @@ function DraggableHandCard({
 
 			const movedUp = gs.dy < -80;
 			const movedHorizontal = Math.abs(gs.dx) > 30 && Math.abs(gs.dy) < 60;
+			const targetIndex = callbacksRef.current.onDragEnd ? callbacksRef.current.onDragEnd(gs.moveX, gs.moveY, movedUp) : null;
 
-			if (movedUp) {
+			if (movedUp || targetIndex !== null) {
 				// Fly card up and play it
 				Animated.parallel([
 					Animated.timing(dragY, { toValue: -300, duration: 200, useNativeDriver: true }),
@@ -3373,7 +3585,7 @@ function DraggableHandCard({
 				]).start(() => {
 					dragX.setValue(0);
 					dragY.setValue(0);
-					onPlay();
+					callbacksRef.current.onPlay(targetIndex !== null ? targetIndex : undefined);
 				});
 			} else if (movedHorizontal) {
 				// Reorder
@@ -3383,7 +3595,7 @@ function DraggableHandCard({
 					Animated.spring(dragX, { toValue: 0, useNativeDriver: true }),
 					Animated.spring(dragY, { toValue: 0, useNativeDriver: true }),
 				]).start();
-				onReorder(index, targetIndex);
+				callbacksRef.current.onReorder(index, targetIndex);
 			} else {
 				// Snap back
 				Animated.parallel([
@@ -3400,19 +3612,22 @@ function DraggableHandCard({
 				Animated.spring(dragY, { toValue: 0, useNativeDriver: true }),
 			]).start();
 		},
-	}), [index, total, cardWidth, onPlay, onReorder]);
+	}), [index, total, cardWidth]);
 
-	const baseTranslateY = dragging ? baseY - 20 : baseY;
+	const baseTranslateY = Animated.add(animBaseY, hoverAnim);
+	const finalTranslateY = dragging ? Animated.add(dragY, baseY - 20) : Animated.add(dragY, baseTranslateY);
 
 	return (
 		<Animated.View
 			{...panResponder.panHandlers}
+			//@ts-ignore - Web-only props
+			onMouseEnter={() => setIsHovered(true)}
+			onMouseLeave={() => setIsHovered(false)}
 			style={{
 				transform: [
-					{ rotate },
-					{ translateY: baseTranslateY },
 					{ translateX: dragX },
-					{ translateY: dragY },
+					{ translateY: finalTranslateY },
+					{ rotate },
 				],
 				zIndex: dragging ? 999 : index,
 				elevation: dragging ? 999 : index,
@@ -3446,8 +3661,9 @@ function DraggableHandCard({
 }
 
 
-/** Animates a single bout card flying in from below when it appears */
-function DurakBoutAnimated({ rotate, attack, defense, trump, cosmetics }: { rotate: string; attack: string; defense: string | null; trump: string; cosmetics: ExtraGameCosmetics }) {
+type DurakBoutProps = { rotate: string; attack: string; defense: string | null; trump: string; cosmetics: ExtraGameCosmetics; selected?: boolean; isHoverTarget?: boolean; onAttackPress?: () => void; onDefensePress?: () => void };
+const DurakBoutAnimated = forwardRef<View, DurakBoutProps>(
+	({ rotate, attack, defense, trump, cosmetics, selected = false, isHoverTarget = false, onAttackPress, onDefensePress }: DurakBoutProps, ref) => {
 	const attackAnim = useRef(new Animated.Value(80)).current;
 	const attackOpacity = useRef(new Animated.Value(0)).current;
 	const defenseAnim = useRef(new Animated.Value(40)).current;
@@ -3469,18 +3685,27 @@ function DurakBoutAnimated({ rotate, attack, defense, trump, cosmetics }: { rota
 	}, [defense]);
 
 	return (
-		<View style={[styles.durakBout, { transform: [{ rotate }] }]}>
+		<View ref={ref} style={[styles.durakBout, { transform: [{ rotate }] }]}>
+			{isHoverTarget && (
+				<View style={{ position: 'absolute', top: -5, left: -5, right: -5, bottom: -5, borderRadius: 8, borderWidth: 3, borderColor: '#4ADE80', backgroundColor: 'rgba(74, 222, 128, 0.2)', zIndex: 10, pointerEvents: 'none' }}>
+					<Text style={{ position: 'absolute', top: -15, alignSelf: 'center', color: '#4ADE80', fontSize: 10, fontFamily: 'SilkscreenBold', backgroundColor: '#111827', paddingHorizontal: 4, borderRadius: 4 }}>TARGET</Text>
+				</View>
+			)}
 			<Animated.View style={{ position: 'absolute', top: 0, left: 0, opacity: attackOpacity, transform: [{ translateY: attackAnim }] }}>
-				<DurakCardView card={attack} trump={trump} cosmetics={cosmetics} small />
+				<Pressable onPress={onAttackPress}>
+					<DurakCardView card={attack} trump={trump} cosmetics={cosmetics} small />
+				</Pressable>
 			</Animated.View>
 			{defense && (
 				<Animated.View style={{ position: 'absolute', top: 10, left: 8, transform: [{ rotate: '8deg' }, { translateY: defenseAnim }], opacity: defenseOpacity }}>
-					<DurakCardView card={defense} trump={trump} cosmetics={cosmetics} small />
+					<Pressable onPress={onDefensePress}>
+						<DurakCardView card={defense} trump={trump} cosmetics={cosmetics} small />
+					</Pressable>
 				</Animated.View>
 			)}
 		</View>
 	);
-}
+});
 
 function DurakCardView({ card, trump, cosmetics, small = false }: { card: string; trump: string; cosmetics: ExtraGameCosmetics; small?: boolean }) {
 	const casino = cosmetics.cardSkin === "casino";
@@ -4406,6 +4631,21 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		textAlign: "center",
 	},
+	durakStatusBar: {
+		width: "100%",
+		borderWidth: 2,
+		borderRadius: 12,
+		paddingHorizontal: 10,
+		paddingVertical: 8,
+		marginBottom: 8,
+		gap: 4,
+	},
+	durakStatusText: {
+		fontFamily: "Silkscreen",
+		fontSize: 9,
+		lineHeight: 13,
+		textAlign: "center",
+	},
 	durakEmote: {
 		position: "absolute",
 		top: -30,
@@ -4425,6 +4665,18 @@ const styles = StyleSheet.create({
 	durakEmojiButtonText: {
 		fontSize: 18,
 		lineHeight: 22,
+	},
+	durakPassButton: {
+		shadowColor: "#FDE68A",
+		shadowOpacity: 0.45,
+		shadowRadius: 8,
+		shadowOffset: { width: 0, height: 2 },
+	},
+	durakTakeButton: {
+		shadowColor: "#86EFAC",
+		shadowOpacity: 0.45,
+		shadowRadius: 8,
+		shadowOffset: { width: 0, height: 2 },
 	},
 
 	durakEmojiOption: {
@@ -4756,6 +5008,35 @@ const styles = StyleSheet.create({
 		marginHorizontal: 4,
 		marginVertical: 4,
 	},
+	durakBoutPressable: {
+		width: 56,
+		height: 74,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	durakBoutSelected: {
+		borderWidth: 2,
+		borderColor: "#FACC15",
+		borderRadius: 12,
+		shadowColor: "#FACC15",
+		shadowOpacity: 0.75,
+		shadowRadius: 8,
+		shadowOffset: { width: 0, height: 0 },
+	},
+	durakBoutTargetBadge: {
+		position: "absolute",
+		top: -10,
+		alignSelf: "center",
+		paddingHorizontal: 6,
+		paddingVertical: 2,
+		borderRadius: 6,
+		backgroundColor: "rgba(250, 204, 21, 0.95)",
+	},
+	durakBoutTargetBadgeText: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 7,
+		color: "#111827",
+	},
 	durakModeColumn: {
 		flexDirection: "column",
 		width: 78,
@@ -4920,15 +5201,7 @@ const styles = StyleSheet.create({
 	},
 });
 
-function BetSlider({
-	value,
-	onChange,
-	maxBalance,
-}: {
-	value: number;
-	onChange: (val: number) => void;
-	maxBalance: number;
-}) {
+function BetSlider({ value, onChange, maxBalance }: { value: number; onChange: (value: number) => void; maxBalance: number }) {
 	const { currentTheme } = useTheme();
 
 	const getRealValue = (sliderVal: number) => {
@@ -4945,7 +5218,7 @@ function BetSlider({
 	const BET_LABELS = ["100", "1K", "10K", "100K", "1M", "10M"];
 
 	const sliderMaxVal = Math.max(0.001, Math.min(5, getSliderVal(maxBalance)));
-	const sliderWidthPct = `${(sliderMaxVal / 5) * 100}%`;
+	const sliderWidth = Math.max(180, Math.round((sliderMaxVal / 5) * 280));
 
 	return (
 		<View style={styles.sliderContainer}>
@@ -4956,21 +5229,21 @@ function BetSlider({
 			</View>
 			<View style={{ width: '100%' }}>
 				<Slider
-					style={{ width: sliderWidthPct, height: 40 }}
+					style={{ width: sliderWidth, height: 40 }}
 					minimumValue={0}
 					maximumValue={sliderMaxVal}
 					step={0.01}
 					value={Math.min(sliderMaxVal, getSliderVal(value))}
-				onValueChange={(val) => {
-					let next = getRealValue(val);
-					if (next > maxBalance) next = maxBalance;
-					if (next < 100) next = 100;
-					if (next !== value) onChange(next);
-				}}
-				minimumTrackTintColor="#38BDF8"
-				maximumTrackTintColor="rgba(255,255,255,0.2)"
-				thumbTintColor="#FFFFFF"
-			/>
+					onValueChange={(val) => {
+						let next = getRealValue(val);
+						if (next > maxBalance) next = maxBalance;
+						if (next < 100) next = 100;
+						if (next !== value) onChange(next);
+					}}
+					minimumTrackTintColor="#38BDF8"
+					maximumTrackTintColor="rgba(255,255,255,0.2)"
+					thumbTintColor="#FFFFFF"
+				/>
 			</View>
 			<View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingHorizontal: 10 }}>
 				{BET_LABELS.map((label, index) => (

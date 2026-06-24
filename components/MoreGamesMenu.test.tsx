@@ -29,6 +29,7 @@ import {
 	getShipCells,
 	getTicTacToeWinner,
 	isShipPlacementValid,
+	resolveDurakCardTarget,
 } from "./MoreGamesMenu";
 
 describe("More Games rules", () => {
@@ -58,6 +59,16 @@ describe("More Games rules", () => {
 		expect(canBeatDurakCard("7H", "9H", "S")).toBe(false);
 		expect(canBeatDurakCard("6S", "AH", "S")).toBe(true);
 		expect(canBeatDurakCard("AH", "6S", "S")).toBe(false);
+	});
+
+	it("prefers an explicit defense target over accidental transfer", () => {
+		const table = [
+			{ attack: "7H", defense: null },
+			{ attack: "6D", defense: null },
+		];
+
+		expect(resolveDurakCardTarget(table, "7D", "S", ["transfer"], null)).toEqual({ index: 1, action: "defend" });
+		expect(resolveDurakCardTarget(table, "7D", "S", ["transfer"], 0)).toEqual({ index: 0, action: "transfer" });
 	});
 
 	it("settles the Durak pot so the winner nets (players - 1) * bet", () => {
