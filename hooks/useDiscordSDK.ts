@@ -60,6 +60,9 @@ export function useDiscordSDK() {
         if (exchangeError) {
           throw exchangeError;
         }
+        if (exchangeData?.error) {
+          throw new Error(`Exchange Data Error: ${exchangeData.error}`);
+        }
         
         const { access_token } = exchangeData;
         
@@ -89,6 +92,10 @@ export function useDiscordSDK() {
 
           if (authError) {
             console.error("Discord→Supabase auth error:", authError);
+            if (mounted) setError(authError instanceof Error ? authError : new Error(String(authError)));
+          } else if (authData?.error) {
+            console.error("Discord→Supabase auth returned error:", authData.error);
+            if (mounted) setError(new Error(`Auth Data Error: ${authData.error}`));
           } else if (authData?.email && authData?.password) {
             const { error: signInError } = await supabase.auth.signInWithPassword({
               email: authData.email,
@@ -97,12 +104,14 @@ export function useDiscordSDK() {
 
             if (signInError) {
               console.error("Supabase password sign-in error:", signInError);
+              if (mounted) setError(signInError instanceof Error ? signInError : new Error(String(signInError)));
             } else {
               console.log("Auto-logged into Supabase via Discord Activity successfully!");
             }
           }
         } catch (autoAuthErr) {
           console.error("Discord auto-auth failed (non-critical):", autoAuthErr);
+          if (mounted) setError(autoAuthErr instanceof Error ? autoAuthErr : new Error(String(autoAuthErr)));
         }
 
         if (mounted) {

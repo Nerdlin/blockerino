@@ -85,7 +85,7 @@ serve(async (req) => {
     if (userId) {
       let attempts = 0;
       while (attempts < 5) {
-        const { error: profileError } = admin.from('profiles').upsert(
+        const { error: profileError } = await admin.from('profiles').upsert(
           {
             auth_user_id: userId,
             player_id: userId,
@@ -97,16 +97,15 @@ serve(async (req) => {
           { onConflict: 'auth_user_id' }
         );
 
-        const res = await profileError;
-        if (!res.error) {
+        if (!profileError) {
           break;
         }
 
-        if (res.error.code === '23505' || res.error.message?.includes('profiles_player_name_key')) {
+        if (profileError.code === '23505' || profileError.message?.includes('profiles_player_name_key')) {
           playerName = `${basePlayerName.slice(0, 12)}_${Math.floor(1000 + Math.random() * 9000)}`;
           attempts++;
         } else {
-          console.error("Profile upsert non-critical error:", res.error);
+          console.error("Profile upsert non-critical error:", profileError);
           break;
         }
       }
@@ -128,10 +127,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('discord-activity-auth error:', error);
     return new Response(
-      JSON.stringify({ error: (error as Error).message }),
+      JSON.stringify({ error: `Edge Function Auth Error: ${(error as Error).message}` }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: 200,
       }
     );
   }

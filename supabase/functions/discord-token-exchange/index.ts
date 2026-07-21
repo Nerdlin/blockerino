@@ -36,7 +36,10 @@ serve(async (req) => {
     
     if (!response.ok) {
       console.error("Discord API Error:", data);
-      throw new Error(`Discord API error: ${JSON.stringify(data)}`);
+      return new Response(JSON.stringify({ error: `Discord API error: ${JSON.stringify(data)}` }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
     }
 
     return new Response(JSON.stringify(data), {
@@ -45,9 +48,9 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Token exchange error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: `Edge Function Token Exchange Error: ${error.message}` }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200,
     });
   }
 });

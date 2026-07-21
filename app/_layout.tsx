@@ -44,7 +44,7 @@ console.error = (...args) => {
 };
 
 export default function RootLayout() {
-	const { isReady, isEmbedded } = useDiscordSDK();
+	const { isReady, isEmbedded, error } = useDiscordSDK();
 
 	useEffect(() => {
 		// Check for updates on app startup
@@ -152,6 +152,11 @@ export default function RootLayout() {
 				`}</style>
 			</Head>
 			<Stack screenOptions={{headerShown: false, autoHideHomeIndicator: true}} />
+			{error && (
+				<div style={{ position: 'absolute', top: 50, left: 10, right: 10, backgroundColor: 'rgba(255,0,0,0.8)', padding: 10, zIndex: 9999, color: 'white', borderRadius: 8 }}>
+					<b>Discord Auth Error:</b> {error.message}
+				</div>
+			)}
 		</>
 	);
 }
