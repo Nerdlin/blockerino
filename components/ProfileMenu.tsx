@@ -420,7 +420,7 @@ export default function ProfileMenu() {
 			<ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
 				{loading ? (
 					<ActivityIndicator size="large" color={currentTheme.accent} />
-				) : session ? (
+				) : (session || playerName) ? (
 					<View style={[styles.profileContainer, isMobile && styles.mobileProfileContainer]}>
 						<Pressable onPress={() => setShowAvatarPopup(true)} style={{ position: "relative" }}>
 							{avatarUrl && avatarUrl.startsWith("http") ? (
@@ -487,13 +487,13 @@ export default function ProfileMenu() {
 
 						{activeTab === "history" && (
 							<View style={styles.tabContentContainer}>
-								<MatchHistoryList userId={session.user.id} />
+								<MatchHistoryList userId={session?.user?.id || playerName} />
 							</View>
 						)}
 
 						{activeTab === "friends" && (
 							<View style={styles.tabContentContainer}>
-								<FriendsList userId={session.user.id} />
+								<FriendsList userId={session?.user?.id || playerName} />
 							</View>
 						)}
 
