@@ -40,8 +40,9 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // 3. Find or create user by synthetic email
+    // 3. Deterministic secret password per Discord user
     const email = `discord_${discordId}@blockerino.app`;
+    const password = `Discord_Auth_${discordId}_SecuredPass123!`;
     let playerName = basePlayerName;
 
     const userMeta = {
@@ -52,10 +53,11 @@ serve(async (req) => {
       name: playerName,
     };
 
-    // Try to create user in Auth
+    // 4. Try to create user or update password/metadata if user exists
     let userId: string | null = null;
     const { data: createData, error: createError } = await admin.auth.admin.createUser({
       email,
+      password,
       email_confirm: true,
       user_metadata: userMeta,
     });
@@ -63,35 +65,27 @@ serve(async (req) => {
     if (createData?.user) {
       userId = createData.user.id;
     } else if (createError) {
-      const msg = (createError.message || '').toLowerCase();
-      if (!msg.includes('already') && !msg.includes('exists') && !msg.includes('duplicate')) {
+      // User likely exists -> find user and update password/metadata
+      const { data: usersData, error: listError } = await admin.auth.admin.listUsers();
+      const existingUser = usersData?.users?.find(u => u.email === email);
+      
+      if (existingUser) {
+        userId = existingUser.id;
+        await admin.auth.admin.updateUserById(userId, {
+          password,
+          email_confirm: true,
+          user_metadata: userMeta,
+        });
+      } else {
         throw createError;
       }
-    }
-
-    // 4. Generate magic link token for login
-    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-      type: 'magiclink',
-      email,
-    });
-
-    if (linkError) {
-      throw linkError;
-    }
-
-    if (linkData?.user) {
-      userId = linkData.user.id;
-      // Keep user metadata updated with latest Discord info
-      await admin.auth.admin.updateUserById(userId, {
-        user_metadata: userMeta,
-      });
     }
 
     // 5. Ensure profile exists in 'profiles' table with fallback for duplicate names
     if (userId) {
       let attempts = 0;
       while (attempts < 5) {
-        const { error: profileError } = await admin.from('profiles').upsert(
+        const { error: profileError } = admin.from('profiles').upsert(
           {
             auth_user_id: userId,
             player_id: userId,
@@ -103,16 +97,16 @@ serve(async (req) => {
           { onConflict: 'auth_user_id' }
         );
 
-        if (!profileError) {
+        const res = await profileError;
+        if (!res.error) {
           break;
         }
 
-        // Handle unique constraint failure for player_name
-        if (profileError.code === '23505' || profileError.message?.includes('profiles_player_name_key')) {
+        if (res.error.code === '23505' || res.error.message?.includes('profiles_player_name_key')) {
           playerName = `${basePlayerName.slice(0, 12)}_${Math.floor(1000 + Math.random() * 9000)}`;
           attempts++;
         } else {
-          console.error("Profile upsert non-critical error:", profileError);
+          console.error("Profile upsert non-critical error:", res.error);
           break;
         }
       }
@@ -120,8 +114,8 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        hashed_token: linkData.properties.hashed_token,
         email,
+        password,
         player_name: playerName,
         avatar_url: avatarUrl,
         discord_id: discordId,

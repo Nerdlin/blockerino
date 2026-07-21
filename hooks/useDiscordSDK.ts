@@ -77,23 +77,16 @@ export function useDiscordSDK() {
 
           if (authError) {
             console.error("Discord→Supabase auth error:", authError);
-          } else if (authData?.hashed_token) {
-            // Try verifying token_hash as magiclink or email
-            let { error: otpError } = await supabase.auth.verifyOtp({
-              token_hash: authData.hashed_token,
-              type: 'magiclink',
+          } else if (authData?.email && authData?.password) {
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+              email: authData.email,
+              password: authData.password,
             });
-            if (otpError) {
-              const res = await supabase.auth.verifyOtp({
-                token_hash: authData.hashed_token,
-                type: 'email',
-              });
-              otpError = res.error;
-            }
-            if (otpError) {
-              console.error("Supabase OTP verification error:", otpError);
+
+            if (signInError) {
+              console.error("Supabase password sign-in error:", signInError);
             } else {
-              console.log("Auto-logged into Supabase via Discord!");
+              console.log("Auto-logged into Supabase via Discord Activity successfully!");
             }
           }
         } catch (autoAuthErr) {
