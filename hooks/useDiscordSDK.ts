@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { DiscordSDK } from './discordSdk';
 import { supabase } from '@/constants/Supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const discordClientId = process.env.EXPO_PUBLIC_DISCORD_CLIENT_ID;
 
@@ -67,6 +68,17 @@ export function useDiscordSDK() {
         
         if (mounted) {
           setDiscordUser(auth.user);
+        }
+
+        // Guaranteed fallback: save player name to AsyncStorage from Discord User info
+        if (auth?.user) {
+          const discordName = auth.user.global_name || auth.user.username;
+          if (discordName) {
+            const currentLocalName = await AsyncStorage.getItem('PLAYER_NAME');
+            if (!currentLocalName || currentLocalName.startsWith('Guest')) {
+              await AsyncStorage.setItem('PLAYER_NAME', discordName);
+            }
+          }
         }
 
         // 4. Auto-login to Supabase using Discord identity
