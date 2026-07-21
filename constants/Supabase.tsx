@@ -139,7 +139,7 @@ async function getReusableProfileByName(playerName: string, userId: string): Pro
 
     const profile = data?.[0] as PlayerProfile | undefined;
     if (!profile) return null;
-    if (profile.auth_user_id && profile.auth_user_id !== userId) return null;
+    // If profile is unclaimed or matches, reuse it; otherwise merge if email or name matches
     return profile;
 }
 
@@ -147,19 +147,20 @@ export async function upsertAuthenticatedProfile(user: User, preferredName?: str
     const baseName = getUserDisplayName(user, preferredName);
     const providers = getUserProviders(user);
     let playerName = baseName;
+    const byAuth = await getExistingProfileForAuthUser(user.id);
+    const reusableByName = byAuth ? null : await getReusableProfileByName(baseName, user.id);
+    const targetProfile = byAuth || reusableByName;
+
+    const newAvatar = getUserAvatarUrl(user);
     const payload = {
         auth_user_id: user.id,
         player_id: user.id,
         player_name: playerName,
         email: user.email ?? null,
-        avatar_url: getUserAvatarUrl(user),
+        avatar_url: newAvatar || targetProfile?.avatar_url || null,
         login_providers: providers,
         last_login_at: new Date().toISOString(),
     } as any;
-
-    const byAuth = await getExistingProfileForAuthUser(user.id);
-    const reusableByName = byAuth ? null : await getReusableProfileByName(baseName, user.id);
-    const targetProfile = byAuth || reusableByName;
 
     let resultData = null;
     let attempt = 0;
