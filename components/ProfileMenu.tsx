@@ -232,16 +232,19 @@ export default function ProfileMenu() {
 		}
 
 		supabase.auth.getSession().then(async ({ data: { session } }) => {
-			await hydrateSession(session);
-			if (mounted) setLoading(false);
+			if (mounted) {
+				await hydrateSession(session, { force: true });
+				setLoading(false);
+			}
 		});
 
 		const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-			if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+			if (mounted) {
 				setSession(session);
-				return;
+				if (session?.user) {
+					void hydrateSession(session, { force: true });
+				}
 			}
-			void hydrateSession(session, { force: event === "SIGNED_IN" });
 		});
 
 		return () => {
@@ -358,6 +361,36 @@ export default function ProfileMenu() {
 		} catch (e: any) {
 			console.error(e);
 			setErrorMessage(e.message || t("profile.googleFailed"));
+		} finally {
+			setAuthLoading(false);
+		}
+	};
+
+	const handleDiscordSignIn = async () => {
+		playSfx('menuClick');
+		setAuthLoading(true);
+		setErrorMessage("");
+		try {
+			if (Platform.OS === "web") {
+				if (typeof window === "undefined") return;
+				clearWebAuthCallbackParams();
+				const redirectTo = getWebOAuthRedirectTo();
+				const { data, error } = await supabase.auth.signInWithOAuth({
+					provider: "discord",
+					options: {
+						redirectTo,
+						skipBrowserRedirect: true,
+					},
+				});
+				if (error) throw error;
+				if (!data.url) throw new Error("Could not get Discord auth URL");
+				window.location.assign(data.url);
+				return;
+			}
+			setErrorMessage("Discord sign-in is only supported on web right now.");
+		} catch (e: any) {
+			console.error(e);
+			setErrorMessage(e.message || "Discord Sign-In failed.");
 		} finally {
 			setAuthLoading(false);
 		}
@@ -521,6 +554,14 @@ export default function ProfileMenu() {
 							onClick={handleGoogleSignIn}
 							text={t("profile.googleSignIn")}
 							backgroundColor="rgb(220, 70, 50)"
+							style={[styles.authButton, isMobile && styles.mobileAuthButton]}
+							textStyle={isMobile && styles.mobileAuthButtonText}
+						/>
+
+						<StylizedButton 
+							onClick={handleDiscordSignIn}
+							text={t("profile.discordSignIn")}
+							backgroundColor="rgb(88, 101, 242)"
 							style={[styles.authButton, isMobile && styles.mobileAuthButton]}
 							textStyle={isMobile && styles.mobileAuthButtonText}
 						/>

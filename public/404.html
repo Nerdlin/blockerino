@@ -1,168 +1,177 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Blockerino - 404</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
     <style>
       :root {
         color-scheme: dark;
-        --bg: #050510;
-        --panel: rgba(8, 10, 20, 0.86);
-        --line: rgba(255, 255, 255, 0.24);
-        --red: #ff335a;
-        --cyan: #00ffcc;
-        --gold: #ffd700;
+        --bg: #0b0c16;
+        --panel: rgba(18, 20, 38, 0.92);
+        --border: #333854;
+        --red: #ff4757;
+        --cyan: #00d2d3;
+        --gold: #ff9f43;
+        --purple: #5f27cd;
         --text: #ffffff;
-        --muted: rgba(255, 255, 255, 0.68);
+        --muted: #a4b0be;
       }
 
       * {
         box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
 
       html,
       body {
         width: 100%;
-        min-height: 100%;
+        height: 100%;
         margin: 0;
-        background:
-          linear-gradient(135deg, rgba(255, 51, 90, 0.16), transparent 28%),
-          linear-gradient(225deg, rgba(0, 255, 204, 0.14), transparent 32%),
-          var(--bg);
+        background: radial-gradient(circle at center, #1b1d36 0%, #080912 100%);
         color: var(--text);
-        font-family: "Silkscreen", "Courier New", monospace;
+        font-family: "Silkscreen", monospace, sans-serif;
       }
 
       body {
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         overflow: hidden;
+        position: relative;
       }
 
       .scanlines {
         position: fixed;
         inset: 0;
         pointer-events: none;
-        opacity: 0.16;
+        opacity: 0.12;
         background-image: repeating-linear-gradient(
           to bottom,
-          rgba(255, 255, 255, 0.18) 0,
-          rgba(255, 255, 255, 0.18) 1px,
+          rgba(255, 255, 255, 0.2) 0,
+          rgba(255, 255, 255, 0.2) 1px,
           transparent 1px,
-          transparent 7px
+          transparent 6px
         );
+        z-index: 10;
       }
 
       main {
-        width: min(760px, calc(100vw - 32px));
-        border: 2px solid var(--line);
-        border-radius: 8px;
+        width: min(580px, calc(100vw - 32px));
+        border: 3px solid var(--border);
+        border-radius: 16px;
         background: var(--panel);
-        box-shadow: 0 24px 90px rgba(0, 0, 0, 0.58), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-        padding: clamp(24px, 6vw, 54px);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.03);
+        padding: 40px 24px;
         text-align: center;
         position: relative;
+        z-index: 1;
+        backdrop-filter: blur(10px);
       }
 
       .blocks {
-        display: grid;
-        grid-template-columns: repeat(7, 18px);
-        grid-auto-rows: 18px;
-        gap: 5px;
-        width: max-content;
-        margin: 0 auto 28px;
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 24px;
       }
 
       .block {
-        width: 18px;
-        height: 18px;
-        border: 2px solid rgba(255, 255, 255, 0.34);
-        background: var(--cyan);
+        width: 22px;
+        height: 22px;
+        border-radius: 4px;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.3), inset 2px 2px 0 rgba(255, 255, 255, 0.3);
       }
 
-      .block.red { background: var(--red); }
-      .block.gold { background: var(--gold); }
-      .block.empty {
-        background: transparent;
-        border-color: rgba(255, 255, 255, 0.18);
-      }
+      .block.cyan { background: var(--cyan); box-shadow: 0 0 10px rgba(0, 210, 211, 0.6); }
+      .block.red { background: var(--red); box-shadow: 0 0 10px rgba(255, 71, 87, 0.6); }
+      .block.gold { background: var(--gold); box-shadow: 0 0 10px rgba(255, 159, 67, 0.6); }
+      .block.purple { background: var(--purple); box-shadow: 0 0 10px rgba(95, 39, 205, 0.6); }
 
       h1 {
-        margin: 0;
-        font-size: clamp(56px, 14vw, 116px);
-        line-height: 0.92;
-        letter-spacing: 0;
-        text-shadow: 5px 5px 0 rgba(255, 51, 90, 0.55), -4px -4px 0 rgba(0, 255, 204, 0.32);
+        font-size: clamp(64px, 15vw, 100px);
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: #fff;
+        text-shadow: 
+          3px 3px 0 var(--red),
+          -3px -3px 0 var(--cyan);
+        margin-bottom: 16px;
+      }
+
+      h2 {
+        font-size: 18px;
+        color: var(--gold);
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
       }
 
       p {
-        max-width: 560px;
-        margin: 18px auto 0;
+        max-width: 440px;
+        margin: 0 auto 28px;
         color: var(--muted);
-        font-size: clamp(13px, 2.6vw, 18px);
-        line-height: 1.55;
+        font-size: 13px;
+        line-height: 1.6;
       }
 
-      a {
-        display: inline-flex;
-        justify-content: center;
-        align-items: center;
-        min-width: 210px;
-        min-height: 48px;
-        margin-top: 30px;
-        padding: 12px 18px;
-        border: 2px solid rgba(255, 255, 255, 0.4);
+      .btn {
+        display: inline-block;
+        padding: 14px 28px;
+        border: 2px solid #fff;
         border-radius: 8px;
-        background: var(--red);
-        color: #050510;
+        background: linear-gradient(180deg, #ff6b81 0%, #ff4757 100%);
+        color: #fff;
         text-decoration: none;
-        font-size: 16px;
+        font-family: "Silkscreen", monospace;
+        font-size: 15px;
         font-weight: 700;
-        box-shadow: 0 8px 0 rgba(0, 0, 0, 0.42);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 6px 0 #b32b38, 0 10px 20px rgba(255, 71, 87, 0.4);
+        transition: all 0.15s ease;
+        cursor: pointer;
       }
 
-      a:focus-visible {
-        outline: 3px solid var(--gold);
-        outline-offset: 4px;
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 0 #b32b38, 0 14px 24px rgba(255, 71, 87, 0.6);
+        background: linear-gradient(180deg, #ff7b91 0%, #ff5767 100%);
       }
 
-      @media (max-width: 520px) {
-        main {
-          padding: 24px 18px 30px;
-        }
-
-        .blocks {
-          grid-template-columns: repeat(7, 14px);
-          grid-auto-rows: 14px;
-          gap: 4px;
-        }
-
-        .block {
-          width: 14px;
-          height: 14px;
-        }
-
-        a {
-          width: 100%;
-          min-width: 0;
-          font-size: 14px;
-        }
+      .btn:active {
+        transform: translateY(4px);
+        box-shadow: 0 2px 0 #b32b38, 0 4px 10px rgba(255, 71, 87, 0.4);
       }
     </style>
   </head>
   <body>
+    <div class="scanlines"></div>
     <main>
       <div class="blocks" aria-hidden="true">
-        <span class="block red"></span><span class="block red"></span><span class="block red"></span><span class="block empty"></span><span class="block"></span><span class="block"></span><span class="block"></span>
-        <span class="block red"></span><span class="block empty"></span><span class="block red"></span><span class="block empty"></span><span class="block"></span><span class="block empty"></span><span class="block"></span>
-        <span class="block red"></span><span class="block red"></span><span class="block red"></span><span class="block empty"></span><span class="block"></span><span class="block gold"></span><span class="block"></span>
+        <span class="block cyan"></span>
+        <span class="block red"></span>
+        <span class="block gold"></span>
+        <span class="block purple"></span>
       </div>
       <h1>404</h1>
-      <p>This route fell outside the board. Head back to Blockerino and keep the combo alive.</p>
-      <a href="/blockerino/">Back to game</a>
+      <h2>OUT OF BOUNDS / ВНЕ ПОЛЯ</h2>
+      <p>Эта страница улетела за пределы игрового поля. Вернитесь в Blockerino и продолжайте игру!</p>
+      <a href="/" id="backBtn" class="btn">В ИГРУ / BACK TO GAME</a>
     </main>
-    <div class="scanlines"></div>
+
+    <script>
+      // Гарантируем корректный редирект в корень приложения независимо от домена
+      document.getElementById('backBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        window.location.href = window.location.origin + '/';
+      });
+    </script>
   </body>
 </html>

@@ -22,6 +22,7 @@ export const profile: ScreenDictionary = {
 		"profile.logIn": "Log In",
 		"profile.register": "Register",
 		"profile.googleSignIn": "Sign in with Google",
+		"profile.discordSignIn": "Sign in with Discord",
 		"profile.needAccount": "Need an account?",
 		"profile.haveAccount": "Already have an account?",
 
@@ -67,6 +68,7 @@ export const profile: ScreenDictionary = {
 		"profile.logIn": "Войти",
 		"profile.register": "Регистрация",
 		"profile.googleSignIn": "Войти через Google",
+		"profile.discordSignIn": "Войти через Discord",
 		"profile.needAccount": "Нужен аккаунт?",
 		"profile.haveAccount": "Уже есть аккаунт?",
 

@@ -5,7 +5,18 @@ import { createClient, processLock, User } from '@supabase/supabase-js';
 import { getStaleRoomCutoffs, ROOM_CLEANUP_RPC } from './Multiplayer';
 
 // Supabase configuration
-export const SUPABASE_URL = 'https://ptcglecvavdvpxadqfqd.supabase.co';
+function isDiscordEmbed(): boolean {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+    try {
+        return window.self !== window.top;
+    } catch {
+        return true; // cross-origin iframe → likely Discord
+    }
+}
+
+export const SUPABASE_URL = isDiscordEmbed()
+    ? `${window.location.origin}/supabase`
+    : 'https://ptcglecvavdvpxadqfqd.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0Y2dsZWN2YXZkdnB4YWRxZnFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDExODAsImV4cCI6MjA5NTcxNzE4MH0.ZL-xsoBqBTbcgZ-ZETyKzFtrJad0QgiSftBuDV5s_fE';
 
 const webStorage = {
