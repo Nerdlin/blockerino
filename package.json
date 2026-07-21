@@ -13,12 +13,14 @@
     "build:android-release": "powershell -ExecutionPolicy Bypass -File ./scripts/build-android-release.ps1",
     "publish:android-update": "powershell -ExecutionPolicy Bypass -File ./scripts/publish-android-update.ps1",
     "deploy": "gh-pages --nojekyll -d dist",
-    "predeploy": "npx cross-env GH_PAGES=1 expo export -p web"
+    "predeploy": "npx cross-env GH_PAGES=1 expo export -p web",
+    "tunnel": "cloudflared tunnel --url http://localhost:8081"
   },
   "jest": {
     "preset": "jest-expo"
   },
   "dependencies": {
+    "@discord/embedded-app-sdk": "^2.5.0",
     "@expo/vector-icons": "^15.0.3",
     "@mgcrea/react-native-dnd": "^2.5.3",
     "@opentelemetry/api": "^1.9.1",

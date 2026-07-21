@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { LogBox, Platform } from "react-native";
 import { updateService } from "@/constants/UpdateService";
 import { flushPendingEloRatings, flushPendingGlobalHighScores } from "@/constants/OfflineSync";
+import { useDiscordSDK } from "@/hooks/useDiscordSDK";
 
 // Suppress warnings from third-party libraries
 LogBox.ignoreLogs([
@@ -43,6 +44,8 @@ console.error = (...args) => {
 };
 
 export default function RootLayout() {
+	const { isReady, isEmbedded } = useDiscordSDK();
+
 	useEffect(() => {
 		// Check for updates on app startup
 		updateService.checkForUpdates();
@@ -88,6 +91,10 @@ export default function RootLayout() {
 			}
 		};
 	}, []);
+
+	if (isEmbedded && !isReady) {
+		return null;
+	}
 
 	return (
 		<>
