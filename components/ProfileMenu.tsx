@@ -401,9 +401,12 @@ export default function ProfileMenu() {
 		setAuthLoading(true);
 		await supabase.auth.signOut();
 		await AsyncStorage.removeItem(PLAYER_ID_KEY);
+		await AsyncStorage.removeItem(PLAYER_NAME_KEY);
 		hydratedSessionKeyRef.current = null;
 		hydratingSessionKeyRef.current = null;
 		setSession(null);
+		setPlayerName("");
+		setAvatarUrl(null);
 		setAuthLoading(false);
 	};
 
