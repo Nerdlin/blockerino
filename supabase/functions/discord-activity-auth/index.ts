@@ -53,31 +53,46 @@ serve(async (req) => {
       name: playerName,
     };
 
-    // 4. Try to create user or update password/metadata if user exists
+    // 4. Try to find existing linked profile by discord_id
+    const { data: linkedProfile } = await admin.from('profiles').select('auth_user_id, email').eq('discord_id', discordId).single();
+    
     let userId: string | null = null;
-    const { data: createData, error: createError } = await admin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: userMeta,
-    });
-
-    if (createData?.user) {
-      userId = createData.user.id;
-    } else if (createError) {
-      // User likely exists -> find user and update password/metadata
-      const { data: usersData, error: listError } = await admin.auth.admin.listUsers();
-      const existingUser = usersData?.users?.find(u => u.email === email);
+    
+    if (linkedProfile && linkedProfile.auth_user_id) {
+      // User is already linked! Update password to ensure they can login via SDK
+      userId = linkedProfile.auth_user_id;
+      email = linkedProfile.email || email; // Use their real email for login
       
-      if (existingUser) {
-        userId = existingUser.id;
-        await admin.auth.admin.updateUserById(userId, {
-          password,
-          email_confirm: true,
-          user_metadata: userMeta,
-        });
-      } else {
-        throw createError;
+      await admin.auth.admin.updateUserById(userId, {
+        password,
+        user_metadata: userMeta,
+      });
+    } else {
+      // 4.b Fallback to old behavior: Create new dummy user
+      const { data: createData, error: createError } = await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: userMeta,
+      });
+
+      if (createData?.user) {
+        userId = createData.user.id;
+      } else if (createError) {
+        // User likely exists -> find user and update password/metadata
+        const { data: usersData } = await admin.auth.admin.listUsers();
+        const existingUser = usersData?.users?.find(u => u.email === email);
+        
+        if (existingUser) {
+          userId = existingUser.id;
+          await admin.auth.admin.updateUserById(userId, {
+            password,
+            email_confirm: true,
+            user_metadata: userMeta,
+          });
+        } else {
+          throw createError;
+        }
       }
     }
 
