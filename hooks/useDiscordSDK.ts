@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DiscordSDK } from '@discord/embedded-app-sdk';
+import { DiscordSDK } from './discordSdk';
 import { supabase } from '@/constants/Supabase';
 
 const discordClientId = process.env.EXPO_PUBLIC_DISCORD_CLIENT_ID;
