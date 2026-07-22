@@ -1,23 +1,23 @@
 # Security Policy
 
-## Educational Use Only
+## Independent Project Status
 
-This project is provided strictly for educational and informational purposes only.
+Blockerino is an independent, non-commercial personal project developed by a single creator. It is provided "as is" primarily for educational, portfolio, and recreational purposes.
 
-You may review the source code, study its structure, and use it only to understand how the project works.
+You may review the source code, study its structure, and use it to understand how the project works.
 
 Any other use is not permitted, including but not limited to:
 
-- commercial use;
-- production use;
-- redistribution as your own work;
+- commercial or enterprise use;
+- unauthorized production deployment;
+- redistribution or reselling as your own work;
 - use that may violate laws, platform rules, or third-party rights.
 
-By accessing this repository, you agree that you do so at your own risk. The author is not responsible for any misuse, data loss, legal consequences, or other issues related to this project.
+By accessing this repository or playing the game, you agree that you do so at your own risk. As an independent developer, the author is not responsible for any misuse, data loss, legal consequences, or other issues related to this project.
 
 ## Reporting a Security Issue
 
-If you discover a security issue in this project, please report it responsibly by opening an issue in this repository or contacting the repository owner.
+If you discover a security issue or vulnerability in this project, please report it responsibly by opening an issue in this repository or contacting the repository owner directly. 
 
 When reporting a security issue, please include:
 
@@ -29,8 +29,8 @@ When reporting a security issue, please include:
 
 ## Supported Versions
 
-Only the latest version of this project is supported.
+Only the latest main branch version of this project is supported.
 
 ## Disclaimer
 
-This project is not intended for real-world, commercial, or production use. It is made available only for educational and informational purposes.
+This project is not intended for real-world, commercial, or enterprise production use. The developer cannot guarantee enterprise-grade security, uptime, or dedicated support. It is an independent development effort made available for the community and portfolio purposes.
