@@ -2,7 +2,7 @@ export default ({ config }) => ({
   ...config,
   experiments: {
     ...config.experiments,
-    baseUrl: undefined
+    baseUrl: process.env.GH_PAGES ? "/blockerino" : undefined
   },
   plugins: [
     ...(config.plugins || []),
