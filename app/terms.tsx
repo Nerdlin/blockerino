@@ -29,30 +29,30 @@ export default function TermsOfService() {
                     
                     <Text style={styles.heading}>1. Acceptance of Terms</Text>
                     <Text style={styles.paragraph}>
-                        By accessing, installing, or playing Blockerino on Discord, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the application.
+                        By accessing, authenticating via Discord, or utilizing Blockerino in any capacity, you establish a binding agreement to adhere to these Terms of Service. If you do not consent to these stipulations in their entirety, you are expressly prohibited from utilizing the application and must immediately cease access.
                     </Text>
                     
-                    <Text style={styles.heading}>2. Use of the Game</Text>
+                    <Text style={styles.heading}>2. Authorized Use and Conduct</Text>
                     <Text style={styles.paragraph}>
-                        Blockerino is provided for entertainment purposes. You agree to use the game respectfully and in accordance with Discord's Community Guidelines. You agree not to:
+                        Blockerino is provisioned exclusively for personal, non-commercial entertainment purposes. As a condition of your use, you agree to comply with all applicable Discord Community Guidelines and agree that you shall not under any circumstances:
                     </Text>
-                    <BulletPoint>Use cheats, exploits, or third-party software to gain an unfair advantage.</BulletPoint>
-                    <BulletPoint>Attempt to hack, disrupt, or interfere with the game's servers or infrastructure.</BulletPoint>
-                    <BulletPoint>Use the game for any illegal or unauthorized purpose.</BulletPoint>
+                    <BulletPoint>Employ exploits, macros, automated scripts, or third-party modifications designed to grant an unfair competitive advantage or manipulate the Elo ranking system.</BulletPoint>
+                    <BulletPoint>Engage in reverse engineering, packet sniffing, or any attempt to disrupt, compromise, or over-burden the underlying server architecture.</BulletPoint>
+                    <BulletPoint>Utilize the application infrastructure for unauthorized data scraping, abuse, or any illicit activities.</BulletPoint>
                     
                     <Text style={styles.heading}>3. Disclaimer of Warranties</Text>
                     <Text style={styles.paragraph}>
-                        The game is provided on an "as is" and "as available" basis without warranty of any kind. We do not guarantee that the game will be uninterrupted, error-free, or completely secure.
+                        The application and its underlying services are provided on a strictly "AS IS" and "AS AVAILABLE" basis, without express or implied warranties of any kind. The developer disclaims all warranties, including but not limited to merchantability, fitness for a particular purpose, and non-infringement. We do not guarantee absolute system availability, fault tolerance, or immunity from cryptographic or infrastructural vulnerabilities.
                     </Text>
                     
                     <Text style={styles.heading}>4. Limitation of Liability</Text>
                     <Text style={styles.paragraph}>
-                        In no event shall the developer of Blockerino be liable for any direct, indirect, incidental, special, or consequential damages arising from the use of, or inability to use, the game.
+                        To the maximum extent permitted by applicable law, in no event shall the developer be held liable for any direct, indirect, incidental, punitive, or consequential damages (including, without limitation, loss of data, reputation, or access) arising out of or in any way connected with the utilization or performance of Blockerino, even if previously advised of the possibility of such damages.
                     </Text>
                     
-                    <Text style={styles.heading}>5. Changes to the Terms</Text>
+                    <Text style={styles.heading}>5. Modifications and Severability</Text>
                     <Text style={styles.paragraph}>
-                        We reserve the right to modify these Terms of Service at any time. Continued use of the game after any changes constitutes your acceptance of the new terms.
+                        We reserve the unilateral right to amend these Terms of Service at any given time without prior explicit notification. Continued utilization of the service following modifications constitutes binding acceptance of the updated terms. If any provision of these terms is deemed unlawful or unenforceable, that provision shall be deemed severable and shall not affect the validity of the remaining provisions.
                     </Text>
                 </View>
             </ScrollView>

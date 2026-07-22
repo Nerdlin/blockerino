@@ -27,35 +27,35 @@ export default function PrivacyPolicy() {
                     
                     <View style={styles.divider} />
                     
-                    <Text style={styles.heading}>1. Information We Collect</Text>
+                    <Text style={styles.heading}>1. Information Collection and Scope</Text>
                     <Text style={styles.paragraph}>
-                        When you play Blockerino via Discord, we may collect basic information provided by the Discord API, such as your Discord user ID, username, and avatar. We only collect the minimum amount of data necessary to provide the game's core features.
+                        Blockerino operates as an independent application within the Discord ecosystem. We adhere strictly to a data-minimization principle, collecting exclusively the essential information required for core functionality. This is limited to data provided by the Discord API, explicitly your Discord User ID, username, and avatar hash.
                     </Text>
                     
-                    <Text style={styles.heading}>2. How We Use Your Information</Text>
+                    <Text style={styles.heading}>2. Utilization of Data</Text>
                     <Text style={styles.paragraph}>
-                        Your information is used solely for the purpose of:
+                        The data we collect is utilized strictly for operational and service-delivery purposes, which encompass:
                     </Text>
-                    <BulletPoint>Saving your game progress and high scores.</BulletPoint>
-                    <BulletPoint>Displaying your name and avatar on global and server leaderboards.</BulletPoint>
-                    <BulletPoint>Ensuring multiplayer synchronization.</BulletPoint>
+                    <BulletPoint>Persistent storage of user progression, Elo ratings, and historical match data.</BulletPoint>
+                    <BulletPoint>Rendering user identities across global and server-specific leaderboards.</BulletPoint>
+                    <BulletPoint>Facilitating real-time peer-to-peer multiplayer synchronization.</BulletPoint>
                     <Text style={[styles.paragraph, { marginTop: 12 }]}>
-                        We do not sell, rent, or share your personal data with third parties.
+                        Under no circumstances do we monetize, lease, or disseminate your personally identifiable information (PII) to unauthorized third-party entities, advertising networks, or data brokers.
                     </Text>
                     
-                    <Text style={styles.heading}>3. Data Storage and Security</Text>
+                    <Text style={styles.heading}>3. Infrastructure Security and Retention</Text>
                     <Text style={styles.paragraph}>
-                        Your game data is securely stored using Supabase (a secure backend-as-a-service platform). We take reasonable measures to protect your data from unauthorized access.
+                        All operational data is securely encrypted and maintained on Supabase infrastructure, a SOC2-compliant Backend-as-a-Service architecture. We enforce strict Row Level Security (RLS) policies and cryptographically secured APIs to mitigate unauthorized access and ensure data integrity.
                     </Text>
                     
-                    <Text style={styles.heading}>4. Data Deletion</Text>
+                    <Text style={styles.heading}>4. User Rights and Data Erasure</Text>
                     <Text style={styles.paragraph}>
-                        You can request the deletion of your data at any time by contacting the developer via GitHub or Discord.
+                        In accordance with global privacy standards, you maintain absolute sovereignty over your data. You reserve the right to request a complete purge of your records and associated metrics from our databases at any time by initiating a request via our official GitHub repository or Discord support channels.
                     </Text>
                     
-                    <Text style={styles.heading}>5. Changes to This Policy</Text>
+                    <Text style={styles.heading}>5. Policy Iterations</Text>
                     <Text style={styles.paragraph}>
-                        We may update this Privacy Policy from time to time. Any changes will be posted directly on this page.
+                        As the application evolves, we reserve the right to amend this Privacy Policy. Substantive modifications will be reflected directly on this page. Continued utilization of Blockerino following such revisions constitutes your explicit acknowledgment and consent to the updated terms.
                     </Text>
                 </View>
             </ScrollView>
