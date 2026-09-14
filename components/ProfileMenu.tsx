@@ -436,7 +436,7 @@ export default function ProfileMenu() {
 							<View style={styles.editAvatarBadge}><Text style={{ fontSize: 10 }}>✏️</Text></View>
 						</Pressable>
 						<Text style={[styles.welcomeText, { color: currentTheme.textPrimary }]}>
-							{playerName || session.user.email}
+							{playerName || session?.user.email}
 						</Text>
 
 						<View style={[styles.tabsContainer, isMobile && styles.mobileTabsContainer]}>
@@ -601,7 +601,7 @@ export default function ProfileMenu() {
 				{ backgroundColor: currentTheme.menuBackground, position: "absolute", zIndex: 100 },
 				isMobile && { width: '92%', height: '85%', paddingHorizontal: 10 }
 			]}>
-				<Text style={[styles.sectionHeader, { color: currentTheme.textPrimary }]}>{t("profile.avatarTitle", "CHOOSE AVATAR")}</Text>
+				<Text style={[styles.sectionHeader, { color: currentTheme.textPrimary }]}>{t("profile.avatarTitle")}</Text>
 				<ScrollView style={{ width: "100%", marginTop: 20 }}>
 					<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
 						{["👾", "🤖", "🧙", "🥷", "👑", "🦊", "🐱", "🐶", "🐼", "💀", "👽", "👻", "🔥", "💎", "⭐"].map(emoji => (
@@ -616,7 +616,7 @@ export default function ProfileMenu() {
 						))}
 					</View>
 					
-					<Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginTop: 30, textAlign: "center" }]}>{t("profile.avatarUrlLabel", "OR CUSTOM IMAGE URL")}</Text>
+					<Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginTop: 30, textAlign: "center" }]}>{t("profile.avatarUrlLabel")}</Text>
 					<TextInput 
 						style={[styles.input, { borderColor: currentTheme.gridBorder, color: currentTheme.textPrimary, backgroundColor: 'rgba(0,0,0,0.2)' }]}
 						placeholder="https://..."
@@ -631,12 +631,12 @@ export default function ProfileMenu() {
 							setShowAvatarPopup(false);
 							await updateProfileAvatar(session.user.id, customAvatarInput.trim());
 						}}
-						text={t("common.save", "SAVE")}
+						text={t("common.save")}
 						backgroundColor={currentTheme.buttonPrimary}
 						style={{ marginTop: 10 }}
 					/>
 				</ScrollView>
-				<StylizedButton onClick={() => setShowAvatarPopup(false)} text={t("common.cancel", "CANCEL")} backgroundColor={currentTheme.buttonSecondary} style={{ marginTop: 20 }} />
+				<StylizedButton onClick={() => setShowAvatarPopup(false)} text={t("common.cancel")} backgroundColor={currentTheme.buttonSecondary} style={{ marginTop: 20 }} />
 			</SimplePopupView>
 		)}
 		</>
@@ -644,6 +644,7 @@ export default function ProfileMenu() {
 }
 
 const styles = StyleSheet.create({
+	inputLabel: { fontSize: 14, marginBottom: 8 },
 	sectionHeader: {
 		fontSize: 24,
 		fontFamily: 'Silkscreen',

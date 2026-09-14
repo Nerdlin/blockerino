@@ -776,7 +776,15 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 				runOnJS(broadcastHoverState)(null, null, null);
 				return;
 			}
-			const piece: PieceData = hand.value[draggingPiece.value!]!;
+			const piece = hand.value[draggingPiece.value];
+			const cleanBoard = clearHoverBlocks(cloneBoard(board.value));
+			if (!piece || createPossibleBoardSpots(cleanBoard, piece)[dropY]?.[dropX] !== 1) {
+				board.value = cleanBoard;
+				draggingPiece.value = null;
+				possibleBoardDropSpots.value = emptyPossibleBoardSpots(boardLength);
+				runOnJS(broadcastHoverState)(null, null, null);
+				return;
+			}
 
 			if (Platform.OS !== 'web') {
 				runPiecePlacedHaptic();
@@ -898,6 +906,11 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 		const piece: PieceData = hand.value[draggingPiece.value!]!;
 
 		const newBoard = clearHoverBlocks(cloneBoard(board.value));
+		if (!piece || createPossibleBoardSpots(newBoard, piece)[dropY]?.[dropX] !== 1) {
+			board.value = newBoard;
+			runOnJS(broadcastHoverState)(draggingPiece.value, null, null);
+			return;
+		}
 		updateHoveredBreaks(newBoard, piece, dropX, dropY);
 
 		board.value = newBoard;

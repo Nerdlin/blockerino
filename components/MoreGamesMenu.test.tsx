@@ -30,7 +30,114 @@ import {
 	getTicTacToeWinner,
 	isShipPlacementValid,
 	resolveDurakCardTarget,
+	generateSudoku,
+	countSudokuSolutions,
+	createMahjongTiles,
+	isMahjongTileFree,
+	shuffleMahjongTiles,
+	restoreChessGame,
+	useMiniGameRoom,
 } from "./MoreGamesMenu";
+
+import { Chess } from "chess.js";
+import React from "react";
+import { act, create, ReactTestRenderer } from "react-test-renderer";
+import { supabase } from "@/constants/Supabase";
+
+describe("mini-game room delivery", () => {
+	let room: ReturnType<typeof useMiniGameRoom>;
+	let tree: ReactTestRenderer;
+	const channels: any[] = [];
+	function Harness() { room = useMiniGameRoom("tictactoe", () => {}); return null; }
+	beforeEach(async () => {
+		channels.length = 0;
+		(supabase.channel as jest.Mock).mockImplementation(() => {
+			const channel: any = { send: jest.fn(() => Promise.resolve("ok")), on: jest.fn() };
+			channel.on.mockReturnValue(channel);
+			channel.subscribe = (callback: (status: string) => void) => { callback("SUBSCRIBED"); return channel; };
+			channels.push(channel);
+			return channel;
+		});
+		await act(async () => { tree = create(React.createElement(Harness)); });
+		await act(async () => { room.connect("player1"); });
+	});
+	afterEach(async () => { await act(async () => { tree.unmount(); }); });
+	it("reports a failed move delivery instead of staying connected", async () => {
+		channels[0].send.mockResolvedValueOnce("timed out");
+		await act(async () => { room.send("move", {}); });
+		expect(room.status).toBe("error");
+	});
+	it("handles rejected sends without an unhandled rejection", async () => {
+		channels[0].send.mockRejectedValueOnce(new Error("offline"));
+		await act(async () => { room.send("move", {}); });
+		expect(room.status).toBe("error");
+	});
+	it("ignores delivery failures belonging to the previous room", async () => {
+		let fail!: (reason: Error) => void;
+		channels[0].send.mockReturnValueOnce(new Promise((_, reject) => { fail = reject; }));
+		await act(async () => { room.send("move", {}); });
+		await act(async () => { room.connect("player1"); });
+		await act(async () => { fail(new Error("old room disconnected")); });
+		expect(room.status).toBe("connected");
+	});
+});
+
+describe("puzzle and chess regressions", () => {
+	it("generates uniquely solvable Sudoku puzzles without changing givens", () => {
+		for (let attempt = 0; attempt < 3; attempt++) {
+			const { puzzle, solution } = generateSudoku();
+			expect(countSudokuSolutions(puzzle.map((row) => [...row]), 2)).toBe(1);
+			for (let i = 0; i < 9; i++) {
+				expect(new Set(solution[i]).size).toBe(9);
+				expect(new Set(solution.map((row) => row[i])).size).toBe(9);
+				puzzle[i].forEach((value, x) => { if (value) expect(value).toBe(solution[i][x]); });
+			}
+		}
+	});
+
+	it("generates Mahjong layouts that can be fully cleared", () => {
+		for (let attempt = 0; attempt < 30; attempt++) {
+			const tiles = createMahjongTiles();
+			while (tiles.some((tile) => !tile.removed)) {
+				const free = tiles.filter((tile) => isMahjongTileFree(tile, tiles));
+				const first = free.find((tile) => free.some((other) => other.id !== tile.id && other.matchKey === tile.matchKey));
+				expect(first).toBeDefined();
+				if (!first) break;
+				const second = free.find((tile) => tile.id !== first.id && tile.matchKey === first.matchKey)!;
+				first.removed = second.removed = true;
+			}
+		}
+	});
+
+	it("reshuffling always exposes a pair even with unlucky randomness", () => {
+		const tiles = createMahjongTiles();
+		const free = tiles.filter((tile) => isMahjongTileFree(tile, tiles));
+		// Retain just two top tiles and their covered lower tiles, with crossed pairs.
+		const top = free.filter((tile) => tile.z === 2 && tile.y === 2);
+		const bottom = tiles.filter((tile) => tile.z === 0 && tile.y === 2 && top.some((upper) => upper.x === tile.x));
+		const kept = [...top, ...bottom];
+		expect(kept).toHaveLength(4);
+		tiles.forEach((tile) => { tile.removed = !kept.includes(tile); });
+		kept.forEach((tile, i) => { tile.symbol = tile.matchKey = i % 2 ? "B" : "A"; });
+		const before = JSON.stringify(tiles);
+		const random = jest.spyOn(Math, "random").mockReturnValue(0.999);
+		try {
+			const shuffled = shuffleMahjongTiles(tiles);
+			const available = shuffled.filter((tile) => isMahjongTileFree(tile, shuffled));
+			expect(available[0].matchKey).toBe(available[1].matchKey);
+			expect(JSON.stringify(tiles)).toBe(before);
+			expect(shuffled.filter((tile) => !tile.removed).map((tile) => tile.symbol).sort()).toEqual(["A", "A", "B", "B"]);
+		} finally { random.mockRestore(); }
+	});
+
+	it("preserves threefold repetition when restoring chess state", () => {
+		const moves = ["Nf3", "Nf6", "Ng1", "Ng8", "Nf3", "Nf6", "Ng1", "Ng8"];
+		const chess = new Chess();
+		moves.forEach((move) => chess.move(move));
+		expect(restoreChessGame(chess.fen(), moves).isThreefoldRepetition()).toBe(true);
+		expect(restoreChessGame(chess.fen(), []).fen()).toBe(chess.fen());
+	});
+});
 
 describe("More Games rules", () => {
 	it("detects tic-tac-toe wins", () => {
@@ -52,6 +159,13 @@ describe("More Games rules", () => {
 
 		expect(isShipPlacementValid({ ...fleet[1], x: 5, y: 3 }, fleet)).toBe(false);
 		expect(isShipPlacementValid({ ...fleet[1], x: 0, y: 5 }, fleet)).toBe(true);
+	});
+
+	it("rejects invalid coordinates and touching ships", () => {
+		const ship = { id: "a", name: "A", length: 2, x: 0, y: 0, orientation: "h" as const };
+		for (const x of [NaN, Infinity, -1, 0.5, 9]) expect(isShipPlacementValid({ ...ship, x }, [])).toBe(false);
+		expect(isShipPlacementValid({ ...ship, length: 0 }, [])).toBe(false);
+		expect(isShipPlacementValid({ ...ship, id: "b", x: 2, y: 1 }, [ship])).toBe(false);
 	});
 
 	it("uses Durak trump and suit rules for defense", () => {

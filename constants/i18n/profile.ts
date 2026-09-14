@@ -2,6 +2,8 @@ import type { ScreenDictionary } from "./index";
 
 export const profile: ScreenDictionary = {
 	en: {
+		"profile.avatarTitle": "Choose avatar",
+		"profile.avatarUrlLabel": "Or custom image URL",
 		"profile.title": "Profile",
 
 		// Tabs
@@ -48,6 +50,8 @@ export const profile: ScreenDictionary = {
 		"profile.callbackExpired": "Google sign-in callback expired or was opened twice. Please try again.",
 	},
 	ru: {
+		"profile.avatarTitle": "Выберите аватар",
+		"profile.avatarUrlLabel": "Или ссылка на изображение",
 		"profile.title": "Профиль",
 
 		// Tabs

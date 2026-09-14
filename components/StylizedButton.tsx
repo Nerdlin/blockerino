@@ -33,7 +33,11 @@ export default function StylizedButton({
     };
 
     return (
-        <Pressable 
+        <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={text}
+            accessibilityState={{ disabled: Boolean(disabled) }}
+            disabled={disabled} 
             hitSlop={disabled ? undefined : 6}
             onPress={() => {
                 if (!disabled && onClick) {

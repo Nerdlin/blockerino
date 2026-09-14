@@ -3,14 +3,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, Platform } from 'react-native';
 import { createClient, processLock, User } from '@supabase/supabase-js';
 import { getStaleRoomCutoffs, ROOM_CLEANUP_RPC } from './Multiplayer';
+import { isDiscordActivityLocation } from './DiscordEnvironment';
 
 // Supabase configuration
 function isDiscordEmbed(): boolean {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
     try {
-        return window.self !== window.top;
+        return isDiscordActivityLocation(window.location.hostname, window.location.search);
     } catch {
-        return true; // cross-origin iframe → likely Discord
+        return false;
     }
 }
 
@@ -139,8 +140,8 @@ async function getReusableProfileByName(playerName: string, userId: string): Pro
 
     const profile = data?.[0] as PlayerProfile | undefined;
     if (!profile) return null;
-    // If profile is unclaimed or matches, reuse it; otherwise merge if email or name matches
-    return profile;
+    // A matching nickname is not proof of ownership.
+    return profile.auth_user_id === userId ? profile : null;
 }
 
 export async function upsertAuthenticatedProfile(user: User, preferredName?: string): Promise<PlayerProfile | null> {
@@ -184,7 +185,7 @@ export async function upsertAuthenticatedProfile(user: User, preferredName?: str
                     continue;
                 }
                 console.error('Error updating auth profile:', error);
-                return targetProfile;
+                return null;
             }
             resultData = data;
             break;
@@ -381,7 +382,10 @@ export async function submitGlobalHighScore(
         const finalPlayerName = playerName.trim();
         if (!finalPlayerName || score <= 0) return false;
 
-        const escapedName = escapeIlike(finalPlayerName);
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session?.user) return false;
+        const profile = await upsertAuthenticatedProfile(session.user, finalPlayerName);
+        if (!profile) return false;
         const scoreColumn = getHighScoreColumn(gameMode);
         if (isHighScoreColumnTemporarilyUnavailable(scoreColumn)) return false;
 
@@ -389,7 +393,7 @@ export async function submitGlobalHighScore(
         const { data, error: fetchError } = await supabase
             .from('profiles')
             .select(getHighScoreColumnsSelect(scoreColumn))
-            .ilike('player_name', escapedName)
+            .eq('auth_user_id', session.user.id)
             .limit(1);
 
         if (fetchError) {
@@ -413,7 +417,10 @@ export async function submitGlobalHighScore(
                         player_name: finalPlayerName,
                         [scoreColumn]: score
                     })
-                    .eq('id', existingRecord.id);
+                    .eq('id', existingRecord.id)
+                    .eq('auth_user_id', session.user.id)
+                    .select('id')
+                    .single();
 
                 if (updateError) {
                     if (isMissingHighScoreColumnError(updateError, scoreColumn)) {
@@ -425,7 +432,10 @@ export async function submitGlobalHighScore(
                 const { error: updateError } = await supabase
                     .from('profiles')
                     .update({ player_name: finalPlayerName })
-                    .eq('id', existingRecord.id);
+                    .eq('id', existingRecord.id)
+                    .eq('auth_user_id', session.user.id)
+                    .select('id')
+                    .single();
 
                 if (updateError) return false;
             }
@@ -436,6 +446,8 @@ export async function submitGlobalHighScore(
                 .from('profiles')
                 .insert([{
                     player_name: finalPlayerName,
+                    auth_user_id: session.user.id,
+                    player_id: session.user.id,
                     [scoreColumn]: score
                 }]);
 

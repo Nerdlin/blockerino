@@ -8,7 +8,7 @@ serve(async (req) => {
 
   try {
     const { code } = await req.json();
-    if (!code) {
+    if (typeof code !== 'string' || !code.trim()) {
       throw new Error('Code is required');
     }
 
@@ -48,7 +48,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Token exchange error:", error);
-    return new Response(JSON.stringify({ error: `Edge Function Token Exchange Error: ${error.message}` }), {
+    return new Response(JSON.stringify({ error: `Edge Function Token Exchange Error: ${error instanceof Error ? error.message : String(error)}` }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });

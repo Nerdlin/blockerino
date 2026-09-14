@@ -3,9 +3,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Chess } from "chess.js";
 import { Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, Image, ActivityIndicator, Clipboard, LayoutAnimation, UIManager } from "react-native";
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-	UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 import Slider from '@react-native-community/slider';
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -26,6 +23,10 @@ import { useShopState, ShopItem, ShopCategory, getVisibleShopItemsByCategory } f
 import { useAppState } from "@/hooks/useAppState";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import PixelIcon from "@/components/PixelIcon";
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+	UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 type MoreGameId = "shop" | "battleship" | "durak" | "chess" | "sudoku" | "tictactoe" | "mahjong";
 type OnlineRole = "player1" | "player2" | "player3" | "player4" | "player5" | "player6";
@@ -248,7 +249,7 @@ function getNextDurakRole(role: OnlineRole, playerCount: number, hands?: Record<
 	return roles[(start + 1) % roles.length];
 }
 
-function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, payload: any, senderRole?: OnlineRole) => void, playerName: string = DEFAULT_MORE_GAME_PLAYER_NAME, avatarUrl?: string) {
+export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, payload: any, senderRole?: OnlineRole) => void, playerName: string = DEFAULT_MORE_GAME_PLAYER_NAME, avatarUrl?: string) {
 	const [roomCode, setRoomCode] = useState("");
 	const [role, setRole] = useState<OnlineRole | null>(null);
 	const [status, setStatus] = useState<RoomStatus>("offline");
@@ -295,7 +296,7 @@ function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, payload: a
 						role: currentRole,
 						senderId: clientIdRef.current,
 					},
-			}).finally(removeChannel);
+			}).then(removeChannel, removeChannel);
 			return;
 		}
 
@@ -317,15 +318,18 @@ function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, payload: a
 		setStatus("connecting");
 
 		const channel = supabase.channel(`more-games:${gameId}:${nextCode}`, {
-			config: { broadcast: { self: false } },
+			config: { broadcast: { self: false, ack: true } },
 		});
 
 		channel.on("broadcast", { event: "mini_game" }, ({ payload }: { payload: any }) => {
-			if (!payload || payload.senderId === clientIdRef.current) return;
+			if (channelRef.current !== channel || !payload || payload.senderId === clientIdRef.current) return;
+			if (typeof payload.event !== "string" || !payload.payload || typeof payload.payload !== "object" || !ONLINE_ROLES.includes(payload.role)) return;
 			onEventRef.current(payload.event, payload.payload, payload.role);
 		});
 
+		channelRef.current = channel;
 		channel.subscribe((nextStatus: string) => {
+			if (channelRef.current !== channel) return;
 			if (nextStatus === "SUBSCRIBED") {
 				setStatus("connected");
 				void channel.send({
@@ -337,6 +341,10 @@ function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, payload: a
 						role: nextRole,
 						senderId: clientIdRef.current,
 					},
+				}).then((result: string) => {
+					if (channelRef.current === channel && result !== "ok") setStatus("error");
+				}, () => {
+					if (channelRef.current === channel) setStatus("error");
 				});
 			} else if (nextStatus === "CHANNEL_ERROR" || nextStatus === "TIMED_OUT" || nextStatus === "CLOSED") {
 				setStatus("error");
@@ -360,6 +368,10 @@ function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, payload: a
 				role: currentRole,
 				senderId: clientIdRef.current,
 			},
+		}).then((result: string) => {
+			if (channelRef.current === channel && result !== "ok") setStatus("error");
+		}, () => {
+			if (channelRef.current === channel) setStatus("error");
 		});
 	}, []);
 
@@ -571,6 +583,8 @@ export default function MoreGamesMenu() {
 	const [myRating, setMyRating] = useState<MoreGameRating | null>(null);
 	const [ratingsLoading, setRatingsLoading] = useState(false);
 	const [ratingPanel, setRatingPanel] = useState<"list" | "leaderboard">("list");
+	const popupScrollRef = useRef<ScrollView>(null);
+	useEffect(() => { popupScrollRef.current?.scrollTo({ y: 0, animated: false }); }, [activeGame, ratingPanel]);
 
 	useEffect(() => {
 		AsyncStorage.getItem(PLAYER_NAME_KEY).then((rawName) => {
@@ -642,22 +656,23 @@ export default function MoreGamesMenu() {
 
 	return (
 		<SimplePopupView
+			scrollRef={popupScrollRef}
 			style={[
 				{ justifyContent: "flex-start", backgroundColor: currentTheme.menuBackground, height: "92%" },
 				isMobile && { width: "94%", height: "92%", paddingHorizontal: 8 },
 			]}
 		>
-			<View style={styles.moreHeaderRow}>
+			<View style={[styles.moreHeaderRow, isMobile && { flexDirection: "column" }]}>
 				<StylizedButton text={t("common.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.topBackButton} textStyle={styles.smallButtonText} />
-				<View style={styles.moreHeaderTextBlock}>
+				<View style={[styles.moreHeaderTextBlock, isMobile && { flex: 0, width: "100%" }]}>
 					<Text style={[styles.header, { color: currentTheme.textPrimary }]} numberOfLines={2} adjustsFontSizeToFit>
 						{activeCard ? t(`moregames.card.${activeCard.id}.title`) : (ratingPanel === "leaderboard" ? t("moregames.leaderboardTitle") : t("moregames.title"))}
 					</Text>
 					<Text style={[styles.subHeader, { color: currentTheme.textSecondary }]}>
-						{activeCard ? t("moregames.subtitleActive") : ratingPanel !== "list" ? t("moregames.subtitleRatings", { game: t(`moregames.label.${ratingGame}`) }) : t("moregames.subtitleList")}
+						{activeCard ? t(`moregames.help.${activeCard.id}`) : ratingPanel !== "list" ? t("moregames.subtitleRatings", { game: t(`moregames.label.${ratingGame}`) }) : t("moregames.subtitleList")}
 					</Text>
 				</View>
-				<View style={styles.topBackSpacer} />
+				{!isMobile && <View style={styles.topBackSpacer} />}
 			</View>
 
 			{ratingPanel === "leaderboard" ? (
@@ -975,7 +990,16 @@ function TicTacToeGame({ playerName, onRatingChange }: { playerName: string; onR
 		if (event === "system_joined" && senderRole) {
 			setOpponentReady(true);
 			setOpponentName(normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)));
-			roomRef.current?.send("sync", { board, turn });
+			if (remoteResult) {
+				const nextBoard = Array(9).fill(null);
+				setBoard(nextBoard);
+				setTurn("X");
+				setRemoteResult(null);
+				ratingSubmittedRef.current = null;
+				roomRef.current?.send("sync", { board: nextBoard, turn: "X" });
+			} else {
+				roomRef.current?.send("sync", { board, turn });
+			}
 			return;
 		}
 		if (event === "system_left" && senderRole && roomRef.current.role) {
@@ -995,7 +1019,7 @@ function TicTacToeGame({ playerName, onRatingChange }: { playerName: string; onR
 			setTurn(payload.turn === "O" ? "O" : "X");
 			setRemoteResult(null);
 		}
-	}, [board, turn, t]);
+	}, [board, turn, remoteResult, t]);
 
 	const room = useMiniGameRoom("tictactoe", handleEvent, playerName);
 	const roomRef = useRef({ role: room.role, send: room.send });
@@ -1013,7 +1037,8 @@ function TicTacToeGame({ playerName, onRatingChange }: { playerName: string; onR
 	};
 
 	const play = (index: number) => {
-		if (winner || isDraw || board[index]) return;
+		if (winner || isDraw || remoteResult || board[index]) return;
+		if (room.role && !room.isConnected) return;
 		const online = room.isConnected && isDuelRole(room.role);
 		const myMark: TicMark = room.role === "player2" ? "O" : "X";
 		if (online && (!opponentReady || turn !== myMark)) return;
@@ -1158,7 +1183,7 @@ function fillSudokuSolution(grid: number[][]): boolean {
 	return true;
 }
 
-function countSudokuSolutions(grid: number[][], limit: number): number {
+export function countSudokuSolutions(grid: number[][], limit: number): number {
 	for (let row = 0; row < 9; row += 1) {
 		for (let col = 0; col < 9; col += 1) {
 			if (grid[row][col] !== 0) continue;
@@ -1177,7 +1202,7 @@ function countSudokuSolutions(grid: number[][], limit: number): number {
 }
 
 // Generates a fresh puzzle with a unique solution so "New game" always shows new numbers.
-function generateSudoku(): SudokuBoard {
+export function generateSudoku(): SudokuBoard {
 	const solution = Array.from({ length: 9 }, () => Array(9).fill(0));
 	fillSudokuSolution(solution);
 	const puzzle = solution.map((row) => [...row]);
@@ -1253,6 +1278,7 @@ function SudokuGame({ cosmetics, playerName, onRatingChange }: { cosmetics: Extr
 
 		const key = `${y}-${x}`;
 		if (noteMode && value !== 0) {
+			if (grid[y][x] !== 0) return;
 			setNotes((current) => {
 				const currentNotes = current[key] || [];
 				const nextNotes = currentNotes.includes(value) ? currentNotes.filter((item) => item !== value) : [...currentNotes, value].sort();
@@ -1261,11 +1287,23 @@ function SudokuGame({ cosmetics, playerName, onRatingChange }: { cosmetics: Extr
 			return;
 		}
 
+		if (value === grid[y][x]) return;
 		if (value !== 0 && value !== solution[y][x]) {
 			setMistakes((current) => current + 1);
 		}
 
-		setNotes((current) => ({ ...current, [key]: [] }));
+		setNotes((current) => {
+			const next = { ...current, [key]: [] };
+			if (value !== 0 && value === solution[y][x]) {
+				for (const noteKey of Object.keys(next)) {
+					const [row, col] = noteKey.split("-").map(Number);
+					if (row === y || col === x || (Math.floor(row / 3) === Math.floor(y / 3) && Math.floor(col / 3) === Math.floor(x / 3))) {
+						next[noteKey] = next[noteKey].filter((note) => note !== value);
+					}
+				}
+			}
+			return next;
+		});
 		setGrid((current) => current.map((row, rowIndex) => (
 			row.map((cell, colIndex) => rowIndex === y && colIndex === x ? value : cell)
 		)));
@@ -1390,30 +1428,36 @@ function isLayoutIndexFree(index: number, present: boolean[]): boolean {
 
 // Builds a guaranteed-solvable board: pairs are laid down in the reverse of a valid
 // removal order, so at least one winning sequence always exists.
-function createMahjongTiles(): MahjongTile[] {
+export function createMahjongTiles(): MahjongTile[] {
 	const count = MAHJONG_LAYOUT.length;
 	const symbols: string[] = new Array(count).fill("");
 	const present = new Array<boolean>(count).fill(true);
 	const pairSymbols = shuffleInPlace([...MAHJONG_SYMBOLS]);
-
-	for (let step = 0; step < count / 2; step += 1) {
-		let candidates: number[] = [];
-		for (let i = 0; i < count; i += 1) {
-			if (present[i] && isLayoutIndexFree(i, present)) candidates.push(i);
+	const failed = new Set<string>();
+	const findOrder = (): [number, number][] | null => {
+		if (!present.some(Boolean)) return [];
+		const key = present.map(Number).join("");
+		if (failed.has(key)) return null;
+		const free = shuffleInPlace(present.map((_, index) => index).filter((index) => isLayoutIndexFree(index, present)));
+		for (let i = 0; i < free.length; i++) {
+			for (let j = i + 1; j < free.length; j++) {
+				const a = free[i], b = free[j];
+				present[a] = present[b] = false;
+				const rest = findOrder();
+				present[a] = present[b] = true;
+				if (rest) return [[a, b], ...rest];
+			}
 		}
-		if (candidates.length < 2) {
-			candidates = [];
-			for (let i = 0; i < count; i += 1) if (present[i]) candidates.push(i);
-		}
-		shuffleInPlace(candidates);
-		const a = candidates[0];
-		const b = candidates[1];
+		failed.add(key);
+		return null;
+	};
+	const order = findOrder();
+	if (!order) throw new Error("Mahjong layout has no legal removal order");
+	order.forEach(([a, b], step) => {
 		const symbol = pairSymbols[step % pairSymbols.length];
 		symbols[a] = symbol;
 		symbols[b] = symbol;
-		present[a] = false;
-		present[b] = false;
-	}
+	});
 
 	return MAHJONG_LAYOUT.map(([x, y, z], index) => ({
 		id: `${index}-${index}`,
@@ -1426,7 +1470,7 @@ function createMahjongTiles(): MahjongTile[] {
 	}));
 }
 
-function isMahjongTileFree(tile: MahjongTile, tiles: MahjongTile[]) {
+export function isMahjongTileFree(tile: MahjongTile, tiles: MahjongTile[]) {
 	if (tile.removed) return false;
 	const present = MAHJONG_LAYOUT.map((_, index) => !tiles[index]?.removed);
 	const layoutIndex = Number(tile.id.split("-")[0]);
@@ -1440,7 +1484,7 @@ function hasFreeMahjongPair(tiles: MahjongTile[]): boolean {
 }
 
 // Reshuffles the remaining tiles' symbols, retrying until at least one move exists.
-function shuffleMahjongTiles(tiles: MahjongTile[]): MahjongTile[] {
+export function shuffleMahjongTiles(tiles: MahjongTile[]): MahjongTile[] {
 	const activeIndexes = tiles.map((tile, index) => (tile.removed ? -1 : index)).filter((index) => index >= 0);
 	const symbols = activeIndexes.map((index) => tiles[index].symbol);
 	for (let attempt = 0; attempt < 40; attempt += 1) {
@@ -1452,10 +1496,24 @@ function shuffleMahjongTiles(tiles: MahjongTile[]): MahjongTile[] {
 		});
 		if (hasFreeMahjongPair(next)) return next;
 	}
-	return tiles.map((tile) => ({ ...tile }));
+	// A random retry limit must never leave the shuffle button ineffective.
+	const next = tiles.map((tile) => ({ ...tile }));
+	const free = activeIndexes.filter((index) => isMahjongTileFree(next[index], next));
+	if (free.length >= 2) {
+		const first = free[0];
+		const second = free[1];
+		const matching = activeIndexes.find((index) => index !== first && next[index].matchKey === next[first].matchKey);
+		if (matching !== undefined) {
+			[next[second].symbol, next[matching].symbol] = [next[matching].symbol, next[second].symbol];
+			[next[second].matchKey, next[matching].matchKey] = [next[matching].matchKey, next[second].matchKey];
+		}
+	}
+	return next;
 }
 
 function MahjongGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
+	const [boardWidth, setBoardWidth] = useState(370);
+	const boardScale = Math.min(1, boardWidth / 370);
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
 	const [tiles, setTiles] = useState(createMahjongTiles);
@@ -1516,7 +1574,8 @@ function MahjongGame({ cosmetics, playerName, onRatingChange }: { cosmetics: Ext
 			<Text style={[styles.gameStatus, { color: remaining === 0 ? currentTheme.accent : noMoves ? "#F59E0B" : currentTheme.textPrimary }]}>
 				{remaining === 0 ? t("mahjong.boardCleared") : noMoves ? t("mahjong.noMoves") : t("mahjong.tilesLeft", { count: remaining })}
 			</Text>
-			<View style={[styles.mahjongLayerBoard, jade ? styles.mahjongJadeBoard : styles.mahjongIvoryBoard]}>
+			<View onLayout={(event) => setBoardWidth(event.nativeEvent.layout.width)} style={{ width: '100%', height: 360 * boardScale, alignItems: 'center' }}>
+			<View style={[styles.mahjongLayerBoard, jade ? styles.mahjongJadeBoard : styles.mahjongIvoryBoard, { position: 'absolute', left: Math.max(0, (boardWidth - 370) / 2), transformOrigin: 'top left', transform: [{ scale: boardScale }] }]}>
 				{tiles.map((tile) => {
 					if (tile.removed) return null;
 					const free = isMahjongTileFree(tile, tiles);
@@ -1542,6 +1601,7 @@ function MahjongGame({ cosmetics, playerName, onRatingChange }: { cosmetics: Ext
 						</Pressable>
 					);
 				})}
+			</View>
 			</View>
 			<View style={styles.controlRow}>
 				<StylizedButton text={t("mahjong.undo")} onClick={() => {
@@ -1588,6 +1648,7 @@ export function getShipCells(ship: BattleShip): string[] {
 }
 
 export function isShipPlacementValid(candidate: BattleShip, fleet: BattleShip[]) {
+	if (!Number.isInteger(candidate.x) || !Number.isInteger(candidate.y) || !Number.isInteger(candidate.length) || candidate.length < 1 || candidate.length > 4 || !["h", "v"].includes(candidate.orientation)) return false;
 	const cells = getShipCells(candidate);
 	if (cells.some((cell) => {
 		const [x, y] = cell.split(",").map(Number);
@@ -1622,6 +1683,7 @@ function occupiedFleetCells(fleet: BattleShip[]) {
 }
 
 function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
+	const compactFleet = useWindowDimensions().width < 420;
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
 	const [fleet, setFleet] = useState(createDefaultFleet);
@@ -1765,7 +1827,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 	};
 
 	const onDropShip = useCallback((shipId: string, pageX: number, pageY: number) => {
-		if (!boardLayout) return;
+		if (ready || !boardLayout) return;
 		const { x, y, w, h } = boardLayout;
 		if (pageX >= x && pageX <= x + w && pageY >= y && pageY <= y + h) {
 			const cellX = Math.floor((pageX - x) / (w / 10));
@@ -1782,7 +1844,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 			});
 		}
 		setDragPreview(null);
-	}, [boardLayout]);
+	}, [boardLayout, ready]);
 
 	const onDragMove = useCallback((shipId: string, pageX: number, pageY: number) => {
 		if (!boardLayout) return;
@@ -1860,6 +1922,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 	};
 
 	const markReady = () => {
+		if (!fleet.every((ship) => isShipPlacementValid(ship, fleet))) return;
 		setReady(true);
 		room.send("ready_state", { ready: true });
 	};
@@ -1889,7 +1952,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 		}).then(() => onRatingChange());
 	}, [onRatingChange, opponentName, playerName, room.isConnected, room.role, room.roomCode, winner, winnerSource]);
 
-	const allShipsPlaced = fleet.every(s => s.x >= 0 && s.x < BATTLE_BOARD_SIZE);
+	const allShipsPlaced = fleet.every((ship) => isShipPlacementValid(ship, fleet));
 
 	if (!room.role) {
 		// Pre-lobby: place ships first, then host or join
@@ -1897,7 +1960,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 			<View style={styles.onlineGame}>
 				<Text style={[styles.gameStatus, { color: currentTheme.textPrimary }]}>{t("moregames.placeShips")}</Text>
 				<View style={styles.battlePlayArea}>
-					<View style={[styles.battleLeftPanel, { zIndex: 200, elevation: 200 }]}>
+					<View style={[styles.battleLeftPanel, compactFleet && { width: "100%" }, { zIndex: 200, elevation: 200 }]}>
 						<View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
 							<Pressable onPress={rotateSelectedShip} style={styles.battleRotateButton}>
 								<Text style={{ fontSize: 22, color: '#FFF', lineHeight: 26 }}>↻</Text>
@@ -1906,7 +1969,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 								<Text style={{ fontSize: 16, color: '#FFF', lineHeight: 26 }}>🎲</Text>
 							</Pressable>
 						</View>
-						<View style={[styles.fleetVerticalList, { overflow: 'visible' }]}>
+						<View style={[styles.fleetVerticalList, compactFleet && { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }, { overflow: 'visible' }]}>
 							{fleet.map((ship) => (
 								<ShipDragItem
 									key={ship.id}
@@ -2250,6 +2313,15 @@ function getChessBoardColors(board: ExtraGameCosmetics["chessBoard"], dark: bool
 	return dark ? "#334155" : "#CBD5E1";
 }
 
+export function restoreChessGame(fen: string, history: string[]): Chess {
+	const replay = new Chess();
+	try {
+		for (const move of history) replay.move(move);
+		if (replay.fen() === fen) return replay;
+	} catch {}
+	return new Chess(fen);
+}
+
 function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
@@ -2306,7 +2378,7 @@ function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 		roomRef.current = { role: room.role, send: room.send };
 	}, [room.role, room.send]);
 
-	const game = useMemo(() => new Chess(fen), [fen]);
+	const game = useMemo(() => restoreChessGame(fen, history), [fen, history]);
 	const turnRole: DuelRole = game.turn() === "w" ? "player1" : "player2";
 	const status = remoteResult || (game.isCheckmate()
 		? t("moregames.checkmate", { color: t(turnRole === "player1" ? "moregames.black" : "moregames.white") })
@@ -2318,18 +2390,19 @@ function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 	const displayFiles = room.role === "player2" ? [...CHESS_FILES].reverse() : CHESS_FILES;
 
 	const pressSquare = (square: string) => {
+		if (game.isGameOver() || remoteResult || (room.role && !room.isConnected)) return;
 		const myColor = room.role === "player2" ? "b" : "w";
 		if (isDuelRole(room.role) && (room.role !== turnRole || !opponentReady || remoteResult || game.turn() !== myColor)) return;
 		if (!room.role && game.isGameOver()) return;
 		const piece = game.get(square as any);
 
-		if (!selected) {
-			if (!room.role || piece?.color === myColor) setSelected(square);
+		if (!selected || piece?.color === game.turn()) {
+			if (piece?.color === game.turn()) setSelected(selected === square ? null : square);
 			return;
 		}
 
 		try {
-			const nextGame = new Chess(fen);
+			const nextGame = restoreChessGame(fen, history);
 			const move = nextGame.move({ from: selected, to: square, promotion: "q" } as any);
 			if (move) {
 				const nextFen = nextGame.fen();
@@ -2354,7 +2427,7 @@ function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 	};
 
 	const handlePlayAgain = () => {
-		const game = new Chess(fen);
+		const game = restoreChessGame(fen, history);
 		const isGameOver = game.isCheckmate() || game.isDraw() || remoteResult;
 		if (!isGameOver || !room.role || !isDuelRole(room.role)) return;
 
@@ -2728,6 +2801,14 @@ export function resolveDurakCardTarget(
 		}
 	}
 
+	for (const index of orderedIndexes) {
+		const bout = table[index];
+		if (!bout || bout.defense) continue;
+		if (canBeatDurakCard(card, bout.attack, trump, variants, canCheat)) {
+			return { index, action: "defend" as const };
+		}
+	}
+
 	if (transferAllowed && table.every((bout) => !bout.defense)) {
 		for (const index of orderedIndexes) {
 			const bout = table[index];
@@ -2735,14 +2816,6 @@ export function resolveDurakCardTarget(
 			if (cardRank(card) === cardRank(bout.attack)) {
 				return { index, action: "transfer" as const };
 			}
-		}
-	}
-
-	for (const index of orderedIndexes) {
-		const bout = table[index];
-		if (!bout || bout.defense) continue;
-		if (canBeatDurakCard(card, bout.attack, trump, variants, canCheat)) {
-			return { index, action: "defend" as const };
 		}
 	}
 
@@ -3036,6 +3109,7 @@ const { t } = useLanguage();
 
 	const playCard = (card: string, targetIndexOverride?: number) => {
 		if (!state || !room.role || state.winner) return;
+		if (!room.isConnected || !state.hands[room.role].includes(card)) return;
 		if (room.role === state.attacker && (state.phase === "attack" || state.phase === "throw" || state.phase === "defend")) {
 			if (!canThrowDurakCard(state, card, room.role) || state.table.length >= Math.min(6, state.hands[state.defender].length + state.table.filter((bout) => bout.defense).length)) return;
 			const next: DurakState = {
@@ -3056,6 +3130,7 @@ const { t } = useLanguage();
 
 			if (target.action === "transfer") {
 				const nextDefender = getNextDurakRole(state.defender, state.playerCount, state.hands, true);
+				if (state.table.length + 1 > Math.min(6, state.hands[nextDefender].length)) return;
 				const next: DurakState = {
 					...state,
 					hands: { ...state.hands, [room.role]: removeCard(state.hands[room.role], card) },
@@ -4285,16 +4360,17 @@ const styles = StyleSheet.create({
 		gap: 5,
 	},
 	ticBoard: {
-		width: 252,
-		height: 252,
+		width: "100%",
+		maxWidth: 252,
+		aspectRatio: 1,
 		flexDirection: "row",
 		flexWrap: "wrap",
 		borderRadius: 8,
 		overflow: "hidden",
 	},
 	ticCell: {
-		width: 84,
-		height: 84,
+		width: "33.333333%",
+		height: "33.333333%",
 		borderWidth: 2,
 		alignItems: "center",
 		justifyContent: "center",
@@ -4304,11 +4380,12 @@ const styles = StyleSheet.create({
 		fontSize: 36,
 	},
 	sudokuTopBar: {
-		width: 332,
+		width: "100%",
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
 		gap: 8,
+		maxWidth: 332,
 	},
 	noteToggle: {
 		borderWidth: 2,
@@ -4323,12 +4400,14 @@ const styles = StyleSheet.create({
 	},
 	sudokuBoardWrap: {
 		position: "relative",
-		width: 333,
-		height: 333,
+		width: "100%",
+		height: undefined,
+		maxWidth: 333,
+		aspectRatio: 1,
 	},
 	sudokuBoard: {
-		width: 333,
-		height: 333,
+		width: "100%",
+		height: "100%",
 		flexDirection: "row",
 		flexWrap: "wrap",
 		borderWidth: 3,
@@ -4387,8 +4466,8 @@ const styles = StyleSheet.create({
 		backgroundColor: "#020617",
 	},
 	sudokuCell: {
-		width: 36.33,
-		height: 36.33,
+		width: "11.111111%",
+		height: "11.111111%",
 		borderWidth: 1,
 		alignItems: "center",
 		justifyContent: "center",
@@ -4421,11 +4500,12 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 	},
 	numberPad: {
-		width: 333,
+		width: "100%",
 		flexDirection: "row",
 		flexWrap: "wrap",
 		justifyContent: "center",
 		gap: 6,
+		maxWidth: 333,
 	},
 	sudokuNumberTile: {
 		width: 42,
@@ -4492,6 +4572,8 @@ const styles = StyleSheet.create({
 	},
 	roomRow: {
 		flexDirection: "row",
+		flexWrap: "wrap",
+		maxWidth: "100%",
 		gap: 6,
 		alignItems: "center",
 		justifyContent: "center",
@@ -4700,10 +4782,11 @@ const styles = StyleSheet.create({
 	battlePlayArea: {
 		width: "100%",
 		flexDirection: "row",
+		flexWrap: "wrap",
 		justifyContent: "center",
 		alignItems: "flex-start",
 		gap: 16,
-		paddingHorizontal: 10,
+		paddingHorizontal: 0,
 		overflow: 'visible' as const,
 	},
 	battleLeftPanel: {
@@ -4733,6 +4816,8 @@ const styles = StyleSheet.create({
 	},
 	battleBoardsVertical: {
 		flex: 1,
+		minWidth: 220,
+		flexBasis: 220,
 		alignItems: "center",
 		gap: 16,
 	},
@@ -4830,8 +4915,9 @@ const styles = StyleSheet.create({
 		borderColor: "rgba(255,255,255,0.5)",
 	},
 	chessBoard: {
-		width: 336,
-		height: 336,
+		width: '100%',
+		maxWidth: 336,
+		aspectRatio: 1,
 		flexDirection: "row",
 		flexWrap: "wrap",
 		borderWidth: 4,
@@ -4840,8 +4926,8 @@ const styles = StyleSheet.create({
 		overflow: "hidden",
 	},
 	chessCell: {
-		width: 41,
-		height: 41,
+		width: '12.5%',
+		height: '12.5%',
 		alignItems: "center",
 		justifyContent: "center",
 		position: "relative",

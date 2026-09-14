@@ -19,6 +19,8 @@ export default function SimplePopupView({
 				style={styles.scrollView}
 				contentContainerStyle={styles.scrollContent}
 				showsVerticalScrollIndicator={true}
+				keyboardShouldPersistTaps="handled"
+				nestedScrollEnabled
 			>
 				{children}
 			</ScrollView>

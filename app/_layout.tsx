@@ -1,10 +1,11 @@
 import { Stack } from "expo-router";
 import Head from "expo-router/head";
 import { useEffect } from "react";
-import { LogBox, Platform } from "react-native";
+import { ActivityIndicator, LogBox, Platform, Text, View } from "react-native";
 import { updateService } from "@/constants/UpdateService";
 import { flushPendingEloRatings, flushPendingGlobalHighScores } from "@/constants/OfflineSync";
 import { useDiscordSDK } from "@/hooks/useDiscordSDK";
+import { syncLocalHighScores } from "@/constants/LocalScoreSync";
 
 // Suppress warnings from third-party libraries
 LogBox.ignoreLogs([
@@ -55,10 +56,13 @@ export default function RootLayout() {
 			if (syncInProgress) return;
 			syncInProgress = true;
 			try {
+				await syncLocalHighScores();
 				await Promise.all([
 					flushPendingGlobalHighScores(),
 					flushPendingEloRatings(),
 				]);
+			} catch (error) {
+				console.error('Score sync failed; local records are preserved:', error);
 			} finally {
 				syncInProgress = false;
 			}
@@ -93,7 +97,7 @@ export default function RootLayout() {
 	}, []);
 
 	if (isEmbedded && !isReady) {
-		return null;
+		return <View style={{ flex: 1, backgroundColor: '#050510', alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#FF335A" /></View>;
 	}
 
 	return (
@@ -153,9 +157,9 @@ export default function RootLayout() {
 			</Head>
 			<Stack screenOptions={{headerShown: false, autoHideHomeIndicator: true}} />
 			{error && (
-				<div style={{ position: 'absolute', top: 50, left: 10, right: 10, backgroundColor: 'rgba(255,0,0,0.8)', padding: 10, zIndex: 9999, color: 'white', borderRadius: 8 }}>
-					<b>Discord Auth Error:</b> {error.message}
-				</div>
+				<View style={{ position: 'absolute', top: 50, left: 10, right: 10, backgroundColor: 'rgba(160,0,0,0.9)', padding: 10, zIndex: 9999, borderRadius: 8 }}>
+					<Text style={{ color: 'white' }}>Discord: {error.message}</Text>
+				</View>
 			)}
 		</>
 	);

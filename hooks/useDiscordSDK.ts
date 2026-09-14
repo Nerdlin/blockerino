@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { DiscordSDK } from './discordSdk';
 import { supabase } from '@/constants/Supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { isDiscordActivityLocation, withDiscordTimeout } from '@/constants/DiscordEnvironment';
 
 const discordClientId = process.env.EXPO_PUBLIC_DISCORD_CLIENT_ID;
 
 let discordSdk: DiscordSDK | null = null;
-if (discordClientId && typeof window !== 'undefined') {
+if (discordClientId && typeof window !== 'undefined' && isDiscordActivityLocation(window.location.hostname, window.location.search)) {
   try {
     discordSdk = new DiscordSDK(discordClientId);
   } catch (e) {
@@ -24,14 +25,18 @@ export function useDiscordSDK() {
     let mounted = true;
 
     async function setupDiscord() {
-      // If no client ID, or not running in a browser, just proceed as normal
+      const activity = typeof window !== 'undefined' && isDiscordActivityLocation(window.location.hostname, window.location.search);
+      if (mounted) setIsEmbedded(activity);
       if (!discordSdk) {
-        if (mounted) setIsReady(true);
+        if (mounted) {
+          setIsReady(true);
+          if (activity) setError(new Error('Discord could not initialize. Check the Activity client ID and reopen the Activity.'));
+        }
         return;
       }
 
       // Check if we are running in an iframe (likely Discord)
-      const isIframe = window.self !== window.top;
+      const isIframe = isDiscordActivityLocation(window.location.hostname, window.location.search);
       if (mounted) setIsEmbedded(isIframe);
       
       if (!isIframe) {
@@ -40,22 +45,22 @@ export function useDiscordSDK() {
       }
       
       try {
-        await discordSdk.ready();
+        await withDiscordTimeout(discordSdk.ready());
         console.log("Discord SDK is ready!");
         
         // 1. Authorize with Discord Client
-        const { code } = await discordSdk.commands.authorize({
+        const { code } = await withDiscordTimeout(discordSdk.commands.authorize({
           client_id: discordClientId!,
           response_type: 'code',
           state: '',
           prompt: 'none',
           scope: ['identify']
-        });
+        }));
         
         // 2. Exchange token via Supabase Edge Function
-        const { data: exchangeData, error: exchangeError } = await supabase.functions.invoke('discord-token-exchange', {
+        const { data: exchangeData, error: exchangeError } = await withDiscordTimeout(supabase.functions.invoke('discord-token-exchange', {
           body: { code }
-        });
+        }));
         
         if (exchangeError) {
           throw exchangeError;
@@ -64,10 +69,11 @@ export function useDiscordSDK() {
           throw new Error(`Exchange Data Error: ${exchangeData.error}`);
         }
         
+        if (typeof exchangeData?.access_token !== 'string' || !exchangeData.access_token) throw new Error('Discord did not return an access token');
         const { access_token } = exchangeData;
         
         // 3. Authenticate with SDK using the obtained access token
-        const auth = await discordSdk.commands.authenticate({ access_token });
+        const auth = await withDiscordTimeout(discordSdk.commands.authenticate({ access_token }));
         
         if (mounted) {
           setDiscordUser(auth.user);
@@ -86,9 +92,9 @@ export function useDiscordSDK() {
 
         // 4. Auto-login to Supabase using Discord identity
         try {
-          const { data: authData, error: authError } = await supabase.functions.invoke('discord-activity-auth', {
+          const { data: authData, error: authError } = await withDiscordTimeout(supabase.functions.invoke('discord-activity-auth', {
             body: { access_token }
-          });
+          }));
 
           if (authError) {
             console.error("Discord→Supabase auth error:", authError);
@@ -96,11 +102,23 @@ export function useDiscordSDK() {
           } else if (authData?.error) {
             console.error("Discord→Supabase auth returned error:", authData.error);
             if (mounted) setError(new Error(`Auth Data Error: ${authData.error}`));
+          } else if (typeof authData?.token_hash === 'string' && authData.token_hash) {
+            const { error: signInError } = await withDiscordTimeout(supabase.auth.verifyOtp({
+              token_hash: authData.token_hash,
+              type: 'magiclink',
+            }));
+
+            if (signInError) {
+              console.error("Supabase Discord sign-in error:", signInError);
+              if (mounted) setError(signInError instanceof Error ? signInError : new Error(String(signInError)));
+            } else {
+              console.log("Auto-logged into Supabase via Discord Activity successfully!");
+            }
           } else if (authData?.email && authData?.password) {
-            const { error: signInError } = await supabase.auth.signInWithPassword({
+            const { error: signInError } = await withDiscordTimeout(supabase.auth.signInWithPassword({
               email: authData.email,
               password: authData.password,
-            });
+            }));
 
             if (signInError) {
               console.error("Supabase password sign-in error:", signInError);
@@ -108,6 +126,8 @@ export function useDiscordSDK() {
             } else {
               console.log("Auto-logged into Supabase via Discord Activity successfully!");
             }
+          } else {
+            throw new Error('Discord sign-in returned no login token. Check the deployed Activity auth function.');
           }
         } catch (autoAuthErr) {
           console.error("Discord auto-auth failed (non-critical):", autoAuthErr);
@@ -136,4 +156,3 @@ export function useDiscordSDK() {
 
   return { discordSdk, isReady, error, isEmbedded, discordUser };
 }
-

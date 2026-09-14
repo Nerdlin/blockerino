@@ -14,6 +14,7 @@ import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
 import { useShopState } from "@/constants/Shop";
 import { CHALLENGE_LEADERBOARD_GAME_MODES, getGameModeConfig, MAIN_LEADERBOARD_GAME_MODES } from "@/constants/GameModes";
 import { useLanguage, TranslateVars } from "@/constants/Localization";
+import { syncLocalHighScores } from "@/constants/LocalScoreSync";
 
 const LEADERBOARD_LIMIT = 100;
 const LEADERBOARD_REFRESH_MS = 30000;
@@ -109,6 +110,7 @@ export default function HighScores() {
         }
 
         try {
+            await syncLocalHighScores();
             const [localScores, remoteScores] = await Promise.all([
                 getHighScores(gameMode, true, true, LEADERBOARD_LIMIT),
                 getGlobalHighScores(gameMode, LEADERBOARD_LIMIT)

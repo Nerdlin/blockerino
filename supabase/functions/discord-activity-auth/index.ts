@@ -9,7 +9,7 @@ serve(async (req) => {
 
   try {
     const { access_token } = await req.json();
-    if (!access_token) {
+    if (typeof access_token !== 'string' || !access_token.trim()) {
       throw new Error('access_token is required');
     }
 
@@ -26,6 +26,7 @@ serve(async (req) => {
 
     const discordUser = await discordRes.json();
     const discordId: string = discordUser.id;
+    if (typeof discordId !== 'string' || !/^\d+$/.test(discordId)) throw new Error('Invalid Discord identity');
     const basePlayerName: string =
       discordUser.global_name || discordUser.username || `Player_${discordId.slice(0, 6)}`;
     const avatarUrl: string | null = discordUser.avatar
@@ -40,9 +41,9 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // 3. Deterministic secret password per Discord user
-    const email = `discord_${discordId}@blockerino.app`;
-    const password = `Discord_Auth_${discordId}_SecuredPass123!`;
+    // Discord identity has been verified above. Never derive passwords from public IDs.
+    let email = `discord_${discordId}@blockerino.app`;
+    const password = crypto.randomUUID() + crypto.randomUUID();
     let playerName = basePlayerName;
 
     const userMeta = {
@@ -59,14 +60,21 @@ serve(async (req) => {
     let userId: string | null = null;
     
     if (linkedProfile && linkedProfile.auth_user_id) {
-      // User is already linked! Update password to ensure they can login via SDK
+      // Keep the linked account password intact; issue a one-time login token.
       userId = linkedProfile.auth_user_id;
-      email = linkedProfile.email || email; // Use their real email for login
+      const { data: linkedUser, error: linkedError } = await admin.auth.admin.getUserById(userId!);
+      if (linkedError || !linkedUser.user?.email) throw new Error('Linked account is unavailable');
+      // A writable profile is not proof of ownership of an auth account.
+      const verifiedIdentity = linkedUser.user.identities?.some((identity) =>
+        identity.provider === 'discord' && (identity.id === discordId || identity.identity_data?.sub === discordId)
+      );
+      if (!verifiedIdentity && linkedUser.user.email !== email) throw new Error('Discord account link could not be verified');
+      email = linkedUser.user.email;
       
-      await admin.auth.admin.updateUserById(userId, {
-        password,
+      const { error: updateError } = await admin.auth.admin.updateUserById(userId!, {
         user_metadata: userMeta,
       });
+      if (updateError) throw updateError;
     } else {
       // 4.b Fallback to old behavior: Create new dummy user
       const { data: createData, error: createError } = await admin.auth.admin.createUser({
@@ -80,16 +88,22 @@ serve(async (req) => {
         userId = createData.user.id;
       } else if (createError) {
         // User likely exists -> find user and update password/metadata
-        const { data: usersData } = await admin.auth.admin.listUsers();
-        const existingUser = usersData?.users?.find(u => u.email === email);
+        let existingUser = null;
+        for (let page = 1; ; page++) {
+          const { data: usersData, error: usersError } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+          if (usersError) throw usersError;
+          existingUser = usersData.users.find(u => u.email === email) ?? null;
+          if (existingUser || usersData.users.length < 1000) break;
+        }
         
         if (existingUser) {
           userId = existingUser.id;
-          await admin.auth.admin.updateUserById(userId, {
+          const { error: updateError } = await admin.auth.admin.updateUserById(userId, {
             password,
             email_confirm: true,
             user_metadata: userMeta,
           });
+          if (updateError) throw updateError;
         } else {
           throw createError;
         }
@@ -126,10 +140,12 @@ serve(async (req) => {
       }
     }
 
+    if (!userId) throw new Error('Unable to resolve Discord account');
+    const { data: login, error: loginError } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
+    if (loginError || !login?.properties?.hashed_token) throw new Error('Unable to create Discord session');
     return new Response(
       JSON.stringify({
-        email,
-        password,
+        token_hash: login.properties.hashed_token,
         player_name: playerName,
         avatar_url: avatarUrl,
         discord_id: discordId,

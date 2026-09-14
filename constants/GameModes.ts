@@ -153,6 +153,7 @@ export const CHALLENGE_LEADERBOARD_GAME_MODES = [
 ] as const;
 
 export function getGameModeConfig(mode: GameModeType): GameModeConfig {
+	"worklet";
 	return GAME_MODE_CONFIGS[mode];
 }
 
@@ -170,6 +171,7 @@ export function consumeMoveLimitMove(
 	linesBroken: number = 0,
 	comboCount: number = 0,
 ): number {
+	"worklet";
 	if (getGameModeConfig(mode).moveLimit === undefined) {
 		return movesRemaining;
 	}
@@ -179,6 +181,7 @@ export function consumeMoveLimitMove(
 }
 
 export function isMoveLimitComplete(mode: GameModeType, movesRemaining: number): boolean {
+	"worklet";
 	return getGameModeConfig(mode).moveLimit !== undefined && movesRemaining <= 0;
 }
 

@@ -45,4 +45,6 @@ app-example
 builds/
 *.apk
 dist/
+dist-*/
+deno.lock
 

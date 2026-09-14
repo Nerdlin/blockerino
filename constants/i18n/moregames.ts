@@ -2,6 +2,13 @@ import type { ScreenDictionary } from "./index";
 
 export const moregames: ScreenDictionary = {
 	en: {
+		"moregames.help.shop": "Choose a look for your next game.",
+		"moregames.help.chess": "Select a piece, then a highlighted square.",
+		"moregames.help.sudoku": "Each row, column and 3×3 box needs the digits 1–9.",
+		"moregames.help.mahjong": "Match identical tiles with a free side and nothing above.",
+		"moregames.help.tictactoe": "Make a line of three. Play locally or invite a friend.",
+		"moregames.help.durak": "Beat each attack with a higher card or a trump.",
+		"moregames.help.battleship": "Place your fleet without touching ships, then invite a friend.",
 		// Headers / subtitles
 		"moregames.title": "More Games",
 		"moregames.subtitleList": "Online rooms, solo boards and cosmetics",
@@ -170,6 +177,13 @@ export const moregames: ScreenDictionary = {
 		"battleship.timer": "{time}s",
 	},
 	ru: {
+		"moregames.help.shop": "Выберите оформление для следующей партии.",
+		"moregames.help.chess": "Выберите фигуру, затем подсвеченную клетку.",
+		"moregames.help.sudoku": "В каждой строке, столбце и квадрате 3×3 нужны цифры 1–9.",
+		"moregames.help.mahjong": "Ищите пары: сверху пусто, хотя бы один бок свободен.",
+		"moregames.help.tictactoe": "Соберите три в ряд. Играйте рядом или пригласите друга.",
+		"moregames.help.durak": "Бейте карту старшей той же масти или козырем.",
+		"moregames.help.battleship": "Расставьте корабли без касаний и пригласите друга.",
 		// Headers / subtitles
 		"moregames.title": "Ещё игры",
 		"moregames.subtitleList": "Онлайн-комнаты, соло-доски и косметика",

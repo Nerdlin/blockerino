@@ -159,6 +159,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		nextMovesRemaining = movesRemaining.value,
 		immediate = false,
 	) => {
+		if (isGameOverRef.current) return;
 		saveActiveGame({
 			gameMode,
 			board: nextBoard,
@@ -176,6 +177,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	};
 
 	const finishGame = (reason?: GameOverReason) => {
+		if (isGameOverRef.current) return;
 		isGameOverRef.current = true;
 		setActiveCombo(0);
 		secondChanceDecisionLockedRef.current = true;
@@ -194,7 +196,9 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	};
 
 	const startSecondChanceOrFinish = (reason: SecondChanceReason) => {
+		if (isGameOverRef.current) return;
 		if (allowSecondChance && canUseSecondChance(secondChancesUsed.value)) {
+			secondChanceDecisionLockedRef.current = false;
 			setSecondChanceReason(reason);
 			return;
 		}
@@ -203,6 +207,8 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	};
 
 	const acceptSecondChance = () => {
+		if (isGameOverRef.current || secondChanceDecisionLockedRef.current || !secondChanceReason) return;
+		secondChanceDecisionLockedRef.current = true;
 		const nextSecondChancesUsed = secondChancesUsed.value + 1;
 		const nextScore = applySecondChancePenalty(score.value, secondChancesUsed.value);
 		const nextBoard = createSecondChanceBoard();
@@ -248,6 +254,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	};
 
 	useEffect(() => {
+		isMountedRef.current = true;
 		initialize();
 		setActiveCombo(0);
 		return () => {
@@ -262,10 +269,9 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		const timer = setInterval(() => {
 			if (timeRemaining.value > 0) {
 				timeRemaining.value = Math.max(0, timeRemaining.value - 1);
-				if (timeRemaining.value <= 0) {
-					startSecondChanceOrFinish("time");
-				}
 			}
+			if (timeRemaining.value <= 0) startSecondChanceOrFinish("time");
+			else saveCurrentGame();
 		}, 1000);
 
 		return () => clearInterval(timer);
@@ -316,7 +322,14 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				possibleBoardDropSpots.value = emptyPossibleBoardSpots(boardLength);
 				return;
 			}
-			const piece: PieceData = hand.value[draggingPiece.value!]!;
+			const piece = hand.value[draggingPiece.value];
+			const cleanBoard = clearHoverBlocks(cloneBoard(board.value));
+			if (!piece || createPossibleBoardSpots(cleanBoard, piece)[dropY]?.[dropX] !== 1 || isGameOver || secondChanceReason) {
+				board.value = cleanBoard;
+				draggingPiece.value = null;
+				possibleBoardDropSpots.value = emptyPossibleBoardSpots(boardLength);
+				return;
+			}
 
 			// the block is gonna fit, let's place the block
 			// we'll do the haptics now
@@ -452,7 +465,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const handleUpdate: DndProviderProps["onUpdate"] = (event, {activeId, activeLayout, droppableActiveId}) => {
 		"worklet";
 		if (!droppableActiveId) {
-			board.value = clearHoverBlocks([...board.value]);
+			board.value = clearHoverBlocks(cloneBoard(board.value));
 			return;
 		}
 
@@ -462,18 +475,22 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 
 		const dropIdStr = droppableActiveId.toString();
 		if (dropIdStr === "trash") {
-			board.value = clearHoverBlocks([...board.value]);
+			board.value = clearHoverBlocks(cloneBoard(board.value));
 			return;
 		}
 
 		const {x: dropX, y: dropY} = decodeDndId(dropIdStr);
 		if (isNaN(dropX) || isNaN(dropY)) {
-			board.value = clearHoverBlocks([...board.value]);
+			board.value = clearHoverBlocks(cloneBoard(board.value));
 			return;
 		}
 		const piece: PieceData = hand.value[draggingPiece.value!]!;
 
-		const newBoard = clearHoverBlocks([...board.value]);
+		const newBoard = clearHoverBlocks(cloneBoard(board.value));
+		if (!piece || createPossibleBoardSpots(newBoard, piece)[dropY]?.[dropX] !== 1) {
+			board.value = newBoard;
+			return;
+		}
 		updateHoveredBreaks(newBoard, piece, dropX, dropY);
 
 		board.value = newBoard;
@@ -514,7 +531,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 							chancesRemaining={Math.max(0, SECOND_CHANCE_COSTS.length - secondChancesUsed.value - 1)}
 							reason={secondChanceReason}
 							onAccept={acceptSecondChance}
-							onDecline={() => finishGame("moves")}
+							onDecline={() => finishGame(secondChanceReason)}
 						/>
 					)}
 					
