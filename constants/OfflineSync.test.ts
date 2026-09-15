@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GameModeType } from "@/hooks/useAppState";
 import {
 	flushPendingGlobalHighScores,
+	queueGlobalHighScore,
 	flushPendingEloRatings,
 	getPendingEloRatings,
 	getPendingGlobalHighScores,
@@ -33,6 +34,19 @@ jest.mock("@react-native-async-storage/async-storage", () => {
 });
 
 describe("offline global score sync", () => {
+	it('preserves a higher score queued while a flush is in flight', async () => {
+		await AsyncStorage.clear();
+		await queueGlobalHighScore('Race', 100, 'classic');
+		let release!: (value: boolean) => void;
+		let started!: () => void;
+		const entered = new Promise<void>(resolve => { started = resolve; });
+		const flushing = flushPendingGlobalHighScores(() => { started(); return new Promise(resolve => { release = resolve; }); });
+		await entered;
+		const queued = queueGlobalHighScore('Race', 200, 'classic');
+		release(true);
+		await Promise.all([flushing, queued]);
+		expect((await getPendingGlobalHighScores()).map(entry => entry.score)).toEqual([200]);
+	});
 	beforeEach(async () => {
 		jest.clearAllMocks();
 		await AsyncStorage.clear();

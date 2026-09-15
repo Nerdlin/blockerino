@@ -1,10 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { syncLocalHighScores } from './LocalScoreSync';
-import { getHighScores } from './Storage';
+import { getOwnedHighScores } from './Storage';
 import { supabase } from './Supabase';
 import { submitGlobalHighScoreOrQueue } from './OfflineSync';
 
-jest.mock('./Storage', () => ({ getHighScores: jest.fn() }));
+jest.mock('./Storage', () => ({ getOwnedHighScores: jest.fn() }));
 jest.mock('./Supabase', () => ({ supabase: { auth: { getSession: jest.fn() } } }));
 jest.mock('./OfflineSync', () => ({ submitGlobalHighScoreOrQueue: jest.fn() }));
 jest.mock('@react-native-async-storage/async-storage', () => {
@@ -21,7 +21,7 @@ beforeEach(async () => {
     await AsyncStorage.clear();
     await AsyncStorage.setItem('PLAYER_NAME', 'pod_sallyamu');
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({ data: { session: { user: { id: 'account-a' } } } });
-    (getHighScores as jest.Mock).mockImplementation(async (mode) => mode === 'classic' ? [{ score: 450 }] : []);
+    (getOwnedHighScores as jest.Mock).mockImplementation(async (mode) => mode === 'classic' ? [{ score: 450 }] : []);
     (submitGlobalHighScoreOrQueue as jest.Mock).mockResolvedValue('synced');
 });
 
@@ -37,7 +37,7 @@ it('retries after failure and after a higher local score', async () => {
     await syncLocalHighScores();
     await syncLocalHighScores();
     expect(submitGlobalHighScoreOrQueue).toHaveBeenCalledTimes(2);
-    (getHighScores as jest.Mock).mockImplementation(async (mode) => mode === 'classic' ? [{ score: 600 }] : []);
+    (getOwnedHighScores as jest.Mock).mockImplementation(async (mode) => mode === 'classic' ? [{ score: 600 }] : []);
     await syncLocalHighScores();
     expect(submitGlobalHighScoreOrQueue).toHaveBeenLastCalledWith('pod_sallyamu', 600, 'classic');
 });
@@ -49,3 +49,4 @@ it('preserves a guest record until Discord supplies a session', async () => {
     await syncLocalHighScores();
     expect(submitGlobalHighScoreOrQueue).toHaveBeenCalledTimes(1);
 });
+

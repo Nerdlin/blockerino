@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getHighScores } from './Storage';
+import { getOwnedHighScores } from './Storage';
 import { LEADERBOARD_GAME_MODES } from './GameModes';
 import { supabase } from './Supabase';
 import { submitGlobalHighScoreOrQueue } from './OfflineSync';
@@ -15,7 +15,7 @@ export function syncLocalHighScores(): Promise<void> {
         const name = (await AsyncStorage.getItem('PLAYER_NAME'))?.trim();
         if (!name) return;
         for (const mode of LEADERBOARD_GAME_MODES) {
-            const best = (await getHighScores(mode, true, true, 1))[0]?.score;
+            const best = (await getOwnedHighScores(mode, session.user.id))[0]?.score;
             if (!best || !Number.isFinite(best)) continue;
             const key = `SYNCED_LOCAL_BEST:${session.user.id}:${name.toLowerCase()}:${mode}`;
             const uploaded = Number(await AsyncStorage.getItem(key)) || 0;

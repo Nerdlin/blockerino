@@ -1,8 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { submitEloRating, submitGlobalHighScore } from "./Supabase";
+import { submitEloRating, submitGlobalHighScore, supabase } from "./Supabase";
 
 const PENDING_GLOBAL_HIGH_SCORES_KEY = "PENDING_GLOBAL_HIGH_SCORES";
 const PENDING_ELO_RATINGS_KEY = "PENDING_ELO_RATINGS";
+let highScoreQueueLock: Promise<unknown> = Promise.resolve();
+function serializeHighScoreQueue<T>(operation: () => Promise<T>): Promise<T> {
+	const result = highScoreQueueLock.then(operation, operation);
+	highScoreQueueLock = result.catch(() => undefined);
+	return result;
+}
 
 export type HighScoreSubmitter = (
 	playerName: string,
@@ -16,6 +22,7 @@ export type EloRatingSubmitter = (
 ) => Promise<boolean>;
 
 export interface PendingGlobalHighScore {
+	ownerUserId?: string;
 	id: string;
 	playerName: string;
 	score: number;
@@ -86,13 +93,15 @@ export async function getPendingGlobalHighScores(): Promise<PendingGlobalHighSco
 export async function queueGlobalHighScore(
 	playerName: string,
 	score: number,
-	gameMode: string
+	gameMode: string,
+	ownerUserId?: string
 ): Promise<PendingGlobalHighScore | null> {
+	return serializeHighScoreQueue(async () => {
 	const normalizedName = normalizeQueueName(playerName);
 	if (!normalizedName || score <= 0) return null;
 
 	const pending = await getPendingGlobalHighScores();
-	const id = createPendingId(normalizedName, gameMode);
+	const id = ownerUserId ? `${ownerUserId}:${createPendingId(normalizedName, gameMode)}` : createPendingId(normalizedName, gameMode);
 	const now = Date.now();
 	const existingIndex = pending.findIndex((entry) => entry.id === id);
 
@@ -110,6 +119,7 @@ export async function queueGlobalHighScore(
 	}
 
 	const entry: PendingGlobalHighScore = {
+		ownerUserId,
 		id,
 		playerName: normalizedName,
 		score,
@@ -121,6 +131,7 @@ export async function queueGlobalHighScore(
 	pending.push(entry);
 	await savePendingGlobalHighScores(pending);
 	return entry;
+	});
 }
 
 export async function submitGlobalHighScoreOrQueue(
@@ -131,6 +142,7 @@ export async function submitGlobalHighScoreOrQueue(
 ): Promise<"synced" | "queued" | "skipped"> {
 	const normalizedName = normalizeQueueName(playerName);
 	if (!normalizedName || score <= 0) return "skipped";
+	const ownerUserId = submitScore === submitGlobalHighScore ? (await supabase.auth.getSession()).data.session?.user.id : undefined;
 
 	try {
 		const synced = await submitScore(normalizedName, score, gameMode);
@@ -139,13 +151,14 @@ export async function submitGlobalHighScoreOrQueue(
 		console.error("Error submitting global score:", error);
 	}
 
-	await queueGlobalHighScore(normalizedName, score, gameMode);
+	await queueGlobalHighScore(normalizedName, score, gameMode, ownerUserId);
 	return "queued";
 }
 
 export async function flushPendingGlobalHighScores(
 	submitScore: HighScoreSubmitter = submitGlobalHighScore
 ): Promise<FlushPendingHighScoresResult> {
+	return serializeHighScoreQueue(async () => {
 	const pending = await getPendingGlobalHighScores();
 	if (pending.length === 0) {
 		return { synced: 0, remaining: 0 };
@@ -153,8 +166,15 @@ export async function flushPendingGlobalHighScores(
 
 	const remaining: PendingGlobalHighScore[] = [];
 	let synced = 0;
+	const enforceOwner = submitScore === submitGlobalHighScore;
+	const currentUserId = enforceOwner ? (await supabase.auth.getSession()).data.session?.user.id : undefined;
+	const currentName = enforceOwner ? (await AsyncStorage.getItem('PLAYER_NAME'))?.trim().toLowerCase() : undefined;
 
 	for (const entry of pending) {
+		if (enforceOwner && (!currentUserId || (entry.ownerUserId ? entry.ownerUserId !== currentUserId : entry.playerName.toLowerCase() !== currentName))) {
+			remaining.push(entry);
+			continue;
+		}
 		try {
 			const success = await submitScore(entry.playerName, entry.score, entry.gameMode);
 			if (success) {
@@ -170,6 +190,7 @@ export async function flushPendingGlobalHighScores(
 
 	await savePendingGlobalHighScores(remaining);
 	return { synced, remaining: remaining.length };
+	});
 }
 
 async function savePendingEloRatings(entries: PendingEloRating[]): Promise<void> {

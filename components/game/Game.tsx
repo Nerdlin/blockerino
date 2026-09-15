@@ -65,35 +65,43 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const isDaily = modeConfig.seedKind === "daily";
 	const dailyKey = isDaily ? getDailyPuzzleKey() : undefined;
 	const dailySeed = isDaily ? getNumericSeedFromDate(`${dailyKey}:${modeConfig.seedSalt}`) : 0;
-	const canUseInitialState = initialState && (!isDaily || initialState.dailyKey === dailyKey);
-	const handCount = useSharedValue(canUseInitialState ? initialState.handCount || 0 : 0);
+	const canUseInitialState = Boolean(
+		initialState &&
+		Array.isArray(initialState.board) &&
+		initialState.board.length === boardLength &&
+		Array.isArray(initialState.hand) &&
+		initialState.hand.length === handSize &&
+		(!isDaily || initialState.dailyKey === dailyKey)
+	);
+	const validInitialState = canUseInitialState ? initialState! : null;
+	const handCount = useSharedValue(validInitialState ? validInitialState.handCount || 0 : 0);
 
 	const board = useSharedValue(
-		canUseInitialState 
-			? initialState.board 
+		validInitialState 
+			? validInitialState.board 
 			: (isDaily ? createSeededBoard(boardLength, dailySeed) : newEmptyBoard(boardLength))
 	);
 	const draggingPiece = useSharedValue<number | null>(null);
 	const possibleBoardDropSpots = useSharedValue<PossibleBoardSpots>(JS_emptyPossibleBoardSpots(boardLength));
 	const hand = useSharedValue(
-		canUseInitialState 
-			? initialState.hand 
+		validInitialState 
+			? validInitialState.hand 
 			: (isDaily ? createSeededHand(handSize, dailySeed + 1 + handCount.value) : createRandomHand(handSize, gameMode))
 	);
-	const score = useSharedValue(canUseInitialState ? initialState.score : 0);
-	const combo = useSharedValue(canUseInitialState ? initialState.combo : 0);
+	const score = useSharedValue(validInitialState ? validInitialState.score : 0);
+	const combo = useSharedValue(validInitialState ? validInitialState.combo : 0);
 	// How many moves ago was the last broken line?
-	const lastBrokenLine = useSharedValue(canUseInitialState ? initialState.lastBrokenLine : 0);
+	const lastBrokenLine = useSharedValue(validInitialState ? validInitialState.lastBrokenLine : 0);
 
 	// Time Attack mode timer remaining state
-	const timeRemaining = useSharedValue(canUseInitialState ? initialState.timeRemaining ?? getInitialTimeRemaining(gameMode) : getInitialTimeRemaining(gameMode));
-	const movesRemaining = useSharedValue(canUseInitialState ? initialState.movesRemaining ?? getInitialMovesRemaining(gameMode) : getInitialMovesRemaining(gameMode));
+	const timeRemaining = useSharedValue(validInitialState ? validInitialState.timeRemaining ?? getInitialTimeRemaining(gameMode) : getInitialTimeRemaining(gameMode));
+	const movesRemaining = useSharedValue(validInitialState ? validInitialState.movesRemaining ?? getInitialMovesRemaining(gameMode) : getInitialMovesRemaining(gameMode));
 
 	// Состояние для отображения модального окна проигрыша
 	const [isGameOver, setIsGameOver] = useState(false);
 	const [secondChanceReason, setSecondChanceReason] = useState<SecondChanceReason | null>(null);
 	const [gameOverReason, setGameOverReason] = useState<GameOverReason | null>(null);
-	const secondChancesUsed = useSharedValue(canUseInitialState ? initialState.secondChancesUsed || 0 : 0);
+	const secondChancesUsed = useSharedValue(validInitialState ? validInitialState.secondChancesUsed || 0 : 0);
 	const [scorePopups, setScorePopups] = useState<{id: number, points: number, x: number, y: number}[]>([]);
 	const scorePopupIdCounter = useRef(0);
 
@@ -110,7 +118,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		setScorePopups(prev => prev.filter(p => p.id !== id));
 	};
 
-	const scoreStorageId = useSharedValue<HighScoreId | undefined>(canUseInitialState ? initialState.scoreStorageId : undefined);
+	const scoreStorageId = useSharedValue<HighScoreId | undefined>(validInitialState ? validInitialState.scoreStorageId : undefined);
 	const { playSfx, playComboSound, initialize } = useSoundSettings();
 
 	const [, setActiveCombo] = useAtom(activeComboAtom);

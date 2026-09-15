@@ -90,6 +90,8 @@ interface DurakState {
 	phase: "attack" | "defend" | "throw";
 	discardCount: number;
 	winner: OnlineRole | null;
+	finished?: OnlineRole[];
+	cancelled?: boolean;
 	message: string;
 	bet: number;
 	deckSize: number;
@@ -259,6 +261,9 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 	const playerNameRef = useRef(playerName);
 	const avatarUrlRef = useRef(avatarUrl);
 	const clientIdRef = useRef(createRoomCode());
+	const seatsRef = useRef<Record<string, OnlineRole>>({});
+	const capacityRef = useRef(2);
+	const seatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
 		onEventRef.current = onEvent;
@@ -273,6 +278,7 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 	}, [avatarUrl]);
 
 	const disconnect = useCallback(() => {
+		if (seatTimerRef.current) clearTimeout(seatTimerRef.current);
 		const channel = channelRef.current;
 		const currentRole = roleRef.current;
 		channelRef.current = null;
@@ -303,7 +309,7 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 		removeChannel();
 	}, []);
 
-	const connect = useCallback((nextRole: OnlineRole, requestedCode?: string) => {
+	const connect = useCallback((nextRole: OnlineRole, requestedCode?: string, capacity = 2) => {
 		const cleanedCode = requestedCode?.trim().toUpperCase() || "";
 		if (nextRole !== "player1" && !cleanedCode) {
 			setStatus("error");
@@ -316,6 +322,8 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 		setRole(nextRole);
 		roleRef.current = nextRole;
 		setStatus("connecting");
+		capacityRef.current = Math.max(2, Math.min(6, capacity));
+		seatsRef.current = nextRole === 'player1' ? { [clientIdRef.current]: 'player1' } : {};
 
 		const channel = supabase.channel(`more-games:${gameId}:${nextCode}`, {
 			config: { broadcast: { self: false, ack: true } },
@@ -323,6 +331,23 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 
 		channel.on("broadcast", { event: "mini_game" }, ({ payload }: { payload: any }) => {
 			if (channelRef.current !== channel || !payload || payload.senderId === clientIdRef.current) return;
+			if (gameId === 'durak' && payload.event === 'seat_request' && roleRef.current === 'player1') {
+				const assigned = seatsRef.current[payload.senderId] || ONLINE_ROLES.slice(1, capacityRef.current).find(seat => !Object.values(seatsRef.current).includes(seat));
+				if (assigned) seatsRef.current[payload.senderId] = assigned;
+				void channel.send({ type: 'broadcast', event: 'mini_game', payload: { event: 'seat_assigned', payload: { to: payload.senderId, seat: assigned || null }, role: 'player1', senderId: clientIdRef.current } });
+				return;
+			}
+			if (gameId === 'durak' && payload.event === 'seat_assigned' && payload.payload?.to === clientIdRef.current) {
+				if (seatTimerRef.current) clearTimeout(seatTimerRef.current);
+				const assigned = payload.payload.seat;
+				if (!ONLINE_ROLES.includes(assigned) || assigned === 'player1') { setStatus('error'); return; }
+				roleRef.current = assigned;
+				setRole(assigned);
+				setStatus('connected');
+				void channel.send({ type: 'broadcast', event: 'mini_game', payload: { event: 'system_joined', payload: { playerName: playerNameRef.current, avatar: avatarUrlRef.current }, role: assigned, senderId: clientIdRef.current } });
+				return;
+			}
+			if (gameId === 'durak' && payload.event === 'system_left') delete seatsRef.current[payload.senderId];
 			if (typeof payload.event !== "string" || !payload.payload || typeof payload.payload !== "object" || !ONLINE_ROLES.includes(payload.role)) return;
 			onEventRef.current(payload.event, payload.payload, payload.role);
 		});
@@ -331,6 +356,11 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 		channel.subscribe((nextStatus: string) => {
 			if (channelRef.current !== channel) return;
 			if (nextStatus === "SUBSCRIBED") {
+				if (gameId === 'durak' && nextRole !== 'player1') {
+					seatTimerRef.current = setTimeout(() => { if (channelRef.current === channel) setStatus('error'); }, 15000);
+					void channel.send({ type: 'broadcast', event: 'mini_game', payload: { event: 'seat_request', payload: {}, role: nextRole, senderId: clientIdRef.current } }).catch(() => { if (channelRef.current === channel) setStatus('error'); });
+					return;
+				}
 				setStatus("connected");
 				void channel.send({
 					type: "broadcast",
@@ -2695,7 +2725,7 @@ function createEmptyHands(): Record<OnlineRole, string[]> {
 	};
 }
 
-function createDurakState(playerCount: number, variants: DurakVariant[], deckSize: number = 36, bet: number = 0): DurakState {
+export function createDurakState(playerCount: number, variants: DurakVariant[], deckSize: number = 36, bet: number = 0): DurakState {
 	const deck = createDurakDeck(deckSize);
 	const hands = createEmptyHands();
 	const roles = getActiveDurakRoles(playerCount);
@@ -2822,7 +2852,7 @@ export function resolveDurakCardTarget(
 	return null;
 }
 
-function drawDurakCards(state: DurakState, startRole: OnlineRole) {
+export function drawDurakCards(state: DurakState, startRole: OnlineRole) {
 	const next: DurakState = {
 		...state,
 		deck: [...state.deck],
@@ -2839,7 +2869,12 @@ function drawDurakCards(state: DurakState, startRole: OnlineRole) {
 	});
 	if (next.deck.length === 0) {
 		const finished = roles.filter((role) => next.hands[role].length === 0);
-		if (finished.length > 0) next.winner = finished[0];
+		next.finished = [...(state.finished || []), ...finished.filter(role => !state.finished?.includes(role))];
+		if (finished.length >= roles.length - 1) next.winner = next.finished[0];
+		else {
+			if (!next.hands[next.attacker].length) next.attacker = getNextDurakRole(next.attacker, next.playerCount, next.hands);
+			next.defender = getNextDurakRole(next.attacker, next.playerCount, next.hands);
+		}
 	}
 	return next;
 }
@@ -2853,7 +2888,6 @@ const { t } = useLanguage();
 	const [deckSize, setDeckSize] = useState<number>(36);
 	const [bet, setBet] = useState<number>(100);
 	const [activeVariants, setActiveVariants] = useState<DurakVariant[]>(["throw_in", "neighbors", "cheat", "classic"]);
-	const [joinSeat, setJoinSeat] = useState<OnlineRole>("player2");
 	const [opponentReady, setOpponentReady] = useState(false);
 	const [playerNames, setPlayerNames] = useState<Partial<Record<OnlineRole, string>>>({});
 	const [playerAvatars, setPlayerAvatars] = useState<Partial<Record<OnlineRole, string>>>({});
@@ -2927,11 +2961,11 @@ const { t } = useLanguage();
 			if (payload?.avatar) setPlayerAvatars((current) => ({ ...current, [senderRole]: payload.avatar }));
 			return;
 		}
-		if (event === "system_left" && senderRole && state) {
+		if (event === "system_left" && senderRole && state && !state.winner && !state.cancelled) {
 			const currentRole = roomRef.current.role;
 			if (currentRole && senderRole !== currentRole) {
 				setPlayerNames((current) => ({ ...current, [senderRole]: normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)) }));
-				setState({ ...state, winner: currentRole, message: `${roleLabel(senderRole)} left the game.` });
+				setState({ ...state, winner: null, cancelled: true, message: `${roleLabel(senderRole)} left. Game cancelled; bets refunded.` });
 			}
 			return;
 		}
@@ -2966,6 +3000,9 @@ const { t } = useLanguage();
 	}, [showEmote, state]);
 
 	const room = useMiniGameRoom("durak", handleEvent, playerName);
+	useEffect(() => {
+		if (room.role && room.isConnected) setPlayerNames(current => ({ ...current, [room.role!]: playerName }));
+	}, [room.role, room.isConnected, playerName]);
 	const roomRef = useRef({ role: room.role, send: room.send, disconnect: room.disconnect });
 	useEffect(() => {
 		roomRef.current = { role: room.role, send: room.send, disconnect: room.disconnect };
@@ -3108,7 +3145,7 @@ const { t } = useLanguage();
 	};
 
 	const playCard = (card: string, targetIndexOverride?: number) => {
-		if (!state || !room.role || state.winner) return;
+		if (!state || !room.role || state.winner || state.cancelled) return;
 		if (!room.isConnected || !state.hands[room.role].includes(card)) return;
 		if (room.role === state.attacker && (state.phase === "attack" || state.phase === "throw" || state.phase === "defend")) {
 			if (!canThrowDurakCard(state, card, room.role) || state.table.length >= Math.min(6, state.hands[state.defender].length + state.table.filter((bout) => bout.defense).length)) return;
@@ -3157,7 +3194,7 @@ const { t } = useLanguage();
 	};
 
 	const passRound = () => {
-		if (!state || !room.role || room.role !== state.attacker || !allDefended) return;
+		if (!state || state.cancelled || state.winner || !room.isConnected || !room.role || room.role !== state.attacker || !allDefended) return;
 		const nextAttacker = state.defender;
 		const nextDefender = getNextDurakRole(nextAttacker, state.playerCount, state.hands);
 		syncState(drawDurakCards({
@@ -3172,7 +3209,7 @@ const { t } = useLanguage();
 	};
 
 	const takeRound = () => {
-		if (!state || !room.role || room.role !== state.defender) return;
+		if (!state || state.cancelled || state.winner || !room.isConnected || !room.role || room.role !== state.defender) return;
 		const tableCards = getTableCards(state.table);
 		const nextAttacker = getNextDurakRole(state.defender, state.playerCount, state.hands);
 		const nextDefender = getNextDurakRole(nextAttacker, state.playerCount, state.hands);
@@ -3197,7 +3234,7 @@ const { t } = useLanguage();
 		setOpponentReady(false);
 		setPlayerNames({ player1: playerName });
 		ratingSubmittedRef.current = null;
-		room.connect("player1");
+		room.connect("player1", undefined, Number(playerCount));
 	};
 
 	const join = () => {
@@ -3206,12 +3243,21 @@ const { t } = useLanguage();
 		setCoinResult(null);
 		setState(null);
 		setOpponentReady(false);
-		setPlayerNames({ [joinSeat]: playerName });
+		setPlayerNames({});
 		ratingSubmittedRef.current = null;
-		room.connect(joinSeat, room.roomCode);
+		room.connect('player2', room.roomCode);
 	};
 
 	useEffect(() => {
+		if (state?.cancelled && room.role) {
+			const refundKey = `${state.tableId}:refund`;
+			if (antePaidRef.current.has(state.tableId) && !settledRef.current.has(refundKey)) {
+				settledRef.current.add(refundKey);
+				adjustCoins(state.bet);
+				setCoinResult(0);
+			}
+			return;
+		}
 		if (!state?.winner || !room.isConnected || !room.role) return;
 
 		// Settle the pot once per finished table: winner takes the prize, others keep their loss.
@@ -3354,9 +3400,9 @@ const { t } = useLanguage();
 				</ScrollView>
 			) : (
 				<>
-					{state.winner ? (
+					{state.winner || state.cancelled ? (
 						<Text style={[styles.gameStatus, { color: currentTheme.accent }]}>
-							{t("durak.wins", { seat: roleLabel(state.winner) })}
+							{state.cancelled ? state.message : t("durak.wins", { seat: roleLabel(state.winner) })}
 						</Text>
 					) : null}
 					{coinResult !== null && (
@@ -3513,7 +3559,9 @@ const { t } = useLanguage();
 							})}
 						</View>
 
-						{state.winner ? (
+						{state.cancelled ? (
+							<StylizedButton text="Leave" onClick={() => { room.disconnect(); setState(null); setOpponentReady(false); }} backgroundColor={cssColors.spaceGray} />
+						) : state.winner ? (
 							<View style={[styles.controlRow, { position: 'absolute', bottom: 120, zIndex: 100 }]}>
 								{restartStatus === 'idle' && (
 									<>

@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { Board } from './Board';
 import { getDailyPuzzleKey, Hand } from './Hand';
+import { supabase } from './Supabase';
 
 const highScoresKey = "HIGH_SCORES";
 const HIGH_SCORE_UPDATE_DEBOUNCE_MS = 250;
@@ -16,6 +17,7 @@ function createHighScoreId(): HighScoreId {
 }
 
 export interface HighScore {
+    ownerUserId?: string | null,
     score: number,
     date: number,
     type: GameModeType
@@ -53,8 +55,10 @@ export async function getHighScores(gameMode: GameModeType, filterZeroes: boolea
 }
 
 async function persistHighScoreUpdate(key: HighScoreId, score: HighScore): Promise<void> {
-    highScoreUpdateQueue = highScoreUpdateQueue.catch(() => undefined).then(() => {
-        return AsyncStorage.setItem(key, JSON.stringify(score));
+    highScoreUpdateQueue = highScoreUpdateQueue.catch(() => undefined).then(async () => {
+        const previous = await AsyncStorage.getItem(key);
+        const ownerUserId = previous ? (JSON.parse(previous) as HighScore).ownerUserId : score.ownerUserId;
+        return AsyncStorage.setItem(key, JSON.stringify({ ...score, ownerUserId }));
     });
     await highScoreUpdateQueue;
 }
@@ -105,12 +109,32 @@ export async function updateHighScore(
 }
 
 export async function createHighScore(score: HighScore): Promise<HighScoreId> {
+    const { data: { session } } = await supabase.auth.getSession();
+    score = { ...score, ownerUserId: session?.user.id ?? null };
     const highScoreKeys = await getHighScoreKeys();
     const id = createHighScoreId();
     highScoreKeys.push(id);
     await AsyncStorage.setItem(highScoresKey, JSON.stringify(highScoreKeys));
     await AsyncStorage.setItem(id, JSON.stringify(score));
     return id;
+}
+
+export async function getOwnedHighScores(gameMode: GameModeType, userId: string): Promise<HighScore[]> {
+    await flushHighScoreUpdates();
+    const scores: HighScore[] = [];
+    for (const key of await getHighScoreKeys()) {
+        const raw = await AsyncStorage.getItem(key);
+        if (!raw) continue;
+        const score = JSON.parse(raw) as HighScore;
+        if (score.type !== gameMode) continue;
+        // Claim legacy/guest records once, so switching accounts cannot copy them again.
+        if (!score.ownerUserId) {
+            score.ownerUserId = userId;
+            await AsyncStorage.setItem(key, JSON.stringify(score));
+        }
+        if (score.ownerUserId === userId) scores.push(score);
+    }
+    return scores.sort((a, b) => b.score - a.score);
 }
 
 const ACTIVE_GAME_KEY = "ACTIVE_GAME";

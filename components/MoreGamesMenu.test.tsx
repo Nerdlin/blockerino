@@ -37,6 +37,8 @@ import {
 	shuffleMahjongTiles,
 	restoreChessGame,
 	useMiniGameRoom,
+	createDurakState,
+	drawDurakCards,
 } from "./MoreGamesMenu";
 
 import { Chess } from "chess.js";
@@ -48,7 +50,7 @@ describe("mini-game room delivery", () => {
 	let room: ReturnType<typeof useMiniGameRoom>;
 	let tree: ReactTestRenderer;
 	const channels: any[] = [];
-	function Harness() { room = useMiniGameRoom("tictactoe", () => {}); return null; }
+	function Harness({ game = 'tictactoe' }: { game?: 'tictactoe' | 'durak' }) { room = useMiniGameRoom(game, () => {}); return null; }
 	beforeEach(async () => {
 		channels.length = 0;
 		(supabase.channel as jest.Mock).mockImplementation(() => {
@@ -62,6 +64,17 @@ describe("mini-game room delivery", () => {
 		await act(async () => { room.connect("player1"); });
 	});
 	afterEach(async () => { await act(async () => { tree.unmount(); }); });
+	it('allocates distinct Durak seats and rejects players beyond capacity', async () => {
+		await act(async () => { tree.update(React.createElement(Harness, { game: 'durak' })); });
+		await act(async () => { room.connect('player1', undefined, 3); });
+		const channel = channels[channels.length - 1];
+		const receive = channel.on.mock.calls[0][2];
+		await act(async () => {
+			for (const senderId of ['second', 'third', 'fourth', 'second']) receive({ payload: { event: 'seat_request', senderId, payload: {} } });
+		});
+		const grants = channel.send.mock.calls.map(([message]: any[]) => message.payload).filter((p: any) => p.event === 'seat_assigned');
+		expect(grants.map((p: any) => p.payload.seat)).toEqual(['player2', 'player3', null, 'player2']);
+	});
 	it("reports a failed move delivery instead of staying connected", async () => {
 		channels[0].send.mockResolvedValueOnce("timed out");
 		await act(async () => { room.send("move", {}); });
@@ -83,6 +96,19 @@ describe("mini-game room delivery", () => {
 });
 
 describe("puzzle and chess regressions", () => {
+	it('continues a three-player Durak table until only one player has cards', () => {
+		const state = createDurakState(3, ['throw_in']);
+		state.deck = [];
+		state.hands.player1 = [];
+		state.hands.player2 = ['6S'];
+		state.hands.player3 = ['7S'];
+		const continued = drawDurakCards(state, 'player1');
+		expect(continued.winner).toBeNull();
+		expect(continued.attacker).toBe('player2');
+		expect(continued.defender).toBe('player3');
+		continued.hands.player2 = [];
+		expect(drawDurakCards(continued, 'player2').winner).toBe('player1');
+	});
 	it("generates uniquely solvable Sudoku puzzles without changing givens", () => {
 		for (let attempt = 0; attempt < 3; attempt++) {
 			const { puzzle, solution } = generateSudoku();

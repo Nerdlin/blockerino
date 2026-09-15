@@ -322,17 +322,16 @@ export default function BlockGrid({
 	});
 
 	const gridStyle = useAnimatedStyle(() => {
-		let style: any;
-		if (draggingPiece.value === null) {
-			style = {
+		const activeIndex = draggingPiece.value;
+		const activePiece = activeIndex !== null ? hand.value[activeIndex] : null;
+		if (!activePiece) {
+			return {
 				borderColor: currentTheme.gridBorder
 			};
-		} else {
-			style = {
-				borderColor: colorToHex(hand.value[draggingPiece.value!]!.color)
-			};
 		}
-		return style;
+		return {
+			borderColor: colorToHex(activePiece.color)
+		};
 	});
 
 	return (

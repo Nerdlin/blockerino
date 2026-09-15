@@ -414,7 +414,7 @@ export async function submitGlobalHighScore(
                 const { error: updateError } = await supabase
                     .from('profiles')
                     .update({
-                        player_name: finalPlayerName,
+                        player_name: profile.player_name,
                         [scoreColumn]: score
                     })
                     .eq('id', existingRecord.id)
@@ -428,10 +428,10 @@ export async function submitGlobalHighScore(
                     }
                     return false;
                 }
-            } else if (finalPlayerName !== existingRecord.player_name) {
+            } else if (profile.player_name !== existingRecord.player_name) {
                 const { error: updateError } = await supabase
                     .from('profiles')
-                    .update({ player_name: finalPlayerName })
+                    .update({ player_name: profile.player_name })
                     .eq('id', existingRecord.id)
                     .eq('auth_user_id', session.user.id)
                     .select('id')
