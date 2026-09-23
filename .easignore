@@ -49,3 +49,12 @@ dist/
 dist-*/
 deno.lock
 
+.git/
+.idea/
+.claude/
+android/.gradle/
+android/.cxx/
+android/app/.cxx/
+android/build/
+android/app/build/
+android/local.properties

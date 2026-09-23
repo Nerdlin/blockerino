@@ -50,8 +50,10 @@ describe("mini-game room delivery", () => {
 	let room: ReturnType<typeof useMiniGameRoom>;
 	let tree: ReactTestRenderer;
 	const channels: any[] = [];
-	function Harness({ game = 'tictactoe' }: { game?: 'tictactoe' | 'durak' }) { room = useMiniGameRoom(game, () => {}); return null; }
+	const onEvent = jest.fn();
+	function Harness({ game = 'tictactoe' }: { game?: 'tictactoe' | 'durak' }) { room = useMiniGameRoom(game, onEvent); return null; }
 	beforeEach(async () => {
+		onEvent.mockClear();
 		channels.length = 0;
 		(supabase.channel as jest.Mock).mockImplementation(() => {
 			const channel: any = { send: jest.fn(() => Promise.resolve("ok")), on: jest.fn() };
@@ -64,6 +66,22 @@ describe("mini-game room delivery", () => {
 		await act(async () => { room.connect("player1"); });
 	});
 	afterEach(async () => { await act(async () => { tree.unmount(); }); });
+	it('does not announce a departure before a Durak seat was granted', async () => {
+		await act(async () => { tree.update(React.createElement(Harness, { game: 'durak' })); });
+		await act(async () => { room.connect('player2', 'TEST3'); });
+		const channel = channels[channels.length - 1];
+		await act(async () => { room.disconnect(); });
+		expect(channel.send.mock.calls.map(([message]: any[]) => message.payload.event)).not.toContain('system_left');
+	});
+	it('does not let a new client replace a player after the deal', async () => {
+		await act(async () => { tree.update(React.createElement(Harness, { game: 'durak' })); });
+		await act(async () => { room.connect('player1', undefined, 3); });
+		const channel = channels[channels.length - 1];
+		const receive = channel.on.mock.calls[0][2];
+		await act(async () => { room.send('sync', { state: { tableId: 'table' } }); });
+		await act(async () => { receive({ payload: { event: 'seat_request', senderId: 'late', payload: {} } }); });
+		expect(channel.send.mock.calls.at(-1)[0].payload.payload.seat).toBeNull();
+	});
 	it('allocates distinct Durak seats and rejects players beyond capacity', async () => {
 		await act(async () => { tree.update(React.createElement(Harness, { game: 'durak' })); });
 		await act(async () => { room.connect('player1', undefined, 3); });
@@ -74,6 +92,23 @@ describe("mini-game room delivery", () => {
 		});
 		const grants = channel.send.mock.calls.map(([message]: any[]) => message.payload).filter((p: any) => p.event === 'seat_assigned');
 		expect(grants.map((p: any) => p.payload.seat)).toEqual(['player2', 'player3', null, 'player2']);
+	});
+	it('only frees a reserved Durak seat for its own client, and reuses it before the deal', async () => {
+		await act(async () => { tree.update(React.createElement(Harness, { game: 'durak' })); });
+		await act(async () => { room.connect('player1', undefined, 3); });
+		const channel = channels[channels.length - 1];
+		const receive = channel.on.mock.calls[0][2];
+		await act(async () => {
+			receive({ payload: { event: 'seat_request', senderId: 'second', payload: {} } });
+			receive({ payload: { event: 'system_left', senderId: 'outsider', role: 'player2', payload: {} } });
+		});
+		expect(onEvent).not.toHaveBeenCalled();
+		await act(async () => {
+			receive({ payload: { event: 'system_left', senderId: 'second', role: 'player2', payload: {} } });
+			receive({ payload: { event: 'seat_request', senderId: 'replacement', payload: {} } });
+		});
+		expect(onEvent).toHaveBeenCalledWith('system_left', {}, 'player2');
+		expect(channel.send.mock.calls.at(-1)[0].payload.payload.seat).toBe('player2');
 	});
 	it("reports a failed move delivery instead of staying connected", async () => {
 		channels[0].send.mockResolvedValueOnce("timed out");

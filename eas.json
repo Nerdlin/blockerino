@@ -15,6 +15,10 @@
       },
       "channel": "preview"
     },
+    "apk-release": {
+      "extends": "production",
+      "credentialsSource": "local"
+    },
     "production": {
       "android": {
         "buildType": "apk"

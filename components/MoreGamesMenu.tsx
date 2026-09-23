@@ -264,6 +264,8 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 	const seatsRef = useRef<Record<string, OnlineRole>>({});
 	const capacityRef = useRef(2);
 	const seatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const seatConfirmedRef = useRef(false);
+	const tableStartedRef = useRef(false);
 
 	useEffect(() => {
 		onEventRef.current = onEvent;
@@ -281,6 +283,8 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 		if (seatTimerRef.current) clearTimeout(seatTimerRef.current);
 		const channel = channelRef.current;
 		const currentRole = roleRef.current;
+		const hadSeat = seatConfirmedRef.current;
+		seatConfirmedRef.current = false;
 		channelRef.current = null;
 		setStatus("offline");
 		setRole(null);
@@ -292,7 +296,7 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 			supabase.removeChannel(channel);
 		};
 
-		if (currentRole) {
+		if (currentRole && hadSeat) {
 			void channel.send({
 				type: "broadcast",
 				event: "mini_game",
@@ -324,6 +328,8 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 		setStatus("connecting");
 		capacityRef.current = Math.max(2, Math.min(6, capacity));
 		seatsRef.current = nextRole === 'player1' ? { [clientIdRef.current]: 'player1' } : {};
+		seatConfirmedRef.current = gameId !== 'durak' || nextRole === 'player1';
+		tableStartedRef.current = false;
 
 		const channel = supabase.channel(`more-games:${gameId}:${nextCode}`, {
 			config: { broadcast: { self: false, ack: true } },
@@ -332,7 +338,7 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 		channel.on("broadcast", { event: "mini_game" }, ({ payload }: { payload: any }) => {
 			if (channelRef.current !== channel || !payload || payload.senderId === clientIdRef.current) return;
 			if (gameId === 'durak' && payload.event === 'seat_request' && roleRef.current === 'player1') {
-				const assigned = seatsRef.current[payload.senderId] || ONLINE_ROLES.slice(1, capacityRef.current).find(seat => !Object.values(seatsRef.current).includes(seat));
+				const assigned = seatsRef.current[payload.senderId] || (!tableStartedRef.current ? ONLINE_ROLES.slice(1, capacityRef.current).find(seat => !Object.values(seatsRef.current).includes(seat)) : undefined);
 				if (assigned) seatsRef.current[payload.senderId] = assigned;
 				void channel.send({ type: 'broadcast', event: 'mini_game', payload: { event: 'seat_assigned', payload: { to: payload.senderId, seat: assigned || null }, role: 'player1', senderId: clientIdRef.current } });
 				return;
@@ -342,11 +348,13 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 				const assigned = payload.payload.seat;
 				if (!ONLINE_ROLES.includes(assigned) || assigned === 'player1') { setStatus('error'); return; }
 				roleRef.current = assigned;
+				seatConfirmedRef.current = true;
 				setRole(assigned);
 				setStatus('connected');
 				void channel.send({ type: 'broadcast', event: 'mini_game', payload: { event: 'system_joined', payload: { playerName: playerNameRef.current, avatar: avatarUrlRef.current }, role: assigned, senderId: clientIdRef.current } });
 				return;
 			}
+			if (gameId === 'durak' && roleRef.current === 'player1' && seatsRef.current[payload.senderId] !== payload.role) return;
 			if (gameId === 'durak' && payload.event === 'system_left') delete seatsRef.current[payload.senderId];
 			if (typeof payload.event !== "string" || !payload.payload || typeof payload.payload !== "object" || !ONLINE_ROLES.includes(payload.role)) return;
 			onEventRef.current(payload.event, payload.payload, payload.role);
@@ -388,6 +396,8 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 		const channel = channelRef.current;
 		const currentRole = roleRef.current;
 		if (!channel || !currentRole) return;
+		if (gameId === 'durak' && !seatConfirmedRef.current) return;
+		if (gameId === 'durak' && currentRole === 'player1' && event === 'sync') tableStartedRef.current = true;
 
 		void channel.send({
 			type: "broadcast",
@@ -403,7 +413,7 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 		}, () => {
 			if (channelRef.current === channel) setStatus("error");
 		});
-	}, []);
+	}, [gameId]);
 
 	useEffect(() => disconnect, [disconnect]);
 
@@ -2961,15 +2971,17 @@ const { t } = useLanguage();
 			if (payload?.avatar) setPlayerAvatars((current) => ({ ...current, [senderRole]: payload.avatar }));
 			return;
 		}
-		if (event === "system_left" && senderRole && state && !state.winner && !state.cancelled) {
+		if (event === "system_left" && senderRole) {
 			const currentRole = roomRef.current.role;
 			if (currentRole && senderRole !== currentRole) {
-				setPlayerNames((current) => ({ ...current, [senderRole]: normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)) }));
-				setState({ ...state, winner: null, cancelled: true, message: `${roleLabel(senderRole)} left. Game cancelled; bets refunded.` });
+				setPlayerNames((current) => { const next = { ...current }; delete next[senderRole]; return next; });
+				if (state && !state.winner && !state.cancelled) setState({ ...state, winner: null, cancelled: true, message: `${roleLabel(senderRole)} left. Game cancelled; bets refunded.` });
+				if (!state && senderRole === 'player1') roomRef.current.disconnect();
 			}
 			return;
 		}
 		if (event === "sync" && payload.state) {
+			if (state?.cancelled && payload.state.tableId === state.tableId) return;
 			LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 			setState(payload.state);
 			setOpponentReady(true);
@@ -2978,13 +2990,14 @@ const { t } = useLanguage();
 		}
 		if (event === "restart_request" && senderRole) {
 			setRestartStatus("requested");
+			setRestartAccepts([senderRole]);
 		}
 		if (event === "restart_accept" && senderRole) {
 			setRestartAccepts((prev) => {
 				const next = prev.includes(senderRole) ? prev : [...prev, senderRole];
 				if (next.length === state?.playerCount && roomRef.current.role === "player1") {
 					// All players accepted, player1 starts a new game
-					const nextState = createDurakState(state.playerCount, state.variants, state.deck.length + Object.values(state.hands).flat().length + state.table.flatMap(b => [b.attack, b.defense]).filter(Boolean).length, state.bet);
+					const nextState = createDurakState(state.playerCount, state.variants, state.deckSize, state.bet);
 					setState(nextState);
 					roomRef.current.send("sync", { state: nextState });
 				}
@@ -3567,6 +3580,7 @@ const { t } = useLanguage();
 									<>
 										<StylizedButton text="Play Again" onClick={() => {
 											setRestartStatus('waiting');
+											setRestartAccepts(room.role ? [room.role] : []);
 											roomRef.current.send('restart_request', { role: room.role });
 										}} backgroundColor={currentTheme.buttonPrimary} style={{ height: 40 }} textStyle={{ fontSize: 12 }} />
 										<StylizedButton text="Leave" onClick={() => {
@@ -3590,7 +3604,7 @@ const { t } = useLanguage();
 											setRestartAccepts(prev => {
 												const next = prev.includes(room.role!) ? prev : [...prev, room.role!];
 												if (next.length === state?.playerCount && roomRef.current.role === "player1") {
-													const nextState = createDurakState(state.playerCount, state.variants, state.deck.length + Object.values(state.hands).flat().length + state.table.flatMap(b => [b.attack, b.defense]).filter(Boolean).length, state.bet);
+													const nextState = createDurakState(state.playerCount, state.variants, state.deckSize, state.bet);
 													setState(nextState);
 													roomRef.current.send("sync", { state: nextState });
 												}

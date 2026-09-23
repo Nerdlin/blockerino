@@ -5,10 +5,17 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$javaHome = "C:\Program Files\Android\Android Studio\jbr"
-if (Test-Path -LiteralPath $javaHome) {
-  $env:JAVA_HOME = $javaHome
-  $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+$candidateJdks = @(
+  $env:JAVA_HOME,
+  "$env:USERPROFILE\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2",
+  "C:\Program Files\Android\Android Studio\jbr"
+)
+foreach ($cand in $candidateJdks) {
+  if ($cand -and (Test-Path -LiteralPath "$cand\bin\javac.exe") -and (Test-Path -LiteralPath "$cand\lib\jvm.cfg")) {
+    $env:JAVA_HOME = $cand
+    $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+    break
+  }
 }
 
 $env:NODE_ENV = "production"
@@ -19,6 +26,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $apkPath = "android\app\build\outputs\apk\release\app-release.apk"
+$outputDirectory = Split-Path -Parent ([System.IO.Path]::GetFullPath($OutputPath))
+New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
 Copy-Item -LiteralPath $apkPath -Destination $OutputPath -Force
 
 $artifact = Get-Item -LiteralPath $OutputPath

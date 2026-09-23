@@ -1,7 +1,7 @@
 param(
   [string]$ApkPath = "builds/blockerino-release.apk",
-  [string]$Version = "1.0.3",
-  [int]$BuildNumber = 4,
+  [string]$Version,
+  [int]$BuildNumber,
   [string]$ProjectRef = "ptcglecvavdvpxadqfqd",
   [string]$BucketPath = "android/blockerino-release.apk",
   [string]$ReleaseNotes = "Android release with fixed challenge leaderboard back navigation, Move Limit bonus moves, safer friend requests and 1v1 invites, web 404 page, and reduced Android permissions.",
@@ -9,6 +9,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+$appConfig = Get-Content -LiteralPath "$PSScriptRoot/../app.json" -Raw | ConvertFrom-Json
+if (-not $Version) { $Version = $appConfig.expo.version }
+if (-not $BuildNumber) { $BuildNumber = $appConfig.expo.android.versionCode }
 
 $resolvedApk = (Resolve-Path -LiteralPath $ApkPath).Path
 $storageUri = "ss:///app-updates/$BucketPath"
