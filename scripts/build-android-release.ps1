@@ -5,9 +5,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$env:JAVA_HOME = "C:\Users\nerdl\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2"
+$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+
 $candidateJdks = @(
   $env:JAVA_HOME,
-  "$env:USERPROFILE\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2",
   "C:\Program Files\Android\Android Studio\jbr"
 )
 foreach ($cand in $candidateJdks) {

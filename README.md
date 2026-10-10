@@ -7,6 +7,7 @@
 
 [![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactnative.dev/)
 [![Expo](https://img.shields.io/badge/Expo-1B1F23?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev/)
+[![Release](https://img.shields.io/badge/Release-v1.0.5-brightgreen?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Nerdlin/blockerino/releases/tag/v1.0.5)
 [![Supabase](https://img.shields.io/badge/Supabase-181818?style=for-the-badge&logo=supabase&logoColor=3ECF8E)](https://supabase.com/)
 [![Discord](https://img.shields.io/badge/Discord_Activity-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/developers/docs/activities/overview)
 
@@ -20,6 +21,16 @@
 </div>
 
 <br />
+
+## 📲 Скачать приложение (Android)
+
+> **Последний стабильный релиз**: [Blockerino v1.0.5](https://github.com/Nerdlin/blockerino/releases/tag/v1.0.5)  
+> Исправлен запуск на Android, добавлена поддержка современных архитектур устройств.
+
+- 📥 **[Скачать blockerino-1.0.5.apk](https://github.com/Nerdlin/blockerino/releases/download/v1.0.5/blockerino-1.0.5.apk)** *(APK, Universal ARM64/x86, Сборка 6)*
+- 📖 [Подробное описание релиза 1.0.5](./docs/release-1.0.5.md)
+
+---
 
 ## ✨ Особенности
 

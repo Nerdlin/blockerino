@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { DiscordSDK } from './discordSdk';
 import { supabase } from '@/constants/Supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,7 +8,13 @@ import { isDiscordActivityLocation, withDiscordTimeout } from '@/constants/Disco
 const discordClientId = process.env.EXPO_PUBLIC_DISCORD_CLIENT_ID;
 
 let discordSdk: DiscordSDK | null = null;
-if (discordClientId && typeof window !== 'undefined' && isDiscordActivityLocation(window.location.hostname, window.location.search)) {
+function isActivityRuntime(): boolean {
+  // React Native defines window too, but it does not have a browser location.
+  return Platform.OS === 'web' && typeof window !== 'undefined' &&
+    !!window.location && isDiscordActivityLocation(window.location.hostname, window.location.search);
+}
+
+if (discordClientId && isActivityRuntime()) {
   try {
     discordSdk = new DiscordSDK(discordClientId);
   } catch (e) {
@@ -25,7 +32,7 @@ export function useDiscordSDK() {
     let mounted = true;
 
     async function setupDiscord() {
-      const activity = typeof window !== 'undefined' && isDiscordActivityLocation(window.location.hostname, window.location.search);
+      const activity = isActivityRuntime();
       if (mounted) setIsEmbedded(activity);
       if (!discordSdk) {
         if (mounted) {
@@ -36,7 +43,7 @@ export function useDiscordSDK() {
       }
 
       // Check if we are running in an iframe (likely Discord)
-      const isIframe = isDiscordActivityLocation(window.location.hostname, window.location.search);
+      const isIframe = activity;
       if (mounted) setIsEmbedded(isIframe);
       
       if (!isIframe) {
