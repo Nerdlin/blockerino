@@ -1,4 +1,4 @@
-import { createFilledBlockStyle, pieceColors } from "./Piece";
+import { createEmptyBlockStyle, createFilledBlockStyle, pieceColors } from "./Piece";
 
 describe("piece skin rendering", () => {
 	it("uses exact palettes for expanded shop skins instead of falling back to classic colors", () => {
@@ -9,5 +9,21 @@ describe("piece skin rendering", () => {
 		expect(shadowGoldStyle.backgroundColor).toBe("#020617");
 		expect(forestStyle.backgroundColor).toBe("#a3e635");
 		expect(shadowGoldStyle.backgroundColor).not.toBe(classicStyle.backgroundColor);
+	});
+
+	it("ensures empty block style has no glowing artifacts or elevation", () => {
+		const emptyStyle = createEmptyBlockStyle("rgb(40, 40, 40)") as {
+			elevation?: number;
+			shadowOpacity?: number;
+			shadowColor?: string;
+			backgroundColor?: string;
+			borderWidth?: number;
+		};
+
+		expect(emptyStyle.elevation).toBe(0);
+		expect(emptyStyle.shadowOpacity).toBe(0);
+		expect(emptyStyle.shadowColor).toBe("transparent");
+		expect(emptyStyle.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+		expect(emptyStyle.borderWidth).toBe(0.5);
 	});
 });

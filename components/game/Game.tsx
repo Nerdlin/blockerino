@@ -511,17 +511,21 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 					<StickyGameHud gameMode={gameMode} score={score}></StickyGameHud>
 					<DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
 						<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand} gameMode={gameMode} timeRemaining={timeRemaining} movesRemaining={movesRemaining}></StatsGameHud>
-						<BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
-						<View style={[StyleSheet.absoluteFill, { pointerEvents: 'none', zIndex: 9999 }]}>
-							{scorePopups.map(popup => (
-								<ScorePopup 
-									key={popup.id} 
-									points={popup.points} 
-									x={popup.x + 30} // Смещение для выравнивания
-									y={popup.y + 100} // Смещение относительно BlockGrid
-									onComplete={() => removeScorePopup(popup.id)} 
-								/>
-							))}
+						<View style={{ position: 'relative' }}>
+							<BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
+							<View style={[StyleSheet.absoluteFill, { pointerEvents: 'none', zIndex: 9999 }]}>
+								{scorePopups.map(popup => (
+									<ScorePopup 
+										key={popup.id} 
+										points={popup.points} 
+										x={popup.x} 
+										y={popup.y} 
+										gridBlockSize={GRID_BLOCK_SIZE}
+										boardLength={boardLength}
+										onComplete={() => removeScorePopup(popup.id)} 
+									/>
+								))}
+							</View>
 						</View>
 						<HandPieces 
 							hand={hand} 

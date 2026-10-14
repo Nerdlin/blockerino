@@ -9,7 +9,7 @@ import Animated, {
 	runOnJS,
 } from "react-native-reanimated";
 
-function getEncouragingText(points: number): string {
+export function getEncouragingText(points: number): string {
 	if (points >= 500) {
 		const spectaculars = ["Incredible!", "Spectacular!", "Unbelievable!", "LEGENDARY!", "GODLIKE!"];
 		return spectaculars[Math.floor(Math.random() * spectaculars.length)];
@@ -29,7 +29,7 @@ function getEncouragingText(points: number): string {
 	return "";
 }
 
-function getEncouragingColor(points: number): string {
+export function getEncouragingColor(points: number): string {
 	if (points >= 500) return "#FF1493"; // Deep pink
 	if (points >= 150) return "#FF00FF"; // Magenta / Orange
 	if (points >= 50) return "#00FFFF"; // Cyan
@@ -40,13 +40,54 @@ interface ScorePopupProps {
 	points: number;
 	x: number;
 	y: number;
+	gridBlockSize?: number;
+	boardLength?: number;
+	gridWidth?: number;
+	gridHeight?: number;
 	onComplete?: () => void;
 }
 
-export function ScorePopup({ points, x, y, onComplete }: ScorePopupProps) {
+export function ScorePopup({
+	points,
+	x,
+	y,
+	gridBlockSize = 46,
+	boardLength = 8,
+	gridWidth,
+	gridHeight,
+	onComplete,
+}: ScorePopupProps) {
 	const opacity = useSharedValue(1);
 	const translateY = useSharedValue(0);
-	const scale = useSharedValue(0.5);
+	const scale = useSharedValue(0.6);
+
+	const totalWidth = gridWidth ?? (gridBlockSize * boardLength);
+	const totalHeight = gridHeight ?? totalWidth;
+
+	// Clamp popup width so it comfortably fits within board width
+	const popupWidth = Math.min(200, Math.max(140, totalWidth - 24));
+
+	// Center popup relative to the target cell
+	const cellCenterX = x + gridBlockSize / 2;
+	const cellCenterY = y + gridBlockSize / 2;
+
+	// Clamp left position strictly inside the game board [PADDING, totalWidth - popupWidth - PADDING]
+	const HORIZONTAL_PADDING = 8;
+	const minLeft = HORIZONTAL_PADDING;
+	const maxLeft = Math.max(minLeft, totalWidth - popupWidth - HORIZONTAL_PADDING);
+	const idealLeft = cellCenterX - popupWidth / 2;
+	const clampedLeft = Math.max(minLeft, Math.min(maxLeft, idealLeft));
+
+	// Animation floats up by FLOAT_UP px
+	const FLOAT_UP = 36;
+	const VERTICAL_PADDING = 10;
+	// Estimated popup content height ~55px
+	const popupHeight = 55;
+	// Ensure top position + float never goes above VERTICAL_PADDING
+	const minTop = FLOAT_UP + VERTICAL_PADDING;
+	const maxTop = Math.max(minTop, totalHeight - popupHeight - VERTICAL_PADDING);
+	const idealTop = cellCenterY - popupHeight / 2;
+	const clampedTop = Math.max(minTop, Math.min(maxTop, idealTop));
 
 	const onCompleteRef = useRef(onComplete);
 	useEffect(() => {
@@ -64,23 +105,23 @@ export function ScorePopup({ points, x, y, onComplete }: ScorePopupProps) {
 		// Анимация появления и исчезновения
 		opacity.value = withSequence(
 			withTiming(1, { duration: 100 }),
-			withTiming(1, { duration: 800 }),
-			withTiming(0, { duration: 300 }, (isFinished) => {
+			withTiming(1, { duration: 750 }),
+			withTiming(0, { duration: 250 }, (isFinished) => {
 				if (isFinished) {
 					runOnJS(handleComplete)();
 				}
 			})
 		);
 
-		// Движение вверх
-		translateY.value = withTiming(-100, {
-			duration: 1200,
+		// Умеренное движение вверх, гарантирующее непревышение верхних рамок игры
+		translateY.value = withTiming(-FLOAT_UP, {
+			duration: 1100,
 			easing: Easing.out(Easing.cubic),
 		});
 
-		// Масштабирование
+		// Аккуратное масштабирование
 		scale.value = withSequence(
-			withTiming(1.5, { duration: 200, easing: Easing.out(Easing.back(2)) }),
+			withTiming(1.2, { duration: 180, easing: Easing.out(Easing.back(1.5)) }),
 			withTiming(1, { duration: 100 })
 		);
 	}, [opacity, translateY, scale]);
@@ -103,15 +144,30 @@ export function ScorePopup({ points, x, y, onComplete }: ScorePopupProps) {
 			style={[
 				styles.container,
 				{
-					left: x,
-					top: y,
+					left: clampedLeft,
+					top: clampedTop,
+					width: popupWidth,
 				},
 				animatedStyle,
 			]}
 		>
-			<Text style={styles.text}>+{points}</Text>
+			<Text
+				style={styles.text}
+				numberOfLines={1}
+				adjustsFontSizeToFit
+				minimumFontScale={0.7}
+			>
+				+{points}
+			</Text>
 			{encourages !== "" && (
-				<Text style={[styles.subText, { color: encourageColor }]}>{encourages}</Text>
+				<Text
+					style={[styles.subText, { color: encourageColor }]}
+					numberOfLines={1}
+					adjustsFontSizeToFit
+					minimumFontScale={0.7}
+				>
+					{encourages}
+				</Text>
 			)}
 		</Animated.View>
 	);
@@ -127,7 +183,8 @@ const styles = StyleSheet.create({
 	text: {
 		color: "#FFD700",
 		fontFamily: "SilkscreenBold",
-		fontSize: 32,
+		fontSize: 26,
+		textAlign: 'center',
 		...Platform.select({
 			web: {
 				textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)"
@@ -141,8 +198,8 @@ const styles = StyleSheet.create({
 	},
 	subText: {
 		fontFamily: "SilkscreenBold",
-		fontSize: 22,
-		marginTop: 4,
+		fontSize: 18,
+		marginTop: 2,
 		textAlign: 'center',
 		...Platform.select({
 			web: {

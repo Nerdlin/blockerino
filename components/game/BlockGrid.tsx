@@ -187,12 +187,15 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 	const staticStyle = useAnimatedStyle(() => {
 		const block = board.value[y][x];
 
-		if (block.blockType === BoardBlockType.EMPTY && loadBlockFlash.value !== 0) {
-			return {
-				...createFilledBlockStyle(block.color, 7, pieceSkinId),
-				opacity: Math.min(1, loadBlockFlash.value * 10),
-				borderColor: currentTheme.emptyBlockBorder
-			};
+		if (block.blockType === BoardBlockType.EMPTY) {
+			const flashVal = loadBlockFlash.value;
+			if (flashVal > 0.05) {
+				return {
+					...createEmptyBlockStyle(currentTheme.emptyBlockBorder),
+					backgroundColor: `rgba(255, 255, 255, ${flashVal * 0.15})`,
+				};
+			}
+			return createEmptyBlockStyle(currentTheme.emptyBlockBorder);
 		}
 
 		let style: any = createEmptyBlockStyle(currentTheme.emptyBlockBorder);

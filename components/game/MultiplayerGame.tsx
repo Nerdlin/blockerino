@@ -1209,18 +1209,20 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                                             />
                                         ))}
                                     </View>
+                                    <View style={[StyleSheet.absoluteFill, { pointerEvents: 'none', zIndex: 9999 }]}>
+                                        {scorePopups.map(popup => (
+                                            <ScorePopup 
+                                                key={popup.id} 
+                                                points={popup.points} 
+                                                x={popup.x} 
+                                                y={popup.y} 
+                                                gridBlockSize={GRID_BLOCK_SIZE}
+                                                boardLength={boardLength}
+                                                onComplete={() => removeScorePopup(popup.id)} 
+                                            />
+                                        ))}
+                                    </View>
                                 </View>
-								<View style={[StyleSheet.absoluteFill, { pointerEvents: 'none', zIndex: 9999 }]}>
-									{scorePopups.map(popup => (
-										<ScorePopup 
-											key={popup.id} 
-											points={popup.points} 
-											x={popup.x + 30} 
-											y={popup.y + 100} 
-											onComplete={() => removeScorePopup(popup.id)} 
-										/>
-									))}
-								</View>
                                 
 								<HandPieces 
 									hand={hand} 
