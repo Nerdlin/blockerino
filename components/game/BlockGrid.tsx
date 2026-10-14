@@ -12,7 +12,7 @@ import {
 	createFilledBlockStyle,
 } from "@/constants/Piece";
 import { shopStateAtom } from "@/constants/Shop";
-import { useTheme } from "@/constants/Theme";
+import { Theme, useTheme } from "@/constants/Theme";
 import { useDroppable } from "@mgcrea/react-native-dnd";
 import { useAtomValue } from "jotai";
 import { useEffect } from "react";
@@ -106,9 +106,11 @@ interface GridBlockProps {
 	board: SharedValue<Board>;
 	boardSize: number;
 	gridBlockSize: number;
+	currentTheme: Theme;
+	pieceSkinId: string;
 }
 
-function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
+function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceSkinId }: GridBlockProps) {
 	const loadBlockFlash = useSharedValue(0);
 	const placedBlockFall = useSharedValue(0);
 	const placedBlockDirectionX = useSharedValue(0);
@@ -117,8 +119,6 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize }: GridBlockProps) {
 	const waveEffect = useSharedValue(0);
 	const flashOpacity = useSharedValue(0);
 	const sparkProgress = useSharedValue(0);
-	const { currentTheme } = useTheme();
-	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
 
 	// Реакция на изменение состояния блока
 	useAnimatedReaction(() => {
@@ -298,6 +298,7 @@ export default function BlockGrid({
 	const blockElements: any[] = [];
 	const boardLength = board.value.length;
 	const { currentTheme } = useTheme();
+	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
 	const { GRID_BLOCK_SIZE, HITBOX_SIZE } = useGameSizes(boardLength);
 
 	forEachBoardBlock(board.value, (_block, x, y) => {
@@ -311,7 +312,15 @@ export default function BlockGrid({
 
 		blockElements.push(
 			<Animated.View key={`${x},${y}`} style={blockPositionStyle}>
-				<GridBlock x={x} y={y} board={board} boardSize={boardLength} gridBlockSize={GRID_BLOCK_SIZE} />
+				<GridBlock
+					x={x}
+					y={y}
+					board={board}
+					boardSize={boardLength}
+					gridBlockSize={GRID_BLOCK_SIZE}
+					currentTheme={currentTheme}
+					pieceSkinId={pieceSkinId}
+				/>
 				<BlockDroppable
 					x={x}
 					y={y}

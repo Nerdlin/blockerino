@@ -82,6 +82,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			: (isDaily ? createSeededBoard(boardLength, dailySeed) : newEmptyBoard(boardLength))
 	);
 	const draggingPiece = useSharedValue<number | null>(null);
+	const lastHoveredDropId = useSharedValue<string | null>(null);
 	const possibleBoardDropSpots = useSharedValue<PossibleBoardSpots>(JS_emptyPossibleBoardSpots(boardLength));
 	const hand = useSharedValue(
 		validInitialState 
@@ -451,11 +452,13 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		}
 		
 		draggingPiece.value = null;
+		lastHoveredDropId.value = null;
 		possibleBoardDropSpots.value = emptyPossibleBoardSpots(boardLength);
 	};
 
 	const handleBegin: DndProviderProps["onBegin"] = (event, meta) => {
 		"worklet";
+		lastHoveredDropId.value = null;
 		const handIndex = Number(meta.activeId.toString());
 		if (hand.value[handIndex] != null) {
 			draggingPiece.value = handIndex;
@@ -465,6 +468,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 
 	const handleFinalize: DndProviderProps["onFinalize"] = ({ state }) => {
 		"worklet";
+		lastHoveredDropId.value = null;
 		if (state !== State.END) {
 			draggingPiece.value = null;
 		}
@@ -472,7 +476,13 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 
 	const handleUpdate: DndProviderProps["onUpdate"] = (event, {activeId, activeLayout, droppableActiveId}) => {
 		"worklet";
-		if (!droppableActiveId) {
+		const currentDropId = droppableActiveId ? droppableActiveId.toString() : null;
+		if (currentDropId === lastHoveredDropId.value) {
+			return;
+		}
+		lastHoveredDropId.value = currentDropId;
+
+		if (!currentDropId || currentDropId === "trash") {
 			board.value = clearHoverBlocks(cloneBoard(board.value));
 			return;
 		}
@@ -481,21 +491,17 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			return;
 		}
 
-		const dropIdStr = droppableActiveId.toString();
-		if (dropIdStr === "trash") {
-			board.value = clearHoverBlocks(cloneBoard(board.value));
-			return;
-		}
-
-		const {x: dropX, y: dropY} = decodeDndId(dropIdStr);
+		const {x: dropX, y: dropY} = decodeDndId(currentDropId);
 		if (isNaN(dropX) || isNaN(dropY)) {
 			board.value = clearHoverBlocks(cloneBoard(board.value));
 			return;
 		}
 		const piece: PieceData = hand.value[draggingPiece.value!]!;
 
+		// Fast check from precomputed drop spots matrix
+		const canFit = piece && possibleBoardDropSpots.value[dropY]?.[dropX] === 1;
 		const newBoard = clearHoverBlocks(cloneBoard(board.value));
-		if (!piece || createPossibleBoardSpots(newBoard, piece)[dropY]?.[dropX] !== 1) {
+		if (!canFit) {
 			board.value = newBoard;
 			return;
 		}
