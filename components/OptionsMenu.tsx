@@ -1,8 +1,10 @@
 import { MenuStateType, useAppState } from "@/hooks/useAppState";
-import { Linking, ScrollView, StyleSheet, Switch, Text, View, useWindowDimensions, TextInput } from "react-native";
+import { Linking, ScrollView, StyleSheet, Switch, Text, View, useWindowDimensions, TextInput, Platform } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import * as Application from "expo-application";
+import { updateService } from "@/constants/UpdateService";
 import {
 	CUSTOM_MUSIC_URL_KEY,
 	CUSTOM_SFX_URL_KEY,
@@ -64,6 +66,18 @@ export default function OptionsMenu() {
 		if (next === language) return;
 		playSfx('menuClick');
 		void changeLanguage(next);
+	};
+
+	const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+
+	const handleCheckUpdates = async () => {
+		playSfx('menuClick');
+		setIsCheckingUpdates(true);
+		try {
+			await updateService.checkForUpdates(true);
+		} finally {
+			setIsCheckingUpdates(false);
+		}
 	};
 
 	const handleButtonPress = useCallback(() => {
@@ -243,6 +257,21 @@ export default function OptionsMenu() {
 							</Animated.View>
 						))}
 					</View>
+				</View>
+
+				<View style={styles.settingSection}>
+					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>{t("settings.updates")}</Text>
+					<Text style={[styles.settingDesc, { color: currentTheme.textSecondary, marginBottom: 8 }]}>
+						{`${t("settings.version")}: ${Application.nativeApplicationVersion || '1.0.6'} (${Application.nativeBuildVersion ? `build ${Application.nativeBuildVersion}` : 'latest'})`}
+					</Text>
+					{Platform.OS === 'android' && (
+						<StylizedButton
+							text={isCheckingUpdates ? t("settings.checkingUpdates") : t("settings.checkUpdates")}
+							onClick={handleCheckUpdates}
+							backgroundColor={currentTheme.buttonPrimary}
+							style={isMobile ? { minWidth: 160, marginVertical: 4 } : { minWidth: 190, marginVertical: 4 }}
+						/>
+					)}
 				</View>
 
 				<View style={styles.buttonsContainer}>

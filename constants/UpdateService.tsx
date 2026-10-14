@@ -50,10 +50,15 @@ class UpdateService {
                 config.latestBuildNumber
             )) {
                 this.showUpdateDialog(config);
+            } else if (force) {
+                Alert.alert('Up to Date', `Blockerino is up to date (v${currentVersion}).`);
             }
         } catch (error) {
             console.error('Error checking for updates:', error);
             this.checkedThisSession = false;
+            if (force) {
+                Alert.alert('Update Check', 'Could not check for updates. Please verify your connection.');
+            }
         }
     }
 
@@ -128,12 +133,7 @@ class UpdateService {
 
     private async openDownloadUrl(url: string): Promise<void> {
         try {
-            const supported = await Linking.canOpenURL(url);
-            if (supported) {
-                await Linking.openURL(url);
-            } else {
-                Alert.alert('Error', 'Cannot open download link');
-            }
+            await Linking.openURL(url);
         } catch (error) {
             console.error('Error opening download URL:', error);
             Alert.alert('Error', 'Failed to open download link');

@@ -49,6 +49,10 @@ const en: Dictionary = {
 	"settings.theme": "Theme",
 	"settings.language": "Language",
 	"settings.languageDesc": "Menu and game text language",
+	"settings.updates": "Updates",
+	"settings.checkUpdates": "Check for Updates",
+	"settings.checkingUpdates": "Checking...",
+	"settings.version": "Version",
 
 	// Sudoku
 	"sudoku.solved": "Solved",
@@ -112,6 +116,10 @@ const ru: Dictionary = {
 	"settings.theme": "Тема",
 	"settings.language": "Язык",
 	"settings.languageDesc": "Язык меню и текста в играх",
+	"settings.updates": "Обновления",
+	"settings.checkUpdates": "Проверить обновления",
+	"settings.checkingUpdates": "Проверка...",
+	"settings.version": "Версия",
 
 	// Sudoku
 	"sudoku.solved": "Решено",
