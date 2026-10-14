@@ -1037,7 +1037,7 @@ export function createFilledBlockStyle(color: Color, borderWidth: number = 7, pi
 		borderWidth: finalBorderWidth,
 		borderRadius,
 		boxSizing: 'border-box',
-		boxShadow: shadow === "none" ? (Platform.OS === 'web' ? 'none' : undefined) : shadow,
+		...(Platform.OS === "web" ? { boxShadow: shadow !== "none" ? shadow : "none" } : {}),
 	}
 }
 
@@ -1054,7 +1054,7 @@ export function createEmptyBlockStyle(borderColor: string = 'rgb(40, 40, 40)'): 
 		borderWidth: 0.5,
 		borderRadius: 0,
 		boxSizing: 'border-box',
-		boxShadow: Platform.OS === 'web' ? 'none' : undefined,
+		...(Platform.OS === "web" ? { boxShadow: "none" } : {}),
 		shadowColor: 'transparent',
 		shadowOpacity: 0,
 		shadowRadius: 0,
