@@ -48,7 +48,8 @@ export type SoundType =
   | 'gameOver' 
   | 'menuClick' 
   | 'invalidPlacement'
-  | 'buttonHover';
+  | 'buttonHover'
+  | 'achievement';
 
 const MUSIC_TRACK_RESOURCES = {
   backgroundMusic: require('../assets/sounds/background-music.mp3'),
@@ -120,6 +121,7 @@ const SFX_RESOURCES = {
   menuClick: require('../assets/sounds/menu-click.mp3'),
   invalidPlacement: require('../assets/sounds/invalid-placement.mp3'),
   buttonHover: require('../assets/sounds/button-hover.mp3'),
+  achievement: require('../assets/sounds/achievement-unlock.mp3'),
   sfxWoodPlace: require('../assets/sounds/generated/sfx-wood-place.mp3'),
   sfxWoodClear: require('../assets/sounds/generated/sfx-wood-clear.mp3'),
   sfxWoodClick: require('../assets/sounds/generated/sfx-wood-click.mp3'),

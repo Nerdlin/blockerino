@@ -12,6 +12,7 @@ import { gameover } from "./gameover";
 import { friends } from "./friends";
 import { hud } from "./hud";
 import { moregames } from "./moregames";
+import { update } from "./update";
 
 export type ScreenDictionary = { en: Record<string, string>; ru: Record<string, string> };
 
@@ -27,6 +28,7 @@ const modules: ScreenDictionary[] = [
 	friends,
 	hud,
 	moregames,
+	update,
 ];
 
 export const moduleTranslations: Record<Language, Record<string, string>> = {

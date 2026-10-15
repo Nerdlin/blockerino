@@ -23,6 +23,9 @@ jest.mock("./SimplePopupView", () => ({ children }: any) => children);
 
 // eslint-disable-next-line import/first -- jest.mock calls are hoisted and must precede the import
 import {
+	betFromPosition,
+	createRandomFleet,
+	positionFromBet,
 	canBeatDurakCard,
 	getDurakNetPrize,
 	getDurakPayout,
@@ -255,5 +258,50 @@ describe("More Games rules", () => {
 		expect(getDurakNetPrize(100, 6)).toBe(500);
 		// A zero bet keeps everything at zero (no coins move).
 		expect(getDurakNetPrize(0, 6)).toBe(0);
+	});
+});
+
+describe("durak bet slider", () => {
+	it("never lets the bet exceed the balance", () => {
+		for (const balance of [100, 230, 250, 5000, 1_250_000]) {
+			for (let position = 0; position <= 1; position += 0.05) {
+				const bet = betFromPosition(position, balance);
+				expect(bet).toBeLessThanOrEqual(balance);
+				expect(bet).toBeGreaterThanOrEqual(Math.min(100, balance));
+			}
+		}
+	});
+
+	it("spans the whole track from the minimum bet to the full balance", () => {
+		expect(betFromPosition(0, 250)).toBe(100);
+		expect(betFromPosition(1, 250)).toBe(250);
+		expect(betFromPosition(1, 1_250_000)).toBe(1_250_000);
+	});
+
+	it("round-trips a bet back to its slider position", () => {
+		for (const balance of [250, 20_000]) {
+			for (const bet of [100, 150, 250]) {
+				if (bet > balance) continue;
+				const position = positionFromBet(bet, balance);
+				expect(position).toBeGreaterThanOrEqual(0);
+				expect(position).toBeLessThanOrEqual(1);
+				expect(Math.abs(betFromPosition(position, balance) - bet)).toBeLessThanOrEqual(10);
+			}
+		}
+	});
+
+	it("gives a player below the minimum bet a fixed bet equal to their balance", () => {
+		expect(betFromPosition(0.5, 40)).toBe(40);
+		expect(positionFromBet(40, 40)).toBe(0);
+	});
+});
+
+describe("sea battle random fleet", () => {
+	it("keeps the default ship ids and produces a valid, fully placed fleet", () => {
+		for (let i = 0; i < 30; i += 1) {
+			const fleet = createRandomFleet();
+			expect(fleet.map((ship) => ship.id)).toEqual(["b4", "b3a", "b3b", "b2a", "b2b", "b2c", "b1a", "b1b", "b1c", "b1d"]);
+			expect(fleet.every((ship) => ship.x >= 0 && isShipPlacementValid(ship, fleet))).toBe(true);
+		}
 	});
 });

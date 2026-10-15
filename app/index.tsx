@@ -39,6 +39,7 @@ import DailyChallengesMenu from "@/components/DailyChallengesMenu";
 import { shouldPauseMusicForAppState, soundManager, useSoundSettings } from "@/constants/Sound";
 import MultiplayerConnectionGate from "@/components/MultiplayerConnectionGate";
 import AchievementsMenu from "@/components/AchievementsMenu";
+import AchievementToastHost from "@/components/AchievementToast";
 import ShopMenu from "@/components/ShopMenu";
 import ProfileMenu from "@/components/ProfileMenu";
 import MoreGamesMenu from "@/components/MoreGamesMenu";
@@ -254,6 +255,8 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 					onStartOver={handleStartOver}
 				/>
 			)}
+
+			<AchievementToastHost />
 		</Animated.View>
 		</>
 	);

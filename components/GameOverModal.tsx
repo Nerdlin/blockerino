@@ -3,6 +3,8 @@ import { StyleSheet, Text, View, Platform, TextInput } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { GameModeType, MenuStateType, useSetAppState } from "@/hooks/useAppState";
+import { supabase } from "@/constants/Supabase";
+import { setProfileAuthIntent } from "@/constants/ProfileIntent";
 import { useSoundSettings } from "@/constants/Sound";
 import { useTheme, ThemeType } from "@/constants/Theme";
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
@@ -24,6 +26,20 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
     const [playerName, setPlayerName] = useState('');
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'queued' | 'failed' | 'needs_name'>('idle');
     const [coinsAwarded, setCoinsAwarded] = useState(0);
+    const [signedIn, setSignedIn] = useState(true);
+
+    useEffect(() => {
+        let active = true;
+        supabase.auth.getSession()
+            .then(({ data }) => { if (active) setSignedIn(Boolean(data.session)); })
+            .catch(() => { if (active) setSignedIn(true); });
+        return () => { active = false; };
+    }, []);
+
+    const openAccountScreen = (intent: 'login' | 'register') => {
+        setProfileAuthIntent(intent);
+        appendAppState(MenuStateType.PROFILE);
+    };
     const coinsAwardedRef = useRef(false);
     const { awardCoins } = useShopState();
 
@@ -192,6 +208,17 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                             onClick={handleManualSubmit}
                             backgroundColor={currentTheme.buttonPrimary}
                         />
+                        {!signedIn && (
+                            <View style={{ width: '100%', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                                <Text style={[styles.messageText, { color: currentTheme.textSecondary, paddingHorizontal: 0, fontSize: 11 }]}>
+                                    {t("over.accountPrompt")}
+                                </Text>
+                                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                                    <StylizedButton text={t("over.createAccount")} onClick={() => openAccountScreen('register')} backgroundColor={currentTheme.accent} style={{ minWidth: 120, height: 36 }} textStyle={{ fontSize: 11 }} />
+                                    <StylizedButton text={t("over.haveAccount")} onClick={() => openAccountScreen('login')} backgroundColor="rgb(90,90,90)" style={{ minWidth: 120, height: 36 }} textStyle={{ fontSize: 11 }} />
+                                </View>
+                            </View>
+                        )}
                     </View>
                 )}
                 {submitStatus === 'submitting' && (

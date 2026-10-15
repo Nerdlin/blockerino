@@ -28,7 +28,8 @@ export function calculateGameSizes({
   const maxGridHeight = Math.max(160, height - reservedHeight);
   const calculatedBlockSizeHeight = Math.floor(maxGridHeight / boardLength);
 
-  const idealBlockSize = isMobile && isMultiplayer ? 42 : 46;
+  const isLargeScreen = width >= 900 && height >= 900;
+  const idealBlockSize = isMobile && isMultiplayer ? 42 : (isLargeScreen ? 64 : 46);
   const minBlockSize = isMobile && isMultiplayer ? 16 : 18;
   const gridBlockSize = Math.max(
     minBlockSize,

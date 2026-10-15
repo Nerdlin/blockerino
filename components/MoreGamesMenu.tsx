@@ -4,7 +4,7 @@ import { Chess } from "chess.js";
 import { Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, Image, ActivityIndicator, Clipboard, LayoutAnimation, UIManager } from "react-native";
 
 import Slider from '@react-native-community/slider';
-import SimplePopupView from "./SimplePopupView";
+import SimplePopupView, { getPopupLimits } from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
 import {
@@ -23,6 +23,9 @@ import { useShopState, ShopItem, ShopCategory, getVisibleShopItemsByCategory } f
 import { useAppState } from "@/hooks/useAppState";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import PixelIcon from "@/components/PixelIcon";
+import ShipArt from "@/components/ShipArt";
+import UiIcon from "@/components/UiIcon";
+import type { UiGlyphName } from "@/constants/UiGlyphs";
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
 	UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -188,12 +191,12 @@ const MORE_GAME_CARDS: MoreGameCard[] = [
 const RATED_MORE_GAME_IDS: RatedMoreGameId[] = ["battleship", "durak", "chess", "tictactoe", "sudoku", "mahjong"];
 const RATED_MORE_GAME_CARDS = MORE_GAME_CARDS.filter((card): card is MoreGameCard & { id: RatedMoreGameId } => card.id !== "shop");
 const ELO_TIERS = [
-	{ tier: "Bronze", color: "#CD7F32", icon: "🥉", min: 0, max: 800 },
-	{ tier: "Silver", color: "#C0C0C0", icon: "🥈", min: 800, max: 1000 },
-	{ tier: "Gold", color: "#FFD700", icon: "🥇", min: 1000, max: 1200 },
-	{ tier: "Diamond", color: "#00BFFF", icon: "💎", min: 1200, max: 1400 },
-	{ tier: "Master", color: "#DA70D6", icon: "👑", min: 1400, max: 1600 },
-	{ tier: "Legend", color: "#FF4500", icon: "🔥", min: 1600, max: 2000 },
+	{ tier: "Bronze", color: "#CD7F32", icon: "medalBronze" as const, min: 0, max: 800 },
+	{ tier: "Silver", color: "#C0C0C0", icon: "medalSilver" as const, min: 800, max: 1000 },
+	{ tier: "Gold", color: "#FFD700", icon: "medalGold" as const, min: 1000, max: 1200 },
+	{ tier: "Diamond", color: "#00BFFF", icon: "diamond" as const, min: 1200, max: 1400 },
+	{ tier: "Master", color: "#DA70D6", icon: "star" as const, min: 1400, max: 1600 },
+	{ tier: "Legend", color: "#FF4500", icon: "crown" as const, min: 1600, max: 2000 },
 ];
 
 function getMoreGameEloBadge(elo: number) {
@@ -580,18 +583,18 @@ function DurakModeToggleColumn({
 	topLabel, topIcon, topActive, onTopPress,
 	bottomLabel, bottomIcon, bottomActive, onBottomPress
 }: {
-	topLabel: string; topIcon: string; topActive: boolean; onTopPress: () => void;
-	bottomLabel: string; bottomIcon: string; bottomActive: boolean; onBottomPress: () => void;
+	topLabel: string; topIcon: UiGlyphName; topActive: boolean; onTopPress: () => void;
+	bottomLabel: string; bottomIcon: UiGlyphName; bottomActive: boolean; onBottomPress: () => void;
 }) {
 	return (
 		<View style={styles.durakModeColumn}>
 			<Pressable style={[styles.durakModeCell, topActive && styles.durakModeCellActive, { borderBottomWidth: 1, borderColor: "rgba(255,255,255,0.2)" }]} onPress={onTopPress}>
-				<Text style={styles.durakModeIcon}>{topIcon}</Text>
+				<View style={styles.durakModeIcon}><UiIcon name={topIcon} size={36} /></View>
 				<Text style={[styles.durakModeLabel, topActive && styles.durakModeLabelActive]}>{topLabel}</Text>
 				{topActive && <View style={styles.durakModeCheck}><Text style={styles.durakModeCheckText}>✓</Text></View>}
 			</Pressable>
 			<Pressable style={[styles.durakModeCell, bottomActive && styles.durakModeCellActive]} onPress={onBottomPress}>
-				<Text style={styles.durakModeIcon}>{bottomIcon}</Text>
+				<View style={styles.durakModeIcon}><UiIcon name={bottomIcon} size={36} /></View>
 				<Text style={[styles.durakModeLabel, bottomActive && styles.durakModeLabelActive]}>{bottomLabel}</Text>
 				{bottomActive && <View style={styles.durakModeCheck}><Text style={styles.durakModeCheckText}>✓</Text></View>}
 			</Pressable>
@@ -803,7 +806,7 @@ function RatingBadge({ elo, small = false }: { elo: number; small?: boolean }) {
 	const badge = getMoreGameEloBadge(elo);
 	return (
 		<View style={[styles.ratingBadgeCircle, small && styles.ratingBadgeCircleSmall, { backgroundColor: badge.color }]}>
-			<Text style={[styles.ratingBadgeIcon, small && styles.ratingBadgeIconSmall]}>{badge.icon}</Text>
+			<UiIcon name={badge.icon} size={small ? 18 : 27} />
 		</View>
 	);
 }
@@ -905,7 +908,7 @@ function MoreGameLeaderboardPanel({
 								</Text>
 							</View>
 							<View style={[styles.leaderboardTier, { flex: 1, backgroundColor: badge.color }]}>
-								<Text style={styles.leaderboardTierEmoji}>{badge.icon}</Text>
+								<UiIcon name={badge.icon} size={9} />
 								<Text style={styles.leaderboardTierText}>{t(`moregames.tier.${badge.tier}`)}</Text>
 							</View>
 							<Text style={[styles.leaderboardElo, { flex: 0.65, color: currentTheme.textPrimary }]}>{entry.elo}</Text>
@@ -1679,6 +1682,32 @@ function createDefaultFleet(): BattleShip[] {
 	];
 }
 
+// Keeps the default ship ids so the selected ship (and rotation) still works after shuffling.
+export function createRandomFleet(random: () => number = Math.random): BattleShip[] {
+	const template = createDefaultFleet();
+	for (let round = 0; round < 50; round += 1) {
+		const placed: BattleShip[] = [];
+		for (const ship of template) {
+			let done = false;
+			for (let attempt = 0; attempt < 100 && !done; attempt += 1) {
+				const candidate: BattleShip = {
+					...ship,
+					orientation: ship.length === 1 || random() < 0.5 ? "h" : "v",
+					x: Math.floor(random() * BATTLE_BOARD_SIZE),
+					y: Math.floor(random() * BATTLE_BOARD_SIZE),
+				};
+				if (isShipPlacementValid(candidate, placed)) {
+					placed.push(candidate);
+					done = true;
+				}
+			}
+			if (!done) break;
+		}
+		if (placed.length === template.length) return placed;
+	}
+	return template;
+}
+
 export function getShipCells(ship: BattleShip): string[] {
 	return Array.from({ length: ship.length }, (_, index) => {
 		const x = ship.x + (ship.orientation === "h" ? index : 0);
@@ -1724,6 +1753,8 @@ function occupiedFleetCells(fleet: BattleShip[]) {
 
 function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
 	const compactFleet = useWindowDimensions().width < 420;
+	const battleGridSize = useBattleGridSize();
+	const leftPanelWidth = battleGridSize > 220 ? Math.round((battleGridSize / 10) * 0.82 * 4) + 44 : 70;
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
 	const [fleet, setFleet] = useState(createDefaultFleet);
@@ -1922,43 +1953,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 
 	const randomizeFleet = () => {
 		if (ready) return;
-		const shipSizes = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
-		const shipNames = ["Carrier", "Cruiser A", "Cruiser B", "Destroyer A", "Destroyer B", "Destroyer C", "Boat A", "Boat B", "Boat C", "Boat D"];
-		const newFleet: BattleShip[] = [];
-
-		for (let i = 0; i < shipSizes.length; i++) {
-			const size = shipSizes[i];
-			let attempts = 0;
-			let placed = false;
-
-			while (!placed && attempts < 100) {
-				const orientation: ShipOrientation = Math.random() < 0.5 ? "h" : "v";
-				const x = Math.floor(Math.random() * BATTLE_BOARD_SIZE);
-				const y = Math.floor(Math.random() * BATTLE_BOARD_SIZE);
-
-				const candidate: BattleShip = {
-					id: `b${size}-${i}`,
-					name: shipNames[i],
-					length: size,
-					x,
-					y,
-					orientation,
-				};
-
-				if (isShipPlacementValid(candidate, newFleet)) {
-					newFleet.push(candidate);
-					placed = true;
-				}
-				attempts++;
-			}
-
-			if (!placed) {
-				// Если не удалось разместить, начинаем сначала
-				return randomizeFleet();
-			}
-		}
-
-		setFleet(newFleet);
+		setFleet(createRandomFleet());
 	};
 
 	const markReady = () => {
@@ -2000,13 +1995,13 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 			<View style={styles.onlineGame}>
 				<Text style={[styles.gameStatus, { color: currentTheme.textPrimary }]}>{t("moregames.placeShips")}</Text>
 				<View style={styles.battlePlayArea}>
-					<View style={[styles.battleLeftPanel, compactFleet && { width: "100%" }, { zIndex: 200, elevation: 200 }]}>
+					<View style={[styles.battleLeftPanel, { width: leftPanelWidth }, compactFleet && { width: "100%" }, { zIndex: 200, elevation: 200 }]}>
 						<View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
 							<Pressable onPress={rotateSelectedShip} style={styles.battleRotateButton}>
 								<Text style={{ fontSize: 22, color: '#FFF', lineHeight: 26 }}>↻</Text>
 							</Pressable>
 							<Pressable onPress={randomizeFleet} style={styles.battleRotateButton}>
-								<Text style={{ fontSize: 16, color: '#FFF', lineHeight: 26 }}>🎲</Text>
+								<UiIcon name="dice" size={18} />
 							</Pressable>
 						</View>
 						<View style={[styles.fleetVerticalList, compactFleet && { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }, { overflow: 'visible' }]}>
@@ -2106,13 +2101,13 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 			)}
 			<View style={styles.battlePlayArea}>
 				{!ready && (
-					<View style={[styles.battleLeftPanel, { zIndex: 200, elevation: 200 }]}>
+					<View style={[styles.battleLeftPanel, { width: leftPanelWidth }, { zIndex: 200, elevation: 200 }]}>
 						<View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
 							<Pressable onPress={rotateSelectedShip} style={styles.battleRotateButton}>
 								<Text style={{ fontSize: 22, color: '#FFF', lineHeight: 26 }}>↻</Text>
 							</Pressable>
 							<Pressable onPress={randomizeFleet} style={styles.battleRotateButton}>
-								<Text style={{ fontSize: 16, color: '#FFF', lineHeight: 26 }}>🎲</Text>
+								<UiIcon name="dice" size={18} />
 							</Pressable>
 						</View>
 						<View style={[styles.fleetVerticalList, { overflow: 'visible' }]}>
@@ -2184,7 +2179,7 @@ function ShipDragItem({ ship, onDrop, selected, onSelect, paper, onDragMove, onD
 		}
 	}), [ship.id, onDrop, onSelect, onDragMove, onDragEnd]);
 
-	const cellSize = 18;
+	const cellSize = Math.round((useBattleGridSize() / 10) * 0.82);
 	const w = ship.orientation === "h" ? ship.length * cellSize : cellSize;
 	const h = ship.orientation === "v" ? ship.length * cellSize : cellSize;
 
@@ -2197,15 +2192,23 @@ function ShipDragItem({ ship, onDrop, selected, onSelect, paper, onDragMove, onD
 				{ zIndex: selected ? 9999 : 10, elevation: selected ? 9999 : 10 }
 			]}
 		>
-			<View style={{ flexDirection: ship.orientation === 'h' ? 'row' : 'column', width: '100%', height: '100%' }}>
-				{Array.from({ length: ship.length }).map((_, i) => (
-					<View key={i} style={{ width: cellSize, height: cellSize }}>
-						<ShipCellArt length={ship.length} orientation={ship.orientation} paper={paper} segmentIndex={i} selected={selected} />
-					</View>
-				))}
-			</View>
+			<ShipArt length={ship.length} orientation={ship.orientation} selected={selected} />
 		</Animated.View>
 	);
+}
+
+// Sea Battle board edge in px: the phone size stays 220, large screens grow with the popup.
+export function getBattleGridSize(width: number, height: number) {
+	const limits = getPopupLimits(width, height);
+	if (limits.maxWidth <= 480) return 220;
+	const byWidth = limits.maxWidth - 30 - 70 - 16 - 40;
+	const byHeight = limits.maxHeight - 470;
+	return Math.max(220, Math.min(480, Math.floor(Math.min(byWidth, byHeight) / 10) * 10));
+}
+
+function useBattleGridSize() {
+	const { width, height } = useWindowDimensions();
+	return getBattleGridSize(width, height);
 }
 
 function BattleGrid({
@@ -2242,100 +2245,76 @@ function BattleGrid({
 		}
 	}
 
+	const gridSize = useBattleGridSize();
+	const markSize = Math.max(18, Math.round((gridSize / 10) * 0.8 / 9) * 9);
+	const waterColor = paper ? "rgba(255,255,255,0.32)" : "rgba(14,165,233,0.12)";
+
 	return (
 		<View style={styles.battleGridWrap}>
 			<Text style={[styles.gridLabel, { color: currentTheme.textSecondary }]}>{title}</Text>
-			<View style={[styles.battleGrid, paper ? styles.paperBattleGrid : styles.navyBattleGrid]}>
-				{Array.from({ length: BATTLE_BOARD_SIZE * BATTLE_BOARD_SIZE }).map((_, index) => {
-					const cell = `${index % BATTLE_BOARD_SIZE},${Math.floor(index / BATTLE_BOARD_SIZE)}`;
-					const status = cells[cell];
-					const ship = shipByCell.get(cell);
-					const shipCells = ship ? getShipCells(ship) : [];
-					const shipSegmentIndex = ship ? shipCells.indexOf(cell) : -1;
-					const isPreviewCell = previewCells.has(cell);
-					const previewColor = dragPreview?.valid ? "rgba(34, 197, 94, 0.5)" : "rgba(239, 68, 68, 0.5)";
-					const backgroundColor = isPreviewCell
-						? previewColor
-						: status === "hit"
-						? "#DC2626"
-						: status === "miss"
-							? paper ? "#CBD5E1" : "#1E40AF"
-							: status === "pending"
-								? "#FACC15"
-								: ship
-									? ship.id === selectedShipId ? "#FACC15" : paper ? "#93C5FD" : "#38BDF8"
-									: paper ? "rgba(255,255,255,0.32)" : "rgba(14,165,233,0.12)";
-					return (
-						<Pressable key={cell} onPress={() => onPress?.(cell)} style={[styles.battleCell, { backgroundColor, borderColor: paper ? "#2563EB" : currentTheme.gridBorder }]}>
-							{ship && !status ? (
-								<ShipCellArt
-									length={ship.length}
-									orientation={ship.orientation}
-									paper={paper}
-									segmentIndex={shipSegmentIndex}
-									selected={ship.id === selectedShipId}
+			<View style={[styles.battleGrid, { width: gridSize, height: gridSize }, paper ? styles.paperBattleGrid : styles.navyBattleGrid]}>
+				{Array.from({ length: BATTLE_BOARD_SIZE }).map((_, rowIndex) => (
+					<View key={`row-${rowIndex}`} style={styles.battleRow}>
+						{Array.from({ length: BATTLE_BOARD_SIZE }).map((_, colIndex) => {
+							const cell = `${colIndex},${rowIndex}`;
+							const status = cells[cell];
+							const isPreviewCell = previewCells.has(cell);
+							const previewColor = dragPreview?.valid ? "rgba(34, 197, 94, 0.5)" : "rgba(239, 68, 68, 0.5)";
+							const backgroundColor = isPreviewCell
+								? previewColor
+								: status === "hit"
+									? "#DC2626"
+									: status === "miss"
+										? paper ? "#CBD5E1" : "#1E40AF"
+										: status === "pending"
+											? "#FACC15"
+											: waterColor;
+							return (
+								<Pressable
+									key={cell}
+									onPress={() => onPress?.(cell)}
+									style={[styles.battleCell, { backgroundColor, borderColor: paper ? "#2563EB" : currentTheme.gridBorder }]}
 								/>
-							) : null}
-							<Text style={[styles.battleCellText, { color: paper ? "#1E3A8A" : "#FFFFFF", fontSize: status ? 12 : 10 }]}>{status === "hit" ? "🔥" : status === "miss" ? "🌊" : ""}</Text>
-						</Pressable>
-					);
-				})}
-			</View>
-		</View>
-	);
-}
+							);
+						})}
+					</View>
+				))}
 
-function ShipCellArt({
-	length,
-	orientation,
-	paper,
-	segmentIndex,
-	selected,
-}: {
-	length: number;
-	orientation: "h" | "v";
-	paper: boolean;
-	segmentIndex: number;
-	selected: boolean;
-}) {
-	const isStart = segmentIndex === 0;
-	const isEnd = segmentIndex === length - 1;
-	const isHorizontal = orientation === "h";
-	
-	const shipStyle = {
-		position: "absolute" as const,
-		top: isHorizontal ? 2 : isStart ? 2 : 0,
-		bottom: isHorizontal ? 2 : isEnd ? 2 : 0,
-		left: !isHorizontal ? 2 : isStart ? 2 : 0,
-		right: !isHorizontal ? 2 : isEnd ? 2 : 0,
-		backgroundColor: paper ? "rgba(30,58,138,0.2)" : (selected ? "#FACC15" : "#475569"),
-		borderColor: paper ? "#1E3A8A" : (selected ? "#FEF9C3" : "#94A3B8"),
-		borderWidth: paper ? 1.5 : 1,
-		borderStyle: paper ? "solid" as const : "solid" as const,
-	};
-	
-	const roundedCaps = isHorizontal
-		? {
-			borderTopLeftRadius: isStart ? 16 : 0,
-			borderBottomLeftRadius: isStart ? 16 : 0,
-			borderTopRightRadius: isEnd ? 4 : 0,
-			borderBottomRightRadius: isEnd ? 4 : 0,
-		}
-		: {
-			borderTopLeftRadius: isStart ? 16 : 0,
-			borderTopRightRadius: isStart ? 16 : 0,
-			borderBottomLeftRadius: isEnd ? 4 : 0,
-			borderBottomRightRadius: isEnd ? 4 : 0,
-		};
-
-	return (
-		<View style={[shipStyle, roundedCaps]} pointerEvents="none">
-			{paper && (
-				<View style={{ flex: 1, margin: 2, borderWidth: 1, borderColor: "rgba(30,58,138,0.4)", borderRadius: isStart ? 10 : 2, borderStyle: "dotted", justifyContent: 'center', alignItems: 'center' }}>
-					{isStart && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: "#1E3A8A" }} />}
-					{!isStart && !isEnd && <View style={{ width: 6, height: 6, borderWidth: 1, borderColor: "#1E3A8A", borderRadius: 3 }} />}
+				<View style={styles.battleOverlay} pointerEvents="none">
+					{placedShips.map((ship) => {
+						const horizontal = ship.orientation === "h" || ship.length === 1;
+						return (
+							<View
+								key={ship.id}
+								style={{
+									position: "absolute",
+									left: `${ship.x * 10}%`,
+									top: `${ship.y * 10}%`,
+									width: `${(horizontal ? ship.length : 1) * 10}%`,
+									height: `${(horizontal ? 1 : ship.length) * 10}%`,
+								}}
+							>
+								<ShipArt length={ship.length} orientation={ship.orientation} selected={ship.id === selectedShipId} />
+							</View>
+						);
+					})}
 				</View>
-			)}
+
+				<View style={styles.battleOverlay} pointerEvents="none">
+					{Array.from({ length: BATTLE_BOARD_SIZE }).map((_, rowIndex) => (
+						<View key={`mark-row-${rowIndex}`} style={styles.battleRow}>
+							{Array.from({ length: BATTLE_BOARD_SIZE }).map((_, colIndex) => {
+								const status = cells[`${colIndex},${rowIndex}`];
+								return (
+									<View key={colIndex} style={[styles.battleMarkCell, status === "hit" && styles.battleHitCell]}>
+										{status === "hit" ? <UiIcon name="fire" size={markSize} /> : status === "miss" ? <UiIcon name="wave" size={markSize} /> : null}
+									</View>
+								);
+							})}
+						</View>
+					))}
+				</View>
+			</View>
 		</View>
 	);
 }
@@ -3352,7 +3331,10 @@ const { t } = useLanguage();
 			{!state ? (
 				<ScrollView style={styles.moreList} contentContainerStyle={styles.durakPrep}>
 					<View style={[styles.durakBalanceRow, { borderColor: currentTheme.accent }]}>
-						<Text style={[styles.durakBalanceText, { color: currentTheme.textPrimary }]}>{t("durak.balance")}: {shopState.balance} 💰</Text>
+						<View style={styles.durakCoinRow}>
+							<Text style={[styles.durakBalanceText, { color: currentTheme.textPrimary }]}>{t("durak.balance")}: {shopState.balance}</Text>
+							<UiIcon name="coin" size={18} />
+						</View>
 					</View>
 
 					<Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary }]}>{t("durak.yourBet")}</Text>
@@ -3380,20 +3362,20 @@ const { t } = useLanguage();
 					<Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary, marginTop: 40 }]}>{t("durak.modes")}</Text>
 					<Animated.View style={[styles.segmentRow, { alignItems: "flex-start", gap: 8, transform: [{ translateX: shakeAnim }] }]}>
 						<DurakModeToggleColumn
-							topLabel={t("durak.modeThrowIn")} topIcon="➡️" topActive={activeVariants.includes("throw_in")} onTopPress={() => toggleVariant("throw_in")}
-							bottomLabel={t("durak.modeTransfer")} bottomIcon="🔄" bottomActive={activeVariants.includes("transfer")} onBottomPress={() => toggleVariant("transfer")}
+							topLabel={t("durak.modeThrowIn")} topIcon="arrow" topActive={activeVariants.includes("throw_in")} onTopPress={() => toggleVariant("throw_in")}
+							bottomLabel={t("durak.modeTransfer")} bottomIcon="swap" bottomActive={activeVariants.includes("transfer")} onBottomPress={() => toggleVariant("transfer")}
 						/>
 						<DurakModeToggleColumn
-							topLabel={t("durak.modeNeighbors")} topIcon="👥" topActive={activeVariants.includes("neighbors")} onTopPress={() => toggleVariant("neighbors")}
-							bottomLabel={t("durak.modeAll")} bottomIcon="🌐" bottomActive={activeVariants.includes("all")} onBottomPress={() => toggleVariant("all")}
+							topLabel={t("durak.modeNeighbors")} topIcon="people" topActive={activeVariants.includes("neighbors")} onTopPress={() => toggleVariant("neighbors")}
+							bottomLabel={t("durak.modeAll")} bottomIcon="globe" bottomActive={activeVariants.includes("all")} onBottomPress={() => toggleVariant("all")}
 						/>
 						<DurakModeToggleColumn
-							topLabel={t("durak.modeCheat")} topIcon="🕵️" topActive={activeVariants.includes("cheat")} onTopPress={() => toggleVariant("cheat")}
-							bottomLabel={t("durak.modeFair")} bottomIcon="🤝" bottomActive={activeVariants.includes("fair")} onBottomPress={() => toggleVariant("fair")}
+							topLabel={t("durak.modeCheat")} topIcon="spy" topActive={activeVariants.includes("cheat")} onTopPress={() => toggleVariant("cheat")}
+							bottomLabel={t("durak.modeFair")} bottomIcon="shield" bottomActive={activeVariants.includes("fair")} onBottomPress={() => toggleVariant("fair")}
 						/>
 						<DurakModeToggleColumn
-							topLabel={t("durak.modeClassic")} topIcon="🃏" topActive={activeVariants.includes("classic")} onTopPress={() => toggleVariant("classic")}
-							bottomLabel={t("durak.modeDraw")} bottomIcon="⚖️" bottomActive={activeVariants.includes("draw")} onBottomPress={() => toggleVariant("draw")}
+							topLabel={t("durak.modeClassic")} topIcon="card" topActive={activeVariants.includes("classic")} onTopPress={() => toggleVariant("classic")}
+							bottomLabel={t("durak.modeDraw")} bottomIcon="scales" bottomActive={activeVariants.includes("draw")} onBottomPress={() => toggleVariant("draw")}
 						/>
 					</Animated.View>
 
@@ -3426,7 +3408,7 @@ const { t } = useLanguage();
 					<View style={styles.durakTable}>
 						<View style={[styles.durakStatusBar, { borderColor: currentTheme.accent, backgroundColor: "rgba(0,0,0,0.4)" }]}>
 							<Text style={[styles.durakStatusText, { color: currentTheme.textPrimary }]}>
-								{t("durak.players")}: {state.playerCount} · {t("durak.deck")}: {state.deckSize} · {t("durak.yourBet")}: {state.bet} 💰
+								{t("durak.players")}: {state.playerCount} · {t("durak.deck")}: {state.deckSize} · {t("durak.yourBet")}: {state.bet} {t("durak.coinsUnit")}
 							</Text>
 							<Text style={[styles.durakStatusText, { color: currentTheme.textSecondary }]}>
 								{state.variants.map((variant) => t(getDurakVariantLabel(variant))).join(" · ")}
@@ -4731,6 +4713,12 @@ const styles = StyleSheet.create({
 		backgroundColor: "rgba(0,0,0,0.24)",
 		alignItems: "center",
 	},
+	durakCoinRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 6,
+	},
 	durakBalanceText: {
 		fontFamily: "SilkscreenBold",
 		fontSize: 12,
@@ -4908,9 +4896,23 @@ const styles = StyleSheet.create({
 	battleGrid: {
 		width: 220,
 		height: 220,
-		flexDirection: "row",
-		flexWrap: "wrap",
+		flexDirection: "column",
 		borderWidth: 2,
+	},
+	battleRow: {
+		flex: 1,
+		flexDirection: "row",
+	},
+	battleOverlay: {
+		...StyleSheet.absoluteFillObject,
+	},
+	battleMarkCell: {
+		flex: 1,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	battleHitCell: {
+		backgroundColor: "rgba(220, 38, 38, 0.55)",
 	},
 	paperBattleGrid: {
 		backgroundColor: "#DBEAFE",
@@ -4921,8 +4923,7 @@ const styles = StyleSheet.create({
 		borderColor: "#38BDF8",
 	},
 	battleCell: {
-		width: 21.6,
-		height: 21.6,
+		flex: 1,
 		borderWidth: 0.7,
 		alignItems: "center",
 		justifyContent: "center",
@@ -5204,7 +5205,6 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFFFFF",
 	},
 	durakModeIcon: {
-		fontSize: 28,
 		marginBottom: 4,
 	},
 	durakModeLabel: {
@@ -5347,58 +5347,118 @@ const styles = StyleSheet.create({
 		fontFamily: "Silkscreen",
 		fontSize: 10,
 	},
+	betValueRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 6,
+	},
+	betRangeRow: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		width: "100%",
+		paddingHorizontal: 6,
+	},
+	betQuickRow: {
+		flexDirection: "row",
+		justifyContent: "center",
+		gap: 8,
+		marginTop: 8,
+	},
+	betQuickButton: {
+		borderWidth: 2,
+		borderRadius: 6,
+		paddingVertical: 4,
+		paddingHorizontal: 12,
+	},
 });
+
+const BET_MIN = 100;
+
+function snapBet(raw: number): number {
+	if (raw >= 1000) return Number(raw.toPrecision(2));
+	return Math.round(raw / 10) * 10;
+}
+
+// Maps slider position (0..1) to a bet between the minimum bet and the player's balance.
+// The track always spans exactly that range, so the far end of the slider is "all in".
+export function betFromPosition(position: number, balance: number): number {
+	const min = Math.min(BET_MIN, balance);
+	if (balance <= min) return balance;
+	const clamped = Math.min(1, Math.max(0, position));
+	if (clamped >= 0.995) return balance;
+	if (clamped <= 0.005) return min;
+	const raw = balance / min > 12
+		? Math.exp(Math.log(min) + clamped * (Math.log(balance) - Math.log(min)))
+		: min + clamped * (balance - min);
+	return Math.min(balance, Math.max(min, snapBet(raw)));
+}
+
+export function positionFromBet(bet: number, balance: number): number {
+	const min = Math.min(BET_MIN, balance);
+	if (balance <= min) return 0;
+	const clamped = Math.min(balance, Math.max(min, bet));
+	return balance / min > 12
+		? (Math.log(clamped) - Math.log(min)) / (Math.log(balance) - Math.log(min))
+		: (clamped - min) / (balance - min);
+}
 
 function BetSlider({ value, onChange, maxBalance }: { value: number; onChange: (value: number) => void; maxBalance: number }) {
 	const { currentTheme } = useTheme();
+	const { t } = useLanguage();
+	const minBet = Math.min(BET_MIN, maxBalance);
+	const canBet = maxBalance >= BET_MIN;
 
-	const getRealValue = (sliderVal: number) => {
-		const val = Math.pow(10, 2 + sliderVal);
-		return Number(val.toPrecision(2));
-	};
+	// Keep the bet inside what the player can actually afford (e.g. after the balance changes).
+	useEffect(() => {
+		if (canBet && value > maxBalance) onChange(maxBalance);
+	}, [canBet, maxBalance, onChange, value]);
 
-	const getSliderVal = (realVal: number) => {
-		if (realVal < 100) return 0;
-		return Math.log10(realVal) - 2;
-	};
-
-	const BET_STOPS = [100, 1000, 10000, 100000, 1000000, 10000000];
-	const BET_LABELS = ["100", "1K", "10K", "100K", "1M", "10M"];
-
-	const sliderMaxVal = Math.max(0.001, Math.min(5, getSliderVal(maxBalance)));
-	const sliderWidth = Math.max(180, Math.round((sliderMaxVal / 5) * 280));
+	const quickBets = [
+		{ label: t("durak.betMin"), amount: minBet },
+		{ label: t("durak.betHalf"), amount: betFromPosition(0.5, maxBalance) },
+		{ label: t("durak.betMax"), amount: maxBalance },
+	];
 
 	return (
 		<View style={styles.sliderContainer}>
-			<View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingHorizontal: 10, marginBottom: -5 }}>
-				<Text style={[styles.sliderLabelText, { color: currentTheme.textPrimary, fontSize: 14 }]}>
-					{formatCoins(value)}
-				</Text>
+			<View style={styles.betValueRow}>
+				<Text style={[styles.sliderLabelText, { color: currentTheme.textPrimary, fontSize: 16 }]}>{formatCoins(value)}</Text>
+				<UiIcon name="coin" size={18} />
 			</View>
-			<View style={{ width: '100%' }}>
-				<Slider
-					style={{ width: sliderWidth, height: 40 }}
-					minimumValue={0}
-					maximumValue={sliderMaxVal}
-					step={0.01}
-					value={Math.min(sliderMaxVal, getSliderVal(value))}
-					onValueChange={(val) => {
-						let next = getRealValue(val);
-						if (next > maxBalance) next = maxBalance;
-						if (next < 100) next = 100;
-						if (next !== value) onChange(next);
-					}}
-					minimumTrackTintColor="#38BDF8"
-					maximumTrackTintColor="rgba(255,255,255,0.2)"
-					thumbTintColor="#FFFFFF"
-				/>
+			<Slider
+				style={{ width: "100%", height: 40 }}
+				minimumValue={0}
+				maximumValue={1}
+				step={0.005}
+				disabled={!canBet}
+				value={positionFromBet(value, maxBalance)}
+				onValueChange={(position) => {
+					const next = betFromPosition(position, maxBalance);
+					if (next !== value) onChange(next);
+				}}
+				minimumTrackTintColor="#38BDF8"
+				maximumTrackTintColor="rgba(255,255,255,0.2)"
+				thumbTintColor="#FFFFFF"
+			/>
+			<View style={styles.betRangeRow}>
+				<Text style={[styles.sliderLabelText, { color: currentTheme.textSecondary }]}>{formatCoins(minBet)}</Text>
+				<Text style={[styles.sliderLabelText, { color: currentTheme.textSecondary }]}>{formatCoins(maxBalance)}</Text>
 			</View>
-			<View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingHorizontal: 10 }}>
-				{BET_LABELS.map((label, index) => (
-					<Text key={label} style={[styles.sliderLabelText, { color: currentTheme.textSecondary, opacity: maxBalance >= BET_STOPS[index] ? 1 : 0.4 }]}>
-						{label}
-					</Text>
-				))}
+			<View style={styles.betQuickRow}>
+				{quickBets.map((quick) => {
+					const active = value === quick.amount;
+					return (
+						<Pressable
+							key={quick.label}
+							disabled={!canBet}
+							onPress={() => onChange(quick.amount)}
+							style={[styles.betQuickButton, { borderColor: active ? "#38BDF8" : "rgba(255,255,255,0.35)", backgroundColor: active ? "rgba(56,189,248,0.2)" : "transparent" }]}
+						>
+							<Text style={[styles.sliderLabelText, { color: currentTheme.textPrimary }]}>{quick.label}</Text>
+						</Pressable>
+					);
+				})}
 			</View>
 		</View>
 	);

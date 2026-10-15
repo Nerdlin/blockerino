@@ -1,6 +1,7 @@
 import { Alert, Linking, Platform } from 'react-native';
 import * as Application from 'expo-application';
 import { supabase } from './Supabase';
+import { loadStoredLanguage, translate, type Language } from './Localization';
 
 export interface AppVersionConfig {
     latestVersion: string;
@@ -10,8 +11,16 @@ export interface AppVersionConfig {
     isMandatory?: boolean;
 }
 
+// Automatic checks (launch, coming back to the app, a timer) are throttled; a manual
+// check from Settings always goes through.
+const AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000;
+
 class UpdateService {
-    private checkedThisSession = false;
+    private lastCheckAt = 0;
+    private checking = false;
+    // The newest build we already told the player about in this app session, so coming
+    // back to the app does not repeat the same dialog, but a newer release still does.
+    private notifiedBuild = 0;
 
     async checkForUpdates(force: boolean = false): Promise<void> {
         // Проверка только для Android
@@ -19,11 +28,13 @@ class UpdateService {
             return;
         }
 
-        if (this.checkedThisSession && !force) {
+        if (this.checking) return;
+        if (!force && Date.now() - this.lastCheckAt < AUTO_CHECK_INTERVAL_MS) {
             return;
         }
 
-        this.checkedThisSession = true;
+        this.checking = true;
+        const language = await loadStoredLanguage();
 
         try {
             const currentVersion = Application.nativeApplicationVersion || '1.0.0';
@@ -43,22 +54,28 @@ class UpdateService {
 
             const config = data.value as AppVersionConfig;
 
+            this.lastCheckAt = Date.now();
+
             if (this.isNewerVersion(
                 currentVersion,
                 parseInt(currentBuildNumber),
                 config.latestVersion,
                 config.latestBuildNumber
             )) {
-                this.showUpdateDialog(config);
+                if (force || config.latestBuildNumber > this.notifiedBuild) {
+                    this.notifiedBuild = Math.max(this.notifiedBuild, config.latestBuildNumber);
+                    this.showUpdateDialog(config, language);
+                }
             } else if (force) {
-                Alert.alert('Up to Date', `Blockerino is up to date (v${currentVersion}).`);
+                Alert.alert(translate(language, 'update.upToDateTitle'), translate(language, 'update.upToDate', { version: currentVersion }));
             }
         } catch (error) {
             console.error('Error checking for updates:', error);
-            this.checkedThisSession = false;
             if (force) {
-                Alert.alert('Update Check', 'Could not check for updates. Please verify your connection.');
+                Alert.alert(translate(language, 'update.failedTitle'), translate(language, 'update.failed'));
             }
+        } finally {
+            this.checking = false;
         }
     }
 
@@ -95,9 +112,12 @@ class UpdateService {
         };
     }
 
-    private showUpdateDialog(config: AppVersionConfig): void {
-        const title = 'Update Available';
-        const message = `A new version (${config.latestVersion}) is available. ${config.releaseNotes || 'Please update to get the latest features and bug fixes.'}`;
+    private showUpdateDialog(config: AppVersionConfig, language: Language): void {
+        const title = translate(language, 'update.title');
+        const message = translate(language, 'update.message', {
+            version: config.latestVersion,
+            notes: config.releaseNotes || translate(language, 'update.defaultNotes'),
+        });
 
         if (config.isMandatory) {
             // Обязательное обновление - только одна кнопка
@@ -106,8 +126,8 @@ class UpdateService {
                 message,
                 [
                     {
-                        text: 'Update Now',
-                        onPress: () => this.openDownloadUrl(config.downloadUrl)
+                        text: translate(language, 'update.now'),
+                        onPress: () => this.openDownloadUrl(config.downloadUrl, language)
                     }
                 ],
                 { cancelable: false }
@@ -119,29 +139,30 @@ class UpdateService {
                 message,
                 [
                     {
-                        text: 'Later',
+                        text: translate(language, 'update.later'),
                         style: 'cancel'
                     },
                     {
-                        text: 'Update Now',
-                        onPress: () => this.openDownloadUrl(config.downloadUrl)
+                        text: translate(language, 'update.now'),
+                        onPress: () => this.openDownloadUrl(config.downloadUrl, language)
                     }
                 ]
             );
         }
     }
 
-    private async openDownloadUrl(url: string): Promise<void> {
+    private async openDownloadUrl(url: string, language: Language): Promise<void> {
         try {
             await Linking.openURL(url);
         } catch (error) {
             console.error('Error opening download URL:', error);
-            Alert.alert('Error', 'Failed to open download link');
+            Alert.alert(translate(language, 'update.openFailedTitle'), translate(language, 'update.openFailed'));
         }
     }
 
     resetSessionCheck(): void {
-        this.checkedThisSession = false;
+        this.lastCheckAt = 0;
+        this.notifiedBuild = 0;
     }
 }
 

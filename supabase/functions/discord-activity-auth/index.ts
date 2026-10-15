@@ -54,14 +54,24 @@ serve(async (req) => {
       name: playerName,
     };
 
-    // 4. Try to find existing linked profile by discord_id
-    const { data: linkedProfile } = await admin.from('profiles').select('auth_user_id, email').eq('discord_id', discordId).single();
-    
+    // 4. Find an account that already has this Discord user linked: first through the
+    // Discord OAuth identity (what "Log in with Discord" creates), then by profiles.discord_id.
+    let linkedAuthUserId: string | null = null;
+    const { data: identityUserId } = await admin.rpc('find_user_id_by_discord_identity', { p_discord_id: discordId });
+    if (typeof identityUserId === 'string' && identityUserId) {
+      linkedAuthUserId = identityUserId;
+    } else {
+      const { data: linkedProfile } = await admin.from('profiles').select('auth_user_id').eq('discord_id', discordId).maybeSingle();
+      linkedAuthUserId = linkedProfile?.auth_user_id ?? null;
+    }
+
     let userId: string | null = null;
-    
-    if (linkedProfile && linkedProfile.auth_user_id) {
+    let usedLinkedAccount = false;
+
+    if (linkedAuthUserId) {
       // Keep the linked account password intact; issue a one-time login token.
-      userId = linkedProfile.auth_user_id;
+      userId = linkedAuthUserId;
+      usedLinkedAccount = true;
       const { data: linkedUser, error: linkedError } = await admin.auth.admin.getUserById(userId!);
       if (linkedError || !linkedUser.user?.email) throw new Error('Linked account is unavailable');
       // A writable profile is not proof of ownership of an auth account.
@@ -70,11 +80,8 @@ serve(async (req) => {
       );
       if (!verifiedIdentity && linkedUser.user.email !== email) throw new Error('Discord account link could not be verified');
       email = linkedUser.user.email;
-      
-      const { error: updateError } = await admin.auth.admin.updateUserById(userId!, {
-        user_metadata: userMeta,
-      });
-      if (updateError) throw updateError;
+      // Do not overwrite the nickname/avatar the player picked in their own account.
+      await admin.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('auth_user_id', userId!);
     } else {
       // 4.b Fallback to old behavior: Create new dummy user
       const { data: createData, error: createError } = await admin.auth.admin.createUser({
@@ -111,7 +118,7 @@ serve(async (req) => {
     }
 
     // 5. Ensure profile exists in 'profiles' table with fallback for duplicate names
-    if (userId) {
+    if (userId && !usedLinkedAccount) {
       let attempts = 0;
       while (attempts < 5) {
         const { error: profileError } = await admin.from('profiles').upsert(

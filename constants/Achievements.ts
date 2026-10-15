@@ -12,7 +12,6 @@ export interface AchievementStats {
 
 export interface AchievementDefinition {
 	id: string;
-	medal: string;
 	title: string;
 	target: number;
 	howToUnlock: string;
@@ -60,7 +59,6 @@ function getBestScoreTotal(scores: HighScore[]): number {
 export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	{
 		id: "first_steps",
-		medal: "👣",
 		title: "First Steps",
 		target: 1,
 		howToUnlock: "Finish any solo game.",
@@ -68,7 +66,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "regular_player",
-		medal: "🎮",
 		title: "Regular Player",
 		target: 10,
 		howToUnlock: "Finish 10 solo games.",
@@ -76,7 +73,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "marathoner",
-		medal: "🏃",
 		title: "Marathoner",
 		target: 50,
 		howToUnlock: "Finish 50 solo games.",
@@ -84,7 +80,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_hunter",
-		medal: "🎯",
 		title: "Score Hunter",
 		target: 1000,
 		howToUnlock: "Reach 1000 points in one solo game.",
@@ -92,7 +87,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "block_master",
-		medal: "🧱",
 		title: "Block Master",
 		target: 5000,
 		howToUnlock: "Reach 5000 points in one solo game.",
@@ -100,7 +94,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_legend",
-		medal: "🏆",
 		title: "Score Legend",
 		target: 10000,
 		howToUnlock: "Reach 10000 points in one solo game.",
@@ -108,7 +101,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "line_breaker",
-		medal: "⚡",
 		title: "Line Breaker",
 		target: 50,
 		howToUnlock: "Clear 50 rows or columns.",
@@ -116,7 +108,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "line_crusher",
-		medal: "💥",
 		title: "Line Crusher",
 		target: 250,
 		howToUnlock: "Clear 250 rows or columns.",
@@ -124,7 +115,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "steady_hands",
-		medal: "✋",
 		title: "Steady Hands",
 		target: 200,
 		howToUnlock: "Place 200 pieces.",
@@ -132,7 +122,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "piece_architect",
-		medal: "🏗️",
 		title: "Piece Architect",
 		target: 1000,
 		howToUnlock: "Place 1000 pieces.",
@@ -140,7 +129,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "comeback",
-		medal: "🔁",
 		title: "Comeback",
 		target: 1,
 		howToUnlock: "Use an extra chance once.",
@@ -148,7 +136,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "second_wind",
-		medal: "🍃",
 		title: "Second Wind",
 		target: 5,
 		howToUnlock: "Use 5 extra chances.",
@@ -156,7 +143,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "classic_riser",
-		medal: "🎲",
 		title: "Classic Riser",
 		target: 2500,
 		howToUnlock: "Reach 2500 points in Classic.",
@@ -164,7 +150,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "chaos_tamer",
-		medal: "🌀",
 		title: "Chaos Tamer",
 		target: 1500,
 		howToUnlock: "Reach 1500 points in Chaos.",
@@ -172,7 +157,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "chaos_champion",
-		medal: "🌪️",
 		title: "Chaos Champion",
 		target: 5000,
 		howToUnlock: "Reach 5000 points in Chaos.",
@@ -180,7 +164,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "speed_spark",
-		medal: "⚡",
 		title: "Speed Spark",
 		target: 1000,
 		howToUnlock: "Reach 1000 points in Speed mode.",
@@ -188,7 +171,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "speed_streak",
-		medal: "🚀",
 		title: "Speed Streak",
 		target: 2500,
 		howToUnlock: "Reach 2500 points in Speed mode.",
@@ -196,7 +178,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "daily_solver",
-		medal: "📅",
 		title: "Daily Solver",
 		target: 1000,
 		howToUnlock: "Reach 1000 points in Daily Puzzle.",
@@ -204,7 +185,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "move_planner",
-		medal: "🧠",
 		title: "Move Planner",
 		target: 1000,
 		howToUnlock: "Reach 1000 points in Move Limit.",
@@ -212,7 +192,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "mode_sampler",
-		medal: "🧩",
 		title: "Mode Sampler",
 		target: LEADERBOARD_GAME_MODES.length,
 		howToUnlock: "Score in every solo mode.",
@@ -220,7 +199,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_collector",
-		medal: "💰",
 		title: "Score Collector",
 		target: 5000,
 		howToUnlock: "Build a 5000-point best-score total across modes.",
@@ -228,7 +206,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "solo_grinder",
-		medal: "🥉",
 		title: "Solo Grinder",
 		target: 100,
 		howToUnlock: "Finish 100 solo games.",
@@ -236,7 +213,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "solo_veteran",
-		medal: "🎖️",
 		title: "Solo Veteran",
 		target: 250,
 		howToUnlock: "Finish 250 solo games.",
@@ -244,7 +220,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "line_engineer",
-		medal: "⚙️",
 		title: "Line Engineer",
 		target: 500,
 		howToUnlock: "Clear 500 rows or columns.",
@@ -252,7 +227,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "line_tycoon",
-		medal: "🔗",
 		title: "Line Tycoon",
 		target: 1000,
 		howToUnlock: "Clear 1000 rows or columns.",
@@ -260,7 +234,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "line_myth",
-		medal: "🌟",
 		title: "Line Myth",
 		target: 2500,
 		howToUnlock: "Clear 2500 rows or columns.",
@@ -268,7 +241,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "piece_builder",
-		medal: "🏛️",
 		title: "Piece Builder",
 		target: 2500,
 		howToUnlock: "Place 2500 pieces.",
@@ -276,7 +248,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "piece_factory",
-		medal: "🏭",
 		title: "Piece Factory",
 		target: 5000,
 		howToUnlock: "Place 5000 pieces.",
@@ -284,7 +255,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "piece_city",
-		medal: "🌆",
 		title: "Piece City",
 		target: 10000,
 		howToUnlock: "Place 10000 pieces.",
@@ -292,7 +262,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_titan",
-		medal: "⭐",
 		title: "Score Titan",
 		target: 25000,
 		howToUnlock: "Reach 25000 points in one solo game.",
@@ -300,7 +269,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_myth",
-		medal: "💫",
 		title: "Score Myth",
 		target: 50000,
 		howToUnlock: "Reach 50000 points in one solo game.",
@@ -308,7 +276,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "classic_peak",
-		medal: "♟️",
 		title: "Classic Peak",
 		target: 10000,
 		howToUnlock: "Reach 10000 points in Classic.",
@@ -316,7 +283,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "classic_orbit",
-		medal: "🎴",
 		title: "Classic Orbit",
 		target: 20000,
 		howToUnlock: "Reach 20000 points in Classic.",
@@ -324,7 +290,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "chaos_overlord",
-		medal: "🌋",
 		title: "Chaos Overlord",
 		target: 10000,
 		howToUnlock: "Reach 10000 points in Chaos.",
@@ -332,7 +297,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "speed_flash",
-		medal: "⏱️",
 		title: "Speed Flash",
 		target: 5000,
 		howToUnlock: "Reach 5000 points in Speed mode.",
@@ -340,7 +304,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "speed_blazer",
-		medal: "💨",
 		title: "Speed Blazer",
 		target: 7500,
 		howToUnlock: "Reach 7500 points in Speed mode.",
@@ -348,7 +311,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "daily_regular",
-		medal: "📆",
 		title: "Daily Regular",
 		target: 2500,
 		howToUnlock: "Reach 2500 points in Daily Puzzle.",
@@ -356,7 +318,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "daily_elite",
-		medal: "🗓️",
 		title: "Daily Elite",
 		target: 5000,
 		howToUnlock: "Reach 5000 points in Daily Puzzle.",
@@ -364,7 +325,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "move_tactician",
-		medal: "🧭",
 		title: "Move Tactician",
 		target: 2000,
 		howToUnlock: "Reach 2000 points in Move Limit.",
@@ -372,7 +332,6 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "move_mastermind",
-		medal: "👑",
 		title: "Move Mastermind",
 		target: 4000,
 		howToUnlock: "Reach 4000 points in Move Limit.",
@@ -380,13 +339,117 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 	},
 	{
 		id: "score_vault",
-		medal: "🏦",
 		title: "Score Vault",
 		target: 15000,
 		howToUnlock: "Build a 15000-point best-score total across modes.",
 		getCurrent: (scores) => getBestScoreTotal(scores),
 	},
 ];
+
+const ACHIEVEMENT_UNLOCKED_KEY = "ACHIEVEMENTS_UNLOCKED";
+const ACHIEVEMENT_UNLOCK_CHECK_DELAY_MS = 1200;
+
+const achievementProgressListeners = new Set<() => void>();
+const achievementUnlockListeners = new Set<(achievementIds: string[]) => void>();
+let achievementUnlockTimer: ReturnType<typeof setTimeout> | null = null;
+let achievementUnlockQueue: Promise<void> = Promise.resolve();
+
+/** Called whenever stored achievement stats change (e.g. after a piece is placed). */
+export function subscribeToAchievementProgress(listener: () => void): () => void {
+	achievementProgressListeners.add(listener);
+	return () => {
+		achievementProgressListeners.delete(listener);
+	};
+}
+
+/** Called with the ids of achievements that were just completed. */
+export function subscribeToAchievementUnlocks(listener: (achievementIds: string[]) => void): () => void {
+	achievementUnlockListeners.add(listener);
+	return () => {
+		achievementUnlockListeners.delete(listener);
+	};
+}
+
+function notifyAchievementProgress() {
+	achievementProgressListeners.forEach((listener) => {
+		try {
+			listener();
+		} catch (error) {
+			console.error("Achievement progress listener failed:", error);
+		}
+	});
+}
+
+/**
+ * Pure helper. With no stored list yet (first run after this feature shipped)
+ * everything already completed is treated as unlocked silently, so existing
+ * players are not flooded with popups.
+ */
+export function computeNewAchievementUnlocks(
+	rows: Pick<AchievementRow, "id" | "progress">[],
+	storedUnlockedIds: string[] | null
+): { newlyUnlocked: string[]; nextUnlocked: string[] } {
+	const completeIds = rows.filter((row) => row.progress.complete).map((row) => row.id);
+	if (storedUnlockedIds === null) {
+		return { newlyUnlocked: [], nextUnlocked: completeIds };
+	}
+
+	const known = new Set(storedUnlockedIds);
+	const newlyUnlocked = completeIds.filter((id) => !known.has(id));
+	return { newlyUnlocked, nextUnlocked: [...storedUnlockedIds, ...newlyUnlocked] };
+}
+
+async function readUnlockedAchievementIds(): Promise<string[] | null> {
+	try {
+		const value = await AsyncStorage.getItem(ACHIEVEMENT_UNLOCKED_KEY);
+		if (!value) return null;
+		const parsed = JSON.parse(value);
+		return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : null;
+	} catch (error) {
+		console.error("Error loading unlocked achievements:", error);
+		return null;
+	}
+}
+
+/** Finds achievements completed since the last check, remembers them and announces them once. */
+export function checkAchievementUnlocks(): Promise<string[]> {
+	const result = achievementUnlockQueue.catch(() => undefined).then(async () => {
+		const [rows, stored] = await Promise.all([getAchievementRows(), readUnlockedAchievementIds()]);
+		const { newlyUnlocked, nextUnlocked } = computeNewAchievementUnlocks(rows, stored);
+
+		if (stored === null || newlyUnlocked.length > 0) {
+			await AsyncStorage.setItem(ACHIEVEMENT_UNLOCKED_KEY, JSON.stringify(nextUnlocked));
+		}
+
+		if (newlyUnlocked.length > 0) {
+			achievementUnlockListeners.forEach((listener) => {
+				try {
+					listener(newlyUnlocked);
+				} catch (error) {
+					console.error("Achievement unlock listener failed:", error);
+				}
+			});
+		}
+
+		return newlyUnlocked;
+	});
+
+	achievementUnlockQueue = result.then(() => undefined, () => undefined);
+	return result;
+}
+
+function scheduleAchievementUnlockCheck() {
+	if (achievementUnlockTimer) {
+		clearTimeout(achievementUnlockTimer);
+	}
+
+	achievementUnlockTimer = setTimeout(() => {
+		achievementUnlockTimer = null;
+		void checkAchievementUnlocks().catch((error) => {
+			console.error("Error checking achievement unlocks:", error);
+		});
+	}, ACHIEVEMENT_UNLOCK_CHECK_DELAY_MS);
+}
 
 export function getDefaultAchievementStats(): AchievementStats {
 	return {
@@ -440,6 +503,8 @@ export async function flushAchievementProgress(): Promise<void> {
 		const next = mergeAchievementProgress(current, progressToFlush);
 		cachedAchievementStats = next;
 		await AsyncStorage.setItem(ACHIEVEMENT_STATS_KEY, JSON.stringify(next));
+		notifyAchievementProgress();
+		scheduleAchievementUnlockCheck();
 	});
 
 	await achievementFlushQueue;

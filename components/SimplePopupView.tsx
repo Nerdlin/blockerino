@@ -1,5 +1,13 @@
 import React from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import { View, ScrollView, StyleSheet, useWindowDimensions } from "react-native";
+
+// Phones keep the compact 480x760 card; big screens get a larger one so boards are not tiny.
+export function getPopupLimits(width: number, height: number) {
+	const desktop = width >= 900 && height >= 700;
+	return desktop
+		? { maxWidth: Math.min(760, Math.floor(width * 0.55)), maxHeight: Math.min(1040, Math.floor(height * 0.92)), height: "92%" as const }
+		: { maxWidth: 480, maxHeight: 760, height: "80%" as const };
+}
 
 export default function SimplePopupView({
 	children,
@@ -10,10 +18,11 @@ export default function SimplePopupView({
 	style?: any[],
 	scrollRef?: React.RefObject<ScrollView | null>
 }) {
+	const { width, height } = useWindowDimensions();
 	if (style === undefined)
 		style = [];
     return (
-		<View style={[styles.popupContainer, ...style]}>
+		<View style={[styles.popupContainer, getPopupLimits(width, height), ...style]}>
 			<ScrollView
 				ref={scrollRef}
 				style={styles.scrollView}

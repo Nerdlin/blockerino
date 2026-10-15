@@ -1,10 +1,16 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Platform, StyleSheet, Text, View, useWindowDimensions, Pressable } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, AppState, Platform, StyleSheet, Text, View, useWindowDimensions, Pressable } from "react-native";
 import SimplePopupView from "./SimplePopupView";
+import AchievementIcon from "./AchievementIcon";
 import StylizedButton from "./StylizedButton";
 import { useTheme } from "@/constants/Theme";
 import { cssColors } from "@/constants/Color";
-import { AchievementRow, getAchievementRows } from "@/constants/Achievements";
+import {
+	AchievementRow,
+	getAchievementRows,
+	subscribeToAchievementProgress,
+	subscribeToAchievementUnlocks,
+} from "@/constants/Achievements";
 import { useAppState } from "@/hooks/useAppState";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useShopState } from "@/constants/Shop";
@@ -48,16 +54,38 @@ export default function AchievementsMenu() {
 		}
 	};
 
-	const loadAchievements = async () => {
-		setLoading(true);
+	const isMountedRef = useRef(true);
+	const hasLoadedRef = useRef(false);
+
+	// `silent` refreshes keep the current list on screen instead of showing the spinner.
+	const loadAchievements = useCallback(async (silent = false) => {
+		if (!silent || !hasLoadedRef.current) setLoading(true);
 		const rows = await getAchievementRows();
+		if (!isMountedRef.current) return;
+		hasLoadedRef.current = true;
 		setAchievements(rows);
 		setLoading(false);
-	};
+	}, []);
 
 	useEffect(() => {
-		loadAchievements();
-	}, []);
+		isMountedRef.current = true;
+		void loadAchievements();
+
+		// Refresh by itself when progress changes, an achievement unlocks, or the app comes back to the foreground.
+		const refresh = () => void loadAchievements(true);
+		const unsubscribeProgress = subscribeToAchievementProgress(refresh);
+		const unsubscribeUnlocks = subscribeToAchievementUnlocks(refresh);
+		const appStateSubscription = AppState.addEventListener("change", (state) => {
+			if (state === "active") refresh();
+		});
+
+		return () => {
+			isMountedRef.current = false;
+			unsubscribeProgress();
+			unsubscribeUnlocks();
+			appStateSubscription.remove();
+		};
+	}, [loadAchievements]);
 
 	useEscapeKey(popAppState);
 
@@ -108,16 +136,11 @@ export default function AchievementsMenu() {
 											},
 										]}
 									>
-										<Text
-											style={[
-												styles.medalText,
-												{ color: achievement.progress.complete ? currentTheme.accent : currentTheme.textPrimary },
-											]}
-											numberOfLines={1}
-											adjustsFontSizeToFit
-										>
-											{achievement.medal}
-										</Text>
+										<AchievementIcon
+											achievementId={achievement.id}
+											size={27}
+											dimmed={!achievement.progress.complete}
+										/>
 									</View>
 									<View style={styles.titleBlock}>
 										<Text style={[styles.title, { color: currentTheme.textPrimary }]} numberOfLines={1}>
@@ -151,7 +174,7 @@ export default function AchievementsMenu() {
 			<View style={styles.buttons}>
 				<StylizedButton
 					text={t("ach.refresh")}
-					onClick={loadAchievements}
+					onClick={() => void loadAchievements()}
 					backgroundColor={currentTheme.buttonPrimary}
 					style={styles.button}
 					textStyle={styles.buttonText}
@@ -209,18 +232,11 @@ const styles = StyleSheet.create({
 	},
 	medalBadge: {
 		width: 36,
-		height: 30,
+		height: 36,
 		borderRadius: 4,
 		borderWidth: 1,
 		alignItems: "center",
 		justifyContent: "center",
-		paddingHorizontal: 2,
-	},
-	medalText: {
-		width: "100%",
-		fontFamily: Platform.select({ web: "system-ui, Apple Color Emoji, Segoe UI Emoji, sans-serif" }),
-		fontSize: 20,
-		textAlign: "center",
 	},
 	titleBlock: {
 		flex: 1,

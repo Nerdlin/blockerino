@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import Head from "expo-router/head";
 import { useEffect } from "react";
-import { ActivityIndicator, LogBox, Platform, Text, View } from "react-native";
+import { ActivityIndicator, AppState, LogBox, Platform, Text, View } from "react-native";
 import { updateService } from "@/constants/UpdateService";
 import { flushPendingEloRatings, flushPendingGlobalHighScores } from "@/constants/OfflineSync";
 import { useDiscordSDK } from "@/hooks/useDiscordSDK";
@@ -48,8 +48,13 @@ export default function RootLayout() {
 	const { isReady, isEmbedded, error } = useDiscordSDK();
 
 	useEffect(() => {
-		// Check for updates on app startup
+		// Check for updates on startup, whenever the app comes back to the foreground,
+		// and every 30 minutes while it stays open, so a new release is announced.
 		updateService.checkForUpdates();
+		const updateAppStateSub = AppState.addEventListener('change', (nextState) => {
+			if (nextState === 'active') updateService.checkForUpdates();
+		});
+		const updateTimer = setInterval(() => updateService.checkForUpdates(), 30 * 60 * 1000);
 
 		let syncInProgress = false;
 		const syncPendingScores = async () => {
@@ -89,6 +94,8 @@ export default function RootLayout() {
 		}
 
 		return () => {
+			updateAppStateSub.remove();
+			clearInterval(updateTimer);
 			clearInterval(pendingScoreSyncTimer);
 			if (Platform.OS === 'web' && typeof window !== 'undefined' && window.removeEventListener) {
 				window.removeEventListener('online', syncPendingScores);

@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useState, useRef } from "react";
 import { StyleSheet, Text, View, TextInput, ActivityIndicator, Clipboard, useWindowDimensions, ScrollView, Pressable, Platform, Image } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
-import { GameModeType, useAppState } from "@/hooks/useAppState";
+import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
+import { setProfileAuthIntent } from "@/constants/ProfileIntent";
 import { useTheme } from "@/constants/Theme";
 import { supabase, getTopEloRatings, getPlayerElo, EloRating, cleanupMatchmakingRooms } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -12,6 +13,8 @@ import * as Crypto from "expo-crypto";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { DEFAULT_ELO, getJoinRoomUpdate, isPlayerNameReady, isVisiblePublicRoom, normalizePlayerName } from "@/constants/Multiplayer";
 import { useLanguage } from "@/constants/Localization";
+import UiIcon from "@/components/UiIcon";
+import type { UiGlyphName } from "@/constants/UiGlyphs";
 
 interface MultiplayerMenuProps {
     onStartGame: (roomId: string, role: 'player1' | 'player2' | 'spectator', opponentName: string, gameMode: GameModeType, playerElo: number) => void;
@@ -21,22 +24,22 @@ interface MultiplayerMenuProps {
 const NAME_REQUIRED_MESSAGE = "mp.nameRequired";
 const NAME_READY_MESSAGE = "mp.nameReady";
 
-export function getEloBadge(elo: number): { tier: string; color: string; icon: string } {
-    if (elo < 800) return { tier: "Bronze", color: "#CD7F32", icon: "🥉" };
-    if (elo < 1000) return { tier: "Silver", color: "#C0C0C0", icon: "🥈" };
-    if (elo < 1200) return { tier: "Gold", color: "#FFD700", icon: "🥇" };
-    if (elo < 1400) return { tier: "Diamond", color: "#00BFFF", icon: "💎" };
-    if (elo < 1600) return { tier: "Master", color: "#DA70D6", icon: "⭐" };
-    return { tier: "Legend", color: "#FF4500", icon: "👑" };
+export function getEloBadge(elo: number): { tier: string; color: string; icon: UiGlyphName } {
+    if (elo < 800) return { tier: "Bronze", color: "#CD7F32", icon: "medalBronze" as const };
+    if (elo < 1000) return { tier: "Silver", color: "#C0C0C0", icon: "medalSilver" as const };
+    if (elo < 1200) return { tier: "Gold", color: "#FFD700", icon: "medalGold" as const };
+    if (elo < 1400) return { tier: "Diamond", color: "#00BFFF", icon: "diamond" as const };
+    if (elo < 1600) return { tier: "Master", color: "#DA70D6", icon: "star" as const };
+    return { tier: "Legend", color: "#FF4500", icon: "crown" as const };
 }
 
 const ELO_TIERS = [
-    { tier: "Bronze", color: "#CD7F32", icon: "🥉", min: 0, max: 800 },
-    { tier: "Silver", color: "#C0C0C0", icon: "🥈", min: 800, max: 1000 },
-    { tier: "Gold", color: "#FFD700", icon: "🥇", min: 1000, max: 1200 },
-    { tier: "Diamond", color: "#00BFFF", icon: "💎", min: 1200, max: 1400 },
-    { tier: "Master", color: "#DA70D6", icon: "⭐", min: 1400, max: 1600 },
-    { tier: "Legend", color: "#FF4500", icon: "👑", min: 1600, max: 2000 },
+    { tier: "Bronze", color: "#CD7F32", icon: "medalBronze" as const, min: 0, max: 800 },
+    { tier: "Silver", color: "#C0C0C0", icon: "medalSilver" as const, min: 800, max: 1000 },
+    { tier: "Gold", color: "#FFD700", icon: "medalGold" as const, min: 1000, max: 1200 },
+    { tier: "Diamond", color: "#00BFFF", icon: "diamond" as const, min: 1200, max: 1400 },
+    { tier: "Master", color: "#DA70D6", icon: "star" as const, min: 1400, max: 1600 },
+    { tier: "Legend", color: "#FF4500", icon: "crown" as const, min: 1600, max: 2000 },
 ];
 
 function getEloDetails(elo: number) {
@@ -50,7 +53,19 @@ function getEloDetails(elo: number) {
 export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const { currentTheme } = useTheme();
     const { t } = useLanguage();
-    const [, , , popAppState] = useAppState();
+    const [, , appendAppState, popAppState] = useAppState();
+    const [signedIn, setSignedIn] = useState(true);
+    useEffect(() => {
+        let active = true;
+        supabase.auth.getSession()
+            .then(({ data }) => { if (active) setSignedIn(Boolean(data.session)); })
+            .catch(() => { if (active) setSignedIn(true); });
+        return () => { active = false; };
+    }, []);
+    const openAccountScreen = (intent: 'login' | 'register') => {
+        setProfileAuthIntent(intent);
+        appendAppState(MenuStateType.PROFILE);
+    };
     const { width } = useWindowDimensions();
     const isMobile = width < 600;
     
@@ -675,6 +690,16 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         </View>
                     </View>
 
+                    {!signedIn && (
+                        <View style={{ width: '100%', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                            <Text style={[styles.label, { color: currentTheme.textSecondary, fontSize: 11, textAlign: 'center' }]}>{t("over.accountPrompt")}</Text>
+                            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                                <StylizedButton text={t("over.createAccount")} onClick={() => openAccountScreen('register')} backgroundColor={currentTheme.accent} style={{ minWidth: 120, height: 34 }} textStyle={{ fontSize: 10 }} />
+                                <StylizedButton text={t("over.haveAccount")} onClick={() => openAccountScreen('login')} backgroundColor={cssColors.spaceGray} style={{ minWidth: 120, height: 34 }} textStyle={{ fontSize: 10 }} />
+                            </View>
+                        </View>
+                    )}
+
                     {matchError !== "" && (
                         <Text style={[styles.errorText, { color: cssColors.brightNiceRed, marginTop: 4 }]}>{displayFeedback(matchError)}</Text>
                     )}
@@ -827,7 +852,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     <View style={styles.eloScreenHeader}>
                         <Text style={[styles.header, { color: currentTheme.textPrimary, marginBottom: 5 }]}>{t("mp.myRating")}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <Text style={[styles.eloEmojiText, { fontSize: 40 }]}>{getEloDetails(playerElo).currentTier.icon}</Text>
+                            <UiIcon name={getEloDetails(playerElo).currentTier.icon} size={45} />
                             <View>
                                 <Text style={[styles.eloDetailTier, { color: getEloBadge(playerElo).color }]}>
                                     {getEloBadge(playerElo).tier}
@@ -861,7 +886,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                     styles.eloTierRow,
                                     isCurrent && { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: tierInfo.color }
                                 ]}>
-                                    <Text style={[styles.eloEmojiText, { fontSize: 24 }]}>{tierInfo.icon}</Text>
+                                    <UiIcon name={tierInfo.icon} size={27} />
                                     <View style={{ flex: 1, marginLeft: 10 }}>
                                         <Text style={[styles.eloTierName, { color: isCurrent ? tierInfo.color : currentTheme.textPrimary }]}>
                                             {tierInfo.tier}{isCurrent ? t("mp.youAreHere") : ''}
@@ -950,7 +975,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                              </View>
                                             <View style={[styles.eloLBBadge, { backgroundColor: badge.color, flex: 0.8, alignSelf: 'center' }]}>
                                                 <View style={styles.eloLBBadgeContent}>
-                                                    <Text style={styles.eloLBBadgeIcon}>{badge.icon}</Text>
+                                                    <UiIcon name={badge.icon} size={9} />
                                                     <Text style={styles.eloLBBadgeText}>{badge.tier}</Text>
                                                 </View>
                                             </View>

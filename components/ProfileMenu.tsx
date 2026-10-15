@@ -13,6 +13,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { loadShopState, syncShopStateWithProfile, useShopState } from "@/constants/Shop";
 import { PlayerProfile, getPlayerElo, getPlayerGlobalHighScore, upsertAuthenticatedProfile, updateProfileAvatar } from "@/constants/Supabase";
 import { getHighScores, createHighScore } from "@/constants/Storage";
+import { consumeProfileAuthIntent } from "@/constants/ProfileIntent";
 import MatchHistoryList from "./MatchHistoryList";
 import FriendsList from "./FriendsList";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -112,7 +113,7 @@ export default function ProfileMenu() {
 
 	const [session, setSession] = useState<Session | null>(null);
 	const [loading, setLoading] = useState(true);
-	const [authMode, setAuthMode] = useState<"login" | "register">("login");
+	const [authMode, setAuthMode] = useState<"login" | "register">(() => consumeProfileAuthIntent() ?? "login");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [playerName, setPlayerName] = useState("");

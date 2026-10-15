@@ -7,6 +7,7 @@ export const achievements: ScreenDictionary = {
 		"ach.completed": "Completed {done}/{total}",
 		"ach.refresh": "Refresh",
 		"ach.back": "Back",
+		"ach.unlocked": "Achievement unlocked",
 
 		// first_steps
 		"ach.first_steps.title": "First Steps",
@@ -138,6 +139,7 @@ export const achievements: ScreenDictionary = {
 		"ach.completed": "Выполнено {done}/{total}",
 		"ach.refresh": "Обновить",
 		"ach.back": "Назад",
+		"ach.unlocked": "Достижение получено",
 
 		// first_steps
 		"ach.first_steps.title": "Первые шаги",

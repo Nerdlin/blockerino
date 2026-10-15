@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TextInput, ScrollView, Alert, Pressable } from 'react-native';
 import { supabase } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
 import { useLanguage } from '@/constants/Localization';
 import StylizedButton from './StylizedButton';
+import { rankFriendSuggestions } from '@/constants/FriendSearch';
 import { useSetAtom } from 'jotai';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -45,6 +46,7 @@ export default function FriendsList({ userId }: { userId: string }) {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchLoading, setSearchLoading] = useState(false);
+    const [suggestions, setSuggestions] = useState<FriendProfile[]>([]);
 
     const fetchFriends = async () => {
         setLoading(true);
@@ -108,12 +110,42 @@ export default function FriendsList({ userId }: { userId: string }) {
         };
     }, [userId]);
 
+    useEffect(() => {
+        const query = searchQuery.trim();
+        if (query.length < 2) {
+            setSuggestions([]);
+            return;
+        }
+
+        let cancelled = false;
+        const timer = setTimeout(async () => {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('id, auth_user_id, player_id, player_name')
+                .not('auth_user_id', 'is', null)
+                .neq('auth_user_id', userId)
+                .ilike('player_name', `%${escapeIlikePattern(query)}%`)
+                .limit(20);
+            if (cancelled) return;
+            if (error || !data) {
+                setSuggestions([]);
+                return;
+            }
+            setSuggestions(rankFriendSuggestions(data as FriendProfile[], query).slice(0, 6));
+        }, 250);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, [searchQuery, userId]);
+
     const handleSearchAndAdd = async () => {
         if (!searchQuery.trim()) return;
         setSearchLoading(true);
-        
+
         const cleanQuery = searchQuery.trim();
-        
+
         // 1. Find user by name
         const { data: profiles, error: profileError } = await supabase
             .from('profiles')
@@ -121,25 +153,35 @@ export default function FriendsList({ userId }: { userId: string }) {
             .not('auth_user_id', 'is', null)
             .ilike('player_name', `%${escapeIlikePattern(cleanQuery)}%`)
             .order('updated_at', { ascending: false })
-            .limit(5);
-            
+            .limit(20);
+
         if (profileError || !profiles || profiles.length === 0) {
             Alert.alert(t("friends.notFoundTitle"), t("friends.notFoundMessage", { name: cleanQuery }));
             setSearchLoading(false);
             return;
         }
-        
-        const exactMatch = (profiles as FriendProfile[]).find(
-            (profile) => profile.player_name.toLowerCase() === cleanQuery.toLowerCase()
-        );
-        const targetProfile = exactMatch || profiles[0] as FriendProfile;
+
+        const ranked = rankFriendSuggestions(profiles as FriendProfile[], cleanQuery);
+        const exactMatch = ranked.find((profile) => profile.player_name.toLowerCase() === cleanQuery.toLowerCase());
+        if (!exactMatch && ranked.length > 1) {
+            // Several partial matches: let the player pick from the list instead of guessing.
+            setSuggestions(ranked.filter((profile) => profile.auth_user_id !== userId).slice(0, 6));
+            setSearchLoading(false);
+            return;
+        }
+
+        await sendFriendRequest(exactMatch || ranked[0]);
+    };
+
+    const sendFriendRequest = async (targetProfile: FriendProfile) => {
+        setSearchLoading(true);
         const targetId = targetProfile.auth_user_id;
         if (!targetId) {
             Alert.alert(t("friends.errorTitle"), t("friends.mustLogin"));
             setSearchLoading(false);
             return;
         }
-        
+
         if (targetId === userId) {
             Alert.alert(t("friends.oopsTitle"), t("friends.cantAddSelf"));
             setSearchLoading(false);
@@ -173,6 +215,7 @@ export default function FriendsList({ userId }: { userId: string }) {
         } else {
             Alert.alert(t("friends.successTitle"), t("friends.requestSent"));
             setSearchQuery('');
+            setSuggestions([]);
             fetchFriends();
         }
         setSearchLoading(false);
@@ -338,6 +381,21 @@ export default function FriendsList({ userId }: { userId: string }) {
                 />
             </View>
 
+            {suggestions.length > 0 && (
+                <View style={[styles.suggestionList, { borderColor: currentTheme.gridBorder }]}>
+                    {suggestions.map((profile) => (
+                        <Pressable
+                            key={profile.id}
+                            onPress={() => sendFriendRequest(profile)}
+                            style={({ pressed }) => [styles.suggestionRow, pressed && { backgroundColor: 'rgba(255,255,255,0.12)' }]}
+                        >
+                            <Text style={[styles.suggestionName, { color: currentTheme.textPrimary }]} numberOfLines={1}>{profile.player_name}</Text>
+                            <Text style={[styles.suggestionAdd, { color: currentTheme.textSecondary }]}>+ {t("friends.add")}</Text>
+                        </Pressable>
+                    ))}
+                </View>
+            )}
+
             {/* Incoming Requests */}
             {incomingRequests.length > 0 && (
                 <View style={styles.section}>
@@ -392,6 +450,30 @@ const styles = StyleSheet.create({
     container: {
         width: '100%',
         marginTop: 10,
+    },
+    suggestionList: {
+        marginTop: -12,
+        marginBottom: 16,
+        borderWidth: 2,
+        borderRadius: 4,
+        overflow: 'hidden',
+    },
+    suggestionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 10,
+        paddingVertical: 10,
+        gap: 8,
+    },
+    suggestionName: {
+        flex: 1,
+        fontFamily: 'Silkscreen',
+        fontSize: 12,
+    },
+    suggestionAdd: {
+        fontFamily: 'Silkscreen',
+        fontSize: 10,
     },
     searchRow: {
         flexDirection: 'row',

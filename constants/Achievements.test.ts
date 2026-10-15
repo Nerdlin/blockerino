@@ -2,7 +2,12 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 	require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
 
-import { ACHIEVEMENT_DEFINITIONS, buildAchievementRows, getDefaultAchievementStats } from "./Achievements";
+import {
+	ACHIEVEMENT_DEFINITIONS,
+	buildAchievementRows,
+	computeNewAchievementUnlocks,
+	getDefaultAchievementStats,
+} from "./Achievements";
 import { GameModeType } from "@/hooks/useAppState";
 
 describe("achievement helpers", () => {
@@ -35,5 +40,31 @@ describe("achievement helpers", () => {
 		expect(rows.find((row) => row.id === "comeback")?.progress.current).toBe(3);
 		expect(rows.find((row) => row.id === "mode_sampler")?.progress.current).toBe(5);
 		expect(rows.find((row) => row.id === "score_collector")?.progress.current).toBe(3450);
+	});
+});
+
+describe("achievement unlock detection", () => {
+	const rows = (completeIds: string[]) =>
+		["a", "b", "c"].map((id) => ({
+			id,
+			progress: { current: completeIds.includes(id) ? 1 : 0, target: 1, complete: completeIds.includes(id) },
+		}));
+
+	it("treats already completed achievements as unlocked silently on first run", () => {
+		expect(computeNewAchievementUnlocks(rows(["a", "b"]), null)).toEqual({
+			newlyUnlocked: [],
+			nextUnlocked: ["a", "b"],
+		});
+	});
+
+	it("announces only achievements completed since the last check", () => {
+		expect(computeNewAchievementUnlocks(rows(["a", "c"]), ["a"])).toEqual({
+			newlyUnlocked: ["c"],
+			nextUnlocked: ["a", "c"],
+		});
+	});
+
+	it("does not announce the same achievement twice", () => {
+		expect(computeNewAchievementUnlocks(rows(["a"]), ["a", "b"]).newlyUnlocked).toEqual([]);
 	});
 });
