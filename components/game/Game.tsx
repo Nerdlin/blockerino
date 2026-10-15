@@ -517,7 +517,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 					<StickyGameHud gameMode={gameMode} score={score}></StickyGameHud>
 					<DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
 						<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand} gameMode={gameMode} timeRemaining={timeRemaining} movesRemaining={movesRemaining}></StatsGameHud>
-						<View style={{ position: 'relative' }}>
+						<View style={{ position: 'relative', alignSelf: 'center' }}>
 							<BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
 							<View style={[StyleSheet.absoluteFill, { pointerEvents: 'none', zIndex: 9999 }]}>
 								{scorePopups.map(popup => (
