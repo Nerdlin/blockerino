@@ -49,3 +49,6 @@ dist/
 dist-*/
 deno.lock
 
+
+# Supabase CLI local cache
+supabase/.temp/
