@@ -4,10 +4,10 @@
 
 ## 📥 Скачать
 
-APK и AAB для 1.0.7 (версия `1.0.7`, сборка `8`) собираются отдельно (`scripts/build-android-release.ps1`) и выкладываются в GitHub Releases как `v1.0.7`. Ссылки и контрольные суммы добавьте сюда после сборки:
+Артефакты собраны (версия `1.0.7`, сборка `8`) и должны быть выложены в GitHub Releases как `v1.0.7`:
 
-- **Blockerino 1.0.7 для Android (APK)** — `https://github.com/Nerdlin/blockerino/releases/download/v1.0.7/blockerino-1.0.7.apk`
-- **Blockerino 1.0.7 Android App Bundle (AAB)** — `https://github.com/Nerdlin/blockerino/releases/download/v1.0.7/blockerino-1.0.7.aab`
+- **[Скачать Blockerino 1.0.7 для Android (APK)](https://github.com/Nerdlin/blockerino/releases/download/v1.0.7/blockerino-1.0.7.apk)** · APK · 50,0 МиБ · сборка 8
+- **[Скачать Blockerino 1.0.7 Android App Bundle (AAB)](https://github.com/Nerdlin/blockerino/releases/download/v1.0.7/blockerino-1.0.7.aab)** · AAB · 68,7 МиБ · сборка 8 (для Google Play Console)
 
 ## 🎮 Что нового и улучшено
 
@@ -67,6 +67,15 @@ WHERE key = 'android_version';
 
 - **Версия:** 1.0.7 · **Номер сборки:** 8 (`versionCode 8`).
 - **runtimeVersion:** 1.0.7.
-- Контрольные суммы SHA-256 для APK/AAB заполняются после сборки.
+- **Архитектуры:** universal (arm64-v8a, armeabi-v7a, x86, x86_64).
+- **Размер APK:** 52 434 424 байт.
+- **Размер AAB:** 71 990 160 байт.
+
+SHA-256 контрольные суммы:
+
+```text
+APK: D89117EFA8B7559978F687523FC4F22ECBBCAF47CC7A99B07E74D20C6F24C339
+AAB: 1D183CFA0C2D35D7671D60490C8736943F409DAF8C8FF16E46408C26291A9840
+```
 
 </details>
