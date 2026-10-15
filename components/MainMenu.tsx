@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Pressable, StyleSheet, Text, View, ViewStyle, useWindowDimensions } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View, ViewStyle, useWindowDimensions } from "react-native";
 import Animated, { BounceInUp, Easing, FadeIn, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
 import { cssColors } from "@/constants/Color";
@@ -43,10 +43,18 @@ function BlockerinoLogo({blockSize, style}: {blockSize: number, style: ViewStyle
 	</View>
 }
 
+// Big web screens get the logo and buttons scaled up as one block; phones and native stay at 1.
+export function getMainMenuScale(width: number, height: number): number {
+	if (Platform.OS !== "web") return 1;
+	const scale = Math.min((width * 0.8) / 420, (height * 0.85) / 640, 2);
+	return scale > 1.05 ? Math.round(scale * 100) / 100 : 1;
+}
+
 export default function MainMenu() {
 	const { t } = useLanguage();
 	const [ , appendAppState ] = useSetAppState();
-	const { height } = useWindowDimensions();
+	const { width, height } = useWindowDimensions();
+	const menuScale = getMainMenuScale(width, height);
 	const isShortScreen = height < 700;
 	const shopBalance = useAtomValue(shopStateAtom).balance;
 
@@ -75,6 +83,7 @@ export default function MainMenu() {
 		</Pressable>
 
 		<BlockerinoLogo style={{position: 'absolute', bottom: 10, left: 10}} blockSize={5}></BlockerinoLogo>
+		<View style={[{ width: '100%', alignItems: 'center' }, menuScale > 1 && { transform: [{ scale: menuScale }] }]}>
 		<Animated.Text entering={BounceInUp.duration(800)} style={[styles.logo, isShortScreen && { fontSize: 32, marginBottom: 16 }]}>
 			blockerino
 		</Animated.Text>
@@ -129,6 +138,7 @@ export default function MainMenu() {
 		<MainButton onClick = {() => {
 			appendAppState(MenuStateType.OPTIONS)
 		}} backgroundColor={cssColors.green} title={t("mainmenu.optionsTitle")} />
+		</View>
 
 		<Animated.Text entering={FadeIn} style={styles.footer}>
 			{t("mainmenu.betaVersion")}

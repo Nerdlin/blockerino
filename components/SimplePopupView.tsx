@@ -1,13 +1,19 @@
-import React from "react";
-import { View, ScrollView, StyleSheet, useWindowDimensions } from "react-native";
+import React, { createContext, useContext } from "react";
+import { View, ScrollView, StyleSheet, Platform, useWindowDimensions } from "react-native";
 
-// Phones keep the compact 480x760 card; big screens get a larger one so boards are not tiny.
-export function getPopupLimits(width: number, height: number) {
-	const desktop = width >= 900 && height >= 700;
-	return desktop
-		? { maxWidth: Math.min(760, Math.floor(width * 0.55)), maxHeight: Math.min(1040, Math.floor(height * 0.92)), height: "92%" as const }
-		: { maxWidth: 480, maxHeight: 760, height: "80%" as const };
+// On big web screens the whole popup card is scaled up as one piece, so every screen keeps its
+// phone layout but nothing looks tiny. Returns 1 on phones and native.
+export function getPopupScale(width: number, height: number): number {
+	if (Platform.OS !== "web") return 1;
+	const cardWidth = Math.min(width * 0.9, 480);
+	const cardHeight = Math.min(height * 0.8, 760);
+	const scale = Math.min((width * 0.92) / cardWidth, (height * 0.96) / cardHeight, 2.2);
+	return scale > 1.05 ? Math.round(scale * 100) / 100 : 1;
 }
+
+// Drag handlers read this to turn screen-pixel gesture deltas into the card's own units.
+export const UiScaleContext = createContext(1);
+export const useUiScale = () => useContext(UiScaleContext);
 
 export default function SimplePopupView({
 	children,
@@ -19,10 +25,12 @@ export default function SimplePopupView({
 	scrollRef?: React.RefObject<ScrollView | null>
 }) {
 	const { width, height } = useWindowDimensions();
+	const scale = getPopupScale(width, height);
 	if (style === undefined)
 		style = [];
     return (
-		<View style={[styles.popupContainer, getPopupLimits(width, height), ...style]}>
+		<UiScaleContext.Provider value={scale}>
+		<View style={[styles.popupContainer, ...style, scale > 1 && { transform: [{ scale }] }]}>
 			<ScrollView
 				ref={scrollRef}
 				style={styles.scrollView}
@@ -34,6 +42,7 @@ export default function SimplePopupView({
 				{children}
 			</ScrollView>
 		</View>
+		</UiScaleContext.Provider>
 	);
 }
 

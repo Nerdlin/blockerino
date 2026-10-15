@@ -4,7 +4,7 @@ import { Chess } from "chess.js";
 import { Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, Image, ActivityIndicator, Clipboard, LayoutAnimation, UIManager } from "react-native";
 
 import Slider from '@react-native-community/slider';
-import SimplePopupView, { getPopupLimits } from "./SimplePopupView";
+import SimplePopupView, { useUiScale } from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
 import {
@@ -1774,6 +1774,12 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 	const fleetRef = useRef(fleet);
 	const incomingRef = useRef(incomingShots);
 	const boardRef = useRef<View>(null);
+	// Re-measure when a drag starts: the card may have moved or been scaled since the first layout.
+	const remeasureBoard = () => {
+		measureScreenRect(boardRef.current, (pageX, pageY, w, h) => {
+			setBoardLayout({ x: pageX, y: pageY, w, h });
+		});
+	};
 
 	useEffect(() => {
 		fleetRef.current = fleet;
@@ -2010,7 +2016,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 									key={ship.id}
 									ship={ship}
 									selected={ship.id === selectedShipId}
-									onSelect={() => setSelectedShipId(ship.id)}
+									onSelect={() => { setSelectedShipId(ship.id); remeasureBoard(); }}
 									onDrop={onDropShip}
 									onDragMove={onDragMove}
 									onDragEnd={onDragEnd}
@@ -2026,7 +2032,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 					</View>
 					<View style={[styles.battleBoardsVertical, { zIndex: 1 }]}>
 						<View ref={boardRef} onLayout={() => {
-							boardRef.current?.measure((x, y, w, h, pageX, pageY) => {
+							measureScreenRect(boardRef.current, (pageX, pageY, w, h) => {
 								setBoardLayout({ x: pageX, y: pageY, w, h });
 							});
 						}}>
@@ -2116,7 +2122,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 									key={ship.id}
 									ship={ship}
 									selected={ship.id === selectedShipId}
-									onSelect={() => setSelectedShipId(ship.id)}
+									onSelect={() => { setSelectedShipId(ship.id); remeasureBoard(); }}
 									onDrop={onDropShip}
 									onDragMove={onDragMove}
 									onDragEnd={onDragEnd}
@@ -2130,7 +2136,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 				<View style={[styles.battleBoardsVertical, { zIndex: 1 }]}>
 					{ready ? <BattleGrid title={t("moregames.target")} cells={targetShots} onPress={fire} cosmetics={cosmetics} /> : null}
 					<View ref={boardRef} onLayout={() => {
-						boardRef.current?.measure((x, y, w, h, pageX, pageY) => {
+						measureScreenRect(boardRef.current, (pageX, pageY, w, h) => {
 							setBoardLayout({ x: pageX, y: pageY, w, h });
 						});
 					}}>
@@ -2153,6 +2159,8 @@ function ShipDragItem({ ship, onDrop, selected, onSelect, paper, onDragMove, onD
 }) {
 	const pan = useRef(new Animated.ValueXY()).current;
 	const isDragging = useRef(false);
+	const uiScaleRef = useRef(1);
+	uiScaleRef.current = useUiScale();
 	const panResponder = useMemo(() => PanResponder.create({
 		onStartShouldSetPanResponder: () => true,
 		onMoveShouldSetPanResponder: () => true,
@@ -2162,14 +2170,12 @@ function ShipDragItem({ ship, onDrop, selected, onSelect, paper, onDragMove, onD
 			pan.setOffset({ x: (pan.x as any)._value, y: (pan.y as any)._value });
 			pan.setValue({ x: 0, y: 0 });
 		},
-		onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
-			useNativeDriver: false,
-			listener: (e: any) => {
-				if (onDragMove && isDragging.current) {
-					onDragMove(ship.id, e.nativeEvent.pageX, e.nativeEvent.pageY);
-				}
+		onPanResponderMove: (e: any, gs) => {
+			pan.setValue({ x: gs.dx / uiScaleRef.current, y: gs.dy / uiScaleRef.current });
+			if (onDragMove && isDragging.current) {
+				onDragMove(ship.id, e.nativeEvent.pageX, e.nativeEvent.pageY);
 			}
-		}),
+		},
 		onPanResponderRelease: (e) => {
 			isDragging.current = false;
 			pan.flattenOffset();
@@ -2197,13 +2203,20 @@ function ShipDragItem({ ship, onDrop, selected, onSelect, paper, onDragMove, onD
 	);
 }
 
-// Sea Battle board edge in px: the phone size stays 220, large screens grow with the popup.
-export function getBattleGridSize(width: number, height: number) {
-	const limits = getPopupLimits(width, height);
-	if (limits.maxWidth <= 480) return 220;
-	const byWidth = limits.maxWidth - 30 - 70 - 16 - 40;
-	const byHeight = limits.maxHeight - 470;
-	return Math.max(220, Math.min(480, Math.floor(Math.min(byWidth, byHeight) / 10) * 10));
+// Sea Battle board edge in px. The popup card itself is scaled up on big screens.
+export function getBattleGridSize(_width: number, _height: number) {
+	return 220;
+}
+
+// Screen-space rectangle of a view, in the same coordinates as touch pageX/pageY. On web, measure()
+// ignores CSS transforms (the popup card is scaled on big screens), so measureInWindow is used there.
+function measureScreenRect(view: View | null | undefined, onRect: (x: number, y: number, w: number, h: number) => void) {
+	if (!view) return;
+	if (Platform.OS === "web") {
+		view.measureInWindow((x, y, w, h) => onRect(x, y, w, h));
+	} else {
+		view.measure((_x, _y, w, h, pageX, pageY) => onRect(pageX, pageY, w, h));
+	}
 }
 
 function useBattleGridSize() {
@@ -3526,7 +3539,7 @@ const { t } = useLanguage();
 										onDragStart={() => {
 											boutRefs.current.forEach((ref, i) => {
 												if (ref) {
-													ref.measure((x, y, w, h, px, py) => {
+													measureScreenRect(ref, (px, py, w, h) => {
 														boutRects.current[i] = { x: px, y: py, w, h };
 													});
 												}
@@ -3664,6 +3677,8 @@ function DraggableHandCard({
 
 	const rotate = animOffset.interpolate({ inputRange: [-10, 10], outputRange: ['-40deg', '40deg'] });
 
+	const uiScaleRef = useRef(1);
+	uiScaleRef.current = useUiScale();
 	const callbacksRef = useRef({ onPlay, onReorder, onDragStart, onDragMove, onDragEnd });
 	useEffect(() => {
 		callbacksRef.current = { onPlay, onReorder, onDragStart, onDragMove, onDragEnd };
@@ -3683,8 +3698,8 @@ function DraggableHandCard({
 			if (callbacksRef.current.onDragStart) callbacksRef.current.onDragStart();
 		},
 		onPanResponderMove: (_, gs) => {
-			dragX.setValue(gs.dx);
-			dragY.setValue(gs.dy);
+			dragX.setValue(gs.dx / uiScaleRef.current);
+			dragY.setValue(gs.dy / uiScaleRef.current);
 			setWillPlay(gs.dy < -80);
 			if (callbacksRef.current.onDragMove) callbacksRef.current.onDragMove(gs.moveX, gs.moveY);
 		},
@@ -3709,7 +3724,7 @@ function DraggableHandCard({
 			} else if (movedHorizontal) {
 				// Reorder
 				const step = Math.max(cardWidth - 25, 15);
-				const targetIndex = Math.max(0, Math.min(total - 1, Math.round(index + gs.dx / step)));
+				const targetIndex = Math.max(0, Math.min(total - 1, Math.round(index + gs.dx / uiScaleRef.current / step)));
 				Animated.parallel([
 					Animated.spring(dragX, { toValue: 0, useNativeDriver: true }),
 					Animated.spring(dragY, { toValue: 0, useNativeDriver: true }),
