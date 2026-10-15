@@ -25,7 +25,7 @@
 ## 📲 Скачать приложение (Android)
 
 > **Последний стабильный релиз**: [Blockerino v1.0.7](https://github.com/Nerdlin/blockerino/releases/tag/v1.0.7)  
-> Встроенное автообновление через облако Supabase, оптимизация базы данных для масштабных лидербордов.
+> Пиксельные иконки, уведомления о достижениях, новые корабли Sea Battle, умный ползунок ставки в Durak, подсказки при поиске друзей и постоянные напоминания об обновлении.
 
 - 📥 **[Скачать blockerino-1.0.7.apk](https://github.com/Nerdlin/blockerino/releases/download/v1.0.7/blockerino-1.0.7.apk)** *(APK, Universal ARM64/x86, Сборка 8)*
 - 📦 **[Скачать blockerino-1.0.7.aab](https://github.com/Nerdlin/blockerino/releases/download/v1.0.7/blockerino-1.0.7.aab)** *(Android App Bundle для Google Play)*
