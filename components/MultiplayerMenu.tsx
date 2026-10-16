@@ -4,6 +4,7 @@ import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
 import { setProfileAuthIntent } from "@/constants/ProfileIntent";
+import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { useTheme } from "@/constants/Theme";
 import { getLeaderboardTier } from "@/constants/LeaderboardTiers";
 import { supabase, getTopEloRatings, getPlayerElo, EloRating, cleanupMatchmakingRooms } from "@/constants/Supabase";
@@ -55,14 +56,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const { currentTheme } = useTheme();
     const { t } = useLanguage();
     const [, , appendAppState, popAppState] = useAppState();
-    const [signedIn, setSignedIn] = useState(true);
-    useEffect(() => {
-        let active = true;
-        supabase.auth.getSession()
-            .then(({ data }) => { if (active) setSignedIn(Boolean(data.session)); })
-            .catch(() => { if (active) setSignedIn(true); });
-        return () => { active = false; };
-    }, []);
+    const { checked: authChecked, signedIn, name: accountName } = useAccountIdentity();
     const openAccountScreen = (intent: 'login' | 'register') => {
         setProfileAuthIntent(intent);
         appendAppState(MenuStateType.PROFILE);
@@ -187,6 +181,13 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         }
     });
 
+    // A signed-in player's nickname comes from the account and is edited in the profile only.
+    useEffect(() => {
+        if (!signedIn || !accountName) return;
+        setPlayerName(accountName);
+        void syncPlayerElo(accountName);
+    }, [signedIn, accountName, syncPlayerElo]);
+
     useEffect(() => {
         isMounted.current = true;
         // Load player name from storage
@@ -298,10 +299,6 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         }
     };
 
-    const cleanupOldQuickMatchRooms = async () => {
-        await cleanupRoomsIfNeeded(true);
-    };
-
     const clearFeedbackTimer = () => {
         if (feedbackTimerRef.current) {
             clearTimeout(feedbackTimerRef.current);
@@ -395,89 +392,6 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             });
 
         subscriptionRef.current = channel;
-    };
-
-    const handleQuickMatch = async (mode: GameModeType) => {
-        const normalizedName = getRequiredPlayerName();
-        if (!normalizedName) {
-            return;
-        }
-
-        setLobbyState('searching');
-        setGameMode(mode);
-        setMatchError("");
-        setSuccessMessage("");
-
-        let activePlayerId = playerId;
-        if (!activePlayerId) {
-            activePlayerId = Crypto.randomUUID();
-            AsyncStorage.setItem('PLAYER_ID', activePlayerId);
-            setPlayerId(activePlayerId);
-        }
-        
-        try {
-            // Clean up old dead rooms first
-            await cleanupOldQuickMatchRooms();
-
-            // Find a room waiting for an opponent
-            const { data, error } = await supabase
-                .from('matchmaking_rooms')
-                .select('*')
-                .eq('status', 'waiting')
-                .eq('game_mode', mode)
-                .eq('is_private', false)
-                .neq('player1_id', activePlayerId)
-                .order('created_at', { ascending: true })
-                .limit(1);
-
-            if (error) throw error;
-
-            if (data && data.length > 0) {
-                // Try to join this room (optimistic lock)
-                const room = data[0];
-                const { data: updatedData, error: updateError } = await supabase
-                    .from('matchmaking_rooms')
-                    .update(getJoinRoomUpdate(normalizedName, activePlayerId))
-                    .eq('id', room.id)
-                    .is('player2_name', null) // Avoid race condition
-                    .select();
-
-                if (updateError) throw updateError;
-
-                if (updatedData && updatedData.length > 0) {
-                    // Join successful!
-                    const finalRoom = updatedData[0];
-                    onStartGame(finalRoom.id, 'player2', finalRoom.player1_name, mode, playerElo);
-                } else {
-                    // Somebody else joined first. Try again.
-                    handleQuickMatch(mode);
-                }
-            } else {
-                // Create a new waiting room
-                const { data: newRoom, error: insertError } = await supabase
-                    .from('matchmaking_rooms')
-                    .insert({
-                        player1_name: normalizedName,
-                        player1_id: activePlayerId,
-                        game_mode: mode,
-                        status: 'waiting',
-                        is_private: false
-                    })
-                    .select()
-                    .single();
-
-                if (insertError) throw insertError;
-
-                if (newRoom) {
-                    currentRoomId.current = newRoom.id;
-                    subscribeToRoom(newRoom.id, 'player1');
-                }
-            }
-        } catch (e) {
-            console.error("Matchmaking error:", e);
-            setMatchError(t("mp.connectionError"));
-            setLobbyState('idle');
-        }
     };
 
     const handleCreateRoom = async (mode: GameModeType) => {
@@ -669,6 +583,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     
                     <Text style={[styles.header, { color: currentTheme.textPrimary, marginVertical: 8 }]}>{t("mp.title")}</Text>
 
+                    {authChecked && !signedIn && (
                     <View style={styles.inputRow}>
                         <View style={{ flex: 1 }}>
                             <Text style={[styles.label, { color: currentTheme.textSecondary, fontSize: 13 }]}>{t("mp.nickname")}</Text>
@@ -690,8 +605,9 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             />
                         </View>
                     </View>
+                    )}
 
-                    {!signedIn && (
+                    {authChecked && !signedIn && (
                         <View style={{ width: '100%', alignItems: 'center', gap: 6, marginTop: 8 }}>
                             <Text style={[styles.label, { color: currentTheme.textSecondary, fontSize: 11, textAlign: 'center' }]}>{t("over.accountPrompt")}</Text>
                             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -747,19 +663,11 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
 
                     <View style={styles.row}>
                         <StylizedButton
-                            text={t("mp.quickMatch")}
-                            onClick={() => handleQuickMatch(selectedMode)}
-                            backgroundColor={selectedMode === GameModeType.Chaos ? cssColors.pitchBlack : currentTheme.buttonPrimary} 
-                            borderColor={selectedMode === GameModeType.Chaos ? "white" : undefined}
-                            style={{ flex: 1, minWidth: 100, height: 36 }}
-                            textStyle={{ fontSize: isMobile ? 11 : 13 }}
-                        />
-                        <StylizedButton
                             text={t("mp.createRoom")}
                             onClick={() => handleCreateRoom(selectedMode)}
                             backgroundColor={cssColors.pink} 
-                            style={{ flex: 1, minWidth: 100, height: 36 }}
-                            textStyle={{ fontSize: isMobile ? 11 : 13 }}
+                            style={{ flex: 1, minWidth: 100, height: 40 }}
+                            textStyle={{ fontSize: isMobile ? 12 : 13 }}
                         />
                     </View>
 

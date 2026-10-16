@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, forwardRef } from "react";
+import Svg, { Path } from "react-native-svg";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Chess } from "chess.js";
 import { Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, Image, ActivityIndicator, Clipboard, LayoutAnimation, UIManager } from "react-native";
@@ -20,7 +21,9 @@ import {
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { useShopState, ShopItem, ShopCategory, getVisibleShopItemsByCategory } from "@/constants/Shop";
-import { useAppState } from "@/hooks/useAppState";
+import { MenuStateType, useAppState } from "@/hooks/useAppState";
+import { setProfileAuthIntent } from "@/constants/ProfileIntent";
+import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import PixelIcon from "@/components/PixelIcon";
 import ShipArt from "@/components/ShipArt";
@@ -739,7 +742,12 @@ function DurakModeToggleColumn({
 export default function MoreGamesMenu() {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
-	const [, , , popAppState] = useAppState();
+	const [, , appendAppState, popAppState] = useAppState();
+	const { checked: authChecked, signedIn, name: accountName } = useAccountIdentity();
+	const openAccountScreen = (intent: "login" | "register") => {
+		setProfileAuthIntent(intent);
+		appendAppState(MenuStateType.PROFILE);
+	};
 	const { width } = useWindowDimensions();
 	const isMobile = width < 600;
 	const [activeGame, setActiveGame] = useState<MoreGameId | null>(null);
@@ -771,6 +779,14 @@ export default function MoreGamesMenu() {
 			setDraftPlayerName(nextName);
 		});
 	}, []);
+
+	// A signed-in player's nickname comes from the account and is edited in the profile only.
+	useEffect(() => {
+		if (!signedIn || !accountName) return;
+		const nextName = normalizeStoredPlayerName(accountName);
+		setPlayerName(nextName);
+		setDraftPlayerName(nextName);
+	}, [signedIn, accountName]);
 
 	const loadRatings = useCallback(async (game: RatedMoreGameId = ratingGame, name: string = playerName) => {
 		setRatingsLoading(true);
@@ -866,6 +882,7 @@ export default function MoreGamesMenu() {
 			) : !activeGame ? (
 				<ScrollView style={styles.moreList} contentContainerStyle={styles.moreListContent}>
 					<View style={styles.moreTopPanel}>
+						{authChecked && !signedIn && (
 						<View style={styles.moreNameRow}>
 							<TextInput
 								value={draftPlayerName}
@@ -878,6 +895,16 @@ export default function MoreGamesMenu() {
 							/>
 							<StylizedButton text={t("common.save")} onClick={savePlayerName} backgroundColor={currentTheme.buttonSecondary} style={styles.compactTopButton} textStyle={styles.tinyButtonText} />
 						</View>
+						)}
+						{authChecked && !signedIn && (
+							<View style={{ width: "100%", alignItems: "center", gap: 6, marginBottom: 8 }}>
+								<Text style={[styles.subHeader, { color: currentTheme.textSecondary, fontSize: 10, textAlign: "center" }]}>{t("over.accountPrompt")}</Text>
+								<View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+									<StylizedButton text={t("over.createAccount")} onClick={() => openAccountScreen("register")} backgroundColor={currentTheme.accent} style={{ minWidth: 120, height: 34 }} textStyle={styles.tinyButtonText} />
+									<StylizedButton text={t("over.haveAccount")} onClick={() => openAccountScreen("login")} backgroundColor={cssColors.spaceGray} style={{ minWidth: 120, height: 34 }} textStyle={styles.tinyButtonText} />
+								</View>
+							</View>
+						)}
 						<View style={styles.moreQuickActions}>
 							<StylizedButton text={t("moregames.shopButton")} onClick={() => setActiveGame("shop")} backgroundColor="#FACC15" style={styles.shopQuickButton} textStyle={[styles.tinyButtonText, { color: "#111827" }]} />
 							<StylizedButton text={t("moregames.leaderboardTitle")} onClick={() => openRatingPanel("leaderboard")} backgroundColor={currentTheme.buttonPrimary} style={styles.leaderboardQuickButton} textStyle={styles.tinyButtonText} />
@@ -1895,6 +1922,47 @@ function occupiedFleetCells(fleet: BattleShip[]) {
 	return new Set(fleet.flatMap(getShipCells));
 }
 
+/** Cells of the ship that contains `cell` once every one of its cells was hit, or null while it floats. */
+export function getSunkShipCells(fleet: BattleShip[], incoming: Record<string, string>, cell: string): string[] | null {
+	for (const ship of fleet) {
+		if (ship.x < 0) continue;
+		const cells = getShipCells(ship);
+		if (cells.includes(cell) && cells.every((shipCell) => incoming[shipCell] === "hit")) return cells;
+	}
+	return null;
+}
+
+/** Every cell of the given sunk ships plus the ring of cells around them, kept on the board. */
+export function getCrossedCells(sunkShips: string[][]): Set<string> {
+	const crossed = new Set<string>();
+	for (const cells of sunkShips) {
+		for (const cell of cells) {
+			const [x, y] = cell.split(",").map(Number);
+			for (let dx = -1; dx <= 1; dx += 1) {
+				for (let dy = -1; dy <= 1; dy += 1) {
+					const nx = x + dx;
+					const ny = y + dy;
+					if (nx >= 0 && ny >= 0 && nx < BATTLE_BOARD_SIZE && ny < BATTLE_BOARD_SIZE) crossed.add(`${nx},${ny}`);
+				}
+			}
+		}
+	}
+	return crossed;
+}
+
+const CROSS_PIXELS = ["#.....#", ".#...#.", "..#.#..", "...#...", "..#.#..", ".#...#.", "#.....#"];
+function CrossMark({ size }: { size: number }) {
+	let d = "";
+	CROSS_PIXELS.forEach((row, y) => {
+		for (let x = 0; x < row.length; x += 1) if (row[x] === "#") d += `M${x} ${y}h1v1h-1z`;
+	});
+	return (
+		<Svg width={size} height={size} viewBox="0 0 7 7">
+			<Path d={d} fill="#F8FAFC" />
+		</Svg>
+	);
+}
+
 function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
 	const compactFleet = useWindowDimensions().width < 420;
 	const battleGridSize = useBattleGridSize();
@@ -1905,11 +1973,15 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 	const [selectedShipId, setSelectedShipId] = useState("b4");
 	const [incomingShots, setIncomingShots] = useState<Record<string, "hit" | "miss">>({});
 	const [targetShots, setTargetShots] = useState<Record<string, "pending" | "hit" | "miss">>({});
+	// Cells of enemy ships that were sunk: they are crossed out together with the ring around them.
+	const [targetSunk, setTargetSunk] = useState<string[][]>([]);
 	const [turn, setTurn] = useState<DuelRole | null>("player1");
 	const [winner, setWinner] = useState<DuelRole | null>(null);
 	const [winnerSource, setWinnerSource] = useState<"normal" | "forfeit" | null>(null);
 	const [ready, setReady] = useState(false);
 	const [opponentReady, setOpponentReady] = useState(false);
+	// A peer is in the room. The waiting screen ends here; the Ready buttons live on the next screen.
+	const [opponentPresent, setOpponentPresent] = useState(false);
 	const [opponentName, setOpponentName] = useState("Opponent");
 	const [timeLeft, setTimeLeft] = useState(60);
 	const [boardLayout, setBoardLayout] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
@@ -1940,6 +2012,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 
 	const handleEvent = useCallback((event: string, payload: any, senderRole?: OnlineRole) => {
 		if (event === "system_joined" && senderRole) {
+			setOpponentPresent(true);
 			setOpponentName(normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)));
 			roomRef.current?.send("ready_state", { ready, playerName });
 			return;
@@ -1949,6 +2022,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 			if (winnerRef.current) return;
 			if (!startedRef.current) {
 				setOpponentReady(false);
+				setOpponentPresent(false);
 				return;
 			}
 			setOpponentName(normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)));
@@ -1958,6 +2032,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 		}
 		if (event === "ready_state") {
 			if (payload.playerName) setOpponentName(normalizeStoredPlayerName(payload.playerName));
+			setOpponentPresent(true);
 			setOpponentReady(Boolean(payload.ready));
 			return;
 		}
@@ -1980,6 +2055,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 					to: payload.from,
 					cell: shotCell,
 					result: repeated.result,
+					sunk: repeated.result === "hit" ? getSunkShipCells(fleetRef.current, incomingRef.current, shotCell) : null,
 					winner: repeated.lost ? payload.from : null,
 				});
 				return;
@@ -1997,10 +2073,12 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 				to: payload.from,
 				cell: shotCell,
 				result: hit ? "hit" : "miss",
+				sunk: hit ? getSunkShipCells(fleetRef.current, nextIncoming, shotCell) : null,
 				winner: lost ? payload.from : null,
 			});
 			if (!lost) {
-				setTurn(currentRole);
+				// A hit lets the shooter fire again; a miss passes the turn to us.
+				setTurn(hit && isDuelRole(payload.from) ? payload.from : currentRole);
 				setTimeLeft(60);
 			}
 			return;
@@ -2012,11 +2090,15 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 			if (pendingShotCellRef.current !== String(payload.cell)) return;
 			pendingShotCellRef.current = null;
 			setTargetShots((current) => ({ ...current, [payload.cell]: payload.result }));
+			if (Array.isArray(payload.sunk) && payload.sunk.length > 0 && payload.sunk.length <= 4 && payload.sunk.every((cell: unknown) => typeof cell === "string" && /^[0-9],[0-9]$/.test(cell))) {
+				const sunkCells: string[] = payload.sunk;
+				setTargetSunk((current) => [...current, sunkCells]);
+			}
 			if (payload.winner && isDuelRole(payload.winner)) {
 				setWinnerSource("normal");
 				setWinner(payload.winner);
 			} else {
-				setTurn(getDuelOpponent(currentRole));
+				setTurn(payload.result === "hit" ? currentRole : getDuelOpponent(currentRole));
 				setTimeLeft(60);
 			}
 		}
@@ -2045,16 +2127,25 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 		return () => clearInterval(timer);
 	}, [ready, opponentReady, winner, turn]);
 
+	useEffect(() => {
+		if (!room.role) {
+			setOpponentPresent(false);
+			setOpponentReady(false);
+		}
+	}, [room.role]);
+
 	const resetLocal = () => {
 		setFleet(createDefaultFleet());
 		setSelectedShipId("b4");
 		setIncomingShots({});
 		setTargetShots({});
+		setTargetSunk([]);
 		setTurn("player1");
 		setWinner(null);
 		setWinnerSource(null);
 		setReady(false);
 		setOpponentReady(false);
+		setOpponentPresent(false);
 		setTimeLeft(60);
 		ratingSubmittedRef.current = null;
 		pendingShotCellRef.current = null;
@@ -2139,7 +2230,11 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 		room.send("ready_state", { ready: true, playerName });
 	};
 
+	const targetCrossed = getCrossedCells(targetSunk);
+	const ownCrossed = getCrossedCells(fleet.filter((ship) => ship.x >= 0 && getShipCells(ship).every((cell) => incomingShots[cell] === "hit")).map(getShipCells));
+
 	const fire = (cell: string) => {
+		if (targetCrossed.has(cell)) return;
 		if (!isDuelRole(room.role) || !room.isConnected || !ready || !opponentReady || winner || turn !== room.role || targetShots[cell] || pendingShotCellRef.current) return;
 		pendingShotCellRef.current = cell;
 		setTargetShots((current) => ({ ...current, [cell]: "pending" }));
@@ -2234,7 +2329,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 								setBoardLayout({ x: pageX, y: pageY, w, h });
 							});
 						}}>
-							<BattleGrid title={t("moregames.myFleet")} cells={incomingShots} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
+							<BattleGrid title={t("moregames.myFleet")} cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
 						</View>
 						<View style={styles.battleLobbyButtons}>
 							<OnlineRoomControls
@@ -2259,7 +2354,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 		);
 	}
 
-	if (room.role && !opponentReady) {
+	if (room.role && !opponentPresent) {
 		return (
 			<View style={[styles.onlineGame, { minHeight: 400, justifyContent: 'center' }]}>
 				<OnlineRoomControls
@@ -2267,7 +2362,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 					setRoomCode={room.setRoomCode}
 					role={room.role}
 					status={room.status}
-					opponentReady={opponentReady}
+					opponentReady={opponentPresent}
 					onHost={() => { resetLocal(); room.connect("player1"); }}
 					onJoin={() => { resetLocal(); room.connect("player2", room.roomCode); }}
 					onDisconnect={room.disconnect}
@@ -2332,13 +2427,13 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 					</View>
 				)}
 				<View style={[styles.battleBoardsVertical, { zIndex: 1 }]}>
-					{ready ? <BattleGrid title={t("moregames.target")} cells={targetShots} onPress={fire} cosmetics={cosmetics} /> : null}
+					{ready ? <BattleGrid title={t("moregames.target")} cells={targetShots} crossed={targetCrossed} onPress={fire} cosmetics={cosmetics} /> : null}
 					<View ref={boardRef} onLayout={() => {
 						measureScreenRect(boardRef.current, (pageX, pageY, w, h) => {
 							setBoardLayout({ x: pageX, y: pageY, w, h });
 						});
 					}}>
-						<BattleGrid title={t("moregames.myFleet")} cells={incomingShots} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
+						<BattleGrid title={t("moregames.myFleet")} cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
 					</View>
 				</View>
 			</View>
@@ -2425,6 +2520,7 @@ function useBattleGridSize() {
 function BattleGrid({
 	title,
 	cells,
+	crossed,
 	ships,
 	selectedShipId,
 	onPress,
@@ -2433,6 +2529,7 @@ function BattleGrid({
 }: {
 	title: string;
 	cells: Record<string, string>;
+	crossed?: Set<string>;
 	ships?: BattleShip[];
 	selectedShipId?: string;
 	onPress?: (cell: string) => void;
@@ -2518,7 +2615,7 @@ function BattleGrid({
 								const status = cells[`${colIndex},${rowIndex}`];
 								return (
 									<View key={colIndex} style={[styles.battleMarkCell, status === "hit" && styles.battleHitCell]}>
-										{status === "hit" ? <UiIcon name="fire" size={markSize} /> : status === "miss" ? <UiIcon name="wave" size={markSize} /> : null}
+										{crossed?.has(`${colIndex},${rowIndex}`) ? <CrossMark size={markSize} /> : status === "hit" ? <UiIcon name="fire" size={markSize} /> : status === "miss" ? <UiIcon name="wave" size={markSize} /> : null}
 									</View>
 								);
 							})}
@@ -2653,32 +2750,6 @@ function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 		setRemoteResult(null);
 		ratingSubmittedRef.current = null;
 		room.send("sync", { fen: nextFen, history: [] });
-	};
-
-	const handlePlayAgain = () => {
-		const game = restoreChessGame(fen, history);
-		const isGameOver = game.isCheckmate() || game.isDraw() || remoteResult;
-		if (!isGameOver || !room.role || !isDuelRole(room.role)) return;
-
-		// Определяем результат игры
-		let result: "player1" | "player2" | "draw";
-		if (remoteResult) {
-			// Оппонент вышел - текущий игрок победил
-			result = room.role as "player1" | "player2";
-		} else if (game.isDraw()) {
-			result = "draw";
-		} else {
-			// Мат - выигрывает тот, кто НЕ ходит сейчас
-			result = turnRole === "player1" ? "player2" : "player1";
-		}
-
-		if (result === room.role || result === "draw") {
-			// Проигравший или ничья - показываем выбор цвета
-			setShowColorChoice(true);
-		} else {
-			// Победитель ждёт выбора проигравшего
-			room.send("playAgain", {});
-		}
 	};
 
 	const handleDisconnect = () => {
@@ -2866,18 +2937,6 @@ function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 					);
 				}
 
-				if (isGameOver && isDuelRole(room.role)) {
-					return (
-						<StylizedButton
-							text={t("moregames.playAgain")}
-							onClick={handlePlayAgain}
-							backgroundColor={currentTheme.accent}
-							style={styles.resetButton}
-							textStyle={styles.smallButtonText}
-						/>
-					);
-				}
-
 				return null;
 			})()}
 
@@ -2906,7 +2965,27 @@ function getDurakRanksForDeck(deckSize: number): string[] {
 	const ranksPerSuit = deckSize / DURAK_SUITS.length;
 	return DURAK_RANKS.slice(DURAK_RANKS.length - ranksPerSuit);
 }
-const SUIT_SYMBOLS: Record<string, string> = { C: "♣", D: "♦", H: "♥", S: "♠" };
+// Suits are drawn as 7x7 pixel art so they match the game's look instead of the platform's emoji glyphs.
+const SUIT_PIXELS: Record<string, string[]> = {
+	S: ["...#...", "..###..", ".#####.", "#######", "#######", "...#...", "..###.."],
+	C: ["..###..", "..###..", "#######", "#######", "##.#.##", "...#...", "..###.."],
+	H: [".##.##.", "#######", "#######", "#######", ".#####.", "..###..", "...#..."],
+	D: ["...#...", "..###..", ".#####.", "#######", ".#####.", "..###..", "...#..."],
+};
+
+function DurakSuitIcon({ suit, size, color }: { suit: string; size: number; color: string }) {
+	const rows = SUIT_PIXELS[suit];
+	if (!rows) return null;
+	let d = "";
+	rows.forEach((row, y) => {
+		for (let x = 0; x < row.length; x += 1) if (row[x] === "#") d += `M${x} ${y}h1v1h-1z`;
+	});
+	return (
+		<Svg width={size} height={size} viewBox="0 0 7 7">
+			<Path d={d} fill={color} />
+		</Svg>
+	);
+}
 
 function createDurakDeck(deckSize: number = 36) {
 	const ranks = getDurakRanksForDeck(deckSize);
@@ -4084,8 +4163,7 @@ function DurakCardView({ card, trump, cosmetics, small = false }: { card: string
 		const isRed = trump === "D" || trump === "H";
 		return (
 			<View style={[styles.playingCard, small && styles.smallPlayingCard, { backgroundColor: skin.backBg, borderColor: skin.backBorder, alignItems: 'center', justifyContent: 'center' }]}>
-				<Text style={{ color: skin.backGlyph, fontSize: small ? 14 : 24, position: 'absolute', opacity: 0.3 }}>🂠</Text>
-				<Text style={{ color: isRed ? '#DC2626' : '#111827', fontSize: small ? 16 : 24, zIndex: 2, textShadowColor: 'rgba(255,255,255,0.8)', textShadowRadius: 2 }}>{SUIT_SYMBOLS[trump]}</Text>
+								<DurakSuitIcon suit={trump} size={small ? 14 : 28} color={isRed ? '#DC2626' : '#111827'} />
 			</View>
 		);
 	}
@@ -4094,7 +4172,7 @@ function DurakCardView({ card, trump, cosmetics, small = false }: { card: string
 	return (
 		<View style={[styles.playingCard, small && styles.smallPlayingCard, faceSkin, cardSuit(card) === trump && styles.trumpCard]}>
 			<Text style={[styles.cardCorner, small && styles.smallCardCorner, { color: red ? "#DC2626" : "#111827" }]}>{cardRank(card)}</Text>
-			<Text style={[styles.cardSuit, small && styles.smallCardSuit, { color: red ? "#DC2626" : "#111827" }]}>{SUIT_SYMBOLS[suit]}</Text>
+			<DurakSuitIcon suit={suit} size={small ? 21 : 28} color={red ? "#DC2626" : "#111827"} />
 		</View>
 	);
 }

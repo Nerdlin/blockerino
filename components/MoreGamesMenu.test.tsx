@@ -43,6 +43,8 @@ import {
 	createDurakState,
 	drawDurakCards,
 	getRepeatedShotReply,
+	getSunkShipCells,
+	getCrossedCells,
 	CHESS_BOARD_COLORS,
 	CHESS_PIECE_COLORS,
 	MAHJONG_THEMES,
@@ -137,6 +139,15 @@ describe("mini-game room delivery", () => {
 		await act(async () => { receive({ payload: { event: 'shot', senderId: 'guest', role: 'player2', payload: { cell: '2,2' } } }); });
 		expect(onEvent).toHaveBeenCalledWith('shot', { cell: '2,2' }, 'player2');
 	});
+	it('reports a ship as sunk only when every cell is hit and crosses out the ring around it', () => {
+		const fleet: any[] = [{ id: 'a', length: 2, x: 0, y: 0, orientation: 'h' }, { id: 'b', length: 1, x: 5, y: 5, orientation: 'h' }];
+		expect(getSunkShipCells(fleet, { '0,0': 'hit' }, '0,0')).toBeNull();
+		expect(getSunkShipCells(fleet, { '0,0': 'hit', '1,0': 'hit' }, '1,0')).toEqual(['0,0', '1,0']);
+		const crossed = getCrossedCells([['0,0', '1,0']]);
+		expect([...crossed].sort()).toEqual(['0,0', '0,1', '1,0', '1,1', '2,0', '2,1']);
+		expect(crossed.has('-1,0')).toBe(false);
+	});
+
 	it('answers a re-sent Sea Battle shot with the same result and flags a lost fleet', () => {
 		const occupied = new Set(['0,0', '0,1']);
 		expect(getRepeatedShotReply({}, occupied, '0,0')).toBeNull();
