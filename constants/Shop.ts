@@ -69,22 +69,40 @@ const BASE_SHOP_ITEMS: ShopItem[] = [
 	{ id: "chess_piece_classic", category: "chess_piece", title: "Classic", description: "Standard pixel chess pieces.", price: 0, accent: "#C4B5FD", previewColors: ["#FFF", "#000"] },
 	{ id: "chess_piece_royal", category: "chess_piece", title: "Royal", description: "Ornate pieces fit for a king.", price: 500, accent: "#C4B5FD", previewColors: ["#FDE047", "#000"] },
 	{ id: "chess_piece_club", category: "chess_piece", title: "Club", description: "Heavy tournament style pieces.", price: 800, accent: "#C4B5FD", previewColors: ["#D1D5DB", "#1F2937"] },
+	{ id: "chess_piece_neon", category: "chess_piece", title: "Neon", description: "Glowing cyan and deep violet pieces.", price: 650, accent: "#C4B5FD", previewColors: ["#67E8F9", "#581C87"] },
+	{ id: "chess_piece_ember", category: "chess_piece", title: "Ember", description: "Warm cream pieces against deep ember red.", price: 700, accent: "#C4B5FD", previewColors: ["#FED7AA", "#7F1D1D"] },
+	{ id: "chess_piece_frost", category: "chess_piece", title: "Frost", description: "Icy white pieces against midnight blue.", price: 850, accent: "#C4B5FD", previewColors: ["#E0F2FE", "#1E3A8A"] },
 	
 	{ id: "chess_board_slate", category: "chess_board", title: "Slate", description: "Classic dark slate and light tiles.", price: 0, accent: "#8B5CF6", previewColors: ["#E2E8F0", "#475569"] },
 	{ id: "chess_board_violet", category: "chess_board", title: "Violet", description: "Deep purple and lavender tiles.", price: 300, accent: "#8B5CF6", previewColors: ["#C4B5FD", "#7C3AED"] },
 	{ id: "chess_board_walnut", category: "chess_board", title: "Walnut", description: "Warm wood tones for a cozy game.", price: 600, accent: "#8B5CF6", previewColors: ["#FDE68A", "#92400E"] },
+	{ id: "chess_board_emerald", category: "chess_board", title: "Emerald", description: "Tournament green and cream tiles.", price: 450, accent: "#8B5CF6", previewColors: ["#EEEED2", "#769656"] },
+	{ id: "chess_board_ice", category: "chess_board", title: "Ice", description: "Cool frosted blue tiles.", price: 550, accent: "#8B5CF6", previewColors: ["#DEEAF6", "#5B8DB8"] },
+	{ id: "chess_board_candy", category: "chess_board", title: "Candy", description: "Sweet pink and blush tiles.", price: 700, accent: "#8B5CF6", previewColors: ["#FCE7F3", "#D9619A"] },
 
 	{ id: "sea_skin_navy", category: "sea_skin", title: "Navy Sea", description: "Standard tactical blue radar grid.", price: 0, accent: "#38BDF8", previewColors: ["#1E3A8A"] },
 	{ id: "sea_skin_paper", category: "sea_skin", title: "Paper Sea", description: "Hand-drawn on crumpled notepad paper.", price: 400, accent: "#38BDF8", previewColors: ["#F8FAFC"] },
+	{ id: "sea_skin_sonar", category: "sea_skin", title: "Sonar", description: "Green phosphor radar screen.", price: 500, accent: "#38BDF8", previewColors: ["#022C22"] },
+	{ id: "sea_skin_sunset", category: "sea_skin", title: "Sunset Sea", description: "Warm dusk water with an amber grid.", price: 550, accent: "#38BDF8", previewColors: ["#431407"] },
+	{ id: "sea_skin_blueprint", category: "sea_skin", title: "Blueprint", description: "Technical drawing on bright blueprint blue.", price: 650, accent: "#38BDF8", previewColors: ["#1D4ED8"] },
 
 	{ id: "card_skin_classic", category: "card_skin", title: "Classic Cards", description: "Standard high visibility playing cards.", price: 0, accent: "#F97316", previewColors: ["#FFF"] },
 	{ id: "card_skin_casino", category: "card_skin", title: "Casino Cards", description: "Premium red backed cards with gold trim.", price: 750, accent: "#F97316", previewColors: ["#DC2626", "#FACC15"] },
+	{ id: "card_skin_midnight", category: "card_skin", title: "Midnight Cards", description: "Dark indigo backs with violet trim.", price: 700, accent: "#F97316", previewColors: ["#111827", "#6366F1"] },
+	{ id: "card_skin_forest", category: "card_skin", title: "Forest Cards", description: "Deep green backs with mint trim.", price: 800, accent: "#F97316", previewColors: ["#14532D", "#86EFAC"] },
+	{ id: "card_skin_sakura", category: "card_skin", title: "Sakura Cards", description: "Pink backs with soft blossom trim.", price: 900, accent: "#F97316", previewColors: ["#BE185D", "#FBCFE8"] },
 
 	{ id: "sudoku_theme_wood", category: "sudoku_theme", title: "Wood Board", description: "Classic light wooden board.", price: 0, accent: "#A3E635", previewColors: ["#FEF3C7"] },
 	{ id: "sudoku_theme_night", category: "sudoku_theme", title: "Night Mode", description: "Dark sleek neon mode.", price: 300, accent: "#A3E635", previewColors: ["#111827"] },
+	{ id: "sudoku_theme_mint", category: "sudoku_theme", title: "Mint Garden", description: "Fresh light green board.", price: 350, accent: "#A3E635", previewColors: ["#BBF7D0"] },
+	{ id: "sudoku_theme_ocean", category: "sudoku_theme", title: "Ocean Breeze", description: "Light blue board with deep blue lines.", price: 450, accent: "#A3E635", previewColors: ["#BAE6FD"] },
+	{ id: "sudoku_theme_neon", category: "sudoku_theme", title: "Neon Grid", description: "Dark board with glowing cyan lines.", price: 550, accent: "#A3E635", previewColors: ["#050816"] },
 
 	{ id: "mahjong_theme_jade", category: "mahjong_theme", title: "Jade Tiles", description: "Traditional green backed jade tiles.", price: 0, accent: "#2DD4BF", previewColors: ["#34D399"] },
 	{ id: "mahjong_theme_ivory", category: "mahjong_theme", title: "Ivory Tiles", description: "Clean white carved ivory tiles.", price: 500, accent: "#2DD4BF", previewColors: ["#FDF8F6"] },
+	{ id: "mahjong_theme_onyx", category: "mahjong_theme", title: "Onyx Tiles", description: "Black tiles with gold symbols.", price: 600, accent: "#2DD4BF", previewColors: ["#1F2937"] },
+	{ id: "mahjong_theme_ruby", category: "mahjong_theme", title: "Ruby Tiles", description: "Pale tiles carved in ruby red.", price: 650, accent: "#2DD4BF", previewColors: ["#FEF2F2"] },
+	{ id: "mahjong_theme_sakura", category: "mahjong_theme", title: "Sakura Tiles", description: "Blossom pink tiles on a plum table.", price: 750, accent: "#2DD4BF", previewColors: ["#FDF2F8"] },
 
 	// ORIGINAL BLOCKERINO
 	{

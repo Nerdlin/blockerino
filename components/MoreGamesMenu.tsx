@@ -48,13 +48,100 @@ interface MoreGameCard {
 	tags: string[];
 }
 
+// Cosmetic palettes of the More Games shop. Every shop item id (without its category prefix) has an entry here.
+export const CHESS_BOARD_COLORS = {
+	slate: { light: "#CBD5E1", dark: "#334155" },
+	violet: { light: "#C4B5FD", dark: "#7C3AED" },
+	walnut: { light: "#E8C99B", dark: "#8B5E34" },
+	emerald: { light: "#EEEED2", dark: "#769656" },
+	ice: { light: "#DEEAF6", dark: "#5B8DB8" },
+	candy: { light: "#FCE7F3", dark: "#D9619A" },
+} as const satisfies Record<string, { light: string; dark: string }>;
+
+export const CHESS_PIECE_COLORS = {
+	classic: { white: "#FFFFFF", black: "#111827", heavy: false },
+	royal: { white: "#FDE047", black: "#111827", heavy: false },
+	club: { white: "#E5E7EB", black: "#1F2937", heavy: true },
+	neon: { white: "#67E8F9", black: "#581C87", heavy: false },
+	ember: { white: "#FED7AA", black: "#7F1D1D", heavy: false },
+	frost: { white: "#E0F2FE", black: "#1E3A8A", heavy: false },
+} as const satisfies Record<string, { white: string; black: string; heavy: boolean }>;
+
+export const MAHJONG_THEMES = {
+	jade: { board: "#0F3A3E", boardBorder: "#2DD4BF", tile: "#ECFDF5", tileBorder: "#0F766E", text: "#047857" },
+	ivory: { board: "#78350F", boardBorder: "#FED7AA", tile: "#FFF7ED", tileBorder: "#B45309", text: "#991B1B" },
+	onyx: { board: "#0B0B10", boardBorder: "#FACC15", tile: "#1F2937", tileBorder: "#6B7280", text: "#FACC15" },
+	ruby: { board: "#450A0A", boardBorder: "#F87171", tile: "#FEF2F2", tileBorder: "#B91C1C", text: "#B91C1C" },
+	sakura: { board: "#4A1D3A", boardBorder: "#F9A8D4", tile: "#FDF2F8", tileBorder: "#BE185D", text: "#9D174D" },
+} as const satisfies Record<string, { board: string; boardBorder: string; tile: string; tileBorder: string; text: string }>;
+
+export const CARD_SKINS = {
+	classic: { faceBg: null, faceBorder: null, backBg: "#1E40AF", backBorder: "#FFFFFF", backGlyph: "#60A5FA" },
+	casino: { faceBg: "#F8FAFC", faceBorder: "#FACC15", backBg: "#B91C1C", backBorder: "#FACC15", backGlyph: "#FCA5A5" },
+	midnight: { faceBg: "#F8FAFC", faceBorder: "#6366F1", backBg: "#111827", backBorder: "#6366F1", backGlyph: "#818CF8" },
+	forest: { faceBg: "#F7FEE7", faceBorder: "#16A34A", backBg: "#14532D", backBorder: "#86EFAC", backGlyph: "#4ADE80" },
+	sakura: { faceBg: "#FFF1F2", faceBorder: "#F472B6", backBg: "#BE185D", backBorder: "#FBCFE8", backGlyph: "#F9A8D4" },
+} as const satisfies Record<string, { faceBg: string | null; faceBorder: string | null; backBg: string; backBorder: string; backGlyph: string }>;
+
+export const SEA_SKINS = {
+	navy: { paper: false, gridBg: "#082F49", gridBorder: "#38BDF8", water: "rgba(14,165,233,0.12)", miss: "#1E40AF", cellBorder: null },
+	paper: { paper: true, gridBg: "#DBEAFE", gridBorder: "#1E3A8A", water: "rgba(255,255,255,0.32)", miss: "#CBD5E1", cellBorder: "#2563EB" },
+	sonar: { paper: false, gridBg: "#022C22", gridBorder: "#34D399", water: "rgba(52,211,153,0.10)", miss: "#065F46", cellBorder: "rgba(52,211,153,0.35)" },
+	sunset: { paper: false, gridBg: "#431407", gridBorder: "#FB923C", water: "rgba(251,146,60,0.14)", miss: "#9A3412", cellBorder: "rgba(251,146,60,0.4)" },
+	blueprint: { paper: false, gridBg: "#1D4ED8", gridBorder: "#BFDBFE", water: "rgba(191,219,254,0.18)", miss: "#1E3A8A", cellBorder: "rgba(191,219,254,0.55)" },
+} as const satisfies Record<string, { paper: boolean; gridBg: string; gridBorder: string; water: string; miss: string; cellBorder: string | null }>;
+
+interface SudokuPalette {
+	surface: { bg: string; border: string } | null;
+	boardBorder: string;
+	boardBg: string;
+	cellBorder: string;
+	cellBg: string;
+	cellShadow: string | null;
+	related: string;
+	selected: string;
+	/** Colours left undefined fall back to the app theme (the dark themes). */
+	status?: string;
+	given?: string;
+	entry?: string;
+	notes?: string;
+	tile: { bg: string; border: string } | null;
+	tileText?: string;
+}
+
+export const SUDOKU_THEMES = {
+	wood: {
+		surface: { bg: "#D8A868", border: "#7C2D12" }, boardBorder: "#5B2E14", boardBg: "#B77C43", cellBorder: "#7C2D12", cellBg: "#F6D7B0",
+		cellShadow: "#7C2D12", related: "#E9C99A", selected: "#FACC15", status: "#5B2E14", given: "#5B2E14", entry: "#7C2D12", notes: "#8B5E34",
+		tile: { bg: "#F6D7B0", border: "#7C2D12" }, tileText: "#5B2E14",
+	},
+	night: {
+		surface: null, boardBorder: "#94A3B8", boardBg: "#020617", cellBorder: "#475569", cellBg: "#111827", cellShadow: null,
+		related: "rgba(96,165,250,0.16)", selected: "#334155", tile: null,
+	},
+	mint: {
+		surface: { bg: "#BBF7D0", border: "#166534" }, boardBorder: "#14532D", boardBg: "#16A34A", cellBorder: "#166534", cellBg: "#F0FDF4",
+		cellShadow: null, related: "#DCFCE7", selected: "#FDE047", status: "#14532D", given: "#14532D", entry: "#0F766E", notes: "#4D7C0F",
+		tile: { bg: "#F0FDF4", border: "#166534" }, tileText: "#14532D",
+	},
+	ocean: {
+		surface: { bg: "#BAE6FD", border: "#075985" }, boardBorder: "#0C4A6E", boardBg: "#0284C7", cellBorder: "#075985", cellBg: "#F0F9FF",
+		cellShadow: null, related: "#E0F2FE", selected: "#FDE047", status: "#0C4A6E", given: "#0C4A6E", entry: "#1D4ED8", notes: "#0369A1",
+		tile: { bg: "#F0F9FF", border: "#075985" }, tileText: "#0C4A6E",
+	},
+	neon: {
+		surface: null, boardBorder: "#22D3EE", boardBg: "#050816", cellBorder: "#155E75", cellBg: "#0B1220", cellShadow: null,
+		related: "rgba(34,211,238,0.14)", selected: "#164E63", entry: "#22D3EE", notes: "#67E8F9", tile: null,
+	},
+} as const satisfies Record<string, SudokuPalette>;
+
 interface ExtraGameCosmetics {
-	chessPieces: "classic" | "royal" | "club";
-	chessBoard: "slate" | "violet" | "walnut";
-	sudokuTheme: "wood" | "night";
-	mahjongTheme: "jade" | "ivory";
-	cardSkin: "classic" | "casino";
-	seaSkin: "navy" | "paper";
+	chessPieces: keyof typeof CHESS_PIECE_COLORS;
+	chessBoard: keyof typeof CHESS_BOARD_COLORS;
+	sudokuTheme: keyof typeof SUDOKU_THEMES;
+	mahjongTheme: keyof typeof MAHJONG_THEMES;
+	cardSkin: keyof typeof CARD_SKINS;
+	seaSkin: keyof typeof SEA_SKINS;
 }
 
 interface BattleShip {
@@ -94,6 +181,7 @@ interface DurakState {
 	discardCount: number;
 	winner: OnlineRole | null;
 	finished?: OnlineRole[];
+	draw?: boolean;
 	cancelled?: boolean;
 	message: string;
 	bet: number;
@@ -126,6 +214,12 @@ const ONLINE_ROLES: OnlineRole[] = ["player1", "player2", "player3", "player4", 
 const EXTRA_COSMETICS_KEY = "EXTRA_GAME_COSMETICS_V1";
 const PLAYER_NAME_KEY = "PLAYER_NAME";
 const DEFAULT_MORE_GAME_PLAYER_NAME = "Player";
+
+/** Resolves an equipped shop item id to a palette key, falling back when the id is missing or unknown. */
+export function pickCosmetic<T extends Record<string, unknown>>(palettes: T, itemId: string | undefined, prefix: string, fallback: keyof T): keyof T {
+	const key = itemId?.startsWith(prefix) ? itemId.slice(prefix.length) : itemId;
+	return key !== undefined && Object.prototype.hasOwnProperty.call(palettes, key) ? key as keyof T : fallback;
+}
 
 const DEFAULT_EXTRA_COSMETICS: ExtraGameCosmetics = {
 	chessPieces: "royal",
@@ -254,7 +348,14 @@ function getNextDurakRole(role: OnlineRole, playerCount: number, hands?: Record<
 	return roles[(start + 1) % roles.length];
 }
 
+const SHOT_RESEND_MS = 3000;
+const SHOT_RESEND_LIMIT = 4;
+const PRESENCE_LEAVE_GRACE_MS = 10000;
+const ROOM_JOIN_TIMEOUT_MS = 12000;
+
 export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, payload: any, senderRole?: OnlineRole) => void, playerName: string = DEFAULT_MORE_GAME_PLAYER_NAME, avatarUrl?: string) {
+	// Durak and Sea Battle hand out seats: the host seats each guest and ignores everyone else.
+	const usesSeats = gameId === 'durak' || gameId === 'battleship';
 	const [roomCode, setRoomCode] = useState("");
 	const [role, setRole] = useState<OnlineRole | null>(null);
 	const [status, setStatus] = useState<RoomStatus>("offline");
@@ -269,6 +370,8 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 	const seatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const seatConfirmedRef = useRef(false);
 	const tableStartedRef = useRef(false);
+	const leftKeysRef = useRef<Set<string>>(new Set());
+	const presenceTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
 	useEffect(() => {
 		onEventRef.current = onEvent;
@@ -284,6 +387,8 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 
 	const disconnect = useCallback(() => {
 		if (seatTimerRef.current) clearTimeout(seatTimerRef.current);
+		presenceTimersRef.current.forEach((timer) => clearTimeout(timer));
+		presenceTimersRef.current.clear();
 		const channel = channelRef.current;
 		const currentRole = roleRef.current;
 		const hadSeat = seatConfirmedRef.current;
@@ -331,22 +436,27 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 		setStatus("connecting");
 		capacityRef.current = Math.max(2, Math.min(6, capacity));
 		seatsRef.current = nextRole === 'player1' ? { [clientIdRef.current]: 'player1' } : {};
-		seatConfirmedRef.current = gameId !== 'durak' || nextRole === 'player1';
+		seatConfirmedRef.current = !usesSeats || nextRole === 'player1';
 		tableStartedRef.current = false;
+		leftKeysRef.current = new Set();
 
 		const channel = supabase.channel(`more-games:${gameId}:${nextCode}`, {
-			config: { broadcast: { self: false, ack: true } },
+			config: { broadcast: { self: false, ack: true }, presence: { key: clientIdRef.current } },
 		});
+		const trackPresence = (seat: OnlineRole) => {
+			void Promise.resolve(channel.track?.({ role: seat })).catch(() => undefined);
+		};
+		const presenceKeys = () => Object.keys(typeof channel.presenceState === 'function' ? channel.presenceState() : {});
 
 		channel.on("broadcast", { event: "mini_game" }, ({ payload }: { payload: any }) => {
 			if (channelRef.current !== channel || !payload || payload.senderId === clientIdRef.current) return;
-			if (gameId === 'durak' && payload.event === 'seat_request' && roleRef.current === 'player1') {
+			if (usesSeats && payload.event === 'seat_request' && roleRef.current === 'player1') {
 				const assigned = seatsRef.current[payload.senderId] || (!tableStartedRef.current ? ONLINE_ROLES.slice(1, capacityRef.current).find(seat => !Object.values(seatsRef.current).includes(seat)) : undefined);
 				if (assigned) seatsRef.current[payload.senderId] = assigned;
 				void channel.send({ type: 'broadcast', event: 'mini_game', payload: { event: 'seat_assigned', payload: { to: payload.senderId, seat: assigned || null }, role: 'player1', senderId: clientIdRef.current } });
 				return;
 			}
-			if (gameId === 'durak' && payload.event === 'seat_assigned' && payload.payload?.to === clientIdRef.current) {
+			if (usesSeats && payload.event === 'seat_assigned' && payload.payload?.to === clientIdRef.current) {
 				if (seatTimerRef.current) clearTimeout(seatTimerRef.current);
 				const assigned = payload.payload.seat;
 				if (!ONLINE_ROLES.includes(assigned) || assigned === 'player1') { setStatus('error'); return; }
@@ -354,25 +464,50 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 				seatConfirmedRef.current = true;
 				setRole(assigned);
 				setStatus('connected');
+				trackPresence(assigned);
 				void channel.send({ type: 'broadcast', event: 'mini_game', payload: { event: 'system_joined', payload: { playerName: playerNameRef.current, avatar: avatarUrlRef.current }, role: assigned, senderId: clientIdRef.current } });
 				return;
 			}
-			if (gameId === 'durak' && roleRef.current === 'player1' && seatsRef.current[payload.senderId] !== payload.role) return;
-			if (gameId === 'durak' && payload.event === 'system_left') delete seatsRef.current[payload.senderId];
+			if (usesSeats && roleRef.current === 'player1' && seatsRef.current[payload.senderId] !== payload.role) return;
+			if (payload.event === 'system_left') leftKeysRef.current.add(payload.senderId);
+			if (usesSeats && payload.event === 'system_left') delete seatsRef.current[payload.senderId];
 			if (typeof payload.event !== "string" || !payload.payload || typeof payload.payload !== "object" || !ONLINE_ROLES.includes(payload.role)) return;
 			onEventRef.current(payload.event, payload.payload, payload.role);
+		});
+
+		// A peer that closes the tab or loses the network never sends system_left; presence reports it
+		// instead. The grace period keeps a brief socket reconnect from counting as a forfeit.
+		channel.on?.("presence", { event: "leave" }, ({ key, leftPresences }: { key?: string; leftPresences?: Array<{ role?: OnlineRole }> }) => {
+			if (channelRef.current !== channel || !key || key === clientIdRef.current) return;
+			const leftRole = leftPresences?.[0]?.role;
+			if (!leftRole || !ONLINE_ROLES.includes(leftRole)) return;
+			const timer = setTimeout(() => {
+				presenceTimersRef.current.delete(timer);
+				if (channelRef.current !== channel || leftKeysRef.current.has(key) || presenceKeys().includes(key)) return;
+				leftKeysRef.current.add(key);
+				if (usesSeats) delete seatsRef.current[key];
+				onEventRef.current("system_left", {}, leftRole);
+			}, PRESENCE_LEAVE_GRACE_MS);
+			presenceTimersRef.current.add(timer);
 		});
 
 		channelRef.current = channel;
 		channel.subscribe((nextStatus: string) => {
 			if (channelRef.current !== channel) return;
 			if (nextStatus === "SUBSCRIBED") {
-				if (gameId === 'durak' && nextRole !== 'player1') {
+				if (usesSeats && nextRole !== 'player1') {
 					seatTimerRef.current = setTimeout(() => { if (channelRef.current === channel) setStatus('error'); }, 15000);
 					void channel.send({ type: 'broadcast', event: 'mini_game', payload: { event: 'seat_request', payload: {}, role: nextRole, senderId: clientIdRef.current } }).catch(() => { if (channelRef.current === channel) setStatus('error'); });
 					return;
 				}
 				setStatus("connected");
+				trackPresence(nextRole);
+				if (nextRole !== 'player1' && typeof channel.presenceState === 'function') {
+					// Nobody else in the channel means the code is wrong or the host is gone.
+					seatTimerRef.current = setTimeout(() => {
+						if (channelRef.current === channel && presenceKeys().every((key) => key === clientIdRef.current)) setStatus('error');
+					}, ROOM_JOIN_TIMEOUT_MS);
+				}
 				void channel.send({
 					type: "broadcast",
 					event: "mini_game",
@@ -399,7 +534,7 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 		const channel = channelRef.current;
 		const currentRole = roleRef.current;
 		if (!channel || !currentRole) return;
-		if (gameId === 'durak' && !seatConfirmedRef.current) return;
+		if (usesSeats && !seatConfirmedRef.current) return;
 		if (gameId === 'durak' && currentRole === 'player1' && event === 'sync') tableStartedRef.current = true;
 
 		void channel.send({
@@ -489,8 +624,8 @@ function OnlineRoomControls({
 			} else {
 				return (
 					<View style={styles.waitingContainer}>
-						<Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>{t("mp.connecting")}</Text>
-						<ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 30 }} />
+						<Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>{status === "error" ? t("mp.connectionError") : t("mp.connecting")}</Text>
+						{status !== "error" && <ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 30 }} />}
 						<StylizedButton text={t("mp.cancel")} onClick={onDisconnect} backgroundColor={cssColors.spaceGray} />
 					</View>
 				);
@@ -611,12 +746,12 @@ export default function MoreGamesMenu() {
 	const { state: shopState } = useShopState();
 	
 	const cosmetics: ExtraGameCosmetics = useMemo(() => ({
-		chessPieces: (shopState.equipped.chess_piece?.replace("chess_piece_", "") || "classic") as ExtraGameCosmetics["chessPieces"],
-		chessBoard: (shopState.equipped.chess_board?.replace("chess_board_", "") || "slate") as ExtraGameCosmetics["chessBoard"],
-		sudokuTheme: (shopState.equipped.sudoku_theme?.replace("sudoku_theme_", "") || "wood") as ExtraGameCosmetics["sudokuTheme"],
-		mahjongTheme: (shopState.equipped.mahjong_theme?.replace("mahjong_theme_", "") || "jade") as ExtraGameCosmetics["mahjongTheme"],
-		cardSkin: (shopState.equipped.card_skin?.replace("card_skin_", "") || "classic") as ExtraGameCosmetics["cardSkin"],
-		seaSkin: (shopState.equipped.sea_skin?.replace("sea_skin_", "") || "navy") as ExtraGameCosmetics["seaSkin"],
+		chessPieces: pickCosmetic(CHESS_PIECE_COLORS, shopState.equipped.chess_piece, "chess_piece_", "classic"),
+		chessBoard: pickCosmetic(CHESS_BOARD_COLORS, shopState.equipped.chess_board, "chess_board_", "slate"),
+		sudokuTheme: pickCosmetic(SUDOKU_THEMES, shopState.equipped.sudoku_theme, "sudoku_theme_", "wood"),
+		mahjongTheme: pickCosmetic(MAHJONG_THEMES, shopState.equipped.mahjong_theme, "mahjong_theme_", "jade"),
+		cardSkin: pickCosmetic(CARD_SKINS, shopState.equipped.card_skin, "card_skin_", "classic"),
+		seaSkin: pickCosmetic(SEA_SKINS, shopState.equipped.sea_skin, "sea_skin_", "navy"),
 	}), [shopState.equipped]);
 
 	const [playerName, setPlayerName] = useState(DEFAULT_MORE_GAME_PLAYER_NAME);
@@ -1282,7 +1417,8 @@ function SudokuGame({ cosmetics, playerName, onRatingChange }: { cosmetics: Extr
 	const complete = grid.every((row, y) => row.every((value, x) => value === solution[y][x]));
 	const lost = mistakes >= SUDOKU_MAX_MISTAKES;
 	const finished = complete || lost;
-	const wood = cosmetics.sudokuTheme === "wood";
+	const sudoku: SudokuPalette = SUDOKU_THEMES[cosmetics.sudokuTheme];
+	const sudokuText = sudoku.given ?? currentTheme.textPrimary;
 
 	useEffect(() => {
 		if (!finished || ratingSubmittedRef.current) return;
@@ -1353,17 +1489,17 @@ function SudokuGame({ cosmetics, playerName, onRatingChange }: { cosmetics: Extr
 	};
 
 	return (
-		<View style={[styles.centerGame, wood && styles.woodGameSurface]}>
+		<View style={[styles.centerGame, sudoku.surface && styles.woodGameSurface, sudoku.surface && { backgroundColor: sudoku.surface.bg, borderColor: sudoku.surface.border }]}>
 			<View style={styles.sudokuTopBar}>
-				<Text style={[styles.gameStatus, { color: complete ? "#7C2D12" : lost ? "#DC2626" : wood ? "#5B2E14" : currentTheme.textPrimary }]}>
+				<Text style={[styles.gameStatus, { color: complete ? "#7C2D12" : lost ? "#DC2626" : sudoku.status ?? currentTheme.textPrimary }]}>
 					{complete ? t("sudoku.solved") : lost ? t("sudoku.gameOver") : selected ? `${t("sudoku.mistakes")} ${mistakes}/${SUDOKU_MAX_MISTAKES}` : t("sudoku.selectCell")}
 				</Text>
 				<Pressable onPress={() => setNoteMode((value) => !value)} style={[styles.noteToggle, { borderColor: noteMode ? "#FACC15" : "rgba(0,0,0,0.25)" }]}>
-					<Text style={[styles.noteToggleText, { color: wood ? "#5B2E14" : currentTheme.textPrimary }]}>{t("sudoku.notes")} {noteMode ? t("common.on") : t("common.off")}</Text>
+					<Text style={[styles.noteToggleText, { color: sudoku.status ?? currentTheme.textPrimary }]}>{t("sudoku.notes")} {noteMode ? t("common.on") : t("common.off")}</Text>
 				</Pressable>
 			</View>
 			<View style={styles.sudokuBoardWrap}>
-				<View style={[styles.sudokuBoard, wood ? styles.sudokuBoardWood : styles.sudokuBoardNight]}>
+				<View style={[styles.sudokuBoard, { borderColor: sudoku.boardBorder, backgroundColor: sudoku.boardBg }]}>
 					{grid.map((row, y) => row.map((value, x) => {
 						const fixed = puzzle[y][x] !== 0;
 						const isSelected = selected?.[0] === y && selected?.[1] === x;
@@ -1377,9 +1513,10 @@ function SudokuGame({ cosmetics, playerName, onRatingChange }: { cosmetics: Extr
 								onPress={() => setSelected([y, x])}
 								style={[
 									styles.sudokuCell,
-									wood ? styles.sudokuCellWood : styles.sudokuCellNight,
-									related && !isSelected && { backgroundColor: wood ? "#E9C99A" : "rgba(96,165,250,0.16)" },
-									isSelected && { backgroundColor: wood ? "#FACC15" : "#334155" },
+									{ borderColor: sudoku.cellBorder, backgroundColor: sudoku.cellBg },
+									sudoku.cellShadow ? { shadowColor: sudoku.cellShadow, shadowOpacity: 0.22, shadowRadius: 2 } : null,
+									related && !isSelected && { backgroundColor: sudoku.related },
+									isSelected && { backgroundColor: sudoku.selected },
 									(y + 1) % 3 === 0 && y < 8 && styles.sudokuCellBottom,
 									(x + 1) % 3 === 0 && x < 8 && styles.sudokuCellRight,
 								]}
@@ -1387,12 +1524,12 @@ function SudokuGame({ cosmetics, playerName, onRatingChange }: { cosmetics: Extr
 								{value ? (
 									<Text style={[
 										styles.sudokuText,
-										{ color: wrong ? "#DC2626" : fixed ? (wood ? "#5B2E14" : currentTheme.textPrimary) : (wood ? "#7C2D12" : currentTheme.accent) },
+										{ color: wrong ? "#DC2626" : fixed ? sudokuText : (sudoku.entry ?? currentTheme.accent) },
 									]}>
 										{value}
 									</Text>
 								) : (
-									<Text style={[styles.sudokuNotes, { color: wood ? "#8B5E34" : currentTheme.textSecondary }]}>{notes[key]?.join("") || ""}</Text>
+									<Text style={[styles.sudokuNotes, { color: sudoku.notes ?? currentTheme.textSecondary }]}>{notes[key]?.join("") || ""}</Text>
 								)}
 							</Pressable>
 						);
@@ -1417,8 +1554,8 @@ function SudokuGame({ cosmetics, playerName, onRatingChange }: { cosmetics: Extr
 			</View>
 			<View style={styles.numberPad}>
 				{[1, 2, 3, 4, 5, 6, 7, 8, 9].map((number) => (
-					<Pressable key={number} onPress={() => setNumber(number)} style={[styles.sudokuNumberTile, wood && styles.sudokuNumberTileWood, finished && styles.disabledControl]} disabled={finished}>
-						<Text style={[styles.sudokuNumberText, { color: wood ? "#5B2E14" : currentTheme.textPrimary }]}>{number}</Text>
+					<Pressable key={number} onPress={() => setNumber(number)} style={[styles.sudokuNumberTile, sudoku.tile && { borderColor: sudoku.tile.border, backgroundColor: sudoku.tile.bg }, finished && styles.disabledControl]} disabled={finished}>
+						<Text style={[styles.sudokuNumberText, { color: sudoku.tileText ?? currentTheme.textPrimary }]}>{number}</Text>
 					</Pressable>
 				))}
 				<StylizedButton text={t("sudoku.clear")} onClick={() => setNumber(0)} backgroundColor={cssColors.spaceGray} style={styles.clearNumberButton} textStyle={styles.tinyButtonText} />
@@ -1564,7 +1701,7 @@ function MahjongGame({ cosmetics, playerName, onRatingChange }: { cosmetics: Ext
 	const [history, setHistory] = useState<MahjongTile[][]>([]);
 	const ratingSubmittedRef = useRef(false);
 	const remaining = tiles.filter((tile) => !tile.removed).length;
-	const jade = cosmetics.mahjongTheme === "jade";
+	const mahjong = MAHJONG_THEMES[cosmetics.mahjongTheme];
 
 	useEffect(() => {
 		if (remaining !== 0 || ratingSubmittedRef.current) return;
@@ -1618,7 +1755,7 @@ function MahjongGame({ cosmetics, playerName, onRatingChange }: { cosmetics: Ext
 				{remaining === 0 ? t("mahjong.boardCleared") : noMoves ? t("mahjong.noMoves") : t("mahjong.tilesLeft", { count: remaining })}
 			</Text>
 			<View onLayout={(event) => setBoardWidth(event.nativeEvent.layout.width)} style={{ width: '100%', height: 360 * boardScale, alignItems: 'center' }}>
-			<View style={[styles.mahjongLayerBoard, jade ? styles.mahjongJadeBoard : styles.mahjongIvoryBoard, { position: 'absolute', left: Math.max(0, (boardWidth - 370) / 2), transformOrigin: 'top left', transform: [{ scale: boardScale }] }]}>
+			<View style={[styles.mahjongLayerBoard, { backgroundColor: mahjong.board, borderColor: mahjong.boardBorder }, { position: 'absolute', left: Math.max(0, (boardWidth - 370) / 2), transformOrigin: 'top left', transform: [{ scale: boardScale }] }]}>
 				{tiles.map((tile) => {
 					if (tile.removed) return null;
 					const free = isMahjongTileFree(tile, tiles);
@@ -1635,12 +1772,12 @@ function MahjongGame({ cosmetics, playerName, onRatingChange }: { cosmetics: Ext
 									top: 10 + tile.y * 56 - tile.z * 10,
 									zIndex: tile.z * 20 + tile.y,
 									opacity: free ? 1 : 0.58,
-									borderColor: selected ? "#FACC15" : hinted ? "#22D3EE" : jade ? "#0F766E" : "#B45309",
-									backgroundColor: jade ? "#ECFDF5" : "#FFF7ED",
+									borderColor: selected ? "#FACC15" : hinted ? "#22D3EE" : mahjong.tileBorder,
+									backgroundColor: mahjong.tile,
 								},
 							]}
 						>
-							<Text style={[styles.mahjongText, { color: jade ? "#047857" : "#991B1B" }]}>{tile.symbol}</Text>
+							<Text style={[styles.mahjongText, { color: mahjong.text }]}>{tile.symbol}</Text>
 						</Pressable>
 					);
 				})}
@@ -1747,6 +1884,13 @@ export function isShipPlacementValid(candidate: BattleShip, fleet: BattleShip[])
 	return cells.every((cell) => !forbiddenCells.has(cell));
 }
 
+/** Reply to a shot that was already resolved (the shooter re-sent it), or null for a new shot. */
+export function getRepeatedShotReply(incoming: Record<string, "hit" | "miss">, occupied: Set<string>, cell: string) {
+	const result = incoming[cell];
+	if (!result) return null;
+	return { result, lost: [...occupied].every((ship) => incoming[ship] === "hit") };
+}
+
 function occupiedFleetCells(fleet: BattleShip[]) {
 	return new Set(fleet.flatMap(getShipCells));
 }
@@ -1773,6 +1917,11 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 	const ratingSubmittedRef = useRef<string | null>(null);
 	const fleetRef = useRef(fleet);
 	const incomingRef = useRef(incomingShots);
+	const winnerRef = useRef<DuelRole | null>(null);
+	const startedRef = useRef(false);
+	const pendingShotCellRef = useRef<string | null>(null);
+	winnerRef.current = winner;
+	startedRef.current = ready && opponentReady;
 	const boardRef = useRef<View>(null);
 	// Re-measure when a drag starts: the card may have moved or been scaled since the first layout.
 	const remeasureBoard = () => {
@@ -1792,16 +1941,23 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 	const handleEvent = useCallback((event: string, payload: any, senderRole?: OnlineRole) => {
 		if (event === "system_joined" && senderRole) {
 			setOpponentName(normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)));
-			roomRef.current?.send("ready_state", { ready });
+			roomRef.current?.send("ready_state", { ready, playerName });
 			return;
 		}
 		if (event === "system_left" && isDuelRole(senderRole) && isDuelRole(roomRef.current.role)) {
+			// A finished game keeps its result, and leaving before both fleets are ready is not a forfeit.
+			if (winnerRef.current) return;
+			if (!startedRef.current) {
+				setOpponentReady(false);
+				return;
+			}
 			setOpponentName(normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)));
 			setWinnerSource("forfeit");
 			setWinner(roomRef.current.role);
 			return;
 		}
 		if (event === "ready_state") {
+			if (payload.playerName) setOpponentName(normalizeStoredPlayerName(payload.playerName));
 			setOpponentReady(Boolean(payload.ready));
 			return;
 		}
@@ -1817,6 +1973,17 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 			if (!isDuelRole(currentRole) || payload.to !== currentRole) return;
 			const shotCell = String(payload.cell);
 			const occupied = occupiedFleetCells(fleetRef.current);
+			const repeated = getRepeatedShotReply(incomingRef.current, occupied, shotCell);
+			if (repeated) {
+				// A re-sent shot: our answer was lost, so repeat it. The turn already moved on.
+				roomRef.current.send("shot_result", {
+					to: payload.from,
+					cell: shotCell,
+					result: repeated.result,
+					winner: repeated.lost ? payload.from : null,
+				});
+				return;
+			}
 			const hit = occupied.has(shotCell);
 			const nextIncoming: Record<string, "hit" | "miss"> = { ...incomingRef.current, [shotCell]: hit ? "hit" : "miss" };
 			incomingRef.current = nextIncoming;
@@ -1841,6 +2008,9 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 		if (event === "shot_result") {
 			const currentRole = roomRef.current.role;
 			if (!isDuelRole(currentRole) || payload.to !== currentRole) return;
+			// Ignore a duplicate result (the shot is re-sent when the first answer is lost).
+			if (pendingShotCellRef.current !== String(payload.cell)) return;
+			pendingShotCellRef.current = null;
 			setTargetShots((current) => ({ ...current, [payload.cell]: payload.result }));
 			if (payload.winner && isDuelRole(payload.winner)) {
 				setWinnerSource("normal");
@@ -1850,7 +2020,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 				setTimeLeft(60);
 			}
 		}
-	}, [ready]);
+	}, [ready, playerName]);
 
 	const room = useMiniGameRoom("battleship", handleEvent, playerName);
 	const roomRef = useRef({ role: room.role, send: room.send });
@@ -1887,6 +2057,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 		setOpponentReady(false);
 		setTimeLeft(60);
 		ratingSubmittedRef.current = null;
+		pendingShotCellRef.current = null;
 	};
 
 	const placeSelectedShip = (cell: string) => {
@@ -1965,19 +2136,46 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 	const markReady = () => {
 		if (!fleet.every((ship) => isShipPlacementValid(ship, fleet))) return;
 		setReady(true);
-		room.send("ready_state", { ready: true });
+		room.send("ready_state", { ready: true, playerName });
 	};
 
 	const fire = (cell: string) => {
-		if (!isDuelRole(room.role) || !room.isConnected || !ready || !opponentReady || winner || turn !== room.role || targetShots[cell]) return;
+		if (!isDuelRole(room.role) || !room.isConnected || !ready || !opponentReady || winner || turn !== room.role || targetShots[cell] || pendingShotCellRef.current) return;
+		pendingShotCellRef.current = cell;
 		setTargetShots((current) => ({ ...current, [cell]: "pending" }));
 		setTurn(null);
 		room.send("shot", { from: room.role, to: getDuelOpponent(room.role), cell });
 	};
 
 	useEffect(() => {
+		const cell = pendingShotCellRef.current;
+		if (!cell || winner || targetShots[cell] !== "pending") return;
+		let attempts = 0;
+		const timer = setInterval(() => {
+			const role = roomRef.current.role;
+			if (!isDuelRole(role) || pendingShotCellRef.current !== cell) return;
+			attempts += 1;
+			if (attempts > SHOT_RESEND_LIMIT) {
+				// No answer at all: free the cell and give the turn back so the player can shoot again.
+				pendingShotCellRef.current = null;
+				setTargetShots((current) => {
+					const next = { ...current };
+					delete next[cell];
+					return next;
+				});
+				setTurn(role);
+				setTimeLeft(60);
+				return;
+			}
+			roomRef.current.send("shot", { from: role, to: getDuelOpponent(role), cell });
+		}, SHOT_RESEND_MS);
+		return () => clearInterval(timer);
+	}, [targetShots, winner]);
+
+	useEffect(() => {
 		if (!winner || !room.isConnected || !isDuelRole(room.role)) return;
-		const resultKey = `${room.roomCode}:${winner}:${winnerSource || "normal"}`;
+		// One rating per game: the room code is unique for each Sea Battle match.
+		const resultKey = room.roomCode;
 		if (ratingSubmittedRef.current === resultKey) return;
 		const shouldSubmit = room.role === "player1" || winnerSource === "forfeit";
 		if (!shouldSubmit) return;
@@ -1989,7 +2187,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 			player2Name: room.role === "player2" ? playerName : opponentName,
 			result: winner,
 			roomCode: room.roomCode,
-			metadata: { source: winnerSource || "normal" },
+			metadata: { source: winnerSource || "normal", matchId: room.roomCode },
 		}).then(() => onRatingChange());
 	}, [onRatingChange, opponentName, playerName, room.isConnected, room.role, room.roomCode, winner, winnerSource]);
 
@@ -2020,7 +2218,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 									onDrop={onDropShip}
 									onDragMove={onDragMove}
 									onDragEnd={onDragEnd}
-									paper={cosmetics.seaSkin === "paper"}
+									paper={SEA_SKINS[cosmetics.seaSkin].paper}
 								/>
 							))}
 						</View>
@@ -2126,7 +2324,7 @@ function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: 
 									onDrop={onDropShip}
 									onDragMove={onDragMove}
 									onDragEnd={onDragEnd}
-									paper={cosmetics.seaSkin === "paper"}
+									paper={SEA_SKINS[cosmetics.seaSkin].paper}
 								/>
 							))}
 						</View>
@@ -2246,7 +2444,7 @@ function BattleGrid({
 	const placedShips = ships?.filter(s => s.x >= 0 && s.x < BATTLE_BOARD_SIZE) ?? [];
 	const shipByCell = new Map<string, BattleShip>();
 	placedShips.forEach((ship) => getShipCells(ship).forEach((cell) => shipByCell.set(cell, ship)));
-	const paper = cosmetics.seaSkin === "paper";
+	const sea = SEA_SKINS[cosmetics.seaSkin];
 
 	// Получаем клетки для превью
 	const previewCells = new Set<string>();
@@ -2260,12 +2458,12 @@ function BattleGrid({
 
 	const gridSize = useBattleGridSize();
 	const markSize = Math.max(18, Math.round((gridSize / 10) * 0.8 / 9) * 9);
-	const waterColor = paper ? "rgba(255,255,255,0.32)" : "rgba(14,165,233,0.12)";
+	const waterColor = sea.water;
 
 	return (
 		<View style={styles.battleGridWrap}>
 			<Text style={[styles.gridLabel, { color: currentTheme.textSecondary }]}>{title}</Text>
-			<View style={[styles.battleGrid, { width: gridSize, height: gridSize }, paper ? styles.paperBattleGrid : styles.navyBattleGrid]}>
+			<View style={[styles.battleGrid, { width: gridSize, height: gridSize }, { backgroundColor: sea.gridBg, borderColor: sea.gridBorder }]}>
 				{Array.from({ length: BATTLE_BOARD_SIZE }).map((_, rowIndex) => (
 					<View key={`row-${rowIndex}`} style={styles.battleRow}>
 						{Array.from({ length: BATTLE_BOARD_SIZE }).map((_, colIndex) => {
@@ -2278,7 +2476,7 @@ function BattleGrid({
 								: status === "hit"
 									? "#DC2626"
 									: status === "miss"
-										? paper ? "#CBD5E1" : "#1E40AF"
+										? sea.miss
 										: status === "pending"
 											? "#FACC15"
 											: waterColor;
@@ -2286,7 +2484,7 @@ function BattleGrid({
 								<Pressable
 									key={cell}
 									onPress={() => onPress?.(cell)}
-									style={[styles.battleCell, { backgroundColor, borderColor: paper ? "#2563EB" : currentTheme.gridBorder }]}
+									style={[styles.battleCell, { backgroundColor, borderColor: sea.cellBorder ?? currentTheme.gridBorder }]}
 								/>
 							);
 						})}
@@ -2340,9 +2538,8 @@ const UNICODE_PIECES: Record<string, string> = {
 };
 
 function getChessBoardColors(board: ExtraGameCosmetics["chessBoard"], dark: boolean) {
-	if (board === "walnut") return dark ? "#8B5E34" : "#E8C99B";
-	if (board === "violet") return dark ? "#7C3AED" : "#C4B5FD";
-	return dark ? "#334155" : "#CBD5E1";
+	const colors = CHESS_BOARD_COLORS[board] ?? CHESS_BOARD_COLORS.slate;
+	return dark ? colors.dark : colors.light;
 }
 
 export function restoreChessGame(fen: string, history: string[]): Chess {
@@ -2611,8 +2808,8 @@ function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 						<Text
 							style={[
 								styles.chessPiece,
-								cosmetics.chessPieces === "club" && styles.chessPieceClub,
-								{ color: p!.color === "b" ? "#111827" : "#FFFFFF" },
+								CHESS_PIECE_COLORS[cosmetics.chessPieces].heavy && styles.chessPieceClub,
+								{ color: p!.color === "b" ? CHESS_PIECE_COLORS[cosmetics.chessPieces].black : CHESS_PIECE_COLORS[cosmetics.chessPieces].white },
 							]}
 						>
 							{p!.label}
@@ -2872,8 +3069,14 @@ export function drawDurakCards(state: DurakState, startRole: OnlineRole) {
 	if (next.deck.length === 0) {
 		const finished = roles.filter((role) => next.hands[role].length === 0);
 		next.finished = [...(state.finished || []), ...finished.filter(role => !state.finished?.includes(role))];
-		if (finished.length >= roles.length - 1) next.winner = next.finished[0];
-		else {
+		if (finished.length >= roles.length - 1) {
+			next.winner = next.finished[0];
+			// Every seat ran out of cards on the same deal: nobody is the durak.
+			if (next.finished.length >= roles.length) {
+				next.draw = true;
+				next.message = "Draw.";
+			}
+		} else {
 			if (!next.hands[next.attacker].length) next.attacker = getNextDurakRole(next.attacker, next.playerCount, next.hands);
 			next.defender = getNextDurakRole(next.attacker, next.playerCount, next.hands);
 		}
@@ -2899,6 +3102,8 @@ const { t } = useLanguage();
 	const [localHandOrder, setLocalHandOrder] = useState<string[]>([]);
 	const [coinResult, setCoinResult] = useState<number | null>(null);
 	const [betError, setBetError] = useState<string | null>(null);
+	// Settings of the table a guest is joining, announced by the host before the deal.
+	const [tableInfo, setTableInfo] = useState<{ bet: number; playerCount: number } | null>(null);
 	const [restartStatus, setRestartStatus] = useState<'idle' | 'waiting' | 'requested'>('idle');
 	const [restartAccepts, setRestartAccepts] = useState<string[]>([]);
 	const ratingSubmittedRef = useRef<string | null>(null);
@@ -2954,13 +3159,24 @@ const { t } = useLanguage();
 			setPlayerNames((current) => ({ ...current, [senderRole]: normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)) }));
 			if (payload?.avatar) setPlayerAvatars((current) => ({ ...current, [senderRole]: payload.avatar }));
 			if (roomRef.current.role && senderRole !== roomRef.current.role) {
-				roomRef.current.send("system_welcome", { playerName, avatar: "" });
+				const pending = pendingStateRef.current;
+				const table = roomRef.current.role === "player1" && pending ? { bet: pending.bet, playerCount: pending.playerCount } : undefined;
+				roomRef.current.send("system_welcome", { playerName, avatar: "", table });
 			}
 			return;
 		}
 		if (event === "system_welcome" && senderRole) {
 			setPlayerNames((current) => ({ ...current, [senderRole]: normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)) }));
 			if (payload?.avatar) setPlayerAvatars((current) => ({ ...current, [senderRole]: payload.avatar }));
+			const table = payload?.table;
+			if (senderRole === "player1" && roomRef.current.role && roomRef.current.role !== "player1" && table && typeof table.bet === "number") {
+				setTableInfo({ bet: table.bet, playerCount: Number(table.playerCount) || 0 });
+				if (table.bet > 0 && balanceRef.current < table.bet) {
+					// The ante must be paid in full: leave before the deal instead of playing for free.
+					setBetError(t("durak.notEnoughTable", { bet: table.bet }));
+					roomRef.current.disconnect();
+				}
+			}
 			return;
 		}
 		if (event === "system_left" && senderRole) {
@@ -3002,7 +3218,7 @@ const { t } = useLanguage();
 			setRestartStatus("idle");
 			setRestartAccepts([]);
 		}
-	}, [showEmote, state]);
+	}, [showEmote, state, t]);
 
 	const room = useMiniGameRoom("durak", handleEvent, playerName);
 	useEffect(() => {
@@ -3029,9 +3245,16 @@ const { t } = useLanguage();
 	useEffect(() => {
 		if (!state || !room.role || state.bet <= 0) return;
 		if (antePaidRef.current.has(state.tableId)) return;
+		if (balanceRef.current < state.bet) {
+			// A guest who never saw the table bet cannot pay the full ante: leave the table.
+			setBetError(t("durak.notEnoughTable", { bet: state.bet }));
+			setState(null);
+			roomRef.current.disconnect();
+			return;
+		}
 		antePaidRef.current.add(state.tableId);
 		adjustCoins(-state.bet);
-	}, [adjustCoins, room.role, state]);
+	}, [adjustCoins, room.role, state, t]);
 
 	useEffect(() => {
 		const fetchAvatars = async () => {
@@ -3111,7 +3334,7 @@ const { t } = useLanguage();
 	};
 
 	const callOutCheat = (boutIndex: number, isDefense: boolean) => {
-		if (!state || !room.role || !state.variants.includes("cheat")) return;
+		if (!state || !room.role || state.winner || state.cancelled || !state.variants.includes("cheat")) return;
 		const bout = state.table[boutIndex];
 		if (!bout) return;
 
@@ -3214,7 +3437,7 @@ const { t } = useLanguage();
 	};
 
 	const takeRound = () => {
-		if (!state || state.cancelled || state.winner || !room.isConnected || !room.role || room.role !== state.defender) return;
+		if (!state || state.cancelled || state.winner || !room.isConnected || !room.role || room.role !== state.defender || state.table.length === 0) return;
 		const tableCards = getTableCards(state.table);
 		const nextAttacker = getNextDurakRole(state.defender, state.playerCount, state.hands);
 		const nextDefender = getNextDurakRole(nextAttacker, state.playerCount, state.hands);
@@ -3243,9 +3466,10 @@ const { t } = useLanguage();
 	};
 
 	const join = () => {
-		if (bet > 0 && shopState.balance < bet) { setBetError(t("durak.notEnough")); return; }
+		// The table bet is set by the host; it is checked when the host announces it.
 		setBetError(null);
 		setCoinResult(null);
+		setTableInfo(null);
 		setState(null);
 		setOpponentReady(false);
 		setPlayerNames({});
@@ -3269,7 +3493,10 @@ const { t } = useLanguage();
 		const settleKey = `${state.tableId}:${state.winner}`;
 		if (state.bet > 0 && !settledRef.current.has(settleKey)) {
 			settledRef.current.add(settleKey);
-			if (room.role === state.winner) {
+			if (state.draw) {
+				adjustCoins(state.bet);
+				setCoinResult(0);
+			} else if (room.role === state.winner) {
 				// Winner already paid their ante, so credit the full pot back; the net
 				// gain shown to the player is (players - 1) * bet.
 				adjustCoins(getDurakPayout(state.bet, state.playerCount));
@@ -3279,7 +3506,8 @@ const { t } = useLanguage();
 			}
 		}
 
-		const resultKey = `${room.roomCode}:${state.winner}:${state.discardCount}:${state.message}`;
+		// One rating per table: later edits of a finished state must not pay out again.
+		const resultKey = state.tableId;
 		if (ratingSubmittedRef.current === resultKey) return;
 
 		const forfeit = state.message.toLowerCase().includes("left");
@@ -3288,17 +3516,20 @@ const { t } = useLanguage();
 
 		ratingSubmittedRef.current = resultKey;
 		const roles = getActiveDurakRoles(state.playerCount);
-		const winnerName = state.winner === room.role ? playerName : playerNames[state.winner] || roleLabel(state.winner);
-		const losers = roles.filter((role) => role !== state.winner);
+		// A seat whose name never arrived would be rated under its "P3" label, so it is skipped.
+		const nameOf = (role: OnlineRole) => (role === room.role ? playerName : playerNames[role]);
+		const winnerName = nameOf(state.winner);
+		if (!winnerName) return;
+		const losers = roles.filter((role) => role !== state.winner && nameOf(role));
 		void Promise.all(losers.map((loserRole) => {
-			const loserName = loserRole === room.role ? playerName : playerNames[loserRole] || roleLabel(loserRole);
+			const loserName = nameOf(loserRole)!;
 			return submitMoreGameMatchResult({
 				gameId: "durak",
 				player1Name: winnerName,
 				player2Name: loserName,
-				result: "player1",
+				result: state.draw ? "draw" : "player1",
 				roomCode: room.roomCode,
-				metadata: { playerCount: state.playerCount, variants: state.variants, source: forfeit ? "forfeit" : "normal" },
+				metadata: { playerCount: state.playerCount, variants: state.variants, source: forfeit ? "forfeit" : "normal", matchId: state.tableId },
 			});
 		})).then(() => onRatingChange());
 	}, [adjustCoins, onRatingChange, playerName, playerNames, room.isConnected, room.role, room.roomCode, state]);
@@ -3323,6 +3554,11 @@ const { t } = useLanguage();
 	if (room.role && !opponentReady) {
 		return (
 			<View style={[styles.onlineGame, { minHeight: 400, justifyContent: 'center' }]}>
+				{tableInfo && (
+					<Text style={[styles.durakSectionLabel, { color: currentTheme.textPrimary, textAlign: 'center' }]}>
+						{t("durak.tableInfo", { bet: tableInfo.bet, players: tableInfo.playerCount })}
+					</Text>
+				)}
 				<OnlineRoomControls
 					roomCode={room.roomCode}
 					setRoomCode={room.setRoomCode}
@@ -3410,7 +3646,7 @@ const { t } = useLanguage();
 				<>
 					{state.winner || state.cancelled ? (
 						<Text style={[styles.gameStatus, { color: currentTheme.accent }]}>
-							{state.cancelled ? state.message : t("durak.wins", { seat: roleLabel(state.winner) })}
+							{state.cancelled || state.draw ? state.message : t("durak.wins", { seat: roleLabel(state.winner) })}
 						</Text>
 					) : null}
 					{coinResult !== null && (
@@ -3842,12 +4078,13 @@ const DurakBoutAnimated = forwardRef<View, DurakBoutProps>(
 });
 
 function DurakCardView({ card, trump, cosmetics, small = false }: { card: string; trump: string; cosmetics: ExtraGameCosmetics; small?: boolean }) {
-	const casino = cosmetics.cardSkin === "casino";
+	const skin: { faceBg: string | null; faceBorder: string | null; backBg: string; backBorder: string; backGlyph: string } = CARD_SKINS[cosmetics.cardSkin];
+	const faceSkin = skin.faceBg ? { backgroundColor: skin.faceBg, borderColor: skin.faceBorder ?? skin.faceBg } : null;
 	if (card === "back") {
 		const isRed = trump === "D" || trump === "H";
 		return (
-			<View style={[styles.playingCard, small && styles.smallPlayingCard, casino && styles.casinoCard, { backgroundColor: '#1E40AF', borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }]}>
-				<Text style={{ color: '#60A5FA', fontSize: small ? 14 : 24, position: 'absolute', opacity: 0.3 }}>🂠</Text>
+			<View style={[styles.playingCard, small && styles.smallPlayingCard, { backgroundColor: skin.backBg, borderColor: skin.backBorder, alignItems: 'center', justifyContent: 'center' }]}>
+				<Text style={{ color: skin.backGlyph, fontSize: small ? 14 : 24, position: 'absolute', opacity: 0.3 }}>🂠</Text>
 				<Text style={{ color: isRed ? '#DC2626' : '#111827', fontSize: small ? 16 : 24, zIndex: 2, textShadowColor: 'rgba(255,255,255,0.8)', textShadowRadius: 2 }}>{SUIT_SYMBOLS[trump]}</Text>
 			</View>
 		);
@@ -3855,7 +4092,7 @@ function DurakCardView({ card, trump, cosmetics, small = false }: { card: string
 	const suit = cardSuit(card);
 	const red = suit === "D" || suit === "H";
 	return (
-		<View style={[styles.playingCard, small && styles.smallPlayingCard, casino && styles.casinoCard, cardSuit(card) === trump && styles.trumpCard]}>
+		<View style={[styles.playingCard, small && styles.smallPlayingCard, faceSkin, cardSuit(card) === trump && styles.trumpCard]}>
 			<Text style={[styles.cardCorner, small && styles.smallCardCorner, { color: red ? "#DC2626" : "#111827" }]}>{cardRank(card)}</Text>
 			<Text style={[styles.cardSuit, small && styles.smallCardSuit, { color: red ? "#DC2626" : "#111827" }]}>{SUIT_SYMBOLS[suit]}</Text>
 		</View>
@@ -4516,31 +4753,12 @@ const styles = StyleSheet.create({
 	disabledControl: {
 		opacity: 0.4,
 	},
-	sudokuBoardWood: {
-		borderColor: "#5B2E14",
-		backgroundColor: "#B77C43",
-	},
-	sudokuBoardNight: {
-		borderColor: "#94A3B8",
-		backgroundColor: "#020617",
-	},
 	sudokuCell: {
 		width: "11.111111%",
 		height: "11.111111%",
 		borderWidth: 1,
 		alignItems: "center",
 		justifyContent: "center",
-	},
-	sudokuCellWood: {
-		borderColor: "#7C2D12",
-		backgroundColor: "#F6D7B0",
-		shadowColor: "#7C2D12",
-		shadowOpacity: 0.22,
-		shadowRadius: 2,
-	},
-	sudokuCellNight: {
-		borderColor: "#475569",
-		backgroundColor: "#111827",
 	},
 	sudokuCellBottom: {
 		borderBottomWidth: 3,
@@ -4576,10 +4794,6 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	sudokuNumberTileWood: {
-		borderColor: "#7C2D12",
-		backgroundColor: "#F6D7B0",
-	},
 	sudokuNumberText: {
 		fontFamily: "SilkscreenBold",
 		fontSize: 14,
@@ -4597,14 +4811,6 @@ const styles = StyleSheet.create({
 		borderWidth: 2,
 		position: "relative",
 		overflow: "hidden",
-	},
-	mahjongJadeBoard: {
-		backgroundColor: "#0F3A3E",
-		borderColor: "#2DD4BF",
-	},
-	mahjongIvoryBoard: {
-		backgroundColor: "#78350F",
-		borderColor: "#FED7AA",
 	},
 	mahjongLayerTile: {
 		position: "absolute",
@@ -4928,14 +5134,6 @@ const styles = StyleSheet.create({
 	},
 	battleHitCell: {
 		backgroundColor: "rgba(220, 38, 38, 0.55)",
-	},
-	paperBattleGrid: {
-		backgroundColor: "#DBEAFE",
-		borderColor: "#1E3A8A",
-	},
-	navyBattleGrid: {
-		backgroundColor: "#082F49",
-		borderColor: "#38BDF8",
 	},
 	battleCell: {
 		flex: 1,
@@ -5267,10 +5465,6 @@ const styles = StyleSheet.create({
 		shadowOpacity: 0.25,
 		shadowRadius: 3,
 		shadowOffset: { width: 0, height: 2 },
-	},
-	casinoCard: {
-		backgroundColor: "#F8FAFC",
-		borderColor: "#FACC15",
 	},
 	trumpCard: {
 		borderColor: "#FACC15",

@@ -42,19 +42,28 @@ import {
 	useMiniGameRoom,
 	createDurakState,
 	drawDurakCards,
+	getRepeatedShotReply,
+	CHESS_BOARD_COLORS,
+	CHESS_PIECE_COLORS,
+	MAHJONG_THEMES,
+	CARD_SKINS,
+	SEA_SKINS,
+	SUDOKU_THEMES,
+	pickCosmetic,
 } from "./MoreGamesMenu";
 
 import { Chess } from "chess.js";
 import React from "react";
 import { act, create, ReactTestRenderer } from "react-test-renderer";
 import { supabase } from "@/constants/Supabase";
+import { SHOP_ITEMS, type ShopCategory } from "@/constants/Shop";
 
 describe("mini-game room delivery", () => {
 	let room: ReturnType<typeof useMiniGameRoom>;
 	let tree: ReactTestRenderer;
 	const channels: any[] = [];
 	const onEvent = jest.fn();
-	function Harness({ game = 'tictactoe' }: { game?: 'tictactoe' | 'durak' }) { room = useMiniGameRoom(game, onEvent); return null; }
+	function Harness({ game = 'tictactoe' }: { game?: 'tictactoe' | 'durak' | 'battleship' }) { room = useMiniGameRoom(game, onEvent); return null; }
 	beforeEach(async () => {
 		onEvent.mockClear();
 		channels.length = 0;
@@ -113,6 +122,77 @@ describe("mini-game room delivery", () => {
 		expect(onEvent).toHaveBeenCalledWith('system_left', {}, 'player2');
 		expect(channel.send.mock.calls.at(-1)[0].payload.payload.seat).toBe('player2');
 	});
+	it('seats exactly one guest in a Sea Battle room and ignores everyone else', async () => {
+		await act(async () => { tree.update(React.createElement(Harness, { game: 'battleship' })); });
+		await act(async () => { room.connect('player1'); });
+		const channel = channels[channels.length - 1];
+		const receive = channel.on.mock.calls[0][2];
+		await act(async () => {
+			for (const senderId of ['guest', 'third']) receive({ payload: { event: 'seat_request', senderId, payload: {} } });
+			receive({ payload: { event: 'shot', senderId: 'third', role: 'player2', payload: { cell: '1,1' } } });
+		});
+		const grants = channel.send.mock.calls.map(([message]: any[]) => message.payload).filter((p: any) => p.event === 'seat_assigned');
+		expect(grants.map((p: any) => p.payload.seat)).toEqual(['player2', null]);
+		expect(onEvent).not.toHaveBeenCalled();
+		await act(async () => { receive({ payload: { event: 'shot', senderId: 'guest', role: 'player2', payload: { cell: '2,2' } } }); });
+		expect(onEvent).toHaveBeenCalledWith('shot', { cell: '2,2' }, 'player2');
+	});
+	it('answers a re-sent Sea Battle shot with the same result and flags a lost fleet', () => {
+		const occupied = new Set(['0,0', '0,1']);
+		expect(getRepeatedShotReply({}, occupied, '0,0')).toBeNull();
+		expect(getRepeatedShotReply({ '0,0': 'hit' }, occupied, '0,0')).toEqual({ result: 'hit', lost: false });
+		expect(getRepeatedShotReply({ '0,0': 'hit', '0,1': 'hit' }, occupied, '0,1')).toEqual({ result: 'hit', lost: true });
+		expect(getRepeatedShotReply({ '5,5': 'miss' }, occupied, '5,5')).toEqual({ result: 'miss', lost: false });
+	});
+	it('reports a peer that vanished without system_left once the grace period passes', async () => {
+		jest.useFakeTimers();
+		try {
+			const channel = channels[channels.length - 1];
+			const leave = channel.on.mock.calls.find((call: any[]) => call[0] === 'presence')[2];
+			await act(async () => { leave({ key: 'peer', leftPresences: [{ role: 'player2' }] }); });
+			expect(onEvent).not.toHaveBeenCalled();
+			await act(async () => { jest.advanceTimersByTime(10001); });
+			expect(onEvent).toHaveBeenCalledWith('system_left', {}, 'player2');
+		} finally {
+			jest.useRealTimers();
+		}
+	});
+	it('ignores a presence drop when the peer already said goodbye or came back', async () => {
+		jest.useFakeTimers();
+		try {
+			const channel = channels[channels.length - 1];
+			const receive = channel.on.mock.calls[0][2];
+			const leave = channel.on.mock.calls.find((call: any[]) => call[0] === 'presence')[2];
+			await act(async () => { receive({ payload: { event: 'system_left', senderId: 'peer', role: 'player2', payload: {} } }); });
+			onEvent.mockClear();
+			await act(async () => { leave({ key: 'peer', leftPresences: [{ role: 'player2' }] }); });
+			await act(async () => { jest.advanceTimersByTime(10001); });
+			expect(onEvent).not.toHaveBeenCalled();
+			channel.presenceState = () => ({ other: [{}] });
+			await act(async () => { leave({ key: 'other', leftPresences: [{ role: 'player2' }] }); });
+			await act(async () => { jest.advanceTimersByTime(10001); });
+			expect(onEvent).not.toHaveBeenCalled();
+		} finally {
+			jest.useRealTimers();
+		}
+	});
+	it('fails a join when nobody else is in the room', async () => {
+		jest.useFakeTimers();
+		try {
+			(supabase.channel as jest.Mock).mockImplementationOnce(() => {
+				const channel: any = { send: jest.fn(() => Promise.resolve('ok')), on: jest.fn(), track: jest.fn(() => Promise.resolve('ok')), presenceState: () => ({}) };
+				channel.on.mockReturnValue(channel);
+				channel.subscribe = (callback: (status: string) => void) => { callback('SUBSCRIBED'); return channel; };
+				return channel;
+			});
+			await act(async () => { room.connect('player2', 'NOONE'); });
+			expect(room.status).toBe('connected');
+			await act(async () => { jest.advanceTimersByTime(12001); });
+			expect(room.status).toBe('error');
+		} finally {
+			jest.useRealTimers();
+		}
+	});
 	it("reports a failed move delivery instead of staying connected", async () => {
 		channels[0].send.mockResolvedValueOnce("timed out");
 		await act(async () => { room.send("move", {}); });
@@ -146,6 +226,24 @@ describe("puzzle and chess regressions", () => {
 		expect(continued.defender).toBe('player3');
 		continued.hands.player2 = [];
 		expect(drawDurakCards(continued, 'player2').winner).toBe('player1');
+	});
+	it('declares a draw when every Durak seat runs out of cards on the same deal', () => {
+		const state = createDurakState(2, ['throw_in']);
+		state.deck = [];
+		state.hands.player1 = [];
+		state.hands.player2 = [];
+		const result = drawDurakCards(state, 'player1');
+		expect(result.draw).toBe(true);
+		expect(result.winner).toBe('player1');
+	});
+	it('does not mark a normal Durak finish as a draw', () => {
+		const state = createDurakState(2, ['throw_in']);
+		state.deck = [];
+		state.hands.player1 = [];
+		state.hands.player2 = ['6S'];
+		const result = drawDurakCards(state, 'player1');
+		expect(result.winner).toBe('player1');
+		expect(result.draw).toBeUndefined();
 	});
 	it("generates uniquely solvable Sudoku puzzles without changing givens", () => {
 		for (let attempt = 0; attempt < 3; attempt++) {
@@ -303,5 +401,51 @@ describe("sea battle random fleet", () => {
 			expect(fleet.map((ship) => ship.id)).toEqual(["b4", "b3a", "b3b", "b2a", "b2b", "b2c", "b1a", "b1b", "b1c", "b1d"]);
 			expect(fleet.every((ship) => ship.x >= 0 && isShipPlacementValid(ship, fleet))).toBe(true);
 		}
+	});
+});
+
+describe("More Games shop cosmetics", () => {
+	const palettes: Record<string, [ShopCategory, string, Record<string, unknown>]> = {
+		chess_piece: ["chess_piece", "chess_piece_", CHESS_PIECE_COLORS],
+		chess_board: ["chess_board", "chess_board_", CHESS_BOARD_COLORS],
+		sea_skin: ["sea_skin", "sea_skin_", SEA_SKINS],
+		card_skin: ["card_skin", "card_skin_", CARD_SKINS],
+		sudoku_theme: ["sudoku_theme", "sudoku_theme_", SUDOKU_THEMES],
+		mahjong_theme: ["mahjong_theme", "mahjong_theme_", MAHJONG_THEMES],
+	};
+
+	it("gives every shop item a palette, so nothing a player buys renders as the default", () => {
+		for (const [category, prefix, palette] of Object.values(palettes)) {
+			const ids = SHOP_ITEMS.filter((item) => item.category === category).map((item) => item.id);
+			expect(ids.length).toBeGreaterThan(0);
+			for (const id of ids) expect(Object.keys(palette)).toContain(id.slice(prefix.length));
+		}
+	});
+
+	it("has no palette without a shop item to unlock it", () => {
+		for (const [category, prefix, palette] of Object.values(palettes)) {
+			const ids = SHOP_ITEMS.filter((item) => item.category === category).map((item) => item.id.slice(prefix.length));
+			for (const key of Object.keys(palette)) expect(ids).toContain(key);
+		}
+	});
+
+	it("keeps every free default item and gives paid items a price", () => {
+		for (const [category] of Object.values(palettes)) {
+			const items = SHOP_ITEMS.filter((item) => item.category === category);
+			expect(items.filter((item) => item.price === 0)).toHaveLength(1);
+			expect(items.every((item) => item.price >= 0)).toBe(true);
+		}
+	});
+
+	it("falls back when an equipped item is missing or unknown", () => {
+		expect(pickCosmetic(CHESS_BOARD_COLORS, "chess_board_candy", "chess_board_", "slate")).toBe("candy");
+		expect(pickCosmetic(CHESS_BOARD_COLORS, undefined, "chess_board_", "slate")).toBe("slate");
+		expect(pickCosmetic(CHESS_BOARD_COLORS, "chess_board_retired", "chess_board_", "slate")).toBe("slate");
+		expect(pickCosmetic(CHESS_BOARD_COLORS, "chess_board_toString", "chess_board_", "slate")).toBe("slate");
+	});
+
+	it("keeps chess piece colours readable: white and black pieces differ", () => {
+		for (const colors of Object.values(CHESS_PIECE_COLORS)) expect(colors.white).not.toBe(colors.black);
+		for (const colors of Object.values(CHESS_BOARD_COLORS)) expect(colors.light).not.toBe(colors.dark);
 	});
 });
