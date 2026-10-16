@@ -29,7 +29,7 @@ Supabase ↔ GitHub), а запись `android_version` в `app_config` расс
 2. Проверить релиз через публичный API: `https://api.github.com/repos/Nerdlin/blockerino/releases/tags/vX.Y.Z` (не draft, оба файла, размеры и `digest` совпадают с `docs/release-X.Y.Z.md`), и что ссылки на скачивание отдают 200.
 3. Запушить: `git push origin HEAD:refs/heads/main` и ветку, в которой идёт работа.
 4. Применить миграции и функции, если они есть в релизе (`supabase functions deploy <имя> --project-ref ptcglecvavdvpxadqfqd`). Версия миграции в базе должна совпадать с именем файла (`supabase/MIGRATIONS.md`).
-5. Обновить уведомление об обновлении (только после проверки из п. 1 и подтверждения пользователя):
+5. Обновить уведомление об обновлении (только после проверки из п. 2 и подтверждения пользователя):
 
 ```sql
 UPDATE public.app_config
