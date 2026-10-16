@@ -17,17 +17,19 @@ Supabase ↔ GitHub), а запись `android_version` в `app_config` расс
 - APK: `scripts/build-android-release.ps1 -OutputPath <путь>.apk`
 - AAB: `android\gradlew.bat -p android bundleRelease "-Pexpo.useLegacyPackaging=true"`
 - Посчитать размеры и SHA-256, вписать их в `docs/release-X.Y.Z.md`, закоммитить.
+- Закоммитить всё и запушить **только рабочую ветку и тег**: `git tag vX.Y.Z` на этом последнем коммите, затем `git push origin <ветка> refs/tags/vX.Y.Z`. `main` не трогать. Тег на нужном коммите нужен, чтобы архив «Source code» релиза содержал код релиза (раньше тег указывал на старый `main`).
 - Сказать пользователю пути к файлам.
 
 ### 3. Публикация (делает пользователь)
-- GitHub → Releases → New release, тег `vX.Y.Z`, загрузить APK и AAB, нажать **Publish release**.
+- GitHub → Releases → New release, **выбрать уже существующий тег `vX.Y.Z`** (не создавать новый и не оставлять target `main`), загрузить APK и AAB, нажать **Publish release**.
 - Написать Claude: «релиз сделал».
 
 ### 4. После слов «релиз сделал» (делает Claude)
-1. Проверить релиз через публичный API: `https://api.github.com/repos/Nerdlin/blockerino/releases/tags/vX.Y.Z` (не draft, оба файла, размеры и `digest` совпадают с `docs/release-X.Y.Z.md`), и что ссылки на скачивание отдают 200.
-2. Запушить: `git push origin HEAD:refs/heads/main` и ветку, в которой идёт работа.
-3. Применить миграции и функции, если они есть в релизе (`supabase functions deploy <имя> --project-ref ptcglecvavdvpxadqfqd`). Версия миграции в базе должна совпадать с именем файла (`supabase/MIGRATIONS.md`).
-4. Обновить уведомление об обновлении (только после проверки из п. 1 и подтверждения пользователя):
+1. Проверить, что тег указывает на последний коммит релиза: `git ls-remote origin refs/tags/vX.Y.Z` совпадает с `git rev-parse HEAD`. Если нет, перенести: `git tag -f vX.Y.Z <коммит>` и `git push --force origin refs/tags/vX.Y.Z`.
+2. Проверить релиз через публичный API: `https://api.github.com/repos/Nerdlin/blockerino/releases/tags/vX.Y.Z` (не draft, оба файла, размеры и `digest` совпадают с `docs/release-X.Y.Z.md`), и что ссылки на скачивание отдают 200.
+3. Запушить: `git push origin HEAD:refs/heads/main` и ветку, в которой идёт работа.
+4. Применить миграции и функции, если они есть в релизе (`supabase functions deploy <имя> --project-ref ptcglecvavdvpxadqfqd`). Версия миграции в базе должна совпадать с именем файла (`supabase/MIGRATIONS.md`).
+5. Обновить уведомление об обновлении (только после проверки из п. 1 и подтверждения пользователя):
 
 ```sql
 UPDATE public.app_config
@@ -41,7 +43,7 @@ SET value = jsonb_build_object(
 WHERE key = 'android_version';
 ```
 
-5. Проверить результат: `SELECT value FROM app_config WHERE key = 'android_version';`
+6. Проверить результат: `SELECT value FROM app_config WHERE key = 'android_version';`
 
 ## Как работает уведомление в приложении
 `constants/UpdateService.tsx` читает `app_config.android_version` при запуске, при возвращении в игру (не чаще раза в 15 минут)
