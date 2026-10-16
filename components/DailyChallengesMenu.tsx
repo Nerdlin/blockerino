@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import SimplePopupView from "./SimplePopupView";
+import ChallengeLeaderboard from "./ChallengeLeaderboard";
 import StylizedButton from "./StylizedButton";
 import { GameModeType, useAppState } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
@@ -27,9 +28,14 @@ export default function DailyChallengesMenu() {
 
     const [bestScores, setBestScores] = useState<BestScoreMap>({});
     const [checkingMode, setCheckingMode] = useState<GameModeType | null>(null);
+    const [showRating, setShowRating] = useState(false);
     const handleBack = useCallback(() => {
+        if (showRating) {
+            setShowRating(false);
+            return;
+        }
         popAppState();
-    }, [popAppState]);
+    }, [popAppState, showRating]);
 
     useEscapeKey(handleBack);
 
@@ -136,14 +142,30 @@ export default function DailyChallengesMenu() {
             isMobile && { width: "92%", height: "90%", paddingHorizontal: 8 }
         ]}>
             <Animated.View entering={FadeIn} style={styles.contentContainer}>
-                <StylizedButton text={t("ch.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.backBtn} />
-
-                <Text style={[styles.header, { color: currentTheme.textPrimary }]}>{t("ch.header")}</Text>
-                <Text style={[styles.subHeader, { color: currentTheme.textSecondary }]}>{t("ch.subHeader")}</Text>
-
-                <View style={styles.challengeList}>
-                    {CHALLENGE_MODE_CARDS.map(renderCard)}
+                <View style={styles.topRow}>
+                    <StylizedButton text={t("ch.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.backBtn} />
+                    {!showRating && (
+                        <StylizedButton
+                            text={t("ch.rating")}
+                            onClick={() => setShowRating(true)}
+                            backgroundColor={currentTheme.buttonSecondary}
+                            style={styles.backBtn}
+                        />
+                    )}
                 </View>
+
+                <Text style={[styles.header, { color: currentTheme.textPrimary }]}>{showRating ? t("ch.rating") : t("ch.header")}</Text>
+                {!showRating && (
+                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary }]}>{t("ch.subHeader")}</Text>
+                )}
+
+                {showRating ? (
+                    <ChallengeLeaderboard />
+                ) : (
+                    <View style={styles.challengeList}>
+                        {CHALLENGE_MODE_CARDS.map(renderCard)}
+                    </View>
+                )}
             </Animated.View>
         </SimplePopupView>
     );
@@ -153,6 +175,13 @@ const styles = StyleSheet.create({
     contentContainer: {
         width: "100%",
         alignItems: "center",
+    },
+    topRow: {
+        width: "100%",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
     },
     backBtn: {
         alignSelf: "flex-start",

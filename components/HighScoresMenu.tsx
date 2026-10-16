@@ -2,7 +2,7 @@ import { getHighScores, HighScore } from "@/constants/Storage";
 import { getGlobalHighScores, GlobalHighScore } from "@/constants/Supabase";
 import SimplePopupView from "./SimplePopupView";
 import { useCallback, useEffect, useState, useRef } from "react";
-import { StyleSheet, Text, View, ActivityIndicator, TextInput, useWindowDimensions, Image } from "react-native";
+import { StyleSheet, Text, View, ActivityIndicator, TextInput, useWindowDimensions } from "react-native";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { GameModeType, MenuStateType, useAppStateValue, useSetAppState } from "@/hooks/useAppState";
@@ -12,13 +12,14 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { normalizePlayerName } from "@/constants/Multiplayer";
 import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
 import { useShopState } from "@/constants/Shop";
-import { CHALLENGE_LEADERBOARD_GAME_MODES, getGameModeConfig, MAIN_LEADERBOARD_GAME_MODES } from "@/constants/GameModes";
-import { useLanguage, TranslateVars } from "@/constants/Localization";
+import { getGameModeConfig, MAIN_LEADERBOARD_GAME_MODES } from "@/constants/GameModes";
+import { useLanguage } from "@/constants/Localization";
 import { syncLocalHighScores } from "@/constants/LocalScoreSync";
+import GlobalScoreRow from "./GlobalScoreRow";
+import { getSeasonBoard, getSeasonEndsAt, getSeasonLeaderboard } from "@/constants/SeasonScores";
 
 const LEADERBOARD_LIMIT = 100;
 const LEADERBOARD_REFRESH_MS = 30000;
-type LeaderboardPage = "main" | "challenges";
 
 export default function HighScores() {
     const { width, height } = useWindowDimensions();
@@ -30,7 +31,6 @@ export default function HighScores() {
     const [ highScores, setHighScores ] = useState<HighScore[]>([]);
     const [ globalHighScores, setGlobalHighScores ] = useState<GlobalHighScore[]>([]);
     const [ gameMode, setGameMode ] = useState(GameModeType.Classic);
-    const [leaderboardPage, setLeaderboardPage] = useState<LeaderboardPage>("main");
     const [ loading, setLoading ] = useState(false);
     const [ syncing, setSyncing ] = useState(false);
     const [ playerName, setPlayerName ] = useState('');
@@ -41,7 +41,10 @@ export default function HighScores() {
     const { state: shopState, commit: commitShopState } = useShopState();
     const currentModeConfig = getGameModeConfig(gameMode);
     const localBestScore = highScores[0]?.score ?? 0;
-    const isChallengePage = leaderboardPage === "challenges";
+    const [scope, setScope] = useState<"season" | "alltime">("season");
+    const seasonBoard = getSeasonBoard(gameMode);
+    const showSeason = scope === "season" && seasonBoard !== null;
+    const seasonDaysLeft = Math.ceil((getSeasonEndsAt().getTime() - Date.now()) / 86400000);
 
     const handleChaosClick = async () => {
         setGameMode(GameModeType.Chaos);
@@ -72,32 +75,13 @@ export default function HighScores() {
         setGameMode(mode);
     };
 
-    const handleOpenChallenges = () => {
-        setLeaderboardPage("challenges");
-        if (!CHALLENGE_LEADERBOARD_GAME_MODES.includes(gameMode as typeof CHALLENGE_LEADERBOARD_GAME_MODES[number])) {
-            setGameMode(GameModeType.DailyPuzzle);
-        }
-    };
-
-    const handleBackToMainLeaderboards = useCallback(() => {
-        setLeaderboardPage("main");
-        if (!MAIN_LEADERBOARD_GAME_MODES.includes(gameMode as typeof MAIN_LEADERBOARD_GAME_MODES[number])) {
-            setGameMode(GameModeType.Classic);
-        }
-    }, [gameMode]);
-
     const syncInProgress = useRef(false);
     const refreshInProgress = useRef(false);
     const isMounted = useRef(true);
     const isActive = appState.current === MenuStateType.HIGH_SCORES;
     const handleBack = useCallback(() => {
-        if (leaderboardPage === "challenges") {
-            handleBackToMainLeaderboards();
-            return;
-        }
-
         popAppState();
-    }, [handleBackToMainLeaderboards, leaderboardPage, popAppState]);
+    }, [popAppState]);
 
     useEscapeKey(handleBack);
 
@@ -113,7 +97,9 @@ export default function HighScores() {
             await syncLocalHighScores();
             const [localScores, remoteScores] = await Promise.all([
                 getHighScores(gameMode, true, true, LEADERBOARD_LIMIT),
-                getGlobalHighScores(gameMode, LEADERBOARD_LIMIT)
+                showSeason && seasonBoard
+                    ? getSeasonLeaderboard(seasonBoard, LEADERBOARD_LIMIT)
+                    : getGlobalHighScores(gameMode, LEADERBOARD_LIMIT)
             ]);
 
             if (!isMounted.current) return;
@@ -126,7 +112,7 @@ export default function HighScores() {
                 setLoading(false);
             }
         }
-    }, [gameMode]);
+    }, [gameMode, showSeason, seasonBoard]);
 
     useEffect(() => {
         isMounted.current = true;
@@ -226,11 +212,11 @@ export default function HighScores() {
 
         <View style={styles.modeHeaderRow}>
             <Text style={[styles.subHeader, styles.modeHeaderText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 18 }]}>
-                {isChallengePage ? t("hs.challengeLeaderboards") : t("hs.selectMode")}
+                {t("hs.selectMode")}
             </Text>
         </View>
         <View style={styles.modeRow}>
-            {(isChallengePage ? CHALLENGE_LEADERBOARD_GAME_MODES : MAIN_LEADERBOARD_GAME_MODES).map((mode) => {
+            {MAIN_LEADERBOARD_GAME_MODES.map((mode) => {
                 const config = getGameModeConfig(mode);
                 const isSelected = gameMode === mode;
                 const modeColor = config.challenge?.color ?? (mode === GameModeType.Chaos ? cssColors.pitchBlack : currentTheme.buttonPrimary);
@@ -247,16 +233,30 @@ export default function HighScores() {
                     />
                 );
             })}
-            {!isChallengePage && (
-                <StylizedButton
-                    text={t("hs.challenges")}
-                    onClick={handleOpenChallenges}
-                    backgroundColor={cssColors.spaceGray}
-                    style={[styles.modeButton, styles.challengeEntryButton]}
-                    textStyle={isMobile && styles.mobileButtonText}
-                />
-            )}
         </View>
+        {seasonBoard && (
+            <View style={styles.scopeRow}>
+                <StylizedButton
+                    text={t("hs.scopeSeason")}
+                    onClick={() => setScope("season")}
+                    backgroundColor={scope === "season" ? currentTheme.buttonPrimary : cssColors.spaceGray}
+                    style={styles.scopeButton}
+                    textStyle={styles.scopeButtonText}
+                />
+                <StylizedButton
+                    text={t("hs.scopeAllTime")}
+                    onClick={() => setScope("alltime")}
+                    backgroundColor={scope === "alltime" ? currentTheme.buttonPrimary : cssColors.spaceGray}
+                    style={styles.scopeButton}
+                    textStyle={styles.scopeButtonText}
+                />
+            </View>
+        )}
+        {showSeason && (
+            <Text style={[styles.seasonEndsText, { color: currentTheme.textSecondary }]}>
+                {seasonDaysLeft <= 1 ? t("hs.seasonEndsToday") : t("hs.seasonEndsIn", { days: seasonDaysLeft })}
+            </Text>
+        )}
         {secretMessage && (
             <Text style={{ fontFamily: 'Silkscreen', fontSize: 12, color: '#FFD700', marginTop: 5, textAlign: 'center' }}>
                 {secretMessage}
@@ -284,7 +284,7 @@ export default function HighScores() {
         {!loading && hasScores && (
             <View style={styles.scoreList}>
                 {globalHighScores.map((score, idx) => {
-                    return <GlobalScore key={score.id || idx} rank={idx + 1} score={score}/>
+                    return <GlobalScoreRow key={score.id || idx} rank={idx + 1} score={score} highlightTop/>
                 })}
             </View>
         )}
@@ -302,62 +302,6 @@ export default function HighScores() {
     </SimplePopupView>
 }
 
-function GlobalScore({score, rank}: {score: GlobalHighScore, rank: number}) {
-    const { t } = useLanguage();
-    const { currentTheme } = useTheme();
-    const { width, height } = useWindowDimensions();
-    const isMobile = width < 600 || height < 700;
-    return (
-        <View style={[styles.scoreRow, isMobile && styles.mobileScoreRow]}>
-            <Text style={[styles.scoreRankText, { color: currentTheme.textPrimary }, isMobile && styles.mobileScoreRankText]}>
-                #{rank}
-            </Text>
-			<View style={styles.scoreNameColumn}>
-				<View style={{ flexDirection: 'row', alignItems: 'center' }}>
-					{score.avatar_url && score.avatar_url.startsWith("http") ? (
-						<Image source={{ uri: score.avatar_url }} style={{ width: 18, height: 18, borderRadius: 9, marginRight: 6, backgroundColor: 'transparent' }} />
-					) : score.avatar_url ? (
-						<Text style={{ fontSize: 14, marginRight: 6 }}>{score.avatar_url}</Text>
-					) : null}
-					<Text style={[styles.scoreNameText, { color: currentTheme.textPrimary }, isMobile && styles.mobileScoreNameText]} numberOfLines={1}>
-						{score.player_name}
-					</Text>
-				</View>
-                <Text style={[styles.scoreTimeText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 10 }]} numberOfLines={1}>
-                    {score.created_at ? createTimeAgoString(new Date(score.created_at).getTime(), t) : t("hs.unknownTime")}
-                </Text>
-            </View>
-            <Text style={[styles.scoreNumberText, { color: currentTheme.textPrimary }, isMobile && styles.mobileScoreNumberText]} numberOfLines={1} adjustsFontSizeToFit>
-                {score.score}
-            </Text>
-        </View>
-    );
-}
-
-function createTimeAgoString(date: number, t: (key: string, vars?: TranslateVars) => string): string {
-    const now = new Date();
-    const seconds = Math.round((now.getTime() - date) / 1000);
-    const minutes = Math.round(seconds / 60);
-    const hours = Math.round(minutes / 60);
-    const days = Math.round(hours / 24);
-    const months = Math.round(days / 30);
-    const years = Math.round(days / 365);
-
-    if (seconds < 60) {
-      return seconds <= 0 ? t("hs.timeNow") : t("hs.secondsAgo", { count: seconds });
-    } else if (minutes < 60) {
-      return t("hs.minutesAgo", { count: minutes });
-    } else if (hours < 24) {
-      return t("hs.hoursAgo", { count: hours });
-    } else if (days < 30) {
-      return t("hs.daysAgo", { count: days });
-    } else if (months < 12) {
-      return t("hs.monthsAgo", { count: months });
-    } else {
-      return t("hs.yearsAgo", { count: years });
-    }
-  }
-
 const styles = StyleSheet.create({
     noScoresText: {
         color: 'white',
@@ -365,11 +309,6 @@ const styles = StyleSheet.create({
         fontFamily: 'Silkscreen',
         textAlign: 'center',
         marginBottom: 20
-    },
-    scoreTimeText: {
-        color: 'rgb(150, 150, 150)',
-        fontSize: 11,
-        fontFamily: 'Silkscreen'
     },
     header: {
         color: 'white',
@@ -421,8 +360,28 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         flexBasis: 112,
     },
-    challengeEntryButton: {
-        maxWidth: 180,
+    scopeRow: {
+        flexDirection: 'row',
+        gap: 10,
+        justifyContent: 'center',
+        marginTop: 8,
+    },
+    scopeButton: {
+        minWidth: 112,
+        minHeight: 32,
+        height: 32,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        margin: 0,
+    },
+    scopeButtonText: {
+        fontSize: 10,
+    },
+    seasonEndsText: {
+        fontFamily: 'Silkscreen',
+        fontSize: 11,
+        marginTop: 6,
+        textAlign: 'center',
     },
     leaderboardMetaRow: {
         width: '94%',
@@ -455,52 +414,5 @@ const styles = StyleSheet.create({
         width: '94%',
         gap: 6,
         marginTop: 4,
-    },
-    scoreRow: {
-        width: '100%',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        paddingVertical: 7,
-        paddingHorizontal: 10,
-        borderRadius: 6,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        minHeight: 48,
-    },
-    mobileScoreRow: {
-        gap: 6,
-        paddingHorizontal: 7,
-        minHeight: 44,
-    },
-    scoreRankText: {
-        width: 52,
-        fontSize: 20,
-        fontFamily: 'Silkscreen',
-        textAlign: 'left',
-    },
-    mobileScoreRankText: {
-        width: 38,
-        fontSize: 15,
-    },
-    scoreNameColumn: {
-        flex: 1,
-        minWidth: 0,
-    },
-    scoreNameText: {
-        fontSize: 18,
-        fontFamily: 'Silkscreen',
-    },
-    mobileScoreNameText: {
-        fontSize: 14,
-    },
-    scoreNumberText: {
-        width: 110,
-        fontSize: 18,
-        fontFamily: 'Silkscreen',
-        textAlign: 'right',
-    },
-    mobileScoreNumberText: {
-        width: 78,
-        fontSize: 14,
     },
 });

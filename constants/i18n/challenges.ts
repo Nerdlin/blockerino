@@ -9,6 +9,7 @@ export const challenges: ScreenDictionary = {
 		"ch.next": "Next",
 		"ch.checking": "Checking",
 		"ch.back": "Back",
+		"ch.rating": "Rating",
 	},
 	ru: {
 		"ch.header": "Испытания",
@@ -18,5 +19,6 @@ export const challenges: ScreenDictionary = {
 		"ch.next": "Далее",
 		"ch.checking": "Проверка",
 		"ch.back": "Назад",
+		"ch.rating": "Рейтинг",
 	},
 };

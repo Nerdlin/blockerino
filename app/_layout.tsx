@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { ActivityIndicator, AppState, LogBox, Platform, Text, View } from "react-native";
 import { updateService } from "@/constants/UpdateService";
 import { flushPendingEloRatings, flushPendingGlobalHighScores } from "@/constants/OfflineSync";
+import { flushPendingSeasonScoresForSession } from "@/constants/SeasonScores";
 import { useDiscordSDK } from "@/hooks/useDiscordSDK";
 import { syncLocalHighScores } from "@/constants/LocalScoreSync";
 
@@ -65,6 +66,7 @@ export default function RootLayout() {
 				await Promise.all([
 					flushPendingGlobalHighScores(),
 					flushPendingEloRatings(),
+					flushPendingSeasonScoresForSession(),
 				]);
 			} catch (error) {
 				console.error('Score sync failed; local records are preserved:', error);

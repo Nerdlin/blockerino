@@ -11,6 +11,7 @@ import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withSeq
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { normalizePlayerName } from "@/constants/Multiplayer";
 import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
+import { recordSeasonScore } from "@/constants/SeasonScores";
 import { useShopState } from "@/constants/Shop";
 import { GameOverReason, getGameOverMessage } from "@/constants/GameModes";
 import { useLanguage } from "@/constants/Localization";
@@ -75,6 +76,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
         try {
             await AsyncStorage.setItem(PLAYER_NAME_KEY, normalizedName);
             const result = await submitGlobalHighScoreOrQueue(normalizedName, score, gameMode);
+            void recordSeasonScore(gameMode, score);
             if (result === 'synced') {
                 setSubmitStatus('success');
             } else if (result === 'queued') {

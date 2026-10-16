@@ -5,6 +5,7 @@ import StylizedButton from "./StylizedButton";
 import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
 import { setProfileAuthIntent } from "@/constants/ProfileIntent";
 import { useTheme } from "@/constants/Theme";
+import { getLeaderboardTier } from "@/constants/LeaderboardTiers";
 import { supabase, getTopEloRatings, getPlayerElo, EloRating, cleanupMatchmakingRooms } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { cssColors } from "@/constants/Color";
@@ -947,13 +948,20 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                 topEloList.map((entry, index) => {
                                     const isMe = entry.player_name === playerName;
                                     const badge = getEloBadge(entry.elo);
+                                    const tier = getLeaderboardTier(index + 1);
                                     return (
                                         <View key={entry.id || index} style={[
                                             styles.eloLBRow,
+                                            tier && {
+                                                backgroundColor: tier.background,
+                                                borderColor: tier.color,
+                                                borderWidth: tier.borderWidth,
+                                                ...(tier.id === "gold" && { shadowColor: tier.color, shadowOpacity: 0.6, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } }),
+                                            },
                                             isMe && { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: badge.color }
                                         ]}>
-                                            <Text style={[styles.eloLBRank, { color: currentTheme.textPrimary, flex: 0.4 }]}>
-                                                {index + 1}
+                                            <Text style={[styles.eloLBRank, { color: tier?.color ?? currentTheme.textPrimary, flex: 0.4 }]}>
+                                                {tier?.icon ? <UiIcon name={tier.icon} size={18} /> : index + 1}
                                             </Text>
                                              <View style={{ flex: 2, flexDirection: "row", alignItems: "center" }}>
                                                  {entry.avatar_url && entry.avatar_url.startsWith("http") ? (

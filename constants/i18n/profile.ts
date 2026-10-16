@@ -2,6 +2,11 @@ import type { ScreenDictionary } from "./index";
 
 export const profile: ScreenDictionary = {
 	en: {
+		"perk.champion": "Champion",
+		"perk.top": "Top {rank}",
+		"perk.board.classic": "Classic",
+		"perk.board.chaos": "Chaos",
+		"perk.board.elo": "Versus",
 		"profile.avatarTitle": "Choose avatar",
 		"profile.avatarUrlLabel": "Or custom image URL",
 		"profile.title": "Profile",
@@ -50,6 +55,11 @@ export const profile: ScreenDictionary = {
 		"profile.callbackExpired": "Google sign-in callback expired or was opened twice. Please try again.",
 	},
 	ru: {
+		"perk.champion": "Чемпион",
+		"perk.top": "Топ {rank}",
+		"perk.board.classic": "Classic",
+		"perk.board.chaos": "Chaos",
+		"perk.board.elo": "Versus",
 		"profile.avatarTitle": "Выберите аватар",
 		"profile.avatarUrlLabel": "Или ссылка на изображение",
 		"profile.title": "Профиль",

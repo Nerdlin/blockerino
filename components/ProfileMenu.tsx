@@ -2,6 +2,8 @@ import { GameModeType, useAppState } from "@/hooks/useAppState";
 import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, ActivityIndicator, Image, Pressable } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
+import PerkBadge from "./PerkBadge";
+import { useLeaderboardPerk } from "@/constants/LeaderboardPerks";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSoundSettings } from "@/constants/Sound";
 import { useTheme } from "@/constants/Theme";
@@ -117,6 +119,7 @@ export default function ProfileMenu() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [playerName, setPlayerName] = useState("");
+	const perk = useLeaderboardPerk(playerName);
 	const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 	const [showAvatarPopup, setShowAvatarPopup] = useState(false);
 	const [customAvatarInput, setCustomAvatarInput] = useState("");
@@ -436,9 +439,10 @@ export default function ProfileMenu() {
 							)}
 							<View style={styles.editAvatarBadge}><Text style={{ fontSize: 10 }}>✏️</Text></View>
 						</Pressable>
-						<Text style={[styles.welcomeText, { color: currentTheme.textPrimary }]}>
+						<Text style={[styles.welcomeText, { color: perk?.tier.color ?? currentTheme.textPrimary }]}>
 							{playerName || session?.user.email}
 						</Text>
+						{perk && <PerkBadge perk={perk} />}
 
 						<View style={[styles.tabsContainer, isMobile && styles.mobileTabsContainer]}>
 							<StylizedButton 

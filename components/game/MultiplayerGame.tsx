@@ -17,6 +17,8 @@ import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
 import { submitEloRatingOrQueue, submitGlobalHighScoreOrQueue } from '@/constants/OfflineSync';
+import { recordSeasonScore } from '@/constants/SeasonScores';
+import { useLeaderboardPerk } from '@/constants/LeaderboardPerks';
 import { recordLocalMatchHistory } from '@/constants/MatchHistory';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScorePopup } from './ScorePopup';
@@ -127,6 +129,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const [playerElo, setPlayerElo] = useState<number>(initialPlayerElo);
     const playerEloRef = useRef(initialPlayerElo);
     const [opponentElo, setOpponentElo] = useState<number | null>(null);
+    const opponentPerk = useLeaderboardPerk(opponentName);
     const [playerAvatar, setPlayerAvatar] = useState<string | null>(null);
     const [opponentAvatar, setOpponentAvatar] = useState<string | null>(null);
 
@@ -623,6 +626,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                     persistRoomResult(myRole);
                     if (persistentName) {
                         submitGlobalHighScoreOrQueue(persistentName, score.value, gameMode);
+                        void recordSeasonScore(gameMode, score.value);
                     }
                     submitOpponentForfeitLoss();
                 } else {
@@ -751,6 +755,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         const persistentName = getPersistentPlayerName();
         if (persistentName) {
             submitGlobalHighScoreOrQueue(persistentName, score.value, gameMode);
+            void recordSeasonScore(gameMode, score.value);
         }
     };
 
@@ -1020,7 +1025,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                                     <Text style={{ fontSize: 12, color: '#fff' }}>{opponentName.charAt(0).toUpperCase()}</Text>
                                 </View>
                             )}
-                            <Text style={[styles.opponentNameText, { color: currentTheme.textPrimary, flexShrink: 1 }]} numberOfLines={1}>
+                            <Text style={[styles.opponentNameText, { color: opponentPerk?.tier.color ?? currentTheme.textPrimary, flexShrink: 1 }]} numberOfLines={1}>
                                 {opponentName} {oppBadge ? `[${oppBadge.tier} - ${opponentElo}]` : ""} {opponentIsGameOver && "(GameOver)"}
                             </Text>
                         </View>
@@ -1140,7 +1145,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 												<Text style={{ fontSize: 10, color: '#fff' }}>{opponentName.charAt(0).toUpperCase()}</Text>
 											</View>
 										)}
-										<Text style={[styles.opponentNameText, { color: currentTheme.textSecondary }, isShortScreen && { fontSize: 14 }]} numberOfLines={1}>
+										<Text style={[styles.opponentNameText, { color: opponentPerk?.tier.color ?? currentTheme.textSecondary }, isShortScreen && { fontSize: 14 }]} numberOfLines={1}>
 											{opponentName} {oppBadge ? `[${oppBadge.tier}]` : ""} {opponentIsGameOver && "(Dead)"}
 										</Text>
 									</View>
@@ -1265,7 +1270,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 												<Text style={{ fontSize: 12, color: '#fff' }}>{opponentName.charAt(0).toUpperCase()}</Text>
 											</View>
 										)}
-										<Text style={[styles.opponentNameText, { color: currentTheme.textSecondary, flexShrink: 1 }]}>
+										<Text style={[styles.opponentNameText, { color: opponentPerk?.tier.color ?? currentTheme.textSecondary, flexShrink: 1 }]}>
 											{opponentName} {oppBadge ? `[${oppBadge.tier} - ${opponentElo}]` : ""} {opponentIsGameOver && "(GameOver)"}
 										</Text>
 									</View>
