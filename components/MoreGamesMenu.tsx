@@ -3165,6 +3165,7 @@ export function drawDurakCards(state: DurakState, startRole: OnlineRole) {
 
 function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
 	const { currentTheme } = useTheme();
+	const tableHeight = Math.max(440, Math.min(600, useWindowDimensions().height - 220));
 const { t } = useLanguage();
 	const { state: shopState, commit } = useShopState();
 	const [state, setState] = useState<DurakState | null>(null);
@@ -3733,7 +3734,7 @@ const { t } = useLanguage();
 							{coinResult >= 0 ? t("durak.youWon", { amount: coinResult }) : t("durak.youLost", { amount: Math.abs(coinResult) })}
 						</Text>
 					)}
-					<View style={styles.durakTable}>
+					<View style={[styles.durakTable, { height: tableHeight }]}>
 						<View style={[styles.durakStatusBar, { borderColor: currentTheme.accent, backgroundColor: "rgba(0,0,0,0.4)" }]}>
 							<Text style={[styles.durakStatusText, { color: currentTheme.textPrimary }]}>
 								{t("durak.players")}: {state.playerCount} · {t("durak.deck")}: {state.deckSize} · {t("durak.yourBet")}: {state.bet} {t("durak.coinsUnit")}
@@ -3771,14 +3772,14 @@ const { t } = useLanguage();
 								const emote = emotes[role];
 								const isBusted = state.bustedCheaters?.includes(role);
 								return (
-									<View key={role} style={[styles.durakAvatarContainer, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+									<View key={role} style={[styles.durakAvatarContainer, { flexDirection: 'row', alignItems: 'center', gap: 4, minWidth: 64, justifyContent: 'center' }]}>
 										{/* Emoji bubble appears to the LEFT of the avatar */}
 										{emote ? (
-											<View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.7)', borderWidth: 1, borderColor: '#FACC15', alignItems: 'center', justifyContent: 'center' }}>
+											<View style={{ position: 'absolute', left: -14, top: -8, zIndex: 20, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.7)', borderWidth: 1, borderColor: '#FACC15', alignItems: 'center', justifyContent: 'center' }}>
 												<PixelIcon name={emote.emoji as any} size={18} />
 											</View>
 										) : (
-											<View style={{ width: 34, height: 34 }} />
+											null
 										)}
 										<View style={{ alignItems: 'center', gap: 4 }}>
 											<View style={[styles.durakAvatarBorder, isAttacker && { borderColor: "#F97316" }, isDefender && { borderColor: "#38BDF8" }, isMe && { borderColor: '#22C55E', borderWidth: 2 }]}>
@@ -4073,6 +4074,7 @@ function DraggableHandCard({
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
 			style={{
+				...(Platform.OS === 'web' ? ({ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' } as any) : null),
 				transform: [
 					{ translateX: dragX },
 					{ translateY: finalTranslateY },
@@ -5312,7 +5314,7 @@ const styles = StyleSheet.create({
 	},
 	durakTable: {
 		width: "100%",
-		height: 560,
+		height: 600,
 		alignItems: "center",
 		backgroundColor: "#2F5C43",
 		borderRadius: 16,
@@ -5375,7 +5377,8 @@ const styles = StyleSheet.create({
 		width: "100%",
 		flexDirection: "row",
 		justifyContent: "center",
-		gap: 24,
+		flexWrap: "wrap",
+		gap: 8,
 		marginTop: 20,
 		zIndex: 10,
 	},
@@ -5437,7 +5440,7 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "flex-end",
 		position: "absolute",
-		bottom: 10,
+		bottom: 34,
 		zIndex: 50,
 		height: 120,
 	},
