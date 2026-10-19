@@ -1,21 +1,30 @@
-MIT License
+Copyright (c) 2025 Nerdlin. All rights reserved.
 
-Copyright (c) 2025 Nerdlin
+This repository and all of its contents (source code, assets, artwork, text,
+database schemas and documentation, together the "Software") are the exclusive
+property of Nerdlin. The Software is NOT open source.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+No license or right is granted to you except as follows: you may view and read
+the source code in this repository for personal, educational purposes, and play
+the officially published game.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Without prior written permission from the copyright holder you may NOT:
+
+  - use, copy, modify, merge, translate or create derivative works of the Software;
+  - distribute, publish, sublicense, sell or otherwise make the Software or any
+    part of it available to others, in source or binary form;
+  - deploy or host the Software or any derivative of it (including any
+    production or public deployment);
+  - use the Software, its name, branding or assets for any commercial purpose;
+  - remove or alter this notice.
+
+Any use not expressly permitted above requires written permission from the
+copyright holder.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM, OUT OF
+OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Third-party dependencies remain under their own licenses.
