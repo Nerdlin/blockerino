@@ -23,14 +23,14 @@
 
 <br />
 
-<p align="center">
-  <img src="./docs/screenshots/menu.png" height="440" alt="Главное меню" />
-  <img src="./docs/screenshots/chaos.png" height="440" alt="Chaos 10×10" />
-  <img src="./docs/screenshots/more-games.png" height="440" alt="More Games" />
-  <img src="./docs/screenshots/durak-lobby.png" height="440" alt="Durak Online" />
-</p>
-
-<sub>Главное меню · Chaos 10×10 · More Games · Durak Online</sub>
+<table>
+  <tr>
+    <td align="center"><img src="./docs/screenshots/menu.png" width="210" alt="Главное меню" /><br /><sub><b>Главное меню</b></sub></td>
+    <td align="center"><img src="./docs/screenshots/chaos.png" width="210" alt="Режим Chaos" /><br /><sub><b>Chaos 10×10</b></sub></td>
+    <td align="center"><img src="./docs/screenshots/more-games.png" width="210" alt="More Games" /><br /><sub><b>More Games</b></sub></td>
+    <td align="center"><img src="./docs/screenshots/durak-lobby.png" width="210" alt="Durak Online" /><br /><sub><b>Durak Online</b></sub></td>
+  </tr>
+</table>
 
 </div>
 
