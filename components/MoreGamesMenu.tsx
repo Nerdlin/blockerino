@@ -7,6 +7,7 @@ import { Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Te
 import Slider from '@react-native-community/slider';
 import SimplePopupView, { useUiScale } from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
+import SegmentedControl from "./SegmentedControl";
 import { cssColors } from "@/constants/Color";
 import {
 	getMoreGameLeaderboard,
@@ -979,29 +980,16 @@ function RatingBadge({ elo, small = false }: { elo: number; small?: boolean }) {
 
 function MoreGameTabs({ selected, onChange }: { selected: RatedMoreGameId; onChange: (game: RatedMoreGameId) => void }) {
 	const { t } = useLanguage();
+	const toItem = (gameId: RatedMoreGameId) => ({
+		key: gameId,
+		label: t(`moregames.label.${gameId}`),
+		color: MORE_GAME_CARDS.find((item) => item.id === gameId)?.color,
+	});
+	const half = Math.ceil(RATED_MORE_GAME_IDS.length / 2);
 	return (
 		<View style={styles.ratingTabsWrapper}>
-			{RATED_MORE_GAME_IDS.map((gameId) => {
-				const card = MORE_GAME_CARDS.find((item) => item.id === gameId);
-				const active = selected === gameId;
-				return (
-					<Pressable
-						key={gameId}
-						onPress={() => onChange(gameId)}
-						style={[
-							styles.ratingTab,
-							{
-								borderColor: active ? card?.color || "#FFFFFF" : "rgba(255,255,255,0.22)",
-								backgroundColor: active ? card?.color || "#FFFFFF" : "rgba(255,255,255,0.06)",
-							},
-						]}
-					>
-						<Text style={[styles.ratingTabText, { color: active ? getReadableButtonTextColor(card?.color || "#FFFFFF") : "#FFFFFF" }]}>
-							{t(`moregames.label.${gameId}`)}
-						</Text>
-					</Pressable>
-				);
-			})}
+			<SegmentedControl small items={RATED_MORE_GAME_IDS.slice(0, half).map(toItem)} value={selected} onChange={onChange} />
+			<SegmentedControl small items={RATED_MORE_GAME_IDS.slice(half).map(toItem)} value={selected} onChange={onChange} />
 		</View>
 	);
 }
@@ -1040,7 +1028,9 @@ function MoreGameLeaderboardPanel({
 			</View>
 			<View style={styles.leaderboardTopRow}>
 				<Text style={[styles.leaderboardSub, { color: currentTheme.textSecondary }]}>{t("moregames.top100")}</Text>
-				<StylizedButton text={loading ? "..." : t("common.refresh")} onClick={onRefresh} backgroundColor={cssColors.spaceGray} style={styles.compactTopButton} textStyle={styles.tinyButtonText} />
+				<Pressable onPress={onRefresh} disabled={loading} accessibilityLabel={t("common.refresh")} style={[styles.refreshIconButton, loading && { opacity: 0.5 }]}>
+						<UiIcon name="refresh" size={18} />
+					</Pressable>
 			</View>
 			<View style={styles.leaderboardHeaderRow}>
 				<Text style={[styles.leaderboardHeaderText, { flex: 0.35 }]}>#</Text>
@@ -1117,38 +1107,27 @@ function ExtraGameShop() {
 
 	return (
 		<ScrollView style={styles.moreList} contentContainerStyle={styles.shopContent}>
-			<View style={{ alignItems: 'center', marginBottom: 16 }}>
-				<Text style={[styles.gameStatus, { color: currentTheme.textPrimary }]}>EXTRA GAME SHOP</Text>
-				<Text style={[styles.shopHint, { color: currentTheme.accent, fontSize: 14, marginTop: 4 }]}>
-					{t("shop.coins", { count: state.balance })}
-				</Text>
-				<Text style={[styles.shopHint, { color: currentTheme.textSecondary }]}>{message}</Text>
-			</View>
+				<View style={{ alignItems: 'center', marginBottom: 12, gap: 6 }}>
+					<View style={[styles.refreshIconButton, { width: undefined, minWidth: 74, paddingHorizontal: 10, borderColor: currentTheme.accent }]}>
+						<Text style={[styles.shopHint, { color: currentTheme.accent, fontSize: 14 }]}>{state.balance}</Text>
+					</View>
+					<Text style={[styles.shopHint, { color: currentTheme.textSecondary }]}>{message}</Text>
+				</View>
 
-			<View style={{ width: "100%", flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8, marginBottom: 16 }}>
-				{EXTRA_CATEGORIES.map((cat) => {
-					const isActive = activeCategory === cat.id;
-					return (
-						<Pressable
-							key={cat.id}
-							onPress={() => setActiveCategory(cat.id)}
-							style={{
-								borderWidth: 2,
-								borderRadius: 8,
-								paddingHorizontal: 10,
-								paddingVertical: 8,
-								alignItems: "center",
-								borderColor: isActive ? currentTheme.accent : "rgba(255,255,255,0.15)",
-								backgroundColor: isActive ? currentTheme.buttonPrimary : "rgba(255,255,255,0.06)"
-							}}
-						>
-							<Text style={{ fontFamily: "Silkscreen", fontSize: 10, textAlign: "center", color: isActive ? "white" : currentTheme.textSecondary }}>
-								{t(cat.labelKey)}
-							</Text>
-						</Pressable>
-					);
-				})}
-			</View>
+				<SegmentedControl
+					small
+					items={EXTRA_CATEGORIES.slice(0, 3).map((cat) => ({ key: cat.id, label: t(cat.labelKey) }))}
+					value={activeCategory}
+					onChange={setActiveCategory}
+				/>
+				<View style={{ height: 6 }} />
+				<SegmentedControl
+					small
+					items={EXTRA_CATEGORIES.slice(3).map((cat) => ({ key: cat.id, label: t(cat.labelKey) }))}
+					value={activeCategory}
+					onChange={setActiveCategory}
+				/>
+				<View style={{ height: 14 }} />
 
 			<View style={{ width: "100%", marginBottom: 24, alignItems: "center" }}>
 				<View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 10 }}>
@@ -1160,7 +1139,7 @@ function ExtraGameShop() {
 						const disabled = isEquipped || (!isOwned && !canAfford);
 
 						return (
-							<View key={item.id} style={[{ width: 150, minHeight: 180, borderWidth: 2, borderRadius: 8, padding: 8, alignItems: "center", justifyContent: "space-between", borderColor: isEquipped ? item.accent : "rgba(255,255,255,0.12)", backgroundColor: "rgba(0, 0, 0, 0.38)" }]}>
+							<View key={item.id} style={[{ width: "47%", minWidth: 140, minHeight: 180, borderWidth: 1.5, borderRadius: 10, padding: 8, alignItems: "center", justifyContent: "space-between", borderColor: isEquipped ? item.accent : "rgba(255,255,255,0.12)", backgroundColor: "rgba(0, 0, 0, 0.38)" }]}>
 								<View style={{ width: "100%", height: 40, borderRadius: 6, borderWidth: 1, borderColor: "rgba(255,255,255,0.16)", overflow: "hidden", backgroundColor: "rgba(255,255,255,0.04)", justifyContent: "center", alignItems: "center" }}>
 									<View style={{ flexDirection: "row", gap: 4 }}>
 										{item.previewColors.map((color, idx) => (
@@ -4247,8 +4226,17 @@ const styles = StyleSheet.create({
 	},
 	header: {
 		fontFamily: "Silkscreen",
-		fontSize: 24,
+		fontSize: 20,
 		textAlign: "center",
+	},
+	refreshIconButton: {
+		width: 44,
+		height: 44,
+		borderRadius: 10,
+		borderWidth: 2,
+		borderColor: "rgba(255, 255, 255, 0.25)",
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	subHeader: {
 		fontFamily: "Silkscreen",
@@ -4265,9 +4253,9 @@ const styles = StyleSheet.create({
 	},
 	moreTopPanel: {
 		width: "100%",
-		borderWidth: 2,
+		borderWidth: 1.5,
 		borderColor: "rgba(255,255,255,0.18)",
-		borderRadius: 8,
+		borderRadius: 10,
 		padding: 8,
 		gap: 8,
 		backgroundColor: "rgba(255,255,255,0.04)",
@@ -4352,9 +4340,9 @@ const styles = StyleSheet.create({
 	},
 	moreGameRow: {
 		width: "100%",
-		minHeight: 108,
-		borderWidth: 2,
-		borderRadius: 8,
+		minHeight: 84,
+		borderWidth: 1.5,
+		borderRadius: 10,
 		padding: 10,
 		flexDirection: "row",
 		alignItems: "center",
@@ -4420,9 +4408,8 @@ const styles = StyleSheet.create({
 		width: "100%",
 		flexDirection: "row",
 		flexWrap: "wrap",
-		justifyContent: "center",
+		alignItems: "center",
 		gap: 6,
-		paddingHorizontal: 4,
 		paddingBottom: 2,
 	},
 	ratingTab: {

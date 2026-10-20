@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState, useRef } from "react";
 import { StyleSheet, Text, View, TextInput, ActivityIndicator, Clipboard, useWindowDimensions, ScrollView, Pressable, Platform, Image } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
+import SegmentedControl from "./SegmentedControl";
 import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
 import { setProfileAuthIntent } from "@/constants/ProfileIntent";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
@@ -592,7 +593,11 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             {lobbyState === 'idle' && !showEloScreen && !showEloLeaderboard && (
                 <Animated.View entering={FadeIn} style={styles.contentContainer}>
                     
-                    <Text style={[styles.header, { color: currentTheme.textPrimary, marginVertical: 8 }]}>{t("mp.title")}</Text>
+                    <View style={styles.topBar}>
+                        <StylizedButton text={t("mp.back")} onClick={popAppState} backgroundColor={cssColors.spaceGray} style={styles.topBackButton} textStyle={{ fontSize: 12 }} />
+                        <Text style={[styles.header, { color: currentTheme.textPrimary }]}>{t("mp.title")}</Text>
+                        <View style={styles.topBackButton} />
+                    </View>
 
                     {authChecked && !signedIn && (
                     <View style={styles.inputRow}>
@@ -652,37 +657,27 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         <Text style={styles.eloCardArrow}>▸</Text>
                     </Pressable>
 
-                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary, alignSelf: 'center', marginLeft: 0, marginTop: 4 }]}>{t("mp.selectMode")}</Text>
-                    <View style={styles.row}>
-                        <StylizedButton
-                            text={t("mp.classic")}
-                            onClick={() => setSelectedMode(GameModeType.Classic)}
-                            backgroundColor={selectedMode === GameModeType.Classic ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
-                            borderColor={selectedMode === GameModeType.Classic ? currentTheme.accent : undefined}
-                            style={{ flex: 1, minWidth: 100, height: 36 }}
-                            textStyle={{ fontSize: 13 }}
-                        />
-                        <StylizedButton
-                            text={t("mp.chaos")}
-                            onClick={() => setSelectedMode(GameModeType.Chaos)}
-                            backgroundColor={selectedMode === GameModeType.Chaos ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
-                            borderColor={selectedMode === GameModeType.Chaos ? currentTheme.accent : undefined}
-                            style={{ flex: 1, minWidth: 100, height: 36 }}
-                            textStyle={{ fontSize: 13 }}
-                        />
-                    </View>
+                    <View style={{ height: 8 }} />
+                    <SegmentedControl
+                        items={[
+                            { key: GameModeType.Classic, label: t("mp.classic"), color: currentTheme.buttonPrimary },
+                            { key: GameModeType.Chaos, label: t("mp.chaos"), color: "#7C3AED" },
+                        ]}
+                        value={selectedMode}
+                        onChange={(mode) => setSelectedMode(mode)}
+                    />
 
                     <View style={styles.row}>
                         <StylizedButton
                             text={t("mp.createRoom")}
                             onClick={() => handleCreateRoom(selectedMode)}
                             backgroundColor={cssColors.pink} 
-                            style={{ flex: 1, minWidth: 100, height: 40 }}
-                            textStyle={{ fontSize: isMobile ? 12 : 13 }}
+                            style={{ flex: 1, minWidth: 100, height: 46 }}
+                            textStyle={{ fontSize: 14 }}
                         />
                     </View>
 
-                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary, marginTop: 10, alignSelf: 'center' }]}>{t("mp.joinWithCode")}</Text>
+                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary, marginTop: 14, alignSelf: 'center' }]}>{t("mp.joinWithCode")}</Text>
                     <View style={[styles.joinContainer, { borderColor: currentTheme.textSecondary, borderTopWidth: 0, paddingTop: 0, marginTop: 4, paddingBottom: 8 }]}>
                         <TextInput
                             style={[styles.codeInput, {
@@ -710,16 +705,16 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         ]}>
                             {t("mp.publicRooms")}
                         </Text>
-                        <StylizedButton
-                            text={refreshingPublicRooms ? "..." : t("mp.refresh")}
-                            onClick={handleRefreshPublicRooms}
-                            backgroundColor={currentTheme.buttonSecondary}
+                        <Pressable
+                            onPress={handleRefreshPublicRooms}
                             disabled={refreshingPublicRooms}
-                            style={styles.refreshRoomsButton}
-                            textStyle={styles.refreshRoomsButtonText}
-                        />
+                            accessibilityLabel={t("mp.refresh")}
+                            style={[styles.iconButton, refreshingPublicRooms && { opacity: 0.5 }]}
+                        >
+                            <UiIcon name="refresh" size={18} />
+                        </Pressable>
                     </View>
-                    <ScrollView style={[styles.publicRoomsList, { borderColor: currentTheme.textSecondary }]} nestedScrollEnabled={true}>
+                    <ScrollView style={[styles.publicRoomsList, { borderColor: 'rgba(255, 255, 255, 0.18)' }]} nestedScrollEnabled={true}>
                         {publicRooms.length === 0 ? (
                             <Text style={[styles.noRoomsText, { color: currentTheme.textSecondary }]}>{t("mp.noRooms")}</Text>
                         ) : (
@@ -760,10 +755,6 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             })
                         )}
                     </ScrollView>
-
-
-
-                    <StylizedButton text={t("mp.back")} onClick={popAppState} backgroundColor={cssColors.spaceGray} />
                 </Animated.View>
             )}
 
@@ -833,20 +824,21 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
 
             {lobbyState === 'idle' && showEloLeaderboard && (
                 <Animated.View entering={FadeIn} style={styles.contentContainer}>
-                    <Text style={[styles.header, { color: currentTheme.textPrimary, marginBottom: 8 }]}>{t("mp.eloLeaderboard")}</Text>
-                    <View style={styles.eloLeaderboardTopRow}>
-                        <Text style={[styles.eloLeaderboardSub, { color: currentTheme.textSecondary }]}>
-                            {t("mp.top100")}
-                        </Text>
-                        <StylizedButton
-                            text={loadingLeaderboard ? "..." : t("mp.refresh")}
-                            onClick={loadEloLeaderboard}
-                            backgroundColor={currentTheme.buttonSecondary}
+                    <View style={styles.topBar}>
+                        <StylizedButton text={t("mp.back")} onClick={() => setShowEloLeaderboard(false)} backgroundColor={cssColors.spaceGray} style={styles.topBackButton} textStyle={{ fontSize: 12 }} />
+                        <Text style={[styles.header, { color: currentTheme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>{t("mp.eloLeaderboard")}</Text>
+                        <Pressable
+                            onPress={loadEloLeaderboard}
                             disabled={loadingLeaderboard}
-                            style={styles.refreshEloButton}
-                            textStyle={styles.refreshEloButtonText}
-                        />
+                            accessibilityLabel={t("mp.refresh")}
+                            style={[styles.iconButton, loadingLeaderboard && { opacity: 0.5 }]}
+                        >
+                            <UiIcon name="refresh" size={18} />
+                        </Pressable>
                     </View>
+                    <Text style={[styles.eloLeaderboardSub, { color: currentTheme.textSecondary, marginBottom: 8 }]}>
+                        {t("mp.top100")}
+                    </Text>
 
                     <View style={styles.eloLeaderboardHeader}>
                         <Text style={[styles.eloLBHText, { color: currentTheme.textSecondary, flex: 0.4 }]}>#</Text>
@@ -915,8 +907,6 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             )}
                         </ScrollView>
                     )}
-
-                    <StylizedButton text={t("mp.back")} onClick={() => setShowEloLeaderboard(false)} backgroundColor={cssColors.spaceGray} />
                 </Animated.View>
             )}
 
@@ -962,9 +952,31 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     header: {
-        fontSize: 30,
+        fontSize: 22,
         fontFamily: 'Silkscreen',
-        marginVertical: 15
+        flex: 1,
+        textAlign: 'center',
+    },
+    topBar: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
+        marginBottom: 12,
+    },
+    topBackButton: {
+        width: 90,
+        minWidth: 90,
+    },
+    iconButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: 'rgba(255, 255, 255, 0.25)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     subHeader: {
         fontSize: 18,

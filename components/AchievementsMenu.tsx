@@ -3,6 +3,7 @@ import { ActivityIndicator, AppState, Platform, StyleSheet, Text, View, useWindo
 import SimplePopupView from "./SimplePopupView";
 import AchievementIcon from "./AchievementIcon";
 import StylizedButton from "./StylizedButton";
+import UiIcon from "./UiIcon";
 import { useTheme } from "@/constants/Theme";
 import { cssColors } from "@/constants/Color";
 import {
@@ -94,11 +95,40 @@ export default function AchievementsMenu() {
 			{ backgroundColor: currentTheme.menuBackground, height: "88%" },
 			isMobile && { width: "92%", height: "88%", paddingHorizontal: 8 },
 		]}>
-			<Text style={[styles.header, { color: currentTheme.textPrimary }]}>{t("ach.header")}</Text>
+			<View style={styles.topBar}>
+				<StylizedButton
+					text={t("ach.back")}
+					onClick={popAppState}
+					backgroundColor={cssColors.spaceGray}
+					style={styles.backButton}
+					textStyle={styles.buttonText}
+				/>
+				<Text style={[styles.header, { color: currentTheme.textPrimary }]}>{t("ach.header")}</Text>
+				<Pressable
+					onPress={() => void loadAchievements()}
+					accessibilityLabel={t("ach.refresh")}
+					style={styles.refreshIcon}
+				>
+					<UiIcon name="refresh" size={18} />
+				</Pressable>
+			</View>
 			{!loading && (
-				<Text style={[styles.summary, { color: currentTheme.textSecondary }]}>
-					{t("ach.completed", { done: completedCount, total: achievements.length })}
-				</Text>
+				<View style={styles.summaryBlock}>
+					<Text style={[styles.summary, { color: currentTheme.textSecondary }]}>
+						{t("ach.completed", { done: completedCount, total: achievements.length })}
+					</Text>
+					<View style={[styles.progressTrack, { borderColor: currentTheme.textSecondary }]}>
+						<View
+							style={[
+								styles.progressFill,
+								{
+									width: `${achievements.length ? Math.round((completedCount / achievements.length) * 100) : 0}%` as `${number}%`,
+									backgroundColor: currentTheme.accent,
+								},
+							]}
+						/>
+					</View>
+				</View>
 			)}
 			{secretMessage && (
 				<Text style={{ fontFamily: 'Silkscreen', fontSize: 12, color: '#FFD700', marginBottom: 10, textAlign: 'center' }}>
@@ -146,8 +176,8 @@ export default function AchievementsMenu() {
 										<Text style={[styles.title, { color: currentTheme.textPrimary }]} numberOfLines={1}>
 											{t(`ach.${achievement.id}.title`)}
 										</Text>
-										<Text style={[styles.progress, { color: achievement.progress.complete ? currentTheme.accent : currentTheme.textSecondary }]}>
-											{achievement.progress.current}/{achievement.progress.target}
+										<Text style={[styles.howTo, { color: currentTheme.textSecondary }]} numberOfLines={1}>
+											{t(`ach.${achievement.id}.unlock`)}
 										</Text>
 										<View style={[styles.progressTrack, { borderColor: currentTheme.textSecondary }]}>
 											<View
@@ -162,8 +192,8 @@ export default function AchievementsMenu() {
 										</View>
 									</View>
 								</View>
-								<Text style={[styles.howTo, { color: currentTheme.textSecondary }]}>
-									{t(`ach.${achievement.id}.unlock`)}
+								<Text style={[styles.progress, { color: achievement.progress.complete ? currentTheme.accent : currentTheme.textSecondary }]}>
+									{achievement.progress.current}/{achievement.progress.target}
 								</Text>
 							</Pressable>
 						);
@@ -171,38 +201,45 @@ export default function AchievementsMenu() {
 				</View>
 			)}
 
-			<View style={styles.buttons}>
-				<StylizedButton
-					text={t("ach.refresh")}
-					onClick={() => void loadAchievements()}
-					backgroundColor={currentTheme.buttonPrimary}
-					style={styles.button}
-					textStyle={styles.buttonText}
-				/>
-				<StylizedButton
-					text={t("ach.back")}
-					onClick={popAppState}
-					backgroundColor={cssColors.spaceGray}
-					style={styles.button}
-					textStyle={styles.buttonText}
-				/>
-			</View>
 		</SimplePopupView>
 	);
 }
 
 const styles = StyleSheet.create({
+	topBar: {
+		width: "100%",
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		gap: 8,
+		marginBottom: 10,
+	},
+	backButton: {
+		minWidth: 90,
+	},
+	refreshIcon: {
+		width: 44,
+		height: 44,
+		borderRadius: 10,
+		borderWidth: 2,
+		borderColor: "rgba(255, 255, 255, 0.25)",
+		alignItems: "center",
+		justifyContent: "center",
+	},
 	header: {
 		fontFamily: "Silkscreen",
-		fontSize: 24,
+		fontSize: 20,
 		textAlign: "center",
-		marginBottom: 6,
+	},
+	summaryBlock: {
+		width: "100%",
+		marginBottom: 12,
 	},
 	summary: {
 		fontFamily: "Silkscreen",
 		fontSize: 10,
 		textAlign: "center",
-		marginBottom: 12,
+		marginBottom: 6,
 	},
 	loader: {
 		marginVertical: 30,
@@ -214,10 +251,10 @@ const styles = StyleSheet.create({
 	row: {
 		width: "100%",
 		minHeight: 56,
-		borderWidth: 1,
-		borderRadius: 6,
-		paddingVertical: 6,
-		paddingHorizontal: 8,
+		borderWidth: 1.5,
+		borderRadius: 10,
+		paddingVertical: 8,
+		paddingHorizontal: 10,
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
@@ -248,8 +285,9 @@ const styles = StyleSheet.create({
 	},
 	progress: {
 		fontFamily: "Silkscreen",
-		fontSize: 9,
-		marginTop: 2,
+		fontSize: 11,
+		minWidth: 52,
+		textAlign: "right",
 	},
 	progressTrack: {
 		width: "100%",
@@ -264,11 +302,10 @@ const styles = StyleSheet.create({
 		height: "100%",
 	},
 	howTo: {
-		flex: 1,
 		fontFamily: "Silkscreen",
 		fontSize: 9,
 		lineHeight: 12,
-		textAlign: "right",
+		marginTop: 2,
 	},
 	buttons: {
 		flexDirection: "row",

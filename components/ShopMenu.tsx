@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
+import SegmentedControl from "./SegmentedControl";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
 import {
@@ -84,37 +85,20 @@ export default function ShopMenu() {
 						style={styles.topBackButton}
 						textStyle={styles.topBackButtonText}
 					/>
-					<View style={styles.headerTitleBlock}>
-						<Text style={[styles.title, { color: currentTheme.textPrimary }]}>{t("shop.title")}</Text>
-						<Text style={[styles.balance, { color: currentTheme.accent }]}>{t("shop.coins", { count: state.balance })}</Text>
+					<Text style={[styles.title, { color: currentTheme.textPrimary }]}>{t("shop.title")}</Text>
+					<View style={[styles.coinsPill, { borderColor: currentTheme.accent }]}>
+						<Text style={[styles.balance, { color: currentTheme.accent }]}>{state.balance}</Text>
 					</View>
-					<View style={styles.topBarSpacer} />
 				</View>
 				<Text style={[styles.caption, { color: currentTheme.textSecondary }]}>{message}</Text>
 			</View>
 
-			<View style={styles.tabs}>
-				{CATEGORIES.map((category) => {
-					const selected = activeCategory === category.id;
-					return (
-						<Pressable
-							key={category.id}
-							onPress={() => handleSelectCategory(category.id)}
-							style={[
-								styles.tab,
-								{
-									borderColor: selected ? currentTheme.accent : "rgba(255,255,255,0.15)",
-									backgroundColor: selected ? currentTheme.buttonPrimary : "rgba(255,255,255,0.06)",
-								},
-							]}
-						>
-							<Text style={[styles.tabText, { color: selected ? "white" : currentTheme.textSecondary }]}>
-								{t(category.labelKey)}
-							</Text>
-						</Pressable>
-					);
-				})}
-			</View>
+			<SegmentedControl
+				items={CATEGORIES.map((category) => ({ key: category.id, label: t(category.labelKey) }))}
+				value={activeCategory}
+				onChange={handleSelectCategory}
+				small
+			/>
 
 			<View style={styles.equippedRow}>
 				<Text style={[styles.equippedLabel, { color: currentTheme.textSecondary }]}>{t("shop.equipped")}</Text>
@@ -140,13 +124,6 @@ export default function ShopMenu() {
 				{t("shop.catalogCount", { count: visibleCatalogCount })}
 			</Text>
 
-			<StylizedButton
-				text={t("shop.back")}
-				onClick={close}
-				backgroundColor={currentTheme.buttonSecondary}
-				style={isMobile && styles.mobileBackButton}
-				textStyle={isMobile && styles.mobileBackButtonText}
-			/>
 		</SimplePopupView>
 	);
 }
@@ -185,7 +162,7 @@ function ShopItemCard({
 			<Text style={[styles.itemTitle, { color: currentTheme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
 				{item.title}
 			</Text>
-			<Text style={[styles.itemDescription, { color: currentTheme.textSecondary }]} numberOfLines={3}>
+			<Text style={[styles.itemDescription, { color: currentTheme.textSecondary }]} numberOfLines={2}>
 				{item.description}
 			</Text>
 			<Text style={[styles.itemStatus, { color: isOwned ? item.accent : currentTheme.textSecondary }]}>
@@ -290,12 +267,22 @@ const styles = StyleSheet.create({
 	},
 	title: {
 		fontFamily: "Silkscreen",
-		fontSize: 28,
+		fontSize: 22,
 		textAlign: "center",
+		flex: 1,
+	},
+	coinsPill: {
+		minWidth: 74,
+		height: 30,
+		borderWidth: 1.5,
+		borderRadius: 8,
+		alignItems: "center",
+		justifyContent: "center",
+		paddingHorizontal: 8,
 	},
 	balance: {
 		fontFamily: "Silkscreen",
-		fontSize: 18,
+		fontSize: 14,
 		textAlign: "center",
 	},
 	caption: {
@@ -332,7 +319,8 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
-		marginBottom: 12,
+		marginTop: 12,
+		marginBottom: 10,
 		paddingHorizontal: 8,
 	},
 	equippedLabel: {
@@ -347,6 +335,7 @@ const styles = StyleSheet.create({
 	},
 	itemsGrid: {
 		width: "100%",
+		maxWidth: 440,
 		flexDirection: "row",
 		flexWrap: "wrap",
 		justifyContent: "center",
@@ -356,10 +345,11 @@ const styles = StyleSheet.create({
 		gap: 8,
 	},
 	card: {
-		width: 190,
-		minHeight: 230,
-		borderWidth: 2,
-		borderRadius: 8,
+		width: "47%",
+		minWidth: 150,
+		minHeight: 210,
+		borderWidth: 1.5,
+		borderRadius: 10,
 		padding: 10,
 		alignItems: "center",
 		justifyContent: "space-between",
@@ -413,7 +403,7 @@ const styles = StyleSheet.create({
 		fontSize: 9,
 		lineHeight: 13,
 		textAlign: "center",
-		minHeight: 42,
+		minHeight: 28,
 	},
 	itemStatus: {
 		fontFamily: "Silkscreen",
