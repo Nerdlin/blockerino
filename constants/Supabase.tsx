@@ -384,81 +384,26 @@ export async function submitGlobalHighScore(
 
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError || !session?.user) return false;
+        // Creates the profile and syncs the nickname. The score itself only travels through the
+        // submit_high_score RPC: the server rejects direct client writes to highscore_* columns.
         const profile = await upsertAuthenticatedProfile(session.user, finalPlayerName);
         if (!profile) return false;
         const scoreColumn = getHighScoreColumn(gameMode);
         if (isHighScoreColumnTemporarilyUnavailable(scoreColumn)) return false;
 
-        // Fetch existing profile
-        const { data, error: fetchError } = await supabase
-            .from('profiles')
-            .select(getHighScoreColumnsSelect(scoreColumn))
-            .eq('auth_user_id', session.user.id)
-            .limit(1);
+        const { data, error } = await supabase.rpc('submit_high_score', {
+            p_mode: gameMode,
+            p_score: Math.floor(score),
+        });
 
-        if (fetchError) {
-            if (isMissingHighScoreColumnError(fetchError, scoreColumn)) {
+        if (error) {
+            if (isMissingHighScoreColumnError(error, scoreColumn)) {
                 rememberMissingHighScoreColumn(scoreColumn);
-                return false;
             }
-            console.error('Error fetching existing score:', fetchError);
+            console.error('Error submitting high score:', error);
             return false;
         }
-
-        const existingRecord = (data as HighScoreProfileRow[] | null)?.[0];
-
-        if (existingRecord) {
-            const currentScore = existingRecord[scoreColumn] || 0;
-            // Update if better score or if case mismatch
-            if (score > currentScore) {
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({
-                        player_name: profile.player_name,
-                        [scoreColumn]: score
-                    })
-                    .eq('id', existingRecord.id)
-                    .eq('auth_user_id', session.user.id)
-                    .select('id')
-                    .single();
-
-                if (updateError) {
-                    if (isMissingHighScoreColumnError(updateError, scoreColumn)) {
-                        rememberMissingHighScoreColumn(scoreColumn);
-                    }
-                    return false;
-                }
-            } else if (profile.player_name !== existingRecord.player_name) {
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({ player_name: profile.player_name })
-                    .eq('id', existingRecord.id)
-                    .eq('auth_user_id', session.user.id)
-                    .select('id')
-                    .single();
-
-                if (updateError) return false;
-            }
-            return true;
-        } else {
-            // Profile doesn't exist, create it (offline/guest flow)
-            const { error: insertError } = await supabase
-                .from('profiles')
-                .insert([{
-                    player_name: finalPlayerName,
-                    auth_user_id: session.user.id,
-                    player_id: session.user.id,
-                    [scoreColumn]: score
-                }]);
-
-            if (insertError) {
-                if (isMissingHighScoreColumnError(insertError, scoreColumn)) {
-                    rememberMissingHighScoreColumn(scoreColumn);
-                }
-                return false;
-            }
-            return true;
-        }
+        return data === true;
     } catch (error) {
         console.error('Error submitting high score:', error);
         return false;
