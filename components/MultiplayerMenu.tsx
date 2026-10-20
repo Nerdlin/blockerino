@@ -760,8 +760,12 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
 
             {lobbyState === 'idle' && showEloScreen && (
                 <Animated.View entering={FadeIn} style={styles.contentContainer}>
+                    <View style={styles.topBar}>
+                        <StylizedButton text={t("mp.back")} onClick={() => setShowEloScreen(false)} backgroundColor={cssColors.spaceGray} style={styles.topBackButton} textStyle={{ fontSize: 12 }} />
+                        <Text style={[styles.header, { color: currentTheme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>{t("mp.myRating")}</Text>
+                        <View style={styles.topBackButton} />
+                    </View>
                     <View style={styles.eloScreenHeader}>
-                        <Text style={[styles.header, { color: currentTheme.textPrimary, marginBottom: 5 }]}>{t("mp.myRating")}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                             <UiIcon name={getEloDetails(playerElo).currentTier.icon} size={45} />
                             <View>
@@ -817,8 +821,6 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             {t("mp.howEloText")}
                         </Text>
                     </View>
-
-                    <StylizedButton text={t("mp.back")} onClick={() => setShowEloScreen(false)} backgroundColor={cssColors.spaceGray} />
                 </Animated.View>
             )}
 
@@ -1269,8 +1271,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         padding: 10,
-        borderRadius: 6,
-        borderWidth: 1,
+        borderRadius: 10,
+        borderWidth: 1.5,
         borderColor: 'transparent',
         marginVertical: 3,
         backgroundColor: 'rgba(0,0,0,0.3)',
@@ -1287,10 +1289,10 @@ const styles = StyleSheet.create({
     eloInfoBox: {
         width: '90%',
         backgroundColor: 'rgba(0,0,0,0.4)',
-        borderRadius: 6,
+        borderRadius: 10,
         padding: 12,
         marginBottom: 12,
-        borderWidth: 1,
+        borderWidth: 1.5,
         borderColor: '#444',
     },
     eloInfoTitle: {
