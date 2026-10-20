@@ -16,7 +16,8 @@ import { getGameModeConfig, MAIN_LEADERBOARD_GAME_MODES } from "@/constants/Game
 import { useLanguage } from "@/constants/Localization";
 import { syncLocalHighScores } from "@/constants/LocalScoreSync";
 import GlobalScoreRow from "./GlobalScoreRow";
-import { getSeasonBoard, getSeasonEndsAt, getSeasonLeaderboard } from "@/constants/SeasonScores";
+import { getFriendsSeasonLeaderboard, getSeasonBoard, getSeasonEndsAt, getSeasonLeaderboard } from "@/constants/SeasonScores";
+import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 
 const LEADERBOARD_LIMIT = 100;
 const LEADERBOARD_REFRESH_MS = 30000;
@@ -41,9 +42,11 @@ export default function HighScores() {
     const { state: shopState, commit: commitShopState } = useShopState();
     const currentModeConfig = getGameModeConfig(gameMode);
     const localBestScore = highScores[0]?.score ?? 0;
-    const [scope, setScope] = useState<"season" | "alltime">("season");
+    const [scope, setScope] = useState<"season" | "alltime" | "friends">("season");
+    const { signedIn } = useAccountIdentity();
     const seasonBoard = getSeasonBoard(gameMode);
     const showSeason = scope === "season" && seasonBoard !== null;
+    const showFriends = scope === "friends" && seasonBoard !== null && signedIn;
     const seasonDaysLeft = Math.ceil((getSeasonEndsAt().getTime() - Date.now()) / 86400000);
 
     const handleChaosClick = async () => {
@@ -97,9 +100,11 @@ export default function HighScores() {
             await syncLocalHighScores();
             const [localScores, remoteScores] = await Promise.all([
                 getHighScores(gameMode, true, true, LEADERBOARD_LIMIT),
-                showSeason && seasonBoard
-                    ? getSeasonLeaderboard(seasonBoard, LEADERBOARD_LIMIT)
-                    : getGlobalHighScores(gameMode, LEADERBOARD_LIMIT)
+                showFriends && seasonBoard
+                    ? getFriendsSeasonLeaderboard(seasonBoard)
+                    : showSeason && seasonBoard
+                        ? getSeasonLeaderboard(seasonBoard, LEADERBOARD_LIMIT)
+                        : getGlobalHighScores(gameMode, LEADERBOARD_LIMIT)
             ]);
 
             if (!isMounted.current) return;
@@ -112,7 +117,7 @@ export default function HighScores() {
                 setLoading(false);
             }
         }
-    }, [gameMode, showSeason, seasonBoard]);
+    }, [gameMode, showSeason, showFriends, seasonBoard]);
 
     useEffect(() => {
         isMounted.current = true;
@@ -250,6 +255,15 @@ export default function HighScores() {
                     style={styles.scopeButton}
                     textStyle={styles.scopeButtonText}
                 />
+                {signedIn && (
+                    <StylizedButton
+                        text={t("hs.scopeFriends")}
+                        onClick={() => setScope("friends")}
+                        backgroundColor={scope === "friends" ? currentTheme.buttonPrimary : cssColors.spaceGray}
+                        style={styles.scopeButton}
+                        textStyle={styles.scopeButtonText}
+                    />
+                )}
             </View>
         )}
         <View style={styles.scopeRow}>
@@ -261,7 +275,7 @@ export default function HighScores() {
                 textStyle={styles.scopeButtonText}
             />
         </View>
-        {showSeason && (
+        {(showSeason || showFriends) && (
             <Text style={[styles.seasonEndsText, { color: currentTheme.textSecondary }]}>
                 {seasonDaysLeft <= 1 ? t("hs.seasonEndsToday") : t("hs.seasonEndsIn", { days: seasonDaysLeft })}
             </Text>
@@ -301,7 +315,7 @@ export default function HighScores() {
         { !hasScores && !loading &&
             <>
                 <Text style={[styles.noScoresText, { color: currentTheme.textPrimary }, isMobile && { fontSize: 20 }]}>
-                    {t("hs.noGlobalScores")}
+                    {showFriends ? t("hs.noFriendsScores") : t("hs.noGlobalScores")}
                 </Text>
                 <StylizedButton text={t("hs.play", { mode: currentModeConfig.shortTitle })} onClick={() => {
                     setAppState(gameMode)

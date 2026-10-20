@@ -185,6 +185,23 @@ export async function flushPendingSeasonScoresForSession(): Promise<void> {
 }
 
 /** Top players of the running season for one board, best first. */
+/** The current season's ranking among the player and their accepted friends. Empty for guests. */
+export async function getFriendsSeasonLeaderboard(board: SeasonBoard): Promise<GlobalHighScore[]> {
+	try {
+		const { data, error } = await supabase.rpc("get_friends_season_leaderboard", { p_board: board });
+		if (error || !Array.isArray(data)) return [];
+
+		return data.map((row: { player_name?: string; avatar_url?: string | null; score?: number }) => ({
+			player_name: row.player_name || "Player",
+			score: row.score || 0,
+			game_mode: board,
+			avatar_url: row.avatar_url ?? undefined,
+		}));
+	} catch {
+		return [];
+	}
+}
+
 export async function getSeasonLeaderboard(board: SeasonBoard, limit: number = 100): Promise<GlobalHighScore[]> {
 	try {
 		const { data, error } = await supabase

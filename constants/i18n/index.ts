@@ -15,6 +15,7 @@ import { moregames } from "./moregames";
 import { update } from "./update";
 import { daily } from "./daily";
 import { firstrun } from "./firstrun";
+import { notifications } from "./notifications";
 
 export type ScreenDictionary = { en: Record<string, string>; ru: Record<string, string> };
 
@@ -33,6 +34,7 @@ const modules: ScreenDictionary[] = [
 	update,
 	daily,
 	firstrun,
+	notifications,
 ];
 
 export const moduleTranslations: Record<Language, Record<string, string>> = {

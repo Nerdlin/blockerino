@@ -38,7 +38,8 @@
         "INTERNET",
         "ACCESS_NETWORK_STATE",
         "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "POST_NOTIFICATIONS"
       ],
       "runtimeVersion": "1.0.10"
     },
@@ -67,7 +68,13 @@
         }
       ],
       "expo-audio",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "color": "#FF3B3B"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

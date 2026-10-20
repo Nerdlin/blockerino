@@ -10,6 +10,7 @@ import { supabase } from "@/constants/Supabase";
 import { loadShopState, useShopState } from "@/constants/Shop";
 import { MenuStateType, useAppStateValue } from "@/hooks/useAppState";
 import { track } from "@/constants/Analytics";
+import { enablePush, markPushOffered, shouldOfferPush } from "@/constants/Notifications";
 import {
 	claimDailyReward,
 	dailyRewardOpenAtom,
@@ -35,6 +36,9 @@ export default function DailyRewardHost() {
 	const [claim, setClaim] = useState<DailyRewardClaim | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [failed, setFailed] = useState(false);
+	// After the first reward on a phone, offer reminders once (never before the player got something good).
+	const [offerPush, setOfferPush] = useState(false);
+	const [pushNote, setPushNote] = useState<string | null>(null);
 	const offeredDay = useRef<string | null>(null);
 	const commitRef = useRef(commit);
 	commitRef.current = commit;
@@ -75,6 +79,21 @@ export default function DailyRewardHost() {
 		setOpen(false);
 		setClaim(null);
 		setFailed(false);
+		setOfferPush(false);
+		setPushNote(null);
+	};
+
+	const onPushYes = async () => {
+		await markPushOffered();
+		const status = await enablePush();
+		setOfferPush(false);
+		if (status === "denied") setPushNote(t("notif.pushDenied"));
+		else if (status === "error") setPushNote(t("notif.pushError"));
+	};
+
+	const onPushNo = () => {
+		void markPushOffered();
+		setOfferPush(false);
 	};
 
 	const onClaim = async () => {
@@ -95,7 +114,10 @@ export default function DailyRewardHost() {
 		}
 		setClaim(won);
 		setStatus({ streak: won.streak, best: won.best, claimedToday: true, nextStreak: won.streak + 1, nextReward: won.nextReward });
-		if (result.state === "claimed") track("streak_claim", { streak: won.streak, reward: won.reward });
+		if (result.state === "claimed") {
+			track("streak_claim", { streak: won.streak, reward: won.reward });
+			if (await shouldOfferPush()) setOfferPush(true);
+		}
 	};
 
 	const claimedNow = claim !== null;
@@ -122,6 +144,8 @@ export default function DailyRewardHost() {
 					<Text style={[styles.reward, { color: "#FFD700" }]}>{t("daily.reward", { coins: status.nextReward })}</Text>
 				)}
 				{failed && <Text style={[styles.note, { color: "#FF6B6B" }]}>{t("daily.failed")}</Text>}
+				{offerPush && <Text style={[styles.note, { color: currentTheme.textPrimary, marginTop: 8 }]}>{t("notif.pushOffer")}</Text>}
+				{pushNote && <Text style={[styles.note, { color: currentTheme.textSecondary, marginTop: 8 }]}>{pushNote}</Text>}
 			</View>
 
 			<View style={styles.buttons}>
@@ -129,6 +153,11 @@ export default function DailyRewardHost() {
 					<>
 						<StylizedButton text={t("daily.claim")} onClick={() => void onClaim()} backgroundColor={currentTheme.buttonPrimary} />
 						<StylizedButton text={t("daily.later")} onClick={close} backgroundColor={currentTheme.buttonSecondary} />
+					</>
+				) : offerPush ? (
+					<>
+						<StylizedButton text={t("notif.pushYes")} onClick={() => void onPushYes()} backgroundColor={currentTheme.buttonPrimary} />
+						<StylizedButton text={t("notif.pushNo")} onClick={onPushNo} backgroundColor={currentTheme.buttonSecondary} />
 					</>
 				) : (
 					<StylizedButton text={t("daily.ok")} onClick={close} backgroundColor={currentTheme.buttonPrimary} />

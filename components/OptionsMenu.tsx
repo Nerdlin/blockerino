@@ -21,6 +21,7 @@ import { useShopState } from "@/constants/Shop";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { isAnalyticsEnabled, setAnalyticsEnabled } from "@/constants/Analytics";
 import { useRouter, type Href } from "expo-router";
+import { disablePush, enablePush, isPushEnabled, isPushSupported } from "@/constants/Notifications";
 
 export default function OptionsMenu() {
 	const [ appState, setAppState, appendAppState, popAppState ] = useAppState();
@@ -121,6 +122,24 @@ export default function OptionsMenu() {
 	const handleAnalyticsToggle = (value: boolean) => {
 		setAnalyticsOn(value);
 		void setAnalyticsEnabled(value);
+	};
+
+	const pushAvailable = isPushSupported();
+	const [pushOn, setPushOn] = useState(false);
+	const [pushNote, setPushNote] = useState<string | null>(null);
+	useEffect(() => { if (pushAvailable) void isPushEnabled().then(setPushOn); }, [pushAvailable]);
+	const handlePushToggle = async (value: boolean) => {
+		setPushNote(null);
+		if (!value) {
+			setPushOn(false);
+			await disablePush();
+			return;
+		}
+		const status = await enablePush();
+		setPushOn(status === "enabled");
+		if (status === "denied") setPushNote(t("notif.pushDenied"));
+		else if (status === "needs_account") setPushNote(t("notif.pushNeedsAccount"));
+		else if (status === "error") setPushNote(t("notif.pushError"));
 	};
 
 	const handleSfxToggle = (value: boolean) => {
@@ -284,6 +303,24 @@ export default function OptionsMenu() {
 							trackColor={{ false: "#767577", true: currentTheme.buttonPrimary }}
 						/>
 					</SettingLabel>
+
+					{pushAvailable && (
+						<>
+							<SettingLabel
+								title={t("settings.push")}
+								description={t("settings.pushDesc")}
+								labelStyle={{ color: currentTheme.textPrimary }}
+								descStyle={{ color: currentTheme.textSecondary }}
+							>
+								<Switch
+									value={pushOn}
+									onValueChange={(value) => void handlePushToggle(value)}
+									trackColor={{ false: "#767577", true: currentTheme.buttonPrimary }}
+								/>
+							</SettingLabel>
+							{pushNote && <Text style={[styles.settingDesc, { color: currentTheme.textSecondary }]}>{pushNote}</Text>}
+						</>
+					)}
 				</View>
 
 				<View style={styles.settingSection}>
