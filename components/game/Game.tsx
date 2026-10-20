@@ -17,6 +17,9 @@ import { useSoundSettings } from '@/constants/Sound';
 import GameOverModal from '../GameOverModal';
 import { ScorePopup } from './ScorePopup';
 import { useAtom } from 'jotai';
+import FirstRunCoach from './FirstRunCoach';
+import { firstRunCoachAtom, markFirstRunDone } from '@/constants/FirstRun';
+import { track } from '@/constants/Analytics';
 import SecondChanceModal from '../SecondChanceModal';
 import { applySecondChancePenalty, canUseSecondChance, getSecondChanceCost, SECOND_CHANCE_COSTS } from '@/constants/SecondChance';
 import { getRandomPieceColor } from '@/constants/Piece';
@@ -123,6 +126,28 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const { playSfx, playComboSound, initialize } = useSoundSettings();
 
 	const [, setActiveCombo] = useAtom(activeComboAtom);
+	// First launch only: the hint stays until the first block is placed (or the game is left).
+	const [coachActive, setCoachActive] = useAtom(firstRunCoachAtom);
+	const coachActiveRef = useRef(coachActive);
+	coachActiveRef.current = coachActive;
+	const dismissCoach = () => {
+		if (!coachActiveRef.current) return;
+		coachActiveRef.current = false;
+		setCoachActive(false);
+		void markFirstRunDone();
+		track("first_run_coach_done");
+	};
+	useEffect(() => {
+		return () => {
+			if (coachActiveRef.current) {
+				coachActiveRef.current = false;
+				setCoachActive(false);
+				void markFirstRunDone();
+			}
+		};
+		// Only on leaving the game.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 	const isMountedRef = useRef(true);
 	const isGameOverRef = useRef(false);
 	const secondChanceDecisionLockedRef = useRef(false);
@@ -396,6 +421,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				timeRemaining.value = Math.min(99, timeRemaining.value + Math.floor(pointsEarned / 15));
 			}
 			runOnJS(recordAchievementProgress)({ totalPiecesPlaced: 1, totalLinesCleared: linesBroken });
+			runOnJS(dismissCoach)();
 			
 			runOnJS(addScorePopup)(pointsEarned, dropX * GRID_BLOCK_SIZE, dropY * GRID_BLOCK_SIZE);
 			
@@ -541,6 +567,8 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 							}}
 						/>
 					</DndProvider>
+
+					{coachActive && !isGameOver && <FirstRunCoach onDismiss={dismissCoach} />}
 
 					{secondChanceReason && (
 						<SecondChanceModal

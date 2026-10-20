@@ -14,6 +14,7 @@ import { hud } from "./hud";
 import { moregames } from "./moregames";
 import { update } from "./update";
 import { daily } from "./daily";
+import { firstrun } from "./firstrun";
 
 export type ScreenDictionary = { en: Record<string, string>; ru: Record<string, string> };
 
@@ -31,6 +32,7 @@ const modules: ScreenDictionary[] = [
 	moregames,
 	update,
 	daily,
+	firstrun,
 ];
 
 export const moduleTranslations: Record<Language, Record<string, string>> = {

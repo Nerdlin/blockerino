@@ -15,6 +15,7 @@ import Animated, {
 import Game from "@/components/game/Game";
 import { GameModeType } from '@/hooks/useAppState';
 import { track } from '@/constants/Analytics';
+import { firstRunCoachAtom, shouldRunFirstRun } from '@/constants/FirstRun';
 import React, { useState, useEffect } from "react";
 import OptionsMenu from "@/components/OptionsMenu";
 import {
@@ -102,7 +103,8 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 			: require("../assets/fonts/Silkscreen-Bold.ttf"),
 	});
 
-	const [ appState, setAppState, , popAppState ] = useAppState();
+	const [ appState, setAppState, appendAppState, popAppState ] = useAppState();
+	const setFirstRunCoach = useSetAtom(firstRunCoachAtom);
 	const currentAppState = appState.current;
 	const [ savedGame, setSavedGame ] = useState<SavedGameState | null>(null);
 	const [ showContinueModal, setShowContinueModal ] = useState(false);
@@ -158,6 +160,22 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 			setMultiplayerConnectionReady(false);
 		}
 	}, [currentAppState]);
+
+	// A brand-new player skips the menu and starts in Classic with a short hint (see constants/FirstRun.ts).
+	// Anything that already opened a screen, such as an invite link, wins over this.
+	useEffect(() => {
+		let active = true;
+		void (async () => {
+			if (!(await shouldRunFirstRun()) || !active) return;
+			if (appState.current !== MenuStateType.MENU) return;
+			track("first_run_start");
+			setFirstRunCoach(true);
+			appendAppState(GameModeType.Classic);
+		})();
+		return () => { active = false; };
+		// Runs once at launch.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	// Usage statistics: which screens are opened and which game modes are started.
 	useEffect(() => {
