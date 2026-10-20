@@ -47,6 +47,8 @@ import ProfileMenu from "@/components/ProfileMenu";
 import MoreGamesMenu from "@/components/MoreGamesMenu";
 import { getBackgroundParticleConfig, shopStateAtom, useShopBootstrap } from "@/constants/Shop";
 import { useInviteListener } from "@/hooks/useInviteListener";
+import { useDiscordPresence } from "@/hooks/useDiscordPresence";
+import { getPresenceScreen } from "@/constants/DiscordPresence";
 
 // Suppress noisy library-specific deprecation warnings in developer tools
 LogBox.ignoreLogs([
@@ -156,6 +158,13 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 			setMultiplayerConnectionReady(false);
 		}
 	}, [currentAppState]);
+
+	const presenceModeSearch = appState?.containsGameMode();
+	const presenceMultiplayerVisible = !!appState.containsState(MenuStateType.MULTIPLAYER_GAME) && !!multiplayerRoomId;
+	useDiscordPresence(
+		getPresenceScreen(currentAppState, !!presenceModeSearch, presenceMultiplayerVisible),
+		presenceMultiplayerVisible ? multiplayerGameMode : (presenceModeSearch?.current as GameModeType | undefined),
+	);
 
 	if (Platform.OS !== "web" && !loaded) return null;
 

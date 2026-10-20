@@ -4,6 +4,7 @@ import { DiscordSDK } from './discordSdk';
 import { supabase } from '@/constants/Supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isDiscordActivityLocation, withDiscordTimeout } from '@/constants/DiscordEnvironment';
+import { attachDiscordPresence } from '@/constants/DiscordPresence';
 
 const discordClientId = process.env.EXPO_PUBLIC_DISCORD_CLIENT_ID;
 
@@ -61,7 +62,7 @@ export function useDiscordSDK() {
           response_type: 'code',
           state: '',
           prompt: 'none',
-          scope: ['identify']
+          scope: ['identify', 'rpc.activities.write']
         }));
         
         // 2. Exchange token via Supabase Edge Function
@@ -81,6 +82,7 @@ export function useDiscordSDK() {
         
         // 3. Authenticate with SDK using the obtained access token
         const auth = await withDiscordTimeout(discordSdk.commands.authenticate({ access_token }));
+        attachDiscordPresence(discordSdk);
         
         if (mounted) {
           setDiscordUser(auth.user);

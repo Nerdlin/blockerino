@@ -4,6 +4,7 @@
 export class DiscordSDK {
   commands = {
     authorize: async (_options: Parameters<import('@discord/embedded-app-sdk').DiscordSDK['commands']['authorize']>[0]) => ({ code: '' }),
+    setActivity: async (_options: unknown) => ({}),
     authenticate: async (_options: Parameters<import('@discord/embedded-app-sdk').DiscordSDK['commands']['authenticate']>[0]): Promise<{ user: { global_name?: string | null; username: string } | null }> => ({ user: null }),
   };
   constructor(clientId: string) {}
