@@ -1,5 +1,4 @@
 import {
-	applySeasonRewardsToShop,
 	getBestRewardRank,
 	parseRewardEntries,
 	shouldAnnounceEloReset,
@@ -64,28 +63,13 @@ describe("season reward claims", () => {
 		expect(getBestRewardRank([])).toBeNull();
 	});
 
-	it("adds coins and items to the shop without duplicating owned items", () => {
-		const base = { ...createDefaultShopState(), balance: 100, ownedItemIds: [...createDefaultShopState().ownedItemIds, "background_season_gold"] };
-		const summary = summarizeSeasonRewards(parseRewardEntries({
-			entries: [
-				{ season_key: "2026-09", board: "classic", rank: 1, coins: 1000, item_id: "background_season_gold" },
-				{ season_key: "2026-09", board: "elo", rank: 2, coins: 700, item_id: "background_season_silver" },
-			],
-		}));
-
-		const next = applySeasonRewardsToShop(base, summary);
-
-		expect(next.balance).toBe(1800);
-		expect(next.ownedItemIds.filter((id) => id === "background_season_gold")).toHaveLength(1);
-		expect(next.ownedItemIds).toContain("background_season_silver");
-	});
-
 	it("keeps the podium backgrounds secret until they are won", () => {
 		const fresh = createDefaultShopState();
 		expect(isSecretShopItem("background_season_gold")).toBe(true);
 		expect(getVisibleShopItemsByCategory("background", fresh.ownedItemIds).some((item) => item.id === "background_season_gold")).toBe(false);
 
-		const won = applySeasonRewardsToShop(fresh, summarizeSeasonRewards(parseRewardEntries(claimPayload)));
+		const itemIds = summarizeSeasonRewards(parseRewardEntries(claimPayload)).itemIds;
+		const won = { ...fresh, ownedItemIds: [...fresh.ownedItemIds, ...itemIds] };
 		expect(getVisibleShopItemsByCategory("background", won.ownedItemIds).some((item) => item.id === "background_season_gold")).toBe(true);
 	});
 });

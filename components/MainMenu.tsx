@@ -7,7 +7,9 @@ import { GameModeType } from '@/hooks/useAppState';
 import { PieceData } from "@/constants/Piece";
 import { PieceView } from "./PieceView";
 import { shopStateAtom } from "@/constants/Shop";
-import { useAtomValue } from "jotai";
+import { dailyRewardOpenAtom, dailyRewardStatusAtom } from "@/constants/DailyReward";
+import UiIcon from "@/components/UiIcon";
+import { useAtomValue, useSetAtom } from "jotai";
 import { shouldCheckConnectionBeforeStart } from "@/constants/GameStart";
 import PixelIcon from "./PixelIcon";
 import { useLanguage } from "@/constants/Localization";
@@ -57,6 +59,8 @@ export default function MainMenu() {
 	const menuScale = getMainMenuScale(width, height);
 	const isShortScreen = height < 700;
 	const shopBalance = useAtomValue(shopStateAtom).balance;
+	const streakStatus = useAtomValue(dailyRewardStatusAtom);
+	const setDailyRewardOpen = useSetAtom(dailyRewardOpenAtom);
 
 	const startSoloMode = (mode: GameModeType) => {
 		if (shouldCheckConnectionBeforeStart(mode)) {
@@ -74,6 +78,13 @@ export default function MainMenu() {
 			<Text style={styles.shopButtonText}>{t("mainmenu.shop")}</Text>
 			<Text style={styles.shopBalanceText}>{shopBalance}</Text>
 		</Pressable>
+
+		{streakStatus && (
+			<Pressable onPress={() => setDailyRewardOpen(true)} style={styles.streakButton}>
+				<UiIcon name="fire" size={18} dimmed={streakStatus.streak === 0} />
+				<Text style={[styles.streakText, streakStatus.claimedToday ? styles.streakDone : styles.streakPending]}>{streakStatus.streak}</Text>
+			</Pressable>
+		)}
 
 		<Pressable
 			onPress={() => appendAppState(MenuStateType.ACHIEVEMENTS)}
@@ -369,6 +380,32 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		zIndex: 20,
 		paddingHorizontal: 8,
+	},
+	streakButton: {
+		position: "absolute",
+		top: 24,
+		left: 110,
+		minWidth: 56,
+		height: 46,
+		borderRadius: 12,
+		backgroundColor: "rgba(20, 20, 20, 0.82)",
+		borderWidth: 2,
+		borderColor: "rgba(255, 255, 255, 0.22)",
+		justifyContent: "center",
+		alignItems: "center",
+		zIndex: 20,
+		paddingHorizontal: 8,
+	},
+	streakText: {
+		fontFamily: "Silkscreen",
+		fontSize: 12,
+		textAlign: "center",
+	},
+	streakDone: {
+		color: "#F0AF0C",
+	},
+	streakPending: {
+		color: "#FF6B6B",
 	},
 	shopButtonText: {
 		fontFamily: "Silkscreen",

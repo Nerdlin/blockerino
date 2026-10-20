@@ -8,7 +8,6 @@ import { supabase } from "@/constants/Supabase";
 import { getShopItem, loadShopState, useShopState } from "@/constants/Shop";
 import { MenuStateType, useAppStateValue, useSetAppState } from "@/hooks/useAppState";
 import {
-	applySeasonRewardsToShop,
 	claimSeasonRewards,
 	clearPendingSeasonRewards,
 	getUnseenEloReset,
@@ -47,8 +46,9 @@ export default function SeasonRewardsHost() {
 			let rewards: SeasonRewardSummary | null = null;
 			if (entries.length > 0) {
 				rewards = summarizeSeasonRewards(entries);
+				// The server has already credited the coins and the podium cosmetic; adopt its wallet.
 				const latest = await loadShopState();
-				await commitRef.current(applySeasonRewardsToShop(latest, rewards), ["coins", "owned_item_ids"]);
+				await commitRef.current(latest, []);
 				await clearPendingSeasonRewards();
 			}
 

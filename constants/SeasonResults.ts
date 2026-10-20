@@ -92,16 +92,6 @@ export function summarizeSeasonRewards(entries: SeasonRewardEntry[]): SeasonRewa
 	return { coins, itemIds: [...itemIds], entries };
 }
 
-/** Adds the reward coins and items to a shop state (items already owned are not duplicated). */
-export function applySeasonRewardsToShop(state: ShopState, summary: SeasonRewardSummary): ShopState {
-	const current = normalizeShopState(state);
-	return {
-		...current,
-		balance: current.balance + Math.max(0, Math.floor(summary.coins)),
-		ownedItemIds: [...new Set([...current.ownedItemIds, ...summary.itemIds])],
-	};
-}
-
 export function getBestRewardRank(entries: SeasonRewardEntry[]): number | null {
 	return entries.length === 0 ? null : Math.min(...entries.map((entry) => entry.rank));
 }
