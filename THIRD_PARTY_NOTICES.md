@@ -48,6 +48,7 @@ their own licenses (almost all MIT, ISC, BSD or Apache-2.0); the full list can b
 | expo-haptics | 15.0.8 | MIT | https://docs.expo.dev/versions/latest/sdk/haptics/ |
 | expo-linear-gradient | 15.0.8 | MIT | https://docs.expo.dev/versions/latest/sdk/linear-gradient/ |
 | expo-linking | 8.0.12 | MIT | https://docs.expo.dev/versions/latest/sdk/linking |
+| expo-notifications | 0.32.17 | MIT | https://docs.expo.dev/versions/latest/sdk/notifications/ |
 | expo-router | 6.0.24 | MIT | https://docs.expo.dev/routing/introduction/ |
 | expo-splash-screen | 31.0.13 | MIT | https://docs.expo.dev/versions/latest/sdk/splash-screen/ |
 | expo-status-bar | 3.0.9 | MIT | https://docs.expo.dev/versions/latest/sdk/status-bar/ |
