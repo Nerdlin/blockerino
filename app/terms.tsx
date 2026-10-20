@@ -23,36 +23,52 @@ export default function TermsOfService() {
 
                 <View style={styles.glassCard}>
                     <Text style={styles.title}>Terms of Service</Text>
-                    <Text style={styles.date}>Effective Date: July 21, 2026</Text>
+                    <Text style={styles.date}>Effective Date: October 20, 2026</Text>
                     
                     <View style={styles.divider} />
                     
                     <Text style={styles.heading}>1. Acceptance of Terms</Text>
                     <Text style={styles.paragraph}>
-                        By accessing, authenticating via Discord, or utilizing Blockerino in any capacity, you establish a binding agreement to adhere to these Terms of Service. If you do not consent to these stipulations in their entirety, you are expressly prohibited from utilizing the application and must immediately cease access.
+                        By signing in with Discord, Google or email, or by using Blockerino in any other way, you agree to these Terms of Service. If you do not agree, do not use the application.
                     </Text>
-                    
                     <Text style={styles.heading}>2. Authorized Use and Conduct</Text>
                     <Text style={styles.paragraph}>
-                        Blockerino is provisioned exclusively for personal, non-commercial entertainment purposes. As a condition of your use, you agree to comply with all applicable Discord Community Guidelines and agree that you shall not under any circumstances:
+                        Blockerino is provided for personal, non-commercial entertainment. You agree to follow the Discord Community Guidelines and not to:
                     </Text>
-                    <BulletPoint>Employ exploits, macros, automated scripts, or third-party modifications designed to grant an unfair competitive advantage or manipulate the Elo ranking system.</BulletPoint>
-                    <BulletPoint>Engage in reverse engineering, packet sniffing, or any attempt to disrupt, compromise, or over-burden the underlying server architecture.</BulletPoint>
-                    <BulletPoint>Utilize the application infrastructure for unauthorized data scraping, abuse, or any illicit activities.</BulletPoint>
-                    
-                    <Text style={styles.heading}>3. Disclaimer of Warranties</Text>
+                    <BulletPoint>Use exploits, macros, bots, scripts or modifications to gain an unfair advantage or manipulate Elo, leaderboards or season rankings.</BulletPoint>
+                    <BulletPoint>Reverse engineer, packet sniff, or try to disrupt or overload our servers.</BulletPoint>
+                    <BulletPoint>Scrape data or use the service for abuse or any unlawful purpose.</BulletPoint>
+                    <BulletPoint>Choose offensive or impersonating names.</BulletPoint>
                     <Text style={styles.paragraph}>
-                        The application and its underlying services are provided on a strictly "AS IS" and "AS AVAILABLE" basis, without express or implied warranties of any kind. The developer disclaims all warranties, including but not limited to merchantability, fitness for a particular purpose, and non-infringement. We do not guarantee absolute system availability, fault tolerance, or immunity from cryptographic or infrastructural vulnerabilities.
+                        We may remove scores, reset ratings or rewards, or suspend or delete accounts that break these rules.
                     </Text>
-                    
-                    <Text style={styles.heading}>4. Limitation of Liability</Text>
+                    <Text style={styles.heading}>3. Accounts</Text>
                     <Text style={styles.paragraph}>
-                        To the maximum extent permitted by applicable law, in no event shall the developer be held liable for any direct, indirect, incidental, punitive, or consequential damages (including, without limitation, loss of data, reputation, or access) arising out of or in any way connected with the utilization or performance of Blockerino, even if previously advised of the possibility of such damages.
+                        You are responsible for keeping your sign-in credentials safe and for activity on your account. Tell us at the contact below if you think your account was compromised.
                     </Text>
-                    
-                    <Text style={styles.heading}>5. Modifications and Severability</Text>
+                    <Text style={styles.heading}>4. Virtual Items, Rewards and Seasons</Text>
                     <Text style={styles.paragraph}>
-                        We reserve the unilateral right to amend these Terms of Service at any given time without prior explicit notification. Continued utilization of the service following modifications constitutes binding acceptance of the updated terms. If any provision of these terms is deemed unlawful or unenforceable, that provision shall be deemed severable and shall not affect the validity of the remaining provisions.
+                        Cosmetics, titles, coins and other in-game rewards are virtual, have no cash value, and cannot be exchanged for money. Seasons, ratings and leaderboards may be reset, and game modes, rewards and features may change or be removed at any time.
+                    </Text>
+                    <Text style={styles.heading}>5. Disclaimer of Warranties</Text>
+                    <Text style={styles.paragraph}>
+                        The application and its services are provided on an AS IS and AS AVAILABLE basis, without warranties of any kind, including merchantability, fitness for a particular purpose and non-infringement. We do not guarantee uninterrupted availability or that data will never be lost.
+                    </Text>
+                    <Text style={styles.heading}>6. Limitation of Liability</Text>
+                    <Text style={styles.paragraph}>
+                        To the maximum extent permitted by law, the developer is not liable for any direct, indirect, incidental or consequential damages, including loss of data, progress or access, arising from the use of Blockerino.
+                    </Text>
+                    <Text style={styles.heading}>7. Privacy</Text>
+                    <Text style={styles.paragraph}>
+                        How we handle your data is described in our Privacy Policy.
+                    </Text>
+                    <Text style={styles.heading}>8. Modifications and Severability</Text>
+                    <Text style={styles.paragraph}>
+                        We may update these Terms at any time. Continued use after changes means you accept them. If any provision is found unenforceable, the remaining provisions stay in effect.
+                    </Text>
+                    <Text style={styles.heading}>9. Contact</Text>
+                    <Text style={styles.paragraph}>
+                        Questions about these Terms: support@aionerdlin.me.
                     </Text>
                 </View>
             </ScrollView>
