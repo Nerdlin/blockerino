@@ -3,6 +3,7 @@ import { AppState, StyleSheet, Text, View } from "react-native";
 import { useAtomValue } from "jotai";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
+import UiIcon from "./UiIcon";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { supabase } from "@/constants/Supabase";
@@ -15,9 +16,9 @@ import {
 	refreshPushRegistration,
 	type AppNotification,
 } from "@/constants/Notifications";
-import { describeNotification, pointsToRankings } from "@/constants/NotificationText";
+import { describeNotification, notificationStyle, pointsToRankings } from "@/constants/NotificationText";
 
-const MAX_LINES = 3;
+const MAX_CARDS = 3;
 
 // "News" popup with the player's unread notifications (overtaken, streak, season ending). It is the in-app twin
 // of the push messages, so web and Discord players see them too, and a tap on a push lands here as well.
@@ -77,21 +78,38 @@ export default function NotificationsHost() {
 		if (openRankings) appendAppState(MenuStateType.HIGH_SCORES);
 	};
 
-	const shown = items.slice(0, MAX_LINES);
+	const shown = items.slice(0, MAX_CARDS);
+	const hidden = items.length - shown.length;
 	const hasRankings = items.some(pointsToRankings);
 
 	return (
 		<SimplePopupView style={[{ backgroundColor: currentTheme.menuBackground }]}>
-			<Text style={[styles.title, { color: currentTheme.buttonPrimary }]}>{t("notif.title")}</Text>
+			<View style={styles.header}>
+				<Text style={[styles.title, { color: currentTheme.textPrimary }]}>{t("notif.title")}</Text>
+				<View style={[styles.countPill, { backgroundColor: currentTheme.buttonPrimary }]}>
+					<Text style={styles.countText}>{items.length}</Text>
+				</View>
+			</View>
 
-			<View style={styles.block}>
-				{shown.map((item) => (
-					<Text key={item.id} style={[styles.line, { color: currentTheme.textPrimary }]}>
-						{describeNotification(item, t)}
-					</Text>
-				))}
-				{items.length > shown.length && (
-					<Text style={[styles.note, { color: currentTheme.textSecondary }]}>+{items.length - shown.length}</Text>
+			<View style={styles.cards}>
+				{shown.map((item) => {
+					const { glyph, color } = notificationStyle(item.kind);
+					const lines = describeNotification(item, t);
+					return (
+						<View key={item.id} style={styles.card}>
+							<View style={[styles.accentBar, { backgroundColor: color }]} />
+							<View style={[styles.iconBox, { borderColor: color }]}>
+								<UiIcon name={glyph} size={27} />
+							</View>
+							<View style={styles.cardText}>
+								<Text style={[styles.cardTitle, { color: currentTheme.textPrimary }]}>{lines.title}</Text>
+								<Text style={[styles.cardDetail, { color: currentTheme.textSecondary }]}>{lines.detail}</Text>
+							</View>
+						</View>
+					);
+				})}
+				{hidden > 0 && (
+					<Text style={[styles.more, { color: currentTheme.textSecondary }]}>{t("notif.more", { count: hidden })}</Text>
 				)}
 			</View>
 
@@ -106,24 +124,72 @@ export default function NotificationsHost() {
 }
 
 const styles = StyleSheet.create({
+	header: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 10,
+		marginBottom: 18,
+	},
 	title: {
 		fontFamily: "Silkscreen",
-		fontSize: 24,
-		textAlign: "center",
-		marginBottom: 16,
+		fontSize: 22,
 	},
-	block: {
+	countPill: {
+		minWidth: 26,
+		height: 26,
+		borderRadius: 13,
+		paddingHorizontal: 7,
 		alignItems: "center",
+		justifyContent: "center",
+	},
+	countText: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 12,
+		color: "#FFFFFF",
+	},
+	cards: {
+		width: "100%",
 		gap: 10,
-		marginBottom: 16,
+		marginBottom: 18,
 	},
-	line: {
-		fontFamily: "Silkscreen",
+	card: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 12,
+		paddingVertical: 12,
+		paddingRight: 12,
+		borderRadius: 10,
+		backgroundColor: "rgba(255, 255, 255, 0.06)",
+		overflow: "hidden",
+	},
+	accentBar: {
+		alignSelf: "stretch",
+		width: 4,
+	},
+	iconBox: {
+		width: 44,
+		height: 44,
+		borderRadius: 10,
+		borderWidth: 2,
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: "rgba(0, 0, 0, 0.35)",
+	},
+	cardText: {
+		flex: 1,
+		gap: 4,
+	},
+	cardTitle: {
+		fontFamily: "SilkscreenBold",
 		fontSize: 13,
-		textAlign: "center",
-		lineHeight: 20,
 	},
-	note: {
+	cardDetail: {
+		fontFamily: "Silkscreen",
+		fontSize: 11,
+		lineHeight: 16,
+	},
+	more: {
 		fontFamily: "Silkscreen",
 		fontSize: 11,
 		textAlign: "center",
@@ -131,6 +197,5 @@ const styles = StyleSheet.create({
 	buttons: {
 		gap: 8,
 		alignItems: "center",
-		marginTop: 8,
 	},
 });
