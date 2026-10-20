@@ -1137,6 +1137,39 @@ export async function syncShopStateWithProfile(localState: ShopState): Promise<{
 	}
 }
 
+export type ServerPurchaseResult =
+	| { kind: "guest" }
+	| { kind: "offline" }
+	| { kind: "result"; status: string; coins: number | null; ownedItemIds: string[] | null };
+
+/** Buys with the coins stored on the server. Guests have no server profile and keep the local flow. */
+export async function purchaseShopItemOnServer(itemId: string): Promise<ServerPurchaseResult> {
+	try {
+		const { data: { session } } = await supabase.auth.getSession();
+		if (!session?.user) return { kind: "guest" };
+
+		const { data, error } = await supabase.rpc("purchase_shop_item", { p_item_id: itemId });
+		if (error || !data || typeof data !== "object") return { kind: "offline" };
+
+		const payload = data as { status?: unknown; coins?: unknown; owned_item_ids?: unknown };
+		return {
+			kind: "result",
+			status: typeof payload.status === "string" ? payload.status : "invalid",
+			coins: typeof payload.coins === "number" ? payload.coins : null,
+			ownedItemIds: Array.isArray(payload.owned_item_ids) ? (payload.owned_item_ids as string[]) : null,
+		};
+	} catch {
+		return { kind: "offline" };
+	}
+}
+
+const SERVER_PURCHASE_ERRORS: Record<string, string> = {
+	not_enough_coins: "Not enough coins.",
+	not_for_sale: "Find this secret first.",
+	unknown_item: "Unknown item.",
+	no_profile: "Your account has no profile yet. Play a game first.",
+};
+
 export function useShopState() {
 	const [state, setState] = useAtom(shopStateAtom);
 
@@ -1174,13 +1207,47 @@ export function useShopState() {
 		return next;
 	}, [setState]);
 
-	const purchase = useCallback(async (itemId: string) => {
-		const result = purchaseShopItem(state, itemId);
-		if (result.ok) {
-			await commit(result.state, ["coins", "owned_item_ids"]);
+	// Signed-in players buy with the server's coins (the server owns the price list and the inventory);
+	// guests keep the local flow. Returns the state to continue from, or an error.
+	const buyOnServer = useCallback(async (itemId: string, local: { ok: boolean; state: ShopState; error?: string }): Promise<{ ok: boolean; state: ShopState; error?: string }> => {
+		if (!local.ok) return local;
+		const current = normalizeShopState(state);
+		if (current.ownedItemIds.includes(itemId)) return local;
+
+		let server = await purchaseShopItemOnServer(itemId);
+		if (server.kind === "guest") {
+			await commit(local.state, ["coins", "owned_item_ids"]);
+			return local;
 		}
-		return result;
-	}, [commit, state]);
+		if (server.kind === "result" && server.status === "not_enough_coins") {
+			// Coins earned on this device may not have reached the server yet: push them and try once more.
+			await syncShopStateWithProfile(normalizeShopState({ ...current, pendingProfileSync: true, dirtyProfileFields: ["coins"] }));
+			server = await purchaseShopItemOnServer(itemId);
+		}
+		if (server.kind === "offline") {
+			return { ok: false, state: current, error: "You need to be online to buy items." };
+		}
+		if (server.kind === "guest") return local;
+		if (server.status !== "purchased" && server.status !== "owned") {
+			return { ok: false, state: current, error: SERVER_PURCHASE_ERRORS[server.status] ?? "Could not buy this item." };
+		}
+
+		const bought = normalizeShopState({
+			...current,
+			balance: server.coins ?? current.balance,
+			ownedItemIds: server.ownedItemIds ?? [...current.ownedItemIds, itemId],
+			pendingProfileSync: false,
+			dirtyProfileFields: [],
+			updatedAt: Date.now(),
+		});
+		setState(bought);
+		await saveShopState(bought);
+		return { ok: true, state: bought };
+	}, [commit, setState, state]);
+
+	const purchase = useCallback(async (itemId: string) => {
+		return buyOnServer(itemId, purchaseShopItem(state, itemId));
+	}, [buyOnServer, state]);
 
 	const equip = useCallback(async (itemId: string) => {
 		const result = equipShopItem(state, itemId);
@@ -1191,7 +1258,7 @@ export function useShopState() {
 	}, [commit, state]);
 
 	const purchaseAndEquip = useCallback(async (itemId: string) => {
-		const purchaseResult = purchaseShopItem(state, itemId);
+		const purchaseResult = await buyOnServer(itemId, purchaseShopItem(state, itemId));
 		if (!purchaseResult.ok) {
 			return purchaseResult;
 		}
@@ -1199,9 +1266,9 @@ export function useShopState() {
 		if (!equipResult.ok) {
 			return equipResult;
 		}
-		await commit(equipResult.state, ["coins", "owned_item_ids", "equipped"]);
+		await commit(equipResult.state, ["equipped"]);
 		return equipResult;
-	}, [commit, state]);
+	}, [buyOnServer, commit, state]);
 
 	const awardCoins = useCallback(async (score: number) => {
 		const coins = calculateCoinsForScore(score);
