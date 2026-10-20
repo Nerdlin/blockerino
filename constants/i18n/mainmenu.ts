@@ -3,6 +3,7 @@ import type { ScreenDictionary } from "./index";
 export const mainmenu: ScreenDictionary = {
 	en: {
 		"mainmenu.shop": "SHOP",
+		"mainmenu.profile": "Profile",
 		"mainmenu.betaVersion": "beta version",
 
 		"mainmenu.classicTitle": "Classic 8x8",
@@ -25,6 +26,7 @@ export const mainmenu: ScreenDictionary = {
 	},
 	ru: {
 		"mainmenu.shop": "МАГАЗИН",
+		"mainmenu.profile": "Профиль",
 		"mainmenu.betaVersion": "бета-версия",
 
 		"mainmenu.classicTitle": "Классика 8x8",

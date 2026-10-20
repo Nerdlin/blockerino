@@ -350,17 +350,6 @@ export default function OptionsMenu() {
 
 				<View style={styles.buttonsContainer}>
 					<StylizedButton
-						onClick={() => {
-							playSfx('menuClick');
-							appendAppState(MenuStateType.PROFILE);
-						}}
-						text="Profile"
-						backgroundColor={currentTheme.buttonPrimary}
-						style={isMobile && styles.mobileBottomButton}
-						textStyle={isMobile && styles.mobileBottomButtonText}
-					/>
-
-					<StylizedButton
 						onClick={handleButtonPress}
 						text="Back"
 						backgroundColor={currentTheme.buttonSecondary}

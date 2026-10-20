@@ -14,6 +14,8 @@ import { shouldCheckConnectionBeforeStart } from "@/constants/GameStart";
 import PixelIcon from "./PixelIcon";
 import { useLanguage } from "@/constants/Localization";
 
+const CHAOS_VIOLET = "#7C3AED";
+
 const logoBPiece: PieceData = {
 	matrix: [
 		[1, 1, 1, 0],
@@ -87,6 +89,14 @@ export default function MainMenu() {
 		)}
 
 		<Pressable
+			onPress={() => appendAppState(MenuStateType.PROFILE)}
+			style={styles.profileButton}
+			accessibilityLabel={t("mainmenu.profile")}
+		>
+			<UiIcon name="people" size={27} />
+		</Pressable>
+
+		<Pressable
 			onPress={() => appendAppState(MenuStateType.ACHIEVEMENTS)}
 			style={styles.achievementsButton}
 		>
@@ -112,10 +122,10 @@ export default function MainMenu() {
 			onClick={() => {
 				startSoloMode(GameModeType.Chaos);
 			}}
-			backgroundColor={cssColors.pitchBlack}
+			backgroundColor={CHAOS_VIOLET}
 			title={t("mainmenu.chaosTitle")}
 			flavorText={t("mainmenu.chaosFlavor")}
-			style={{ borderWidth: 2, borderColor: "rgb(50, 50, 50)" }}
+			style={{ borderWidth: 2, borderColor: "#A78BFA" }}
 			textStyle={{ color: "white" }}
 			idleBounceRotate={true}
 		/>
@@ -127,34 +137,59 @@ export default function MainMenu() {
 			title={t("mainmenu.versusTitle")}
 			flavorText={t("mainmenu.versusFlavor")}
 		/>
-		<MainButton
-			onClick={() => {
-				appendAppState(MenuStateType.DAILY_CHALLENGES);
-			}}
-			backgroundColor={"#FFD700"}
-			title={t("mainmenu.challengesTitle")}
-			flavorText={t("mainmenu.challengesFlavor")}
-		/>
-		<MainButton
-			onClick={() => {
-				appendAppState(MenuStateType.MORE_GAMES);
-			}}
-			backgroundColor={"#38BDF8"}
-			title={t("mainmenu.moreGamesTitle")}
-			flavorText={t("mainmenu.moreGamesFlavor")}
-		/>
-		<MainButton onClick = {() => {
-			appendAppState(MenuStateType.HIGH_SCORES)
-		}} backgroundColor={cssColors.pink} title={t("mainmenu.highScoresTitle")} />
-		<MainButton onClick = {() => {
-			appendAppState(MenuStateType.OPTIONS)
-		}} backgroundColor={cssColors.green} title={t("mainmenu.optionsTitle")} />
+		<View style={[styles.rowWrap, isShortScreen && { marginBottom: 8 }]}>
+			<MainTile
+				title={t("mainmenu.challengesTitle")}
+				color="#FFD700"
+				onClick={() => appendAppState(MenuStateType.DAILY_CHALLENGES)}
+			/>
+			<MainTile
+				title={t("mainmenu.moreGamesTitle")}
+				color="#38BDF8"
+				onClick={() => appendAppState(MenuStateType.MORE_GAMES)}
+			/>
+		</View>
+		<View style={[styles.rowWrap, styles.quietRow]}>
+			<QuietButton title={t("mainmenu.highScoresTitle")} onClick={() => appendAppState(MenuStateType.HIGH_SCORES)} />
+			<QuietButton title={t("mainmenu.optionsTitle")} onClick={() => appendAppState(MenuStateType.OPTIONS)} />
+		</View>
 		</View>
 
 		<Animated.Text entering={FadeIn} style={styles.footer}>
 			{t("mainmenu.betaVersion")}
 		</Animated.Text>
 	</View>
+}
+
+// Secondary destinations share a row: a dark tile with a coloured outline, so the three game modes above stay the
+// loudest thing on the screen.
+function MainTile({ title, color, onClick }: { title: string; color: string; onClick: () => void }) {
+	const { height } = useWindowDimensions();
+	return (
+		<Pressable
+			onPress={onClick}
+			style={({ pressed }) => [
+				styles.tile,
+				{ borderColor: color, backgroundColor: "rgba(255, 255, 255, 0.06)" },
+				height < 700 && { height: 40 },
+				pressed && { opacity: 0.7 },
+			]}
+		>
+			<Text style={[styles.tileText, { color }]}>{title}</Text>
+		</Pressable>
+	);
+}
+
+function QuietButton({ title, onClick }: { title: string; onClick: () => void }) {
+	const { height } = useWindowDimensions();
+	return (
+		<Pressable
+			onPress={onClick}
+			style={({ pressed }) => [styles.quietButton, height < 700 && { height: 32 }, pressed && { opacity: 0.7 }]}
+		>
+			<Text style={styles.quietText}>{title}</Text>
+		</Pressable>
+	);
 }
 
 function MainButton({
@@ -359,6 +394,60 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 		zIndex: 20,
+	},
+	profileButton: {
+		position: "absolute",
+		top: 24,
+		right: 78,
+		width: 46,
+		height: 46,
+		borderRadius: 12,
+		backgroundColor: "rgba(20, 20, 20, 0.82)",
+		borderWidth: 2,
+		borderColor: "rgba(255, 255, 255, 0.22)",
+		justifyContent: "center",
+		alignItems: "center",
+		zIndex: 20,
+	},
+	rowWrap: {
+		width: "80%",
+		maxWidth: 420,
+		flexDirection: "row",
+		gap: 10,
+		marginBottom: 14,
+	},
+	quietRow: {
+		marginTop: 4,
+	},
+	tile: {
+		flex: 1,
+		height: 52,
+		borderRadius: 8,
+		borderWidth: 2,
+		justifyContent: "center",
+		alignItems: "center",
+		paddingHorizontal: 6,
+	},
+	tileText: {
+		fontFamily: "Silkscreen",
+		fontSize: 15,
+		textAlign: "center",
+	},
+	quietButton: {
+		flex: 1,
+		height: 38,
+		borderRadius: 8,
+		borderWidth: 1.5,
+		borderColor: "rgba(255, 255, 255, 0.28)",
+		justifyContent: "center",
+		alignItems: "center",
+		paddingHorizontal: 6,
+	},
+	quietText: {
+		fontFamily: "Silkscreen",
+		fontSize: 13,
+		color: "rgba(255, 255, 255, 0.72)",
+		textAlign: "center",
 	},
 	achievementsIcon: {
 		fontFamily: "SilkscreenBold",

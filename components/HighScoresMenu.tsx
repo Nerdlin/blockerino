@@ -2,7 +2,7 @@ import { getHighScores, HighScore } from "@/constants/Storage";
 import { getGlobalHighScores, GlobalHighScore } from "@/constants/Supabase";
 import SimplePopupView from "./SimplePopupView";
 import { useCallback, useEffect, useState, useRef } from "react";
-import { StyleSheet, Text, View, ActivityIndicator, TextInput, useWindowDimensions } from "react-native";
+import { StyleSheet, Text, View, ActivityIndicator, Pressable, TextInput, useWindowDimensions } from "react-native";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { GameModeType, MenuStateType, useAppStateValue, useSetAppState } from "@/hooks/useAppState";
@@ -16,6 +16,8 @@ import { getGameModeConfig, MAIN_LEADERBOARD_GAME_MODES } from "@/constants/Game
 import { useLanguage } from "@/constants/Localization";
 import { syncLocalHighScores } from "@/constants/LocalScoreSync";
 import GlobalScoreRow from "./GlobalScoreRow";
+import SegmentedControl, { type SegmentItem } from "./SegmentedControl";
+import UiIcon from "./UiIcon";
 import { getFriendsSeasonLeaderboard, getSeasonBoard, getSeasonEndsAt, getSeasonLeaderboard } from "@/constants/SeasonScores";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 
@@ -43,7 +45,7 @@ export default function HighScores() {
     const currentModeConfig = getGameModeConfig(gameMode);
     const localBestScore = highScores[0]?.score ?? 0;
     const [scope, setScope] = useState<"season" | "alltime" | "friends">("season");
-    const { signedIn } = useAccountIdentity();
+    const { checked: authChecked, signedIn } = useAccountIdentity();
     const seasonBoard = getSeasonBoard(gameMode);
     const showSeason = scope === "season" && seasonBoard !== null;
     const showFriends = scope === "friends" && seasonBoard !== null && signedIn;
@@ -187,120 +189,57 @@ export default function HighScores() {
 
     const hasScores = globalHighScores.length > 0;
 
+    const modeItems: SegmentItem<GameModeType>[] = MAIN_LEADERBOARD_GAME_MODES.map((mode) => ({
+        key: mode,
+        label: getGameModeConfig(mode).shortTitle,
+        color: mode === GameModeType.Chaos ? "#7C3AED" : getGameModeConfig(mode).challenge?.color ?? currentTheme.buttonPrimary,
+    }));
+    const scopeItems: SegmentItem<"season" | "friends" | "alltime">[] = [
+        { key: "season", label: t("hs.scopeSeason") },
+        ...(signedIn ? [{ key: "friends" as const, label: t("hs.scopeFriends") }] : []),
+        { key: "alltime", label: t("hs.scopeAllTime") },
+    ];
+
     return <SimplePopupView style={[{justifyContent: 'flex-start', backgroundColor: currentTheme.menuBackground}]}>
-        <StylizedButton text={t("hs.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray}></StylizedButton>
-
-        <View style={styles.nicknameContainer}>
-            <Text style={[styles.subHeader, { color: currentTheme.textSecondary, fontSize: 18, marginBottom: 5 }, isMobile && { fontSize: 14 }]}>
-                {t("hs.yourNickname")}
-            </Text>
-            <TextInput
-                style={[styles.nicknameInput, {
-                    color: currentTheme.textPrimary,
-                    borderColor: currentTheme.textSecondary,
-                    backgroundColor: 'rgba(0, 0, 0, 0.4)'
-                }, isMobile && { fontSize: 16, padding: 6 }]}
-                value={playerName}
-                onChangeText={handlePlayerNameChange}
-                onBlur={handlePlayerNameBlur}
-                onSubmitEditing={handlePlayerNameBlur}
-                placeholder={t("hs.enterNickname")}
-                placeholderTextColor={currentTheme.textSecondary}
-                maxLength={20}
-            />
-            {syncing && (
-                <Text style={{ fontFamily: 'Silkscreen', fontSize: 12, color: currentTheme.textSecondary, marginTop: 5 }}>
-                    {t("hs.syncingBest")}
-                </Text>
-            )}
+        <View style={styles.topBar}>
+            <StylizedButton text={t("hs.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.backButton}></StylizedButton>
+            <Pressable
+                onPress={() => refreshScores(true)}
+                disabled={loading}
+                accessibilityLabel={t("hs.refresh")}
+                style={[styles.refreshIcon, loading && { opacity: 0.5 }]}
+            >
+                {loading ? <ActivityIndicator size="small" color={currentTheme.textPrimary} /> : <UiIcon name="refresh" size={18} />}
+            </Pressable>
         </View>
 
-        <View style={styles.modeHeaderRow}>
-            <Text style={[styles.subHeader, styles.modeHeaderText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 18 }]}>
-                {t("hs.selectMode")}
-            </Text>
-        </View>
-        <View style={styles.modeRow}>
-            {MAIN_LEADERBOARD_GAME_MODES.map((mode) => {
-                const config = getGameModeConfig(mode);
-                const isSelected = gameMode === mode;
-                const modeColor = config.challenge?.color ?? (mode === GameModeType.Chaos ? cssColors.pitchBlack : currentTheme.buttonPrimary);
-
-                return (
-                    <StylizedButton
-                        key={mode}
-                        text={config.shortTitle}
-                        onClick={() => handleModeClick(mode)}
-                        backgroundColor={isSelected ? modeColor : cssColors.spaceGray}
-                        borderColor={isSelected && mode === GameModeType.Chaos ? "white" : undefined}
-                        style={styles.modeButton}
-                        textStyle={isMobile && styles.mobileButtonText}
-                    />
-                );
-            })}
-        </View>
+        <SegmentedControl items={modeItems} value={gameMode} onChange={handleModeClick} />
         {seasonBoard && (
-            <View style={styles.scopeRow}>
-                <StylizedButton
-                    text={t("hs.scopeSeason")}
-                    onClick={() => setScope("season")}
-                    backgroundColor={scope === "season" ? currentTheme.buttonPrimary : cssColors.spaceGray}
-                    style={styles.scopeButton}
-                    textStyle={styles.scopeButtonText}
-                />
-                <StylizedButton
-                    text={t("hs.scopeAllTime")}
-                    onClick={() => setScope("alltime")}
-                    backgroundColor={scope === "alltime" ? currentTheme.buttonPrimary : cssColors.spaceGray}
-                    style={styles.scopeButton}
-                    textStyle={styles.scopeButtonText}
-                />
-                {signedIn && (
-                    <StylizedButton
-                        text={t("hs.scopeFriends")}
-                        onClick={() => setScope("friends")}
-                        backgroundColor={scope === "friends" ? currentTheme.buttonPrimary : cssColors.spaceGray}
-                        style={styles.scopeButton}
-                        textStyle={styles.scopeButtonText}
-                    />
-                )}
+            <View style={styles.scopeSpacing}>
+                <SegmentedControl items={scopeItems} value={scope} onChange={setScope} small />
             </View>
         )}
-        <View style={styles.scopeRow}>
-            <StylizedButton
-                text={t("hs.pastSeason")}
-                onClick={() => appendAppState(MenuStateType.SEASON_RESULTS)}
-                backgroundColor={cssColors.spaceGray}
-                style={[styles.scopeButton, { minWidth: 232 }]}
-                textStyle={styles.scopeButtonText}
-            />
-        </View>
-        {(showSeason || showFriends) && (
+
+        <View style={styles.infoRow}>
             <Text style={[styles.seasonEndsText, { color: currentTheme.textSecondary }]}>
-                {seasonDaysLeft <= 1 ? t("hs.seasonEndsToday") : t("hs.seasonEndsIn", { days: seasonDaysLeft })}
+                {showSeason || showFriends
+                    ? (seasonDaysLeft <= 1 ? t("hs.seasonEndsToday") : t("hs.seasonEndsIn", { days: seasonDaysLeft }))
+                    : ""}
             </Text>
-        )}
+            <Pressable onPress={() => appendAppState(MenuStateType.SEASON_RESULTS)}>
+                <Text style={[styles.seasonLink, { color: currentTheme.accent }]}>{t("hs.pastSeasonShort")}</Text>
+            </Pressable>
+        </View>
         {secretMessage && (
             <Text style={{ fontFamily: 'Silkscreen', fontSize: 12, color: '#FFD700', marginTop: 5, textAlign: 'center' }}>
                 {secretMessage}
             </Text>
         )}
-        <Text style={[styles.header, { color: currentTheme.textPrimary }, isMobile && { fontSize: 22 }]}>
-            {t("hs.leaderboardTitle", { mode: currentModeConfig.leaderboardTitle })}
-        </Text>
-        <View style={styles.leaderboardMetaRow}>
-            <Text style={[styles.subHeader, styles.leaderboardSortText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 16 }]}>
-                {t("hs.localBest", { score: localBestScore })}
-            </Text>
-            <StylizedButton
-                text={loading ? "..." : t("hs.refresh")}
-                onClick={() => refreshScores(true)}
-                backgroundColor={currentTheme.buttonSecondary}
-                disabled={loading}
-                style={styles.refreshLeaderboardButton}
-                textStyle={styles.refreshLeaderboardButtonText}
-            />
-        </View>
+        {localBestScore > 0 && (
+            <View style={[styles.bestCard, { borderColor: currentTheme.accent }]}>
+                <Text style={[styles.bestText, { color: currentTheme.textPrimary }]}>{t("hs.localBest", { score: localBestScore })}</Text>
+            </View>
+        )}
 
         {loading && <ActivityIndicator size="large" color={currentTheme.textPrimary} />}
 
@@ -309,6 +248,31 @@ export default function HighScores() {
                 {globalHighScores.map((score, idx) => {
                     return <GlobalScoreRow key={score.id || idx} rank={idx + 1} score={score} highlightTop/>
                 })}
+            </View>
+        )}
+
+        {authChecked && !signedIn && (
+            <View style={styles.guestNickname}>
+                <Text style={[styles.guestNicknameLabel, { color: currentTheme.textSecondary }]}>{t("hs.yourNickname")}</Text>
+                <TextInput
+                    style={[styles.guestNicknameInput, {
+                        color: currentTheme.textPrimary,
+                        borderColor: currentTheme.textSecondary,
+                        backgroundColor: 'rgba(0, 0, 0, 0.4)'
+                    }]}
+                    value={playerName}
+                    onChangeText={handlePlayerNameChange}
+                    onBlur={handlePlayerNameBlur}
+                    onSubmitEditing={handlePlayerNameBlur}
+                    placeholder={t("hs.enterNickname")}
+                    placeholderTextColor={currentTheme.textSecondary}
+                    maxLength={20}
+                />
+                {syncing && (
+                    <Text style={{ fontFamily: 'Silkscreen', fontSize: 11, color: currentTheme.textSecondary }}>
+                        {t("hs.syncingBest")}
+                    </Text>
+                )}
             </View>
         )}
 
@@ -326,6 +290,79 @@ export default function HighScores() {
 }
 
 const styles = StyleSheet.create({
+    topBar: {
+        width: '92%',
+        maxWidth: 420,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 14,
+    },
+    backButton: {
+        minWidth: 100,
+    },
+    refreshIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: 'rgba(255, 255, 255, 0.25)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    scopeSpacing: {
+        width: '100%',
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    infoRow: {
+        width: '92%',
+        maxWidth: 420,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 10,
+        marginBottom: 6,
+    },
+    seasonLink: {
+        fontFamily: 'Silkscreen',
+        fontSize: 11,
+    },
+    bestCard: {
+        width: '92%',
+        maxWidth: 420,
+        borderWidth: 1.5,
+        borderRadius: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        marginTop: 4,
+        marginBottom: 6,
+    },
+    bestText: {
+        fontFamily: 'Silkscreen',
+        fontSize: 12,
+        textAlign: 'center',
+    },
+    guestNickname: {
+        width: '92%',
+        maxWidth: 420,
+        alignItems: 'center',
+        marginTop: 16,
+        gap: 6,
+    },
+    guestNicknameLabel: {
+        fontFamily: 'Silkscreen',
+        fontSize: 11,
+    },
+    guestNicknameInput: {
+        width: '100%',
+        fontSize: 14,
+        fontFamily: 'Silkscreen',
+        padding: 8,
+        borderWidth: 2,
+        borderRadius: 5,
+        textAlign: 'center',
+    },
     noScoresText: {
         color: 'white',
         fontSize: 30,
