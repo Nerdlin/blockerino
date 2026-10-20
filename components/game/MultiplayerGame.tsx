@@ -12,7 +12,7 @@ import BlockGrid, { ReadOnlyBlockGrid } from '@/components/game/BlockGrid';
 import { Hand, createRandomHand, createRandomHandWorklet } from '@/constants/Hand';
 import HandPieces, { ReadOnlyHandPieces } from '@/components/game/HandPieces';
 import { GameModeType, MenuStateType, useAppState, activeComboAtom } from '@/hooks/useAppState';
-import { supabase, getPlayerElo, getPlayerProfileData } from '@/constants/Supabase';
+import { supabase, getPlayerProfileData } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
@@ -242,14 +242,9 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         return getWinnerNameForRole(winnerRole);
     }, [getPersistentPlayerName, myRole]);
 
-    const submitOpponentForfeitLoss = useCallback(async () => {
-        const normalizedOpponentName = normalizePlayerName(opponentNameRef.current);
-        if (!normalizedOpponentName || normalizedOpponentName === 'Opponent') return;
-
-        const fetchedOpponentElo = opponentEloRef.current ?? (await getPlayerElo(normalizedOpponentName));
-        const currentOpponentElo = fetchedOpponentElo ?? DEFAULT_ELO;
-        await submitEloRatingOrQueue(normalizedOpponentName, Math.max(0, currentOpponentElo - 10));
-    }, []);
+    // A rating is only ever written by its owner (submit_elo is account-bound), so the winner can
+    // no longer lower a leaver's Elo. The leaver pays the penalty themselves in applyForfeitPenalty.
+    const submitOpponentForfeitLoss = useCallback(async () => {}, []);
 
     const persistRoomResult = useCallback(async (winnerRole: MatchWinnerRole) => {
         if (roomResultSavedRef.current) return;

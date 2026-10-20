@@ -32,6 +32,17 @@ update profiles set coins = 100000 where auth_user_id = '22222222-2222-2222-2222
 update profiles set coins = 100000 where auth_user_id = '22222222-2222-2222-2222-222222222222';
 select 'daily cap' as check, coins, coins_gained_today from profiles where id = '11111111-1111-1111-1111-111111111111';
 
+-- Elo: direct writes are ignored, submit_elo is bounded (200 rise per day, drops always allowed)
+-- expect: elo 0 after a direct write
+update profiles set elo = 5000 where id = '11111111-1111-1111-1111-111111111111';
+select 'elo direct' as check, elo from profiles where id = '11111111-1111-1111-1111-111111111111';
+-- expect: 10, 200 (rise capped at +200 per day in total), a drop to 100 is accepted, a new rise is refused (budget spent): 100, then NULL for invalid input
+select 'elo +10' as check, submit_elo(10);
+select 'elo cheat' as check, submit_elo(99999);
+select 'elo drop' as check, submit_elo(100);
+select 'elo budget spent' as check, submit_elo(5000);
+select 'elo invalid' as check, submit_elo(-5);
+
 -- expect: 0 / 0 / empty (a client cannot create a rich profile)
 select set_config('request.jwt.claims', '{"sub":"33333333-3333-3333-3333-333333333333","role":"authenticated"}', true);
 insert into profiles (player_name, auth_user_id, player_id, coins, highscore_chaos, discord_id)

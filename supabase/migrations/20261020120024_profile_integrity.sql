@@ -5,12 +5,14 @@
 --     while the dashboard, SQL editor, service_role and SECURITY DEFINER functions stay free;
 --   * limits how fast coins can grow (spending is always free);
 --   * adds submit_high_score() with a plausibility ceiling per mode;
---   * adds the same ceiling to submit_season_score().
--- Elo is frozen in the follow-up migration that adds the server-side Elo update.
+--   * adds the same ceiling to submit_season_score();
+--   * freezes elo for clients and adds submit_elo(), the only way to change it (daily rise limit).
 
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS coins_gain_day date,
   ADD COLUMN IF NOT EXISTS coins_gained_today integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS elo_gain_day date,
+  ADD COLUMN IF NOT EXISTS elo_gained_today integer NOT NULL DEFAULT 0,
   -- Exists in production (added by hand); declared here so a fresh database matches it.
   ADD COLUMN IF NOT EXISTS discord_id text;
 
@@ -74,9 +76,19 @@ BEGIN
     NEW.coins_gain_day := NULL;
     NEW.coins_gained_today := 0;
     NEW.discord_id := NULL;
+    NEW.elo := 0;
+    NEW.previous_elo := NULL;
+    NEW.elo_reset_at := NULL;
+    NEW.elo_gain_day := NULL;
+    NEW.elo_gained_today := 0;
     RETURN NEW;
   END IF;
 
+  NEW.elo := OLD.elo;
+  NEW.previous_elo := OLD.previous_elo;
+  NEW.elo_reset_at := OLD.elo_reset_at;
+  NEW.elo_gain_day := OLD.elo_gain_day;
+  NEW.elo_gained_today := OLD.elo_gained_today;
   NEW.highscore_classic := OLD.highscore_classic;
   NEW.highscore_chaos := OLD.highscore_chaos;
   NEW.highscore_time_attack := OLD.highscore_time_attack;
@@ -142,6 +154,48 @@ $$;
 
 REVOKE ALL ON FUNCTION public.submit_high_score(text, integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.submit_high_score(text, integer) TO authenticated;
+
+-- The only way for a client to change Elo. Versus rooms are identified by a client-generated id,
+-- not by account, so the server cannot verify a match; it bounds the effect instead:
+-- any drop is accepted, a rise is limited to 200 points per UTC day (20 wins at +10).
+CREATE OR REPLACE FUNCTION public.submit_elo(p_elo integer)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  c_max_gain_per_day CONSTANT integer := 200;
+  v_today date := (now() AT TIME ZONE 'utc')::date;
+  v_profile public.profiles%ROWTYPE;
+  v_used integer;
+  v_new integer;
+BEGIN
+  IF auth.uid() IS NULL THEN RETURN NULL; END IF;
+  IF p_elo IS NULL OR p_elo < 0 OR p_elo > 100000 THEN RETURN NULL; END IF;
+
+  SELECT * INTO v_profile FROM public.profiles WHERE auth_user_id = auth.uid() FOR UPDATE;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+
+  IF p_elo <= v_profile.elo THEN
+    UPDATE public.profiles SET elo = p_elo WHERE id = v_profile.id;
+    RETURN p_elo;
+  END IF;
+
+  v_used := CASE WHEN v_profile.elo_gain_day = v_today THEN v_profile.elo_gained_today ELSE 0 END;
+  v_new := v_profile.elo + LEAST(p_elo - v_profile.elo, GREATEST(c_max_gain_per_day - v_used, 0));
+
+  UPDATE public.profiles
+    SET elo = v_new,
+        elo_gain_day = v_today,
+        elo_gained_today = v_used + (v_new - v_profile.elo)
+    WHERE id = v_profile.id;
+  RETURN v_new;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.submit_elo(integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.submit_elo(integer) TO authenticated;
 
 -- Same body as before plus the plausibility ceiling.
 CREATE OR REPLACE FUNCTION public.submit_season_score(

@@ -418,44 +418,18 @@ export interface EloRating {
     updated_at?: string;
 }
 
+// Elo is owned by the server: the profile's elo column is read-only for clients and changes only through
+// submit_elo (account-bound, bounded daily rise). playerName is kept for the offline queue's sake.
 export async function submitEloRating(playerName: string, elo: number): Promise<boolean> {
     try {
-        const finalPlayerName = playerName.trim();
-        if (!finalPlayerName) return false;
+        if (!playerName.trim() || !Number.isFinite(elo) || elo < 0) return false;
 
-        const escapedName = escapeIlike(finalPlayerName);
-
-        const { data, error: fetchError } = await supabase
-            .from('profiles')
-            .select('id, elo')
-            .ilike('player_name', escapedName)
-            .limit(1);
-
-        if (fetchError) {
-            console.error('Error fetching existing profile elo:', fetchError);
+        const { data, error } = await supabase.rpc('submit_elo', { p_elo: Math.floor(elo) });
+        if (error) {
+            console.error('Error submitting elo rating:', error);
             return false;
         }
-
-        const existingRecord = data && data[0];
-
-        if (existingRecord) {
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({
-                    player_name: finalPlayerName,
-                    elo: elo
-                })
-                .eq('id', existingRecord.id);
-
-            if (updateError) return false;
-        } else {
-            const { error: insertError } = await supabase
-                .from('profiles')
-                .insert([{ player_name: finalPlayerName, elo: elo }]);
-
-            if (insertError) return false;
-        }
-        return true;
+        return typeof data === 'number';
     } catch (error) {
         console.error('Error submitting elo rating:', error);
         return false;
