@@ -2,6 +2,7 @@ import { MenuStateType, useAppState } from "@/hooks/useAppState";
 import { Linking, ScrollView, StyleSheet, Switch, Text, View, useWindowDimensions, TextInput, Platform } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
+import SegmentedControl from "./SegmentedControl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import * as Application from "expo-application";
 import { updateService } from "@/constants/UpdateService";
@@ -13,7 +14,6 @@ import {
 } from "@/constants/Sound";
 import { Theme, ThemeType, useTheme } from "@/constants/Theme";
 import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, useLanguage, type Language } from "@/constants/Localization";
-import Animated, { FadeIn } from "react-native-reanimated";
 import Slider from "@react-native-community/slider";
 import { clearActiveGame } from "@/constants/Storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
@@ -40,7 +40,7 @@ export default function OptionsMenu() {
 		initialize 
 	} = useSoundSettings();
 
-	const { currentTheme, changeTheme, loadTheme, availableThemes } = useTheme();
+	const { currentTheme } = useTheme();
 	const { language, changeLanguage, loadLanguage, t } = useLanguage();
 	const { state: shopState } = useShopState();
 	const [customMusicUrl, setCustomMusicUrl] = useState("");
@@ -61,7 +61,6 @@ export default function OptionsMenu() {
 
 	useEffect(() => {
 		initialize();
-		loadTheme();
 		loadLanguage();
 	}, []);
 
@@ -147,11 +146,6 @@ export default function OptionsMenu() {
 		playSfx('menuClick');
 	};
 
-	const handleThemeChange = (theme: ThemeType) => {
-		changeTheme(theme);
-		playSfx('menuClick');
-	};
-
 	return (
 		<SimplePopupView style={[
 			{ backgroundColor: currentTheme.menuBackground },
@@ -166,7 +160,7 @@ export default function OptionsMenu() {
 				showsVerticalScrollIndicator={false}
 			>
 				<View style={styles.settingSection}>
-					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>{t("settings.sound")}</Text>
+					<Text style={[styles.sectionLabel, { color: currentTheme.accent }]}>{t("settings.sound")}</Text>
 
 					<SettingLabel
 						title="Music"
@@ -254,42 +248,19 @@ export default function OptionsMenu() {
 				</View>
 
 				<View style={styles.settingSection}>
-					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>{t("settings.theme")}</Text>
-
-					<View style={styles.themesContainer}>
-						{availableThemes.map((theme) => (
-							<ThemeButton
-								key={theme.id}
-								theme={theme}
-								isSelected={currentTheme.id === theme.id}
-								onPress={() => handleThemeChange(theme.id)}
-								isMobile={isMobile}
-							/>
-						))}
-					</View>
-				</View>
-
-				<View style={styles.settingSection}>
-					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>{t("settings.language")}</Text>
+					<Text style={[styles.sectionLabel, { color: currentTheme.accent }]}>{t("settings.language")}</Text>
 					<Text style={[styles.settingDesc, { color: currentTheme.textSecondary, marginBottom: 10 }]}>{t("settings.languageDesc")}</Text>
 
-					<View style={styles.themesContainer}>
-						{SUPPORTED_LANGUAGES.map((lang) => (
-							<Animated.View key={lang} entering={FadeIn}>
-								<StylizedButton
-									text={LANGUAGE_LABELS[lang]}
-									onClick={() => handleLanguageChange(lang)}
-									backgroundColor={currentTheme.buttonPrimary}
-									borderColor={language === lang ? currentTheme.accent : "transparent"}
-									style={isMobile ? { minWidth: 110, margin: 4 } : { minWidth: 130, margin: 4 }}
-								/>
-							</Animated.View>
-						))}
-					</View>
+					<SegmentedControl
+						items={SUPPORTED_LANGUAGES.map((lang) => ({ key: lang, label: LANGUAGE_LABELS[lang] }))}
+						value={language}
+						onChange={handleLanguageChange}
+						small
+					/>
 				</View>
 
 				<View style={styles.settingSection}>
-					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>{t("settings.privacy")}</Text>
+					<Text style={[styles.sectionLabel, { color: currentTheme.accent }]}>{t("settings.privacy")}</Text>
 
 					<SettingLabel
 						title={t("settings.analytics")}
@@ -324,7 +295,7 @@ export default function OptionsMenu() {
 				</View>
 
 				<View style={styles.settingSection}>
-					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>{t("settings.about")}</Text>
+					<Text style={[styles.sectionLabel, { color: currentTheme.accent }]}>{t("settings.about")}</Text>
 					<StylizedButton
 						text={t("settings.licenses")}
 						onClick={() => router.push("/licenses" as Href)}
@@ -334,7 +305,7 @@ export default function OptionsMenu() {
 				</View>
 
 				<View style={styles.settingSection}>
-					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>{t("settings.updates")}</Text>
+					<Text style={[styles.sectionLabel, { color: currentTheme.accent }]}>{t("settings.updates")}</Text>
 					<Text style={[styles.settingDesc, { color: currentTheme.textSecondary, marginBottom: 8 }]}>
 						{`${t("settings.version")}: ${Application.nativeApplicationVersion || '1.0.10'} (${Application.nativeBuildVersion ? `build ${Application.nativeBuildVersion}` : 'latest'})`}
 					</Text>
@@ -444,20 +415,6 @@ function CustomAudioInput({
 	);
 }
 
-function ThemeButton({ theme, isSelected, onPress, isMobile }: { theme: Theme; isSelected: boolean; onPress: () => void; isMobile?: boolean }) {
-	return (
-		<Animated.View entering={FadeIn}>
-			<StylizedButton
-				text={theme.name}
-				onClick={onPress}
-				backgroundColor={theme.buttonPrimary}
-				borderColor={isSelected ? theme.accent : "transparent"}
-				style={isMobile ? { minWidth: 90, margin: 4 } : undefined}
-			/>
-		</Animated.View>
-	);
-}
-
 function SettingLabel({
 	title, 
 	description, 
@@ -514,16 +471,16 @@ const styles = StyleSheet.create({
 		fontFamily: 'Silkscreen'
 	},
 	sectionHeader: {
-		fontSize: 24,
+		fontSize: 22,
 		fontFamily: 'Silkscreen',
-		marginBottom: 20,
+		marginBottom: 14,
 	},
 	sectionLabel: {
-		fontSize: 18,
+		fontSize: 13,
 		fontFamily: 'Silkscreen',
-		marginBottom: 10,
+		marginBottom: 8,
 		alignSelf: 'flex-start',
-		marginLeft: '10%',
+		marginLeft: '6%',
 	},
 	sliderContainer: {
 		width: '80%',
@@ -586,9 +543,15 @@ const styles = StyleSheet.create({
 		marginVertical: 10,
 	},
 	settingSection: {
-		width: '100%',
+		width: '94%',
 		alignItems: 'center',
-		marginBottom: 20,
+		marginBottom: 12,
+		paddingVertical: 12,
+		paddingHorizontal: 8,
+		borderRadius: 10,
+		borderWidth: 1.5,
+		borderColor: 'rgba(255, 255, 255, 0.18)',
+		backgroundColor: 'rgba(255, 255, 255, 0.04)',
 	},
 	buttonsContainer: {
 		flexDirection: 'row',

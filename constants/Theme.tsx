@@ -181,10 +181,8 @@ export function useTheme() {
 
   const loadTheme = async () => {
     try {
-      const savedTheme = await AsyncStorage.getItem(SELECTED_THEME_KEY);
-      if (savedTheme && Object.values(ThemeType).includes(savedTheme as ThemeType)) {
-        setCurrentTheme(themes[savedTheme as ThemeType]);
-      }
+      // Theme picking was removed in 2.0: drop an older choice so nobody stays stuck on a theme they cannot change
+      await AsyncStorage.removeItem(SELECTED_THEME_KEY);
     } catch (error) {
       console.error('Ошибка при загрузке темы:', error);
     }
