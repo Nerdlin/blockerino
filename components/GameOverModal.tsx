@@ -270,9 +270,9 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                                 <Text style={[styles.messageText, { color: currentTheme.textSecondary, paddingHorizontal: 0, fontSize: 11 }]}>
                                     {t("over.accountPrompt")}
                                 </Text>
-                                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-                                    <StylizedButton text={t("over.createAccount")} onClick={() => openAccountScreen('register')} backgroundColor={currentTheme.accent} style={{ minWidth: 120, height: 36 }} textStyle={{ fontSize: 11 }} />
-                                    <StylizedButton text={t("over.haveAccount")} onClick={() => openAccountScreen('login')} backgroundColor="rgb(90,90,90)" style={{ minWidth: 120, height: 36 }} textStyle={{ fontSize: 11 }} />
+                                <View style={{ flexDirection: 'row', gap: 8, width: '100%', justifyContent: 'center' }}>
+                                    <StylizedButton text={t("over.createAccount")} onClick={() => openAccountScreen('register')} backgroundColor={currentTheme.accent} style={{ flex: 1, minWidth: 0, minHeight: 38, paddingHorizontal: 4, margin: 0 }} textStyle={{ fontSize: 11 }} />
+                                    <StylizedButton text={t("over.haveAccount")} onClick={() => openAccountScreen('login')} backgroundColor="rgb(90,90,90)" style={{ flex: 1, minWidth: 0, minHeight: 38, paddingHorizontal: 4, margin: 0 }} textStyle={{ fontSize: 11 }} />
                                 </View>
                             </View>
                         )}

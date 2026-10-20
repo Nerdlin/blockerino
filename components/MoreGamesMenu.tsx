@@ -196,9 +196,9 @@ export default function MoreGamesMenu() {
 						{authChecked && !signedIn && (
 							<View style={{ width: "100%", alignItems: "center", gap: 6, marginBottom: 8 }}>
 								<Text style={[styles.subHeader, { color: currentTheme.textSecondary, fontSize: 10, textAlign: "center" }]}>{t("over.accountPrompt")}</Text>
-								<View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-									<StylizedButton text={t("over.createAccount")} onClick={() => openAccountScreen("register")} backgroundColor={currentTheme.accent} style={{ minWidth: 120, height: 34 }} textStyle={styles.tinyButtonText} />
-									<StylizedButton text={t("over.haveAccount")} onClick={() => openAccountScreen("login")} backgroundColor={cssColors.spaceGray} style={{ minWidth: 120, height: 34 }} textStyle={styles.tinyButtonText} />
+								<View style={{ flexDirection: "row", gap: 8, width: "100%", justifyContent: "center" }}>
+									<StylizedButton text={t("over.createAccount")} onClick={() => openAccountScreen("register")} backgroundColor={currentTheme.accent} style={{ flex: 1, minWidth: 0, minHeight: 38, paddingHorizontal: 4, margin: 0 }} textStyle={styles.tinyButtonText} />
+									<StylizedButton text={t("over.haveAccount")} onClick={() => openAccountScreen("login")} backgroundColor={cssColors.spaceGray} style={{ flex: 1, minWidth: 0, minHeight: 38, paddingHorizontal: 4, margin: 0 }} textStyle={styles.tinyButtonText} />
 								</View>
 							</View>
 						)}
