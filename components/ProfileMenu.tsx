@@ -3,6 +3,7 @@ import { track } from "@/constants/Analytics";
 import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, ActivityIndicator, Image, Pressable } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
+import SegmentedControl from "./SegmentedControl";
 import PerkBadge from "./PerkBadge";
 import SeasonTitleBadges from "./SeasonTitleBadges";
 import { getMySeasonTitles, type SeasonTitle } from "@/constants/SeasonResults";
@@ -467,30 +468,18 @@ export default function ProfileMenu() {
 						{perk && <PerkBadge perk={perk} />}
 						<SeasonTitleBadges titles={seasonTitles} />
 
-						<View style={[styles.tabsContainer, isMobile && styles.mobileTabsContainer]}>
-							<StylizedButton 
-								onClick={() => { playSfx('menuClick'); setActiveTab("stats"); }}
-								text={t("profile.tabStats")}
-								backgroundColor={activeTab === "stats" ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
-								style={[styles.tabButton, isMobile && styles.mobileTabButton]}
-								textStyle={[styles.tabButtonText, isMobile && styles.mobileTabButtonText]}
-							/>
-							<StylizedButton 
-								onClick={() => { playSfx('menuClick'); setActiveTab("history"); }}
-								text={t("profile.tabHistory")}
-								backgroundColor={activeTab === "history" ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
-								style={[styles.tabButton, isMobile && styles.mobileTabButton]}
-								textStyle={[styles.tabButtonText, isMobile && styles.mobileTabButtonText]}
-							/>
-							<StylizedButton 
-								onClick={() => { playSfx('menuClick'); setActiveTab("friends"); }}
-								text={t("profile.tabFriends")}
-								backgroundColor={activeTab === "friends" ? currentTheme.buttonPrimary : currentTheme.buttonSecondary}
-								style={[styles.tabButton, isMobile && styles.mobileTabButton]}
-								textStyle={[styles.tabButtonText, isMobile && styles.mobileTabButtonText]}
-							/>
-						</View>
-						
+						<SegmentedControl
+							small
+							items={[
+								{ key: "stats", label: t("profile.tabStats") },
+								{ key: "history", label: t("profile.tabHistory") },
+								{ key: "friends", label: t("profile.tabFriends") },
+							]}
+							value={activeTab}
+							onChange={(tab) => { playSfx('menuClick'); setActiveTab(tab); }}
+						/>
+						<View style={{ height: 12 }} />
+
 						{activeTab === "stats" && (
 							<View style={styles.statsContainer}>
 								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>

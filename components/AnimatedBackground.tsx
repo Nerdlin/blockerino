@@ -103,6 +103,7 @@ const styles = StyleSheet.create({
 		right: 0,
 		bottom: 0,
 		zIndex: 0,
+		overflow: "hidden",
 	},
 	overlay: {
 		opacity: 0.5,
