@@ -60,7 +60,7 @@ export default function PrivacyPolicy() {
                     </Text>
                     <Text style={styles.heading}>6. Your Rights and Data Deletion</Text>
                     <Text style={styles.paragraph}>
-                        You can ask us to access, correct or completely delete your account and associated data at any time by emailing support@aionerdlin.me. Please write from the email linked to your account or include your player name so we can find it.
+                        You can ask us to access, correct or completely delete your account and associated data at any time by emailing nerdlinnut@gmail.com. Please write from the email linked to your account or include your player name so we can find it.
                     </Text>
                     <Text style={styles.heading}>7. Children</Text>
                     <Text style={styles.paragraph}>
@@ -72,7 +72,7 @@ export default function PrivacyPolicy() {
                     </Text>
                     <Text style={styles.heading}>9. Contact</Text>
                     <Text style={styles.paragraph}>
-                        Questions about privacy: support@aionerdlin.me.
+                        Questions about privacy: nerdlinnut@gmail.com.
                     </Text>
                 </View>
             </ScrollView>

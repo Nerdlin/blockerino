@@ -68,7 +68,7 @@ export default function TermsOfService() {
                     </Text>
                     <Text style={styles.heading}>9. Contact</Text>
                     <Text style={styles.paragraph}>
-                        Questions about these Terms: support@aionerdlin.me.
+                        Questions about these Terms: nerdlinnut@gmail.com.
                     </Text>
                 </View>
             </ScrollView>

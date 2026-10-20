@@ -5,7 +5,7 @@ describe('legal pages', () => {
   for (const page of ['privacy', 'terms']) {
     it(`${page} lists the support contact and current date`, () => {
       const source = fs.readFileSync(path.join(__dirname, '..', 'app', `${page}.tsx`), 'utf8');
-      expect(source).toContain('support@aionerdlin.me');
+      expect(source).toContain('nerdlinnut@gmail.com');
       expect(source).toContain('Effective Date: October 20, 2026');
     });
   }
