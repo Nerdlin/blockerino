@@ -157,7 +157,7 @@ export default function MoreGamesMenu() {
 		>
 			<View style={styles.moreHeaderRow}>
 				<StylizedButton text={t("common.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.topBackButton} textStyle={styles.smallButtonText} />
-				<Text style={[styles.header, { color: currentTheme.textPrimary, flex: 1, fontSize: 17 }]} numberOfLines={2} adjustsFontSizeToFit>
+				<Text style={[styles.header, { color: currentTheme.textPrimary, flex: 1, fontSize: 16 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
 					{activeCard ? t(`moregames.card.${activeCard.id}.title`) : (ratingPanel === "leaderboard" ? t("moregames.leaderboardTitle") : t("moregames.title"))}
 				</Text>
 				<View style={styles.topBackButton} />
@@ -222,7 +222,7 @@ export default function MoreGamesMenu() {
 								<Text style={[styles.cardTitle, { color: card.color }]} numberOfLines={2} adjustsFontSizeToFit>
 									{t(`moregames.card.${card.id}.title`)}
 								</Text>
-								<Text style={[styles.cardDesc, { color: currentTheme.textPrimary }]} numberOfLines={1}>
+								<Text style={[styles.cardDesc, { color: currentTheme.textPrimary }]} numberOfLines={2}>
 									{t(`moregames.card.${card.id}.desc`)}
 								</Text>
 								<View style={styles.tagRow}>

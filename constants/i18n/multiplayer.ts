@@ -2,7 +2,7 @@ import type { ScreenDictionary } from "./index";
 
 export const multiplayer: ScreenDictionary = {
 	en: {
-		"mp.title": "Versus Mode",
+		"mp.title": "Versus",
 		"mp.nickname": "Nickname:",
 		"mp.nicknamePlaceholder": "Your Nickname",
 		"mp.eloRating": "ELO Rating:",

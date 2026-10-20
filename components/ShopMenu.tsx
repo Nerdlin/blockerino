@@ -308,8 +308,8 @@ const styles = StyleSheet.create({
 		gap: 8,
 	},
 	card: {
-		width: "47%",
-		minWidth: 150,
+		width: "48%",
+		minWidth: 120,
 		minHeight: 210,
 		borderWidth: 1.5,
 		borderRadius: 10,

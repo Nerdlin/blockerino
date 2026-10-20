@@ -104,7 +104,7 @@ export default function DailyChallengesMenu() {
                     >
                         {title}
                     </Text>
-                    <Text style={[styles.cardDesc, { color: currentTheme.textPrimary }]} numberOfLines={featured ? 2 : 1}>
+                    <Text style={[styles.cardDesc, { color: currentTheme.textPrimary }]} numberOfLines={2}>
                         {description}
                     </Text>
                 </View>
@@ -178,8 +178,8 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     backBtn: {
-        width: 90,
-        minWidth: 90,
+        width: 78,
+        minWidth: 78,
         height: 38,
         minHeight: 38,
         margin: 0,
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     },
     header: {
         flex: 1,
-        fontSize: 20,
+        fontSize: 16,
         fontFamily: "Silkscreen",
         textAlign: "center",
     },

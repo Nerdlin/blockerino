@@ -10,7 +10,7 @@ export const shop: ScreenDictionary = {
 		"shop.equippedMsg": "{name} equipped.",
 		"shop.boughtMsg": "{name} bought and equipped.",
 		"shop.category.pieces": "Pieces",
-		"shop.category.background": "Background",
+		"shop.category.background": "Backdrop",
 		"shop.category.music": "Music",
 		"shop.category.sounds": "Sounds",
 		"shop.equipped": "Equipped",

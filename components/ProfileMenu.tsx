@@ -672,8 +672,8 @@ const styles = StyleSheet.create({
 		marginBottom: 12,
 	},
 	topBackButton: {
-		width: 90,
-		minWidth: 90,
+		width: 72,
+		minWidth: 72,
 		height: 38,
 		minHeight: 38,
 		margin: 0,
@@ -682,7 +682,7 @@ const styles = StyleSheet.create({
 	sectionHeader: {
 		flex: 1,
 		textAlign: 'center',
-		fontSize: 20,
+		fontSize: 16,
 		fontFamily: 'Silkscreen',
 	},
 	scrollContainer: {

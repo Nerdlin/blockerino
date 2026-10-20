@@ -442,6 +442,7 @@ function SettingLabel({
 const styles = StyleSheet.create({
 	settingLabelContainer: {
 		width: '80%',
+		paddingRight: 72,
 		height: 'auto',
 		justifyContent: 'flex-start',
 		alignItems: 'flex-start',
@@ -463,7 +464,7 @@ const styles = StyleSheet.create({
 		paddingBottom: 12,
 	},
 	settingTitle: {
-		fontSize: 16,
+		fontSize: 14,
 		fontFamily: 'Silkscreen'
 	},
 	settingDesc: {

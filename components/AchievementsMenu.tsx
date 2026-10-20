@@ -110,7 +110,7 @@ export default function AchievementsMenu() {
 					style={styles.backButton}
 					textStyle={styles.buttonText}
 				/>
-				<Text style={[styles.header, { color: currentTheme.textPrimary }]}>{t("ach.header")}</Text>
+				<Text style={[styles.header, { color: currentTheme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{t("ach.header")}</Text>
 				<Pressable
 					onPress={() => void loadAchievements()}
 					accessibilityLabel={t("ach.refresh")}
@@ -216,7 +216,8 @@ const styles = StyleSheet.create({
 		marginBottom: 10,
 	},
 	backButton: {
-		minWidth: 90,
+		width: 80,
+		minWidth: 80,
 	},
 	refreshIcon: {
 		width: 44,
@@ -228,8 +229,10 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	header: {
+		flex: 1,
+		minWidth: 0,
 		fontFamily: "Silkscreen",
-		fontSize: 20,
+		fontSize: 16,
 		textAlign: "center",
 	},
 	summaryCard: {

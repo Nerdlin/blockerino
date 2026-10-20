@@ -595,7 +595,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     
                     <View style={styles.topBar}>
                         <StylizedButton text={t("mp.back")} onClick={popAppState} backgroundColor={cssColors.spaceGray} style={styles.topBackButton} textStyle={{ fontSize: 12 }} />
-                        <Text style={[styles.header, { color: currentTheme.textPrimary }]}>{t("mp.title")}</Text>
+                        <Text style={[styles.header, { color: currentTheme.textPrimary }]} numberOfLines={1}>{t("mp.title")}</Text>
                         <View style={styles.topBackButton} />
                     </View>
 
@@ -954,9 +954,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     header: {
-        fontSize: 22,
+        fontSize: 16,
         fontFamily: 'Silkscreen',
         flex: 1,
+        minWidth: 0,
         textAlign: 'center',
     },
     topBar: {
@@ -968,8 +969,8 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     topBackButton: {
-        width: 90,
-        minWidth: 90,
+        width: 72,
+        minWidth: 72,
     },
     iconButton: {
         width: 44,

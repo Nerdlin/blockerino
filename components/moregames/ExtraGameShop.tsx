@@ -73,7 +73,7 @@ export function ExtraGameShop() {
 						const disabled = isEquipped || (!isOwned && !canAfford);
 
 						return (
-							<View key={item.id} style={[{ width: "47%", minWidth: 140, minHeight: 180, borderWidth: 1.5, borderRadius: 10, padding: 8, alignItems: "center", justifyContent: "space-between", borderColor: isEquipped ? item.accent : "rgba(255,255,255,0.12)", backgroundColor: "rgba(0, 0, 0, 0.38)" }]}>
+							<View key={item.id} style={[{ width: "48%", minWidth: 120, minHeight: 180, borderWidth: 1.5, borderRadius: 10, padding: 8, alignItems: "center", justifyContent: "space-between", borderColor: isEquipped ? item.accent : "rgba(255,255,255,0.12)", backgroundColor: "rgba(0, 0, 0, 0.38)" }]}>
 								<Pressable onPress={() => setPreviewItem(item)} accessibilityLabel={item.title} style={{ width: "100%" }}>
 										<CosmeticPreview item={item} />
 									</Pressable>

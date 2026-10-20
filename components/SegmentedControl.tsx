@@ -39,7 +39,7 @@ export default function SegmentedControl<T extends string>({
 							selected && { backgroundColor: item.color ?? currentTheme.buttonPrimary },
 						]}
 					>
-						<Text style={[styles.label, small ? styles.labelSmall : styles.labelLarge, selected ? styles.labelSelected : styles.labelIdle]}>
+						<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[styles.label, small ? styles.labelSmall : styles.labelLarge, selected ? styles.labelSelected : styles.labelIdle]}>
 							{item.label}
 						</Text>
 					</Pressable>
