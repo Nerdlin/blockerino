@@ -41,6 +41,8 @@ import MultiplayerConnectionGate from "@/components/MultiplayerConnectionGate";
 import AchievementsMenu from "@/components/AchievementsMenu";
 import AchievementToastHost from "@/components/AchievementToast";
 import ShopMenu from "@/components/ShopMenu";
+import SeasonResultsMenu from "@/components/SeasonResultsMenu";
+import SeasonRewardsHost from "@/components/SeasonRewardsHost";
 import ProfileMenu from "@/components/ProfileMenu";
 import MoreGamesMenu from "@/components/MoreGamesMenu";
 import { getBackgroundParticleConfig, shopStateAtom, useShopBootstrap } from "@/constants/Shop";
@@ -217,6 +219,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 			{ appState.containsState(MenuStateType.ACHIEVEMENTS) && <AchievementsMenu />}
 			{ appState.containsState(MenuStateType.SHOP) && <ShopMenu />}
 			{ appState.containsState(MenuStateType.PROFILE) && <ProfileMenu />}
+			{ appState.containsState(MenuStateType.SEASON_RESULTS) && <SeasonResultsMenu />}
 			
 			{ isMultiplayerMenuVisible && (
 				multiplayerConnectionReady ? (
@@ -256,6 +259,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 				/>
 			)}
 
+			<SeasonRewardsHost />
 			<AchievementToastHost />
 		</Animated.View>
 		</>

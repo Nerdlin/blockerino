@@ -3,6 +3,8 @@ import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, Scrol
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import PerkBadge from "./PerkBadge";
+import SeasonTitleBadges from "./SeasonTitleBadges";
+import { getMySeasonTitles, type SeasonTitle } from "@/constants/SeasonResults";
 import { useLeaderboardPerk } from "@/constants/LeaderboardPerks";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSoundSettings } from "@/constants/Sound";
@@ -120,6 +122,7 @@ export default function ProfileMenu() {
 	const [password, setPassword] = useState("");
 	const [playerName, setPlayerName] = useState("");
 	const perk = useLeaderboardPerk(playerName);
+	const [seasonTitles, setSeasonTitles] = useState<SeasonTitle[]>([]);
 	const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 	const [showAvatarPopup, setShowAvatarPopup] = useState(false);
 	const [customAvatarInput, setCustomAvatarInput] = useState("");
@@ -131,6 +134,21 @@ export default function ProfileMenu() {
 	const [authLoading, setAuthLoading] = useState(false);
 	const hydratedSessionKeyRef = useRef<string | null>(null);
 	const hydratingSessionKeyRef = useRef<string | null>(null);
+
+	const sessionUserId = session?.user.id;
+	useEffect(() => {
+		if (!sessionUserId) {
+			setSeasonTitles([]);
+			return;
+		}
+		let cancelled = false;
+		getMySeasonTitles().then((titles) => {
+			if (!cancelled) setSeasonTitles(titles);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [sessionUserId]);
 
 	const { state: shopState, reload: reloadShopState } = useShopState();
 
@@ -443,6 +461,7 @@ export default function ProfileMenu() {
 							{playerName || session?.user.email}
 						</Text>
 						{perk && <PerkBadge perk={perk} />}
+						<SeasonTitleBadges titles={seasonTitles} />
 
 						<View style={[styles.tabsContainer, isMobile && styles.mobileTabsContainer]}>
 							<StylizedButton 

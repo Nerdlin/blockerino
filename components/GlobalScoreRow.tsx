@@ -5,7 +5,7 @@ import { useLanguage, TranslateVars } from "@/constants/Localization";
 import { getLeaderboardTier } from "@/constants/LeaderboardTiers";
 import UiIcon from "./UiIcon";
 
-export default function GlobalScoreRow({ score, rank, highlightTop }: { score: GlobalHighScore; rank: number; highlightTop: boolean }) {
+export default function GlobalScoreRow({ score, rank, highlightTop, hideTime }: { score: GlobalHighScore; rank: number; highlightTop: boolean; hideTime?: boolean }) {
     const { t } = useLanguage();
     const { currentTheme } = useTheme();
     const { width, height } = useWindowDimensions();
@@ -36,9 +36,11 @@ export default function GlobalScoreRow({ score, rank, highlightTop }: { score: G
                         {score.player_name}
                     </Text>
                 </View>
-                <Text style={[styles.scoreTimeText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 10 }]} numberOfLines={1}>
-                    {score.created_at ? createTimeAgoString(new Date(score.created_at).getTime(), t) : t("hs.unknownTime")}
-                </Text>
+                {!hideTime && (
+                    <Text style={[styles.scoreTimeText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 10 }]} numberOfLines={1}>
+                        {score.created_at ? createTimeAgoString(new Date(score.created_at).getTime(), t) : t("hs.unknownTime")}
+                    </Text>
+                )}
             </View>
             <Text style={[styles.scoreNumberText, { color: currentTheme.textPrimary }, isMobile && styles.mobileScoreNumberText]} numberOfLines={1} adjustsFontSizeToFit>
                 {score.score}

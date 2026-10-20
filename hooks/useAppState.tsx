@@ -10,7 +10,8 @@ export enum MenuStateType {
 	MULTIPLAYER_GAME = 'multiplayer_game',
 	DAILY_CHALLENGES = 'daily_challenges',
 	MORE_GAMES = 'more_games',
-	PROFILE = 'profile'
+	PROFILE = 'profile',
+	SEASON_RESULTS = 'season_results'
 }
 
 export enum GameModeType {

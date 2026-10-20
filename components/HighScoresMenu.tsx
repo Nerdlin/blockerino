@@ -26,7 +26,7 @@ export default function HighScores() {
     const isMobile = width < 600 || height < 700;
     const { t } = useLanguage();
     const { currentTheme } = useTheme();
-    const [ setAppState, , popAppState ] = useSetAppState();
+    const [ setAppState, appendAppState, popAppState ] = useSetAppState();
     const appState = useAppStateValue();
     const [ highScores, setHighScores ] = useState<HighScore[]>([]);
     const [ globalHighScores, setGlobalHighScores ] = useState<GlobalHighScore[]>([]);
@@ -252,6 +252,15 @@ export default function HighScores() {
                 />
             </View>
         )}
+        <View style={styles.scopeRow}>
+            <StylizedButton
+                text={t("hs.pastSeason")}
+                onClick={() => appendAppState(MenuStateType.SEASON_RESULTS)}
+                backgroundColor={cssColors.spaceGray}
+                style={[styles.scopeButton, { minWidth: 232 }]}
+                textStyle={styles.scopeButtonText}
+            />
+        </View>
         {showSeason && (
             <Text style={[styles.seasonEndsText, { color: currentTheme.textSecondary }]}>
                 {seasonDaysLeft <= 1 ? t("hs.seasonEndsToday") : t("hs.seasonEndsIn", { days: seasonDaysLeft })}

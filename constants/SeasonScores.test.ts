@@ -5,6 +5,7 @@ import {
 	getSeasonBoard,
 	getSeasonEndsAt,
 	getSeasonKey,
+	isSeasonOpenForSubmission,
 	submitSeasonScoreOrQueue,
 } from "./SeasonScores";
 
@@ -111,6 +112,27 @@ describe("season score queue", () => {
 
 		expect(result).toEqual({ synced: 0, remaining: 0 });
 		expect(submit).not.toHaveBeenCalled();
+	});
+
+	it("still submits last month's run during the one-day grace window", async () => {
+		const offline = jest.fn().mockResolvedValue(false);
+		const when = Date.UTC(2026, 8, 30, 22, 0);
+		await submitSeasonScoreOrQueue("classic", 100, "u1", when, offline);
+
+		const submit = jest.fn().mockResolvedValue(true);
+		const result = await flushPendingSeasonScores("u1", submit, new Date("2026-10-01T12:00:00Z"));
+
+		expect(result).toEqual({ synced: 1, remaining: 0 });
+		expect(submit).toHaveBeenCalledWith("classic", 100, when);
+	});
+
+	it("knows which seasons are open for submission", () => {
+		const evening = Date.UTC(2026, 8, 30, 22, 0);
+		expect(isSeasonOpenForSubmission(evening, new Date("2026-09-30T23:00:00Z"))).toBe(true);
+		expect(isSeasonOpenForSubmission(evening, new Date("2026-10-01T23:59:00Z"))).toBe(true);
+		expect(isSeasonOpenForSubmission(evening, new Date("2026-10-02T00:00:00Z"))).toBe(false);
+		expect(isSeasonOpenForSubmission(Date.UTC(2026, 7, 31), new Date("2026-10-01T00:30:00Z"))).toBe(false);
+		expect(isSeasonOpenForSubmission(Date.UTC(2026, 11, 31, 23), new Date("2027-01-01T10:00:00Z"))).toBe(true);
 	});
 
 	it("keeps a run queued when the server rejects it", async () => {

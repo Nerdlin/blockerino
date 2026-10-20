@@ -378,6 +378,43 @@ const BASE_SHOP_ITEMS: ShopItem[] = [
 		previewColors: ["#FF00FF", "#00FFFF", "#FFFF00"],
 		secret: true,
 	},
+	// Season podium rewards: never sold, granted by close_season() through the reward claim.
+	{
+		id: "background_season_gold",
+		category: "background",
+		title: "Season Champion",
+		description: "Golden throne room for the season's number one.",
+		price: 0,
+		accent: "#FFD700",
+		previewColors: ["#2A1B02", "#7A5408", "#FFD700"],
+		gradient: ["rgb(42, 27, 2)", "rgb(122, 84, 8)", "rgb(255, 215, 0)"],
+		scene: "sunset",
+		secret: true,
+	},
+	{
+		id: "background_season_silver",
+		category: "background",
+		title: "Season Runner-up",
+		description: "Polished silver sky for the season's second place.",
+		price: 0,
+		accent: "#D7DEE8",
+		previewColors: ["#0F172A", "#475569", "#D7DEE8"],
+		gradient: ["rgb(15, 23, 42)", "rgb(71, 85, 105)", "rgb(215, 222, 232)"],
+		scene: "ice",
+		secret: true,
+	},
+	{
+		id: "background_season_bronze",
+		category: "background",
+		title: "Season Podium",
+		description: "Warm bronze glow for the season's third place.",
+		price: 0,
+		accent: "#E0924F",
+		previewColors: ["#1F0F05", "#7C4A1E", "#E0924F"],
+		gradient: ["rgb(31, 15, 5)", "rgb(124, 74, 30)", "rgb(224, 146, 79)"],
+		scene: "ender",
+		secret: true,
+	},
 ];
 
 const EXTRA_PIECE_SKINS: ShopItem[] = [

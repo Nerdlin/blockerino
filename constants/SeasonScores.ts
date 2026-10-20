@@ -34,6 +34,21 @@ export function getSeasonEndsAt(date: Date = new Date()): Date {
 	return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
 }
 
+/**
+ * A run of the previous month is still accepted for one day after the season ends: the server
+ * closes the old season on the 2nd (00:05 UTC), so the last evening of a month is not lost.
+ */
+export const SEASON_GRACE_MS = 24 * 60 * 60 * 1000;
+
+/** Whether a run achieved at `achievedAt` can still be submitted at `now`. */
+export function isSeasonOpenForSubmission(achievedAt: number, now: Date = new Date()): boolean {
+	const runSeason = getSeasonKey(new Date(achievedAt));
+	if (runSeason === getSeasonKey(now)) return true;
+	const previous = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+	if (runSeason !== getSeasonKey(previous)) return false;
+	return now.getTime() < getSeasonEndsAt(previous).getTime() + SEASON_GRACE_MS;
+}
+
 export function getSeasonBoard(gameMode: string): SeasonBoard | null {
 	return gameMode === "classic" || gameMode === "chaos" ? gameMode : null;
 }
@@ -128,7 +143,7 @@ export async function recordSeasonScore(gameMode: string, score: number): Promis
 	}
 }
 
-/** Retries queued runs of the signed-in user; runs of closed seasons are dropped. */
+/** Retries queued runs of the signed-in user; runs of seasons that can no longer be submitted are dropped. */
 export async function flushPendingSeasonScores(
 	currentUserId: string | undefined,
 	submit: SeasonScoreSubmitter = submitSeasonScoreToServer,
@@ -138,12 +153,11 @@ export async function flushPendingSeasonScores(
 		const pending = await readPending();
 		if (pending.length === 0) return { synced: 0, remaining: 0 };
 
-		const currentSeason = getSeasonKey(now);
 		const remaining: PendingSeasonScore[] = [];
 		let synced = 0;
 
 		for (const entry of pending) {
-			if (getSeasonKey(new Date(entry.achievedAt)) !== currentSeason) continue;
+			if (!isSeasonOpenForSubmission(entry.achievedAt, now)) continue;
 			if (!currentUserId || entry.ownerUserId !== currentUserId) {
 				remaining.push(entry);
 				continue;
