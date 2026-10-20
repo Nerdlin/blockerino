@@ -16,7 +16,7 @@ import { supabase, getPlayerProfileData } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
-import { submitEloRatingOrQueue, submitGlobalHighScoreOrQueue } from '@/constants/OfflineSync';
+import { reportVersusResultOrQueue, submitGlobalHighScoreOrQueue } from '@/constants/OfflineSync';
 import { recordSeasonScore } from '@/constants/SeasonScores';
 import { useLeaderboardPerk } from '@/constants/LeaderboardPerks';
 import { recordLocalMatchHistory } from '@/constants/MatchHistory';
@@ -330,16 +330,24 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         await persistRoomResult(getOpponentPlayerRole(myRole));
     }, [myRole, persistRoomResult]);
 
+    // Elo belongs to the server: report how this match ended and show the rating the server answers
+    // with. A lone win is still pending on the server, so the optimistic local value stays until it settles.
+    const reportMyResult = useCallback(async (result: 'win' | 'loss') => {
+        if (!isActivePlayerRole(myRole)) return;
+        const { outcome } = await reportVersusResultOrQueue(roomId, result);
+        if (outcome && outcome.status !== 'pending' && typeof outcome.elo === 'number') {
+            AsyncStorage.setItem('PLAYER_ELO', outcome.elo.toString());
+            setPlayerElo(outcome.elo);
+        }
+    }, [myRole, roomId]);
+
     const applyForfeitPenalty = useCallback(() => {
         const currentElo = Number.isFinite(playerEloRef.current) ? playerEloRef.current : DEFAULT_ELO;
         const newElo = Math.max(0, currentElo - 10);
         AsyncStorage.setItem('PLAYER_ELO', newElo.toString());
         setPlayerElo(newElo);
-        const persistentName = getPersistentPlayerName();
-        if (persistentName) {
-            submitEloRatingOrQueue(persistentName, newElo);
-        }
-    }, [getPersistentPlayerName]);
+        void reportMyResult('loss');
+    }, [reportMyResult]);
 
     const shouldForfeitOnLeave = useCallback(() => {
         return isActivePlayerRole(myRole) &&
@@ -648,12 +656,10 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 const newElo = Math.max(0, currentElo + eloDiff);
                 AsyncStorage.setItem('PLAYER_ELO', newElo.toString());
                 setPlayerElo(newElo);
-                if (persistentName) {
-                    submitEloRatingOrQueue(persistentName, newElo);
-                }
+                if (eloDiff !== 0) void reportMyResult(eloDiff > 0 ? 'win' : 'loss');
             });
         }
-    }, [gameMode, getPersistentPlayerName, isGameOver, myRole, opponentDisconnected, opponentIsGameOver, opponentScore, persistRoomResult, score.value, submitOpponentForfeitLoss]);
+    }, [gameMode, getPersistentPlayerName, isGameOver, myRole, opponentDisconnected, opponentIsGameOver, opponentScore, persistRoomResult, reportMyResult, score.value, submitOpponentForfeitLoss]);
 
     const resetGameLocal = () => {
         board.value = newEmptyBoard(boardLength);

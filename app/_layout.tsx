@@ -3,7 +3,7 @@ import Head from "expo-router/head";
 import { useEffect } from "react";
 import { ActivityIndicator, AppState, LogBox, Platform, Text, View } from "react-native";
 import { updateService } from "@/constants/UpdateService";
-import { flushPendingEloRatings, flushPendingGlobalHighScores } from "@/constants/OfflineSync";
+import { flushPendingVersusReports, flushPendingGlobalHighScores } from "@/constants/OfflineSync";
 import { flushPendingSeasonScoresForSession } from "@/constants/SeasonScores";
 import { useDiscordSDK } from "@/hooks/useDiscordSDK";
 import { syncLocalHighScores } from "@/constants/LocalScoreSync";
@@ -65,7 +65,7 @@ export default function RootLayout() {
 				await syncLocalHighScores();
 				await Promise.all([
 					flushPendingGlobalHighScores(),
-					flushPendingEloRatings(),
+					flushPendingVersusReports(),
 					flushPendingSeasonScoresForSession(),
 				]);
 			} catch (error) {

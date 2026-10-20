@@ -3,10 +3,10 @@ import { GameModeType } from "@/hooks/useAppState";
 import {
 	flushPendingGlobalHighScores,
 	queueGlobalHighScore,
-	flushPendingEloRatings,
-	getPendingEloRatings,
+	flushPendingVersusReports,
 	getPendingGlobalHighScores,
-	submitEloRatingOrQueue,
+	getPendingVersusReports,
+	reportVersusResultOrQueue,
 	submitGlobalHighScoreOrQueue,
 } from "./OfflineSync";
 
@@ -98,36 +98,47 @@ describe("offline global score sync", () => {
 		expect(await getPendingGlobalHighScores()).toEqual([]);
 	});
 
-	it("queues the latest offline ELO value per player", async () => {
-		const submitter = jest.fn().mockResolvedValue(false);
+	it("keeps a failed versus report once per room until it can be sent", async () => {
+		const submitter = jest.fn().mockResolvedValue(null);
 
-		await submitEloRatingOrQueue("Nerdlin", 1010, submitter);
-		await submitEloRatingOrQueue("Nerdlin", 990, submitter);
-		await submitEloRatingOrQueue("Alctraz", 1200, submitter);
+		const first = await reportVersusResultOrQueue("room-1", "win", submitter);
+		await reportVersusResultOrQueue("room-1", "loss", submitter);
+		await reportVersusResultOrQueue("room-2", "loss", submitter);
 
-		const pending = await getPendingEloRatings();
+		const pending = await getPendingVersusReports();
 
+		expect(first.state).toBe("queued");
 		expect(pending).toHaveLength(2);
-		expect(pending.find((entry) => entry.playerName === "Nerdlin")?.elo).toBe(990);
-		expect(pending.find((entry) => entry.playerName === "Alctraz")?.elo).toBe(1200);
+		expect(pending.find((entry) => entry.roomId === "room-1")?.result).toBe("win");
+		expect(pending.find((entry) => entry.roomId === "room-2")?.result).toBe("loss");
 	});
 
-	it("flushes synced ELO ratings and keeps entries that still fail", async () => {
-		const submitter = jest.fn().mockResolvedValue(false);
+	it("does not queue a versus report the server accepted", async () => {
+		const submitter = jest.fn().mockResolvedValue({ status: "pending", elo: 40 });
 
-		await submitEloRatingOrQueue("Nerdlin", 1010, submitter);
-		await submitEloRatingOrQueue("Alctraz", 1200, submitter);
+		const result = await reportVersusResultOrQueue("room-1", "win", submitter);
+
+		expect(result.state).toBe("synced");
+		expect(result.outcome?.elo).toBe(40);
+		expect(await getPendingVersusReports()).toEqual([]);
+	});
+
+	it("flushes accepted versus reports and keeps the ones that still fail", async () => {
+		await reportVersusResultOrQueue("room-1", "win", jest.fn().mockResolvedValue(null));
+		await reportVersusResultOrQueue("room-2", "loss", jest.fn().mockResolvedValue(null));
 
 		const flushSubmitter = jest
 			.fn()
-			.mockImplementation((name: string) => Promise.resolve(name === "Nerdlin"));
+			.mockImplementation((roomId: string) =>
+				Promise.resolve(roomId === "room-1" ? { status: "p1_win", elo: 60 } : null)
+			);
 
-		const result = await flushPendingEloRatings(flushSubmitter);
-		const pending = await getPendingEloRatings();
+		const result = await flushPendingVersusReports(flushSubmitter);
+		const pending = await getPendingVersusReports();
 
 		expect(result.synced).toBe(1);
 		expect(result.remaining).toBe(1);
 		expect(pending).toHaveLength(1);
-		expect(pending[0].playerName).toBe("Alctraz");
+		expect(pending[0].roomId).toBe("room-2");
 	});
 });

@@ -181,6 +181,17 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         }
     });
 
+    // A signed-in player sits in rooms under the account id, so the server can tell who played a match.
+    useEffect(() => {
+        if (!authChecked || !signedIn) return;
+        let active = true;
+        supabase.auth.getSession().then(({ data }) => {
+            const accountId = data.session?.user?.id;
+            if (active && accountId) setPlayerId(accountId);
+        });
+        return () => { active = false; };
+    }, [authChecked, signedIn]);
+
     // A signed-in player's nickname comes from the account and is edited in the profile only.
     useEffect(() => {
         if (!signedIn || !accountName) return;
@@ -197,15 +208,15 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             }
         });
 
-        // Load or generate player ID from storage
+        // Load or generate the device id (used by guests; a signed-in account overrides it below)
         AsyncStorage.getItem('PLAYER_ID').then((val) => {
             if (isMounted.current) {
                 if (val) {
-                    setPlayerId(val);
+                    setPlayerId((current) => current || val);
                 } else {
                     const newId = Crypto.randomUUID();
                     AsyncStorage.setItem('PLAYER_ID', newId);
-                    setPlayerId(newId);
+                    setPlayerId((current) => current || newId);
                 }
             }
         });

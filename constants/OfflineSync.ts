@@ -1,8 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { submitEloRating, submitGlobalHighScore, supabase } from "./Supabase";
+import { reportVersusResult, submitGlobalHighScore, supabase } from "./Supabase";
+import type { VersusReportOutcome, VersusResult } from "./Supabase";
 
 const PENDING_GLOBAL_HIGH_SCORES_KEY = "PENDING_GLOBAL_HIGH_SCORES";
-const PENDING_ELO_RATINGS_KEY = "PENDING_ELO_RATINGS";
+const PENDING_VERSUS_REPORTS_KEY = "PENDING_VERSUS_REPORTS";
+const VERSUS_REPORT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 let highScoreQueueLock: Promise<unknown> = Promise.resolve();
 function serializeHighScoreQueue<T>(operation: () => Promise<T>): Promise<T> {
 	const result = highScoreQueueLock.then(operation, operation);
@@ -16,10 +18,10 @@ export type HighScoreSubmitter = (
 	gameMode: string
 ) => Promise<boolean>;
 
-export type EloRatingSubmitter = (
-	playerName: string,
-	elo: number
-) => Promise<boolean>;
+export type VersusReportSubmitter = (
+	roomId: string,
+	result: VersusResult
+) => Promise<VersusReportOutcome | null>;
 
 export interface PendingGlobalHighScore {
 	ownerUserId?: string;
@@ -31,12 +33,11 @@ export interface PendingGlobalHighScore {
 	updatedAt: number;
 }
 
-export interface PendingEloRating {
+export interface PendingVersusReport {
 	id: string;
-	playerName: string;
-	elo: number;
+	roomId: string;
+	result: VersusResult;
 	createdAt: number;
-	updatedAt: number;
 }
 
 export interface FlushPendingHighScoresResult {
@@ -50,10 +51,6 @@ function normalizeQueueName(playerName: string): string {
 
 function createPendingId(playerName: string, gameMode: string): string {
 	return `${gameMode}:${playerName.trim().toLowerCase()}`;
-}
-
-function createPendingEloId(playerName: string): string {
-	return playerName.trim().toLowerCase();
 }
 
 async function savePendingGlobalHighScores(entries: PendingGlobalHighScore[]): Promise<void> {
@@ -193,120 +190,101 @@ export async function flushPendingGlobalHighScores(
 	});
 }
 
-async function savePendingEloRatings(entries: PendingEloRating[]): Promise<void> {
+async function savePendingVersusReports(entries: PendingVersusReport[]): Promise<void> {
 	if (entries.length === 0) {
-		await AsyncStorage.removeItem(PENDING_ELO_RATINGS_KEY);
+		await AsyncStorage.removeItem(PENDING_VERSUS_REPORTS_KEY);
 		return;
 	}
 
-	await AsyncStorage.setItem(PENDING_ELO_RATINGS_KEY, JSON.stringify(entries));
+	await AsyncStorage.setItem(PENDING_VERSUS_REPORTS_KEY, JSON.stringify(entries));
 }
 
-export async function getPendingEloRatings(): Promise<PendingEloRating[]> {
+function isVersusResult(value: unknown): value is VersusResult {
+	return value === "win" || value === "loss" || value === "draw";
+}
+
+export async function getPendingVersusReports(): Promise<PendingVersusReport[]> {
 	try {
-		const raw = await AsyncStorage.getItem(PENDING_ELO_RATINGS_KEY);
+		const raw = await AsyncStorage.getItem(PENDING_VERSUS_REPORTS_KEY);
 		if (!raw) return [];
 
 		const parsed = JSON.parse(raw);
 		if (!Array.isArray(parsed)) return [];
 
-		return parsed.filter((entry): entry is PendingEloRating => {
+		return parsed.filter((entry): entry is PendingVersusReport => {
 			return Boolean(
 				entry &&
 				typeof entry.id === "string" &&
-				typeof entry.playerName === "string" &&
-				typeof entry.elo === "number" &&
-				typeof entry.createdAt === "number" &&
-				typeof entry.updatedAt === "number"
+				typeof entry.roomId === "string" &&
+				isVersusResult(entry.result) &&
+				typeof entry.createdAt === "number"
 			);
 		});
 	} catch (error) {
-		console.error("Error reading pending ELO ratings:", error);
+		console.error("Error reading pending versus reports:", error);
 		return [];
 	}
 }
 
-export async function queueEloRating(
-	playerName: string,
-	elo: number
-): Promise<PendingEloRating | null> {
-	const normalizedName = normalizeQueueName(playerName);
-	if (!normalizedName || !Number.isFinite(elo) || elo < 0) return null;
+/** One report per room: the first result a player reports for a match is the one that counts. */
+export async function queueVersusReport(roomId: string, result: VersusResult): Promise<PendingVersusReport | null> {
+	if (!roomId || !isVersusResult(result)) return null;
 
-	const pending = await getPendingEloRatings();
-	const id = createPendingEloId(normalizedName);
-	const now = Date.now();
-	const existingIndex = pending.findIndex((entry) => entry.id === id);
+	const pending = await getPendingVersusReports();
+	const existing = pending.find((entry) => entry.id === roomId);
+	if (existing) return existing;
 
-	if (existingIndex >= 0) {
-		const nextEntry = {
-			...pending[existingIndex],
-			playerName: normalizedName,
-			elo,
-			updatedAt: now,
-		};
-		pending[existingIndex] = nextEntry;
-		await savePendingEloRatings(pending);
-		return nextEntry;
-	}
-
-	const entry: PendingEloRating = {
-		id,
-		playerName: normalizedName,
-		elo,
-		createdAt: now,
-		updatedAt: now,
-	};
-
+	const entry: PendingVersusReport = { id: roomId, roomId, result, createdAt: Date.now() };
 	pending.push(entry);
-	await savePendingEloRatings(pending);
+	await savePendingVersusReports(pending);
 	return entry;
 }
 
-export async function submitEloRatingOrQueue(
-	playerName: string,
-	elo: number,
-	submitRating: EloRatingSubmitter = submitEloRating
-): Promise<"synced" | "queued" | "skipped"> {
-	const normalizedName = normalizeQueueName(playerName);
-	if (!normalizedName || !Number.isFinite(elo) || elo < 0) return "skipped";
+export async function reportVersusResultOrQueue(
+	roomId: string,
+	result: VersusResult,
+	submitReport: VersusReportSubmitter = reportVersusResult
+): Promise<{ state: "synced" | "queued" | "skipped"; outcome: VersusReportOutcome | null }> {
+	if (!roomId || !isVersusResult(result)) return { state: "skipped", outcome: null };
 
 	try {
-		const synced = await submitRating(normalizedName, elo);
-		if (synced) return "synced";
+		const outcome = await submitReport(roomId, result);
+		if (outcome) return { state: "synced", outcome };
 	} catch (error) {
-		console.error("Error submitting ELO rating:", error);
+		console.error("Error reporting versus result:", error);
 	}
 
-	await queueEloRating(normalizedName, elo);
-	return "queued";
+	await queueVersusReport(roomId, result);
+	return { state: "queued", outcome: null };
 }
 
-export async function flushPendingEloRatings(
-	submitRating: EloRatingSubmitter = submitEloRating
+export async function flushPendingVersusReports(
+	submitReport: VersusReportSubmitter = reportVersusResult
 ): Promise<FlushPendingHighScoresResult> {
-	const pending = await getPendingEloRatings();
+	const pending = await getPendingVersusReports();
 	if (pending.length === 0) {
 		return { synced: 0, remaining: 0 };
 	}
 
-	const remaining: PendingEloRating[] = [];
+	const remaining: PendingVersusReport[] = [];
 	let synced = 0;
 
 	for (const entry of pending) {
+		// The server forgets unfinished matches after a while, so an old report can no longer count.
+		if (Date.now() - entry.createdAt > VERSUS_REPORT_MAX_AGE_MS) continue;
 		try {
-			const success = await submitRating(entry.playerName, entry.elo);
-			if (success) {
+			const outcome = await submitReport(entry.roomId, entry.result);
+			if (outcome) {
 				synced += 1;
 			} else {
 				remaining.push(entry);
 			}
 		} catch (error) {
-			console.error("Error flushing pending ELO rating:", error);
+			console.error("Error flushing pending versus report:", error);
 			remaining.push(entry);
 		}
 	}
 
-	await savePendingEloRatings(remaining);
+	await savePendingVersusReports(remaining);
 	return { synced, remaining: remaining.length };
 }

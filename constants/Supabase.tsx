@@ -418,21 +418,35 @@ export interface EloRating {
     updated_at?: string;
 }
 
-// Elo is owned by the server: the profile's elo column is read-only for clients and changes only through
-// submit_elo (account-bound, bounded daily rise). playerName is kept for the offline queue's sake.
-export async function submitEloRating(playerName: string, elo: number): Promise<boolean> {
-    try {
-        if (!playerName.trim() || !Number.isFinite(elo) || elo < 0) return false;
+export type VersusResult = 'win' | 'loss' | 'draw';
 
-        const { data, error } = await supabase.rpc('submit_elo', { p_elo: Math.floor(elo) });
-        if (error) {
-            console.error('Error submitting elo rating:', error);
-            return false;
+export interface VersusReportOutcome {
+    /** pending | already | p1_win | p2_win | draw | disputed | capped | void | guest | not_participant | invalid_room | invalid | unauthenticated */
+    status: string;
+    /** The caller's Elo after the report, when they have an account. */
+    elo: number | null;
+}
+
+// Elo belongs to the server. A player only reports how their own match ended; the server checks that
+// they sat in that room and changes the rating itself. Returns null when the report must be retried.
+export async function reportVersusResult(roomId: string, result: VersusResult): Promise<VersusReportOutcome | null> {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return { status: 'guest', elo: null };
+
+        const { data, error } = await supabase.rpc('report_versus_result', { p_room_id: roomId, p_result: result });
+        if (error || !data || typeof data !== 'object') {
+            if (error) console.error('Error reporting versus result:', error);
+            return null;
         }
-        return typeof data === 'number';
+        const payload = data as { status?: unknown; elo?: unknown };
+        return {
+            status: typeof payload.status === 'string' ? payload.status : 'invalid',
+            elo: typeof payload.elo === 'number' ? payload.elo : null,
+        };
     } catch (error) {
-        console.error('Error submitting elo rating:', error);
-        return false;
+        console.error('Error reporting versus result:', error);
+        return null;
     }
 }
 
