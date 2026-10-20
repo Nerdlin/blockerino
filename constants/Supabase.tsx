@@ -419,6 +419,42 @@ export interface EloRating {
     updated_at?: string;
 }
 
+export interface DurakStakeOutcome {
+    /** paid | already | pending | won | refunded | disputed | not_enough_coins | table_mismatch | table_full | table_closed | unauthenticated | ... */
+    status: string;
+    coins: number | null;
+}
+
+// Stakes at a betting Durak table are held by the server. Returns null when the call must be retried.
+async function callDurakRpc(fn: 'durak_pay_ante' | 'durak_report', args: Record<string, unknown>): Promise<DurakStakeOutcome | null> {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return { status: 'unauthenticated', coins: null };
+
+        const { data, error } = await supabase.rpc(fn, args);
+        if (error || !data || typeof data !== 'object') {
+            if (error) console.error('Error calling ' + fn + ':', error);
+            return null;
+        }
+        const payload = data as { status?: unknown; coins?: unknown };
+        return {
+            status: typeof payload.status === 'string' ? payload.status : 'invalid',
+            coins: typeof payload.coins === 'number' ? payload.coins : null,
+        };
+    } catch (error) {
+        console.error('Error calling ' + fn + ':', error);
+        return null;
+    }
+}
+
+export function durakPayAnte(tableId: string, bet: number, playerCount: number): Promise<DurakStakeOutcome | null> {
+    return callDurakRpc('durak_pay_ante', { p_table_id: tableId, p_bet: bet, p_player_count: playerCount });
+}
+
+export function durakReport(tableId: string, result: 'win' | 'loss' | 'draw' | 'cancelled'): Promise<DurakStakeOutcome | null> {
+    return callDurakRpc('durak_report', { p_table_id: tableId, p_result: result });
+}
+
 export type VersusResult = 'win' | 'loss' | 'draw';
 
 export interface VersusReportOutcome {

@@ -17,10 +17,12 @@ import {
 	submitMoreGameSoloResult,
 	supabase,
 	getPlayerProfileData,
+	durakPayAnte,
+	durakReport,
 } from "@/constants/Supabase";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
-import { useShopState, ShopItem, ShopCategory, getVisibleShopItemsByCategory } from "@/constants/Shop";
+import { useShopState, loadShopState, ShopItem, ShopCategory, getVisibleShopItemsByCategory } from "@/constants/Shop";
 import { MenuStateType, useAppState } from "@/hooks/useAppState";
 import { setProfileAuthIntent } from "@/constants/ProfileIntent";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
@@ -3168,6 +3170,9 @@ function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics:
 	const tableHeight = Math.max(440, Math.min(600, useWindowDimensions().height - 220));
 const { t } = useLanguage();
 	const { state: shopState, commit } = useShopState();
+	const { signedIn: durakSignedIn } = useAccountIdentity();
+	const signedInRef = useRef(durakSignedIn);
+	signedInRef.current = durakSignedIn;
 	const [state, setState] = useState<DurakState | null>(null);
 	const [playerCount, setPlayerCount] = useState<"2" | "3" | "4" | "5" | "6">("2");
 	const [deckSize, setDeckSize] = useState<number>(36);
@@ -3209,11 +3214,31 @@ const { t } = useLanguage();
 
 	useEffect(() => { balanceRef.current = shopState.balance; }, [shopState.balance]);
 
-	const adjustCoins = useCallback((delta: number) => {
-		const next = Math.max(0, Math.round(balanceRef.current + delta));
-		balanceRef.current = next;
-		void commit({ ...shopState, balance: next }, ["coins"]);
-	}, [commit, shopState]);
+	// Coins at a betting table are held by the server: show the balance it answers with. While a table waits for
+	// the other players' reports the balance is fetched again later (the server settles within about 90 s).
+	const applyServerCoins = useCallback((coins: number | null) => {
+		if (coins === null) return;
+		balanceRef.current = coins;
+		void loadShopState().then((latest) => commit({ ...latest, balance: coins }, []));
+	}, [commit]);
+
+	const refreshServerCoins = useCallback(() => {
+		for (const delay of [8000, 40000, 100000]) {
+			setTimeout(() => { void loadShopState().then((latest) => commit(latest, [])); }, delay);
+		}
+	}, [commit]);
+
+	const reportDurakResult = useCallback(async (tableId: string, result: "win" | "loss" | "draw" | "cancelled") => {
+		for (let attempt = 0; attempt < 3; attempt += 1) {
+			const outcome = await durakReport(tableId, result);
+			if (outcome) {
+				applyServerCoins(outcome.coins);
+				if (outcome.status === "pending") refreshServerCoins();
+				return;
+			}
+			await new Promise((resolve) => setTimeout(resolve, 2000 * (attempt + 1)));
+		}
+	}, [applyServerCoins, refreshServerCoins]);
 
 	const showEmote = useCallback((role: OnlineRole, emoji?: string) => {
 		if (!emoji) return;
@@ -3251,7 +3276,10 @@ const { t } = useLanguage();
 			const table = payload?.table;
 			if (senderRole === "player1" && roomRef.current.role && roomRef.current.role !== "player1" && table && typeof table.bet === "number") {
 				setTableInfo({ bet: table.bet, playerCount: Number(table.playerCount) || 0 });
-				if (table.bet > 0 && balanceRef.current < table.bet) {
+				if (table.bet > 0 && !signedInRef.current) {
+					setBetError(t("durak.signInToBet"));
+					roomRef.current.disconnect();
+				} else if (table.bet > 0 && balanceRef.current < table.bet) {
 					// The ante must be paid in full: leave before the deal instead of playing for free.
 					setBetError(t("durak.notEnoughTable", { bet: table.bet }));
 					roomRef.current.disconnect();
@@ -3321,20 +3349,31 @@ const { t } = useLanguage();
 		}
 	}, [playerNames, room.role, opponentReady, playerCount]);
 
-	// Ante: each participant pays their bet once per table (host on deal, joiners on sync).
+	// Ante: each participant pays their bet once per table (host on deal, joiners on sync). The server takes it.
+	const antePendingRef = useRef<Set<string>>(new Set());
 	useEffect(() => {
 		if (!state || !room.role || state.bet <= 0) return;
-		if (antePaidRef.current.has(state.tableId)) return;
-		if (balanceRef.current < state.bet) {
-			// A guest who never saw the table bet cannot pay the full ante: leave the table.
-			setBetError(t("durak.notEnoughTable", { bet: state.bet }));
+		const tableId = state.tableId;
+		const tableBet = state.bet;
+		if (antePaidRef.current.has(tableId) || antePendingRef.current.has(tableId)) return;
+		antePendingRef.current.add(tableId);
+		void durakPayAnte(tableId, tableBet, state.playerCount).then((result) => {
+			antePendingRef.current.delete(tableId);
+			if (result && (result.status === "paid" || result.status === "already")) {
+				antePaidRef.current.add(tableId);
+				applyServerCoins(result.coins);
+				return;
+			}
+			// Not paid: leave before playing for free (not enough coins, signed out, server unreachable, table closed).
+			setBetError(
+				result?.status === "not_enough_coins" ? t("durak.notEnoughTable", { bet: tableBet })
+					: result?.status === "unauthenticated" ? t("durak.signInToBet")
+						: t("durak.betUnavailable")
+			);
 			setState(null);
 			roomRef.current.disconnect();
-			return;
-		}
-		antePaidRef.current.add(state.tableId);
-		adjustCoins(-state.bet);
-	}, [adjustCoins, room.role, state, t]);
+		});
+	}, [applyServerCoins, room.role, state, t]);
 
 	useEffect(() => {
 		const fetchAvatars = async () => {
@@ -3533,6 +3572,7 @@ const { t } = useLanguage();
 	};
 
 	const host = () => {
+		if (bet > 0 && !durakSignedIn) { setBetError(t("durak.signInToBet")); return; }
 		if (bet > 0 && shopState.balance < bet) { setBetError(t("durak.notEnough")); return; }
 		setBetError(null);
 		setCoinResult(null);
@@ -3562,8 +3602,8 @@ const { t } = useLanguage();
 			const refundKey = `${state.tableId}:refund`;
 			if (antePaidRef.current.has(state.tableId) && !settledRef.current.has(refundKey)) {
 				settledRef.current.add(refundKey);
-				adjustCoins(state.bet);
 				setCoinResult(0);
+				void reportDurakResult(state.tableId, "cancelled");
 			}
 			return;
 		}
@@ -3571,18 +3611,19 @@ const { t } = useLanguage();
 
 		// Settle the pot once per finished table: winner takes the prize, others keep their loss.
 		const settleKey = `${state.tableId}:${state.winner}`;
-		if (state.bet > 0 && !settledRef.current.has(settleKey)) {
+		if (state.bet > 0 && antePaidRef.current.has(state.tableId) && !settledRef.current.has(settleKey)) {
 			settledRef.current.add(settleKey);
+			// Everybody reports their own result; the server pays the pot to the one player who claims the win and
+			// refunds the antes when nobody (or more than one player) does. The net gain shown is (players - 1) * bet.
 			if (state.draw) {
-				adjustCoins(state.bet);
 				setCoinResult(0);
+				void reportDurakResult(state.tableId, "draw");
 			} else if (room.role === state.winner) {
-				// Winner already paid their ante, so credit the full pot back; the net
-				// gain shown to the player is (players - 1) * bet.
-				adjustCoins(getDurakPayout(state.bet, state.playerCount));
 				setCoinResult(getDurakNetPrize(state.bet, state.playerCount));
+				void reportDurakResult(state.tableId, "win");
 			} else {
 				setCoinResult(-state.bet);
+				void reportDurakResult(state.tableId, "loss");
 			}
 		}
 
@@ -3612,7 +3653,7 @@ const { t } = useLanguage();
 				metadata: { playerCount: state.playerCount, variants: state.variants, source: forfeit ? "forfeit" : "normal", matchId: state.tableId },
 			});
 		})).then(() => onRatingChange());
-	}, [adjustCoins, onRatingChange, playerName, playerNames, room.isConnected, room.role, room.roomCode, state]);
+	}, [onRatingChange, playerName, playerNames, reportDurakResult, room.isConnected, room.role, room.roomCode, state]);
 
 	const pot = bet * Number(playerCount);
 	const prize = getDurakNetPrize(bet, Number(playerCount));
