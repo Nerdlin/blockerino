@@ -14,6 +14,7 @@ import Animated, {
 } from "react-native-reanimated";
 import Game from "@/components/game/Game";
 import { GameModeType } from '@/hooks/useAppState';
+import { track } from '@/constants/Analytics';
 import React, { useState, useEffect } from "react";
 import OptionsMenu from "@/components/OptionsMenu";
 import {
@@ -154,6 +155,14 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 	useEffect(() => {
 		if (currentAppState !== MenuStateType.MULTIPLAYER) {
 			setMultiplayerConnectionReady(false);
+		}
+	}, [currentAppState]);
+
+	// Usage statistics: which screens are opened and which game modes are started.
+	useEffect(() => {
+		track("screen_view", { screen: currentAppState });
+		if ((Object.values(GameModeType) as string[]).includes(currentAppState)) {
+			track("game_start", { mode: currentAppState });
 		}
 	}, [currentAppState]);
 

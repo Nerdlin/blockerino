@@ -17,6 +17,7 @@ import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
 import { reportVersusResultOrQueue, submitGlobalHighScoreOrQueue } from '@/constants/OfflineSync';
+import { track } from '@/constants/Analytics';
 import { recordSeasonScore } from '@/constants/SeasonScores';
 import { useLeaderboardPerk } from '@/constants/LeaderboardPerks';
 import { recordLocalMatchHistory } from '@/constants/MatchHistory';
@@ -334,12 +335,13 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     // with. A lone win is still pending on the server, so the optimistic local value stays until it settles.
     const reportMyResult = useCallback(async (result: 'win' | 'loss') => {
         if (!isActivePlayerRole(myRole)) return;
+        track('versus_result', { result, mode: gameMode });
         const { outcome } = await reportVersusResultOrQueue(roomId, result);
         if (outcome && outcome.status !== 'pending' && typeof outcome.elo === 'number') {
             AsyncStorage.setItem('PLAYER_ELO', outcome.elo.toString());
             setPlayerElo(outcome.elo);
         }
-    }, [myRole, roomId]);
+    }, [gameMode, myRole, roomId]);
 
     const applyForfeitPenalty = useCallback(() => {
         const currentElo = Number.isFinite(playerEloRef.current) ? playerEloRef.current : DEFAULT_ELO;

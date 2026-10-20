@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { atom, useAtom } from "jotai";
 import { useCallback, useEffect } from "react";
 import { supabase } from "./Supabase";
+import { track } from "./Analytics";
 
 export type ShopCategory = "piece_skin" | "background" | "music" | "sfx" | "chess_piece" | "chess_board" | "sea_skin" | "card_skin" | "sudoku_theme" | "mahjong_theme";
 export type BackgroundScene = "classic" | "ender" | "sunset" | "ice" | "cyber";
@@ -1217,6 +1218,7 @@ export function useShopState() {
 		let server = await purchaseShopItemOnServer(itemId);
 		if (server.kind === "guest") {
 			await commit(local.state, ["coins", "owned_item_ids"]);
+			track("shop_purchase", { item: itemId, price: getShopItem(itemId)?.price ?? null });
 			return local;
 		}
 		if (server.kind === "result" && server.status === "not_enough_coins") {
@@ -1242,6 +1244,7 @@ export function useShopState() {
 		});
 		setState(bought);
 		await saveShopState(bought);
+		track("shop_purchase", { item: itemId, price: getShopItem(itemId)?.price ?? null });
 		return { ok: true, state: bought };
 	}, [commit, setState, state]);
 

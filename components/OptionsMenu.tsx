@@ -19,6 +19,7 @@ import { clearActiveGame } from "@/constants/Storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useShopState } from "@/constants/Shop";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { isAnalyticsEnabled, setAnalyticsEnabled } from "@/constants/Analytics";
 
 export default function OptionsMenu() {
 	const [ appState, setAppState, appendAppState, popAppState ] = useAppState();
@@ -111,6 +112,13 @@ export default function OptionsMenu() {
 	const handleMusicToggle = (value: boolean) => {
 		toggleMusic(value);
 		playSfx('menuClick');
+	};
+
+	const [analyticsOn, setAnalyticsOn] = useState(true);
+	useEffect(() => { void isAnalyticsEnabled().then(setAnalyticsOn); }, []);
+	const handleAnalyticsToggle = (value: boolean) => {
+		setAnalyticsOn(value);
+		void setAnalyticsEnabled(value);
 	};
 
 	const handleSfxToggle = (value: boolean) => {
@@ -257,6 +265,23 @@ export default function OptionsMenu() {
 							</Animated.View>
 						))}
 					</View>
+				</View>
+
+				<View style={styles.settingSection}>
+					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>{t("settings.privacy")}</Text>
+
+					<SettingLabel
+						title={t("settings.analytics")}
+						description={t("settings.analyticsDesc")}
+						labelStyle={{ color: currentTheme.textPrimary }}
+						descStyle={{ color: currentTheme.textSecondary }}
+					>
+						<Switch
+							value={analyticsOn}
+							onValueChange={handleAnalyticsToggle}
+							trackColor={{ false: "#767577", true: currentTheme.buttonPrimary }}
+						/>
+					</SettingLabel>
 				</View>
 
 				<View style={styles.settingSection}>

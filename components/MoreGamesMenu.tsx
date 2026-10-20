@@ -26,6 +26,7 @@ import { useShopState, loadShopState, ShopItem, ShopCategory, getVisibleShopItem
 import { MenuStateType, useAppState } from "@/hooks/useAppState";
 import { setProfileAuthIntent } from "@/constants/ProfileIntent";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
+import { track } from "@/constants/Analytics";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import PixelIcon from "@/components/PixelIcon";
 import ShipArt from "@/components/ShipArt";
@@ -773,6 +774,7 @@ export default function MoreGamesMenu() {
 	const [ratingPanel, setRatingPanel] = useState<"list" | "leaderboard">("list");
 	const popupScrollRef = useRef<ScrollView>(null);
 	useEffect(() => { popupScrollRef.current?.scrollTo({ y: 0, animated: false }); }, [activeGame, ratingPanel]);
+	useEffect(() => { if (activeGame) track("more_game_open", { game: activeGame }); }, [activeGame]);
 
 	useEffect(() => {
 		AsyncStorage.getItem(PLAYER_NAME_KEY).then((rawName) => {

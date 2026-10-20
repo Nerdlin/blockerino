@@ -7,6 +7,7 @@ import { flushPendingVersusReports, flushPendingGlobalHighScores } from "@/const
 import { flushPendingSeasonScoresForSession } from "@/constants/SeasonScores";
 import { useDiscordSDK } from "@/hooks/useDiscordSDK";
 import { syncLocalHighScores } from "@/constants/LocalScoreSync";
+import { startAnalytics } from "@/constants/Analytics";
 
 // Suppress warnings from third-party libraries
 LogBox.ignoreLogs([
@@ -77,6 +78,7 @@ export default function RootLayout() {
 
 		syncPendingScores();
 		const pendingScoreSyncTimer = setInterval(syncPendingScores, 15000);
+		const stopAnalytics = startAnalytics();
 
 		// Register service worker on web platform
 		if (Platform.OS === 'web' && typeof window !== 'undefined' && navigator && 'serviceWorker' in navigator) {
@@ -97,6 +99,7 @@ export default function RootLayout() {
 
 		return () => {
 			updateAppStateSub.remove();
+			stopAnalytics();
 			clearInterval(updateTimer);
 			clearInterval(pendingScoreSyncTimer);
 			if (Platform.OS === 'web' && typeof window !== 'undefined' && window.removeEventListener) {

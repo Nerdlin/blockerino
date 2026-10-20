@@ -15,6 +15,7 @@ import { recordSeasonScore } from "@/constants/SeasonScores";
 import { useShopState } from "@/constants/Shop";
 import { GameOverReason, getGameOverMessage } from "@/constants/GameModes";
 import { useLanguage } from "@/constants/Localization";
+import { track } from "@/constants/Analytics";
 
 const PLAYER_NAME_KEY = 'PLAYER_NAME';
 
@@ -57,6 +58,12 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
             true
         );
     }, [playSfx, scale]);
+
+    useEffect(() => {
+        // The modal mounts once per finished game.
+        track("game_over", { mode: gameMode, score, reason: reason ?? null });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         if (coinsAwardedRef.current) return;

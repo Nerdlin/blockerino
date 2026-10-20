@@ -1,4 +1,5 @@
 import { GameModeType, useAppState } from "@/hooks/useAppState";
+import { track } from "@/constants/Analytics";
 import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, ActivityIndicator, Image, Pressable } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -309,6 +310,7 @@ export default function ProfileMenu() {
 					}
 				});
 				if (error) throw error;
+				track("signup");
 				if (data.session) {
 					await hydrateSession(data.session, { force: true });
 				} else if (data.user) {
@@ -322,6 +324,7 @@ export default function ProfileMenu() {
 					password,
 				});
 				if (error) throw error;
+				track("login", { method: "password" });
 				if (data.session) {
 					await hydrateSession(data.session, { force: true });
 				} else if (data.user) {
@@ -422,6 +425,7 @@ export default function ProfileMenu() {
 		playSfx('menuClick');
 		setAuthLoading(true);
 		await supabase.auth.signOut();
+		track("logout");
 		await AsyncStorage.removeItem(PLAYER_ID_KEY);
 		await AsyncStorage.removeItem(PLAYER_NAME_KEY);
 		hydratedSessionKeyRef.current = null;

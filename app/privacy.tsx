@@ -48,12 +48,21 @@ export default function PrivacyPolicy() {
                         All operational data is securely encrypted and maintained on Supabase infrastructure, a SOC2-compliant Backend-as-a-Service architecture. We enforce strict Row Level Security (RLS) policies and cryptographically secured APIs to mitigate unauthorized access and ensure data integrity.
                     </Text>
                     
-                    <Text style={styles.heading}>4. User Rights and Data Erasure</Text>
+                    <Text style={styles.heading}>4. Anonymous Usage Statistics</Text>
+                    <Text style={styles.paragraph}>
+                        To understand which parts of the game are used and where players get stuck, the application records anonymous usage events in our own database on Supabase. No third-party analytics or advertising service receives them.
+                    </Text>
+                    <BulletPoint>What is recorded: screens opened, game modes started and finished, final scores, purchases of in-game items, the application version and platform, and a random identifier the application generates for itself (it is not a hardware or advertising identifier).</BulletPoint>
+                    <BulletPoint>If you are signed in, the server also links events to your account identifier. Guests are not linked to any account.</BulletPoint>
+                    <BulletPoint>Events are deleted automatically after 180 days.</BulletPoint>
+                    <BulletPoint>You can switch collection off at any time in Options, under Privacy. The application then stops recording and discards events that were not yet sent.</BulletPoint>
+
+                    <Text style={styles.heading}>5. User Rights and Data Erasure</Text>
                     <Text style={styles.paragraph}>
                         In accordance with global privacy standards, you maintain absolute sovereignty over your data. You reserve the right to request a complete purge of your records and associated metrics from our databases at any time by initiating a request via our official GitHub repository or Discord support channels.
                     </Text>
                     
-                    <Text style={styles.heading}>5. Policy Iterations</Text>
+                    <Text style={styles.heading}>6. Policy Iterations</Text>
                     <Text style={styles.paragraph}>
                         As the application evolves, we reserve the right to amend this Privacy Policy. Substantive modifications will be reflected directly on this page. Continued utilization of Blockerino following such revisions constitutes your explicit acknowledgment and consent to the updated terms.
                     </Text>
