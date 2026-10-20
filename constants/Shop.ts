@@ -992,6 +992,9 @@ interface RemoteShopProfile {
 }
 
 async function getShopSyncIdentity(): Promise<ShopSyncIdentity | null> {
+	// Since 2.0 only a signed-in account can write its profile row; guests keep their shop state on the device and skip the sync.
+	const { data: sessionData } = await supabase.auth.getSession();
+	if (!sessionData.session) return null;
 	const [rawName, playerId] = await Promise.all([
 		AsyncStorage.getItem(PLAYER_NAME_KEY),
 		AsyncStorage.getItem(PLAYER_ID_KEY),

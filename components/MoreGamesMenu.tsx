@@ -151,7 +151,7 @@ export default function MoreGamesMenu() {
 		<SimplePopupView
 			scrollRef={popupScrollRef}
 			style={[
-				{ justifyContent: "flex-start", backgroundColor: currentTheme.menuBackground, height: "92%" },
+				{ justifyContent: "flex-start", backgroundColor: currentTheme.menuBackground, height: "80%" },
 				isMobile && { width: "94%", height: "92%", paddingHorizontal: 8 },
 			]}
 		>

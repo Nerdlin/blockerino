@@ -809,7 +809,7 @@ const { t } = useLanguage();
 						/>
 					</Animated.View>
 
-					<View style={{ marginTop: 40, alignItems: "center" }}>
+					<View style={{ marginTop: 40, alignItems: "center", width: "100%" }}>
 						<OnlineRoomControls
 							roomCode={room.roomCode}
 							setRoomCode={room.setRoomCode}
@@ -1316,9 +1316,11 @@ export function BetSlider({ value, onChange, maxBalance }: { value: number; onCh
 	const minBet = Math.min(BET_MIN, maxBalance);
 	const canBet = maxBalance >= BET_MIN;
 
-	// Keep the bet inside what the player can actually afford (e.g. after the balance changes).
+	// Keep the bet inside what the player can actually afford (e.g. after the balance changes). Below the minimum bet the
+	// player can still host or join, just without a wager, instead of being blocked by a bet they cannot pay.
 	useEffect(() => {
 		if (canBet && value > maxBalance) onChange(maxBalance);
+		if (!canBet && value !== 0) onChange(0);
 	}, [canBet, maxBalance, onChange, value]);
 
 	const quickBets = [

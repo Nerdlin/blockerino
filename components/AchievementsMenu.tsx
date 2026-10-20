@@ -99,7 +99,7 @@ export default function AchievementsMenu() {
 
 	return (
 		<SimplePopupView style={[
-			{ backgroundColor: currentTheme.menuBackground, height: "88%" },
+			{ backgroundColor: currentTheme.menuBackground, height: "80%" },
 			isMobile && { width: "92%", height: "88%", paddingHorizontal: 8 },
 		]}>
 			<View style={styles.topBar}>
