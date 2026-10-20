@@ -4,35 +4,30 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Blockerino - 404</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
     <style>
       :root {
         color-scheme: dark;
-        --bg: #0b0c16;
-        --panel: rgba(18, 20, 38, 0.92);
-        --border: #333854;
-        --red: #ff4757;
-        --cyan: #00d2d3;
-        --gold: #ff9f43;
-        --purple: #5f27cd;
+        --bg: #050510;
+        --panel: #0b0b16;
+        --line: rgba(255, 255, 255, 0.18);
+        --red: #ff3333;
+        --violet: #7c3aed;
+        --sky: #1fa4e0;
+        --gold: #ffd700;
         --text: #ffffff;
-        --muted: #a4b0be;
+        --muted: #9aa3b5;
       }
 
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
 
-      html,
-      body {
+      html, body {
         width: 100%;
         height: 100%;
-        margin: 0;
-        background: radial-gradient(circle at center, #1b1d36 0%, #080912 100%);
+        background: var(--bg);
         color: var(--text);
         font-family: "Silkscreen", monospace, sans-serif;
       }
@@ -45,133 +40,135 @@
         position: relative;
       }
 
-      .scanlines {
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        opacity: 0.12;
-        background-image: repeating-linear-gradient(
-          to bottom,
-          rgba(255, 255, 255, 0.2) 0,
-          rgba(255, 255, 255, 0.2) 1px,
-          transparent 1px,
-          transparent 6px
-        );
-        z-index: 10;
+      /* Blocks drifting down behind the card, like the game's menu background. */
+      .rain { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+      .rain i {
+        position: absolute;
+        top: -40px;
+        width: 22px;
+        height: 22px;
+        border: 3px solid rgba(255, 255, 255, 0.22);
+        opacity: 0.35;
+        animation: fall linear infinite;
       }
+      @keyframes fall { to { transform: translateY(calc(100vh + 80px)); } }
 
       main {
-        width: min(580px, calc(100vw - 32px));
-        border: 3px solid var(--border);
-        border-radius: 16px;
+        width: min(460px, calc(100vw - 32px));
+        border: 1.5px solid var(--line);
+        border-radius: 14px;
         background: var(--panel);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.03);
-        padding: 40px 24px;
+        padding: 28px 22px 26px;
         text-align: center;
         position: relative;
         z-index: 1;
-        backdrop-filter: blur(10px);
       }
 
-      .blocks {
+      .logo {
+        width: 64px;
+        height: 64px;
+        border-radius: 14px;
+        display: block;
+        margin: 0 auto 18px;
+      }
+
+      .digits {
         display: flex;
         justify-content: center;
-        gap: 8px;
-        margin-bottom: 24px;
-      }
-
-      .block {
-        width: 22px;
-        height: 22px;
-        border-radius: 4px;
-        border: 2px solid rgba(255, 255, 255, 0.4);
-        box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.3), inset 2px 2px 0 rgba(255, 255, 255, 0.3);
-      }
-
-      .block.cyan { background: var(--cyan); box-shadow: 0 0 10px rgba(0, 210, 211, 0.6); }
-      .block.red { background: var(--red); box-shadow: 0 0 10px rgba(255, 71, 87, 0.6); }
-      .block.gold { background: var(--gold); box-shadow: 0 0 10px rgba(255, 159, 67, 0.6); }
-      .block.purple { background: var(--purple); box-shadow: 0 0 10px rgba(95, 39, 205, 0.6); }
-
-      h1 {
-        font-size: clamp(64px, 15vw, 100px);
-        line-height: 1;
-        font-weight: 700;
-        letter-spacing: 2px;
-        color: #fff;
-        text-shadow: 
-          3px 3px 0 var(--red),
-          -3px -3px 0 var(--cyan);
+        gap: 10px;
         margin-bottom: 16px;
       }
 
+      .digit {
+        width: 84px;
+        height: 96px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 58px;
+        font-weight: 700;
+        color: #fff;
+      }
+      .digit.red { background: var(--red); }
+      .digit.violet { background: var(--violet); }
+      .digit.sky { background: var(--sky); }
+
       h2 {
-        font-size: 18px;
+        font-size: 15px;
         color: var(--gold);
-        margin-bottom: 12px;
+        margin-bottom: 10px;
         text-transform: uppercase;
         letter-spacing: 1px;
       }
 
       p {
-        max-width: 440px;
-        margin: 0 auto 28px;
+        max-width: 360px;
+        margin: 0 auto 22px;
         color: var(--muted);
-        font-size: 13px;
-        line-height: 1.6;
+        font-size: 12px;
+        line-height: 1.7;
       }
 
       .btn {
-        display: inline-block;
-        padding: 14px 28px;
-        border: 2px solid #fff;
+        display: block;
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid rgba(255, 255, 255, 0.35);
         border-radius: 8px;
-        background: linear-gradient(180deg, #ff6b81 0%, #ff4757 100%);
+        background: var(--red);
         color: #fff;
         text-decoration: none;
         font-family: "Silkscreen", monospace;
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 1px;
-        box-shadow: 0 6px 0 #b32b38, 0 10px 20px rgba(255, 71, 87, 0.4);
-        transition: all 0.15s ease;
-        cursor: pointer;
+        transition: opacity 0.15s ease;
       }
+      .btn:hover { opacity: 0.85; }
+      .btn:active { opacity: 0.7; }
 
-      .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 0 #b32b38, 0 14px 24px rgba(255, 71, 87, 0.6);
-        background: linear-gradient(180deg, #ff7b91 0%, #ff5767 100%);
-      }
-
-      .btn:active {
-        transform: translateY(4px);
-        box-shadow: 0 2px 0 #b32b38, 0 4px 10px rgba(255, 71, 87, 0.4);
+      @media (max-width: 380px) {
+        .digit { width: 64px; height: 76px; font-size: 44px; }
       }
     </style>
   </head>
   <body>
-    <div class="scanlines"></div>
+    <div class="rain" aria-hidden="true" id="rain"></div>
     <main>
-      <div class="blocks" aria-hidden="true">
-        <span class="block cyan"></span>
-        <span class="block red"></span>
-        <span class="block gold"></span>
-        <span class="block purple"></span>
+      <img class="logo" src="/icon.png" alt="Blockerino" />
+      <div class="digits" aria-label="404">
+        <span class="digit red">4</span>
+        <span class="digit violet">0</span>
+        <span class="digit sky">4</span>
       </div>
-      <h1>404</h1>
       <h2>OUT OF BOUNDS / ВНЕ ПОЛЯ</h2>
       <p>Эта страница улетела за пределы игрового поля. Вернитесь в Blockerino и продолжайте игру!</p>
-      <a href="/" id="backBtn" class="btn">В ИГРУ / BACK TO GAME</a>
+      <a href="/" id="backBtn" class="btn">В игру / Back to game</a>
     </main>
 
     <script>
-      // Гарантируем корректный редирект в корень приложения независимо от домена
-      document.getElementById('backBtn').addEventListener('click', function(e) {
+      // Always go back to the root of the app, whatever the domain is.
+      document.getElementById('backBtn').addEventListener('click', function (e) {
         e.preventDefault();
         window.location.href = window.location.origin + '/';
       });
+
+      // A handful of falling blocks in the game's colours.
+      (function () {
+        var colors = ['#ff3333', '#7c3aed', '#1fa4e0', '#ffd700', '#22c55e'];
+        var rain = document.getElementById('rain');
+        for (var i = 0; i < 14; i++) {
+          var block = document.createElement('i');
+          block.style.left = Math.round(Math.random() * 96) + '%';
+          block.style.background = colors[i % colors.length];
+          block.style.animationDuration = (9 + Math.random() * 10).toFixed(1) + 's';
+          block.style.animationDelay = (-Math.random() * 18).toFixed(1) + 's';
+          rain.appendChild(block);
+        }
+      })();
     </script>
   </body>
 </html>

@@ -304,8 +304,8 @@ const styles = StyleSheet.create({
 		position: "absolute",
 		bottom: 12,
 		left: 12,
-		width: 48,
-		height: 48,
+		width: 56,
+		height: 56,
 		borderRadius: 10,
 	},
 	logo: {

@@ -865,7 +865,7 @@ export default function MoreGamesMenu() {
 		>
 			<View style={styles.moreHeaderRow}>
 				<StylizedButton text={t("common.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.topBackButton} textStyle={styles.smallButtonText} />
-				<Text style={[styles.header, { color: currentTheme.textPrimary, flex: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
+				<Text style={[styles.header, { color: currentTheme.textPrimary, flex: 1, fontSize: 17 }]} numberOfLines={2} adjustsFontSizeToFit>
 					{activeCard ? t(`moregames.card.${activeCard.id}.title`) : (ratingPanel === "leaderboard" ? t("moregames.leaderboardTitle") : t("moregames.title"))}
 				</Text>
 				<View style={styles.topBackButton} />
@@ -4216,8 +4216,8 @@ const styles = StyleSheet.create({
 		marginBottom: 6,
 	},
 	topBackButton: {
-		width: 90,
-		minWidth: 90,
+		width: 78,
+		minWidth: 78,
 		height: 38,
 		minHeight: 38,
 		margin: 0,

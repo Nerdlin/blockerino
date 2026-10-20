@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import StylizedButton from "./StylizedButton";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import SegmentedControl from "./SegmentedControl";
+import UiIcon from "./UiIcon";
 import GlobalScoreRow from "./GlobalScoreRow";
-import { cssColors } from "@/constants/Color";
 import { GameModeType } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
 import { CHALLENGE_LEADERBOARD_GAME_MODES, getGameModeConfig } from "@/constants/GameModes";
@@ -41,35 +41,27 @@ export default function ChallengeLeaderboard() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.modeRow}>
-                {CHALLENGE_LEADERBOARD_GAME_MODES.map((mode) => {
+            <SegmentedControl
+                items={CHALLENGE_LEADERBOARD_GAME_MODES.map((mode) => {
                     const modeConfig = getGameModeConfig(mode);
-                    const isSelected = gameMode === mode;
-                    return (
-                        <StylizedButton
-                            key={mode}
-                            text={modeConfig.shortTitle}
-                            onClick={() => setGameMode(mode)}
-                            backgroundColor={isSelected ? modeConfig.challenge?.color ?? currentTheme.buttonPrimary : cssColors.spaceGray}
-                            style={styles.modeButton}
-                            textStyle={isMobile && styles.mobileButtonText}
-                        />
-                    );
+                    return { key: mode, label: modeConfig.shortTitle, color: modeConfig.challenge?.color ?? currentTheme.buttonPrimary };
                 })}
-            </View>
+                value={gameMode}
+                onChange={setGameMode}
+            />
 
-            <Text style={[styles.header, { color: currentTheme.textPrimary }, isMobile && { fontSize: 22 }]}>
-                {t("hs.leaderboardTitle", { mode: config.leaderboardTitle })}
-            </Text>
             <View style={styles.metaRow}>
-                <StylizedButton
-                    text={loading ? "..." : t("hs.refresh")}
-                    onClick={() => void refresh()}
-                    backgroundColor={currentTheme.buttonSecondary}
+                <Text style={[styles.header, { color: currentTheme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
+                    {t("hs.leaderboardTitle", { mode: config.leaderboardTitle })}
+                </Text>
+                <Pressable
+                    onPress={() => void refresh()}
                     disabled={loading}
-                    style={styles.refreshButton}
-                    textStyle={styles.refreshButtonText}
-                />
+                    accessibilityLabel={t("hs.refresh")}
+                    style={[styles.refreshIcon, loading && { opacity: 0.5 }]}
+                >
+                    <UiIcon name="refresh" size={18} />
+                </Pressable>
             </View>
 
             {loading && <ActivityIndicator size="large" color={currentTheme.textPrimary} />}
@@ -97,43 +89,28 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 6,
     },
-    modeRow: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: 10,
-        justifyContent: "center",
-        width: "90%",
-        marginTop: 4,
-    },
-    modeButton: {
-        minWidth: 100,
-        maxWidth: 150,
-        flexGrow: 1,
-        flexBasis: 100,
-    },
-    mobileButtonText: {
-        fontSize: 14,
-    },
     header: {
-        fontSize: 30,
+        flex: 1,
+        fontSize: 14,
         fontFamily: "Silkscreen",
-        textAlign: "center",
     },
     metaRow: {
-        width: "94%",
+        width: "92%",
+        maxWidth: 420,
         flexDirection: "row",
-        justifyContent: "flex-end",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
+        marginTop: 6,
     },
-    refreshButton: {
-        minWidth: 92,
-        minHeight: 32,
-        height: 32,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        margin: 0,
-    },
-    refreshButtonText: {
-        fontSize: 10,
+    refreshIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: "rgba(255, 255, 255, 0.25)",
+        alignItems: "center",
+        justifyContent: "center",
     },
     scoreList: {
         width: "94%",
