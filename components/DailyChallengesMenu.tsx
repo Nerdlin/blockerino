@@ -72,14 +72,14 @@ export default function DailyChallengesMenu() {
         setCheckingMode(null);
     };
 
-    const renderCard = (card: ChallengeCard) => {
+    const renderCard = (card: ChallengeCard, index: number) => {
+        const featured = index === 0 && card.type === "playable";
         const isPlayable = card.type === "playable";
         const config = isPlayable ? getGameModeConfig(card.mode) : undefined;
         const title = isPlayable ? config!.title : card.title;
         const color = isPlayable ? config!.challenge?.color ?? currentTheme.buttonPrimary : card.color;
         const description = isPlayable ? config!.challenge?.description ?? "" : card.description;
-        const tags: string[] = isPlayable ? config!.challenge?.tags ?? [] : card.tags;
-        const bestScore = isPlayable ? bestScores[card.mode] ?? 0 : 0;
+                const bestScore = isPlayable ? bestScores[card.mode] ?? 0 : 0;
         const isChecking = isPlayable && checkingMode === card.mode;
 
         return (
@@ -88,9 +88,11 @@ export default function DailyChallengesMenu() {
                 style={[
                     styles.challengeRow,
                     {
-                        borderColor: currentTheme.textSecondary,
-                        backgroundColor: "rgba(0, 0, 0, 0.24)",
+                        borderColor: featured ? color : currentTheme.textSecondary,
+                        backgroundColor: featured ? "rgba(255, 215, 0, 0.08)" : "rgba(0, 0, 0, 0.24)",
                     },
+                    featured && styles.featuredRow,
+                    !isPlayable && styles.soonRow,
                     isMobile && styles.mobileChallengeRow,
                 ]}
             >
@@ -102,29 +104,19 @@ export default function DailyChallengesMenu() {
                     >
                         {title}
                     </Text>
-                    <Text style={[styles.cardDesc, { color: currentTheme.textPrimary }]} numberOfLines={2}>
+                    <Text style={[styles.cardDesc, { color: currentTheme.textPrimary }]} numberOfLines={featured ? 2 : 1}>
                         {description}
                     </Text>
-                    <View style={styles.tagRow}>
-                        {tags.map((tag) => (
-                            <View key={tag} style={[styles.tag, { borderColor: color }]}>
-                                <Text style={[styles.tagText, { color }]} numberOfLines={1}>
-                                    {tag}
-                                </Text>
-                            </View>
-                        ))}
-                    </View>
                 </View>
 
                 <View style={[styles.cardAction, isMobile && styles.mobileCardAction]}>
-                    <Text style={[styles.bestScoreText, { color: currentTheme.textSecondary }]}>
-                        {t("ch.best")}
-                    </Text>
-                    <Text style={[styles.bestScoreValue, { color: currentTheme.accent }]} numberOfLines={1} adjustsFontSizeToFit>
-                        {isPlayable ? bestScore : "-"}
-                    </Text>
+                    {isPlayable && (
+                        <Text style={[styles.bestScoreValue, { color: currentTheme.accent }]} numberOfLines={1} adjustsFontSizeToFit>
+                            {t("ch.best")} {bestScore}
+                        </Text>
+                    )}
                     <StylizedButton
-                        text={isPlayable ? (isChecking ? t("ch.checking") : config?.challenge?.buttonText ?? t("ch.play")) : t("ch.next")}
+                        text={isPlayable ? (isChecking ? t("ch.checking") : config?.challenge?.buttonText ?? t("ch.play")) : t("ch.soon")}
                         onClick={isPlayable ? () => startMode(card.mode) : undefined}
                         backgroundColor={isPlayable ? color : cssColors.spaceGray}
                         disabled={!isPlayable || isChecking}
@@ -163,7 +155,7 @@ export default function DailyChallengesMenu() {
                     <ChallengeLeaderboard />
                 ) : (
                     <View style={styles.challengeList}>
-                        {CHALLENGE_MODE_CARDS.map(renderCard)}
+                        {CHALLENGE_MODE_CARDS.map((card, index) => renderCard(card, index))}
                     </View>
                 )}
             </Animated.View>
@@ -203,9 +195,16 @@ const styles = StyleSheet.create({
         width: "94%",
         gap: 8,
     },
+    featuredRow: {
+        minHeight: 124,
+        borderWidth: 3,
+    },
+    soonRow: {
+        opacity: 0.55,
+    },
     challengeRow: {
         width: "100%",
-        minHeight: 112,
+        minHeight: 76,
         borderWidth: 2,
         borderRadius: 8,
         padding: 10,
@@ -214,7 +213,7 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     mobileChallengeRow: {
-        minHeight: 118,
+        minHeight: 76,
         paddingHorizontal: 8,
         gap: 7,
     },

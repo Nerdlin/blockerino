@@ -929,11 +929,11 @@ export default function MoreGamesMenu() {
 								<Text style={[styles.cardTitle, { color: card.color }]} numberOfLines={2} adjustsFontSizeToFit>
 									{t(`moregames.card.${card.id}.title`)}
 								</Text>
-								<Text style={[styles.cardDesc, { color: currentTheme.textPrimary }]} numberOfLines={3}>
+								<Text style={[styles.cardDesc, { color: currentTheme.textPrimary }]} numberOfLines={1}>
 									{t(`moregames.card.${card.id}.desc`)}
 								</Text>
 								<View style={styles.tagRow}>
-									{card.tags.map((tag) => {
+									{card.tags.slice(0, 2).map((tag) => {
 										const tagLabel = t(`moregames.tag.${tag}`);
 										return (
 											<View key={tag} style={[styles.tag, { borderColor: card.color }]}>
