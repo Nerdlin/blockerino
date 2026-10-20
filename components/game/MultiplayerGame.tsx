@@ -106,7 +106,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const { t } = useLanguage();
     const safeAreaInsets = useSafeAreaInsets();
     const isLargeScreen = width >= 980;
-    const isShortScreen = height < 700;
+    const isShortScreen = height < 820;
     const mobileBottomPadding = !isLargeScreen ? Math.max(safeAreaInsets.bottom, Platform.OS === 'web' ? 42 : 22) : 0;
     const modeConfig = getGameModeConfig(gameMode);
     const boardLength = modeConfig.boardLength;
@@ -1149,8 +1149,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 						
 						{/* On mobile, render opponent's board at the top */}
 						{!isLargeScreen && (
-							<View style={[styles.opponentMiniContainer, isShortScreen && { padding: 6, marginTop: 15 }]}>
-								<View style={[styles.opponentMiniTopRow, isShortScreen && { marginBottom: 2 }]}>
+							<View style={[styles.opponentMiniContainer, isShortScreen && { padding: 6, marginTop: 6 }]}>
+								<View style={[styles.opponentMiniTopRow, isShortScreen && { marginBottom: 2, paddingRight: 54 }]}>
 									<View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
 										{opponentAvatar && opponentAvatar.startsWith("http") ? (
 											<Image source={{ uri: opponentAvatar }} style={{ width: 18, height: 18, borderRadius: 9, marginRight: 4, backgroundColor: 'transparent' }} />
@@ -1174,7 +1174,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 									<View style={styles.miniGridScale}>
 										<ReadOnlyBlockGrid 
 											board={opponentBoard} 
-											gridBlockSize={isShortScreen ? 16 : 20} 
+											gridBlockSize={isShortScreen ? 12 : 20} 
 											hoverIndex={opponentHover.index}
 											hoverX={opponentHover.x}
 											hoverY={opponentHover.y}
@@ -1198,7 +1198,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 									</View>
 
 									<View style={{ alignItems: 'center', marginTop: 8 }}>
-										<ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} scale={isShortScreen ? 0.6 : 0.8} />
+										<ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} scale={isShortScreen ? 0.45 : 0.8} />
 									</View>
 								</View>
 							</View>
@@ -1660,8 +1660,8 @@ const styles = StyleSheet.create({
     },
     emoteBtn: {
         minWidth: 62,
-        minHeight: 44,
-        height: 44,
+        minHeight: 34,
+        height: 34,
         paddingHorizontal: 8,
         paddingVertical: 8,
         margin: 0,

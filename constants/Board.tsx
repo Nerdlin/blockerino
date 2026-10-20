@@ -23,7 +23,7 @@ export function calculateGameSizes({
   const calculatedBlockSizeWidth = Math.floor(maxGridWidth / boardLength);
 
   const reservedHeight = isMultiplayer
-    ? (isMobile ? (boardLength === 10 ? 500 : 450) : 390)
+    ? (isMobile ? (boardLength === 10 ? 560 : 515) : 390)
     : (isMobile ? (boardLength === 10 ? 300 : 250) : 280);
   const maxGridHeight = Math.max(160, height - reservedHeight);
   const calculatedBlockSizeHeight = Math.floor(maxGridHeight / boardLength);

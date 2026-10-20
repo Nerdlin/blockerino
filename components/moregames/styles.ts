@@ -281,6 +281,7 @@ export const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
+		gap: 8,
 		width: "100%",
 	},
 	waitingContainer: {
@@ -328,9 +329,12 @@ export const styles = StyleSheet.create({
 		textAlign: 'center',
 	},
 	leaveRoomButton: {
-		fontFamily: "Silkscreen",
-		fontSize: 10,
-		textTransform: "uppercase",
+		minWidth: 72,
+		minHeight: 30,
+		height: 30,
+		margin: 0,
+		paddingHorizontal: 8,
+		paddingVertical: 2,
 	},
 	leaderboardHeaderRow: {
 		width: "100%",
@@ -780,9 +784,11 @@ export const styles = StyleSheet.create({
 		paddingHorizontal: 6,
 	},
 	roomMeta: {
+		flex: 1,
+		flexShrink: 1,
 		fontFamily: "Silkscreen",
 		fontSize: 9,
-		textAlign: "center",
+		textAlign: "left",
 	},
 	onlineGame: {
 		flex: 1,
