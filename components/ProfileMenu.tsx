@@ -123,6 +123,9 @@ export default function ProfileMenu() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [playerName, setPlayerName] = useState("");
+	// What is typed into the registration form. It must not be playerName itself: a non-empty playerName switches the
+	// screen from the form to the profile view, which made the form vanish on the first typed letter.
+	const [registerName, setRegisterName] = useState("");
 	const perk = useLeaderboardPerk(playerName);
 	const [seasonTitles, setSeasonTitles] = useState<SeasonTitle[]>([]);
 	const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -296,7 +299,8 @@ export default function ProfileMenu() {
 
 		try {
 			if (authMode === "register") {
-				if (!playerName) {
+				const chosenName = registerName.trim();
+				if (!chosenName) {
 					setErrorMessage(t("profile.enterPlayerName"));
 					setAuthLoading(false);
 					return;
@@ -306,7 +310,7 @@ export default function ProfileMenu() {
 					password,
 					options: {
 						data: {
-							player_name: playerName
+							player_name: chosenName
 						}
 					}
 				});
@@ -315,7 +319,7 @@ export default function ProfileMenu() {
 				if (data.session) {
 					await hydrateSession(data.session, { force: true });
 				} else if (data.user) {
-					const profile = await upsertAuthenticatedProfile(data.user, playerName);
+					const profile = await upsertAuthenticatedProfile(data.user, chosenName);
 					await applyProfile(profile, data.user);
 					setErrorMessage(t("profile.signUpSuccess"));
 				}
@@ -545,8 +549,8 @@ export default function ProfileMenu() {
 								style={[styles.input, { color: currentTheme.textPrimary, borderColor: currentTheme.gridBorder }]}
 								placeholder={t("profile.playerNamePlaceholder")}
 								placeholderTextColor={currentTheme.textSecondary}
-								value={playerName}
-								onChangeText={setPlayerName}
+								value={registerName}
+								onChangeText={setRegisterName}
 							/>
 						)}
 
