@@ -47,6 +47,9 @@ AS $$
   END;
 $$;
 
+-- Coin limits are deliberately wide: after a write the client adopts the server's balance, so a limit
+-- that clipped an honest player (weeks of offline play, a big Durak win) would take coins away for good.
+-- They only stop absurd values; coins are not ranked, so the aim is the Durak table economy, not purity.
 -- Runs as the caller (no SECURITY DEFINER) so current_user tells clients from admins:
 -- PostgREST requests arrive as 'authenticated'/'anon', everything else is privileged.
 CREATE OR REPLACE FUNCTION public.profiles_integrity_guard()
@@ -54,8 +57,8 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 DECLARE
-  c_max_gain_per_write CONSTANT integer := 25000;
-  c_max_gain_per_day CONSTANT integer := 60000;
+  c_max_gain_per_write CONSTANT integer := 100000;
+  c_max_gain_per_day CONSTANT integer := 300000;
   v_today date := (now() AT TIME ZONE 'utc')::date;
   v_used integer;
   v_gain integer;

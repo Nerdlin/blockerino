@@ -17,7 +17,14 @@
     "tunnel": "cloudflared tunnel --url http://localhost:8081"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/\\.claude/",
+      "/android/",
+      "/builds/",
+      "/dist/"
+    ]
   },
   "dependencies": {
     "@discord/embedded-app-sdk": "^2.5.0",

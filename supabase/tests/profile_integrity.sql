@@ -10,7 +10,7 @@ values ('11111111-1111-1111-1111-111111111111', 'tester', '22222222-2222-2222-22
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', true);
 
--- expect: highscore 0, coins 25100 (+25000 per write), discord_id empty
+-- expect: highscore 0, coins 100100 (+100000 per write), discord_id empty
 update profiles set highscore_classic = 999999, coins = 999999, discord_id = 'hacked'
   where auth_user_id = '22222222-2222-2222-2222-222222222222';
 select 'cheat update' as check, highscore_classic, coins, discord_id from profiles where id = '11111111-1111-1111-1111-111111111111';
@@ -26,22 +26,16 @@ select 'rpc bad mode' as check, submit_high_score('nope', 10);
 select 'rpc lower' as check, submit_high_score('classic', 100);
 select 'rpc result' as check, highscore_classic from profiles where id = '11111111-1111-1111-1111-111111111111';
 
--- expect: coins 35050, coins_gained_today 60000 (25000 already used above, 60000 per day in total)
-update profiles set coins = 100000 where auth_user_id = '22222222-2222-2222-2222-222222222222';
-update profiles set coins = 100000 where auth_user_id = '22222222-2222-2222-2222-222222222222';
-update profiles set coins = 100000 where auth_user_id = '22222222-2222-2222-2222-222222222222';
+-- expect: coins 200050, coins_gained_today 300000 (100000 already used above, 300000 per day in total)
+update profiles set coins = 1000000 where auth_user_id = '22222222-2222-2222-2222-222222222222';
+update profiles set coins = 1000000 where auth_user_id = '22222222-2222-2222-2222-222222222222';
+update profiles set coins = 1000000 where auth_user_id = '22222222-2222-2222-2222-222222222222';
 select 'daily cap' as check, coins, coins_gained_today from profiles where id = '11111111-1111-1111-1111-111111111111';
 
--- Elo: direct writes are ignored, submit_elo is bounded (200 rise per day, drops always allowed)
+-- Elo is frozen for clients (the server changes it, see versus_elo.sql)
 -- expect: elo 0 after a direct write
 update profiles set elo = 5000 where id = '11111111-1111-1111-1111-111111111111';
 select 'elo direct' as check, elo from profiles where id = '11111111-1111-1111-1111-111111111111';
--- expect: 10, 200 (rise capped at +200 per day in total), a drop to 100 is accepted, a new rise is refused (budget spent): 100, then NULL for invalid input
-select 'elo +10' as check, submit_elo(10);
-select 'elo cheat' as check, submit_elo(99999);
-select 'elo drop' as check, submit_elo(100);
-select 'elo budget spent' as check, submit_elo(5000);
-select 'elo invalid' as check, submit_elo(-5);
 
 -- expect: 0 / 0 / empty (a client cannot create a rich profile)
 select set_config('request.jwt.claims', '{"sub":"33333333-3333-3333-3333-333333333333","role":"authenticated"}', true);
