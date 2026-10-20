@@ -7,7 +7,7 @@ import {
 	MAHJONG_THEMES,
 	SEA_SKINS,
 	SUDOKU_THEMES,
-} from "./MoreGamesMenu";
+} from "./moregames/cosmetics";
 
 // Little scenes that show a shop item the way it looks in its own game: the board and pieces for chess, a radar
 // grid for Sea Battle, a card back and face, a sudoku board and a mahjong table. `large` is the version shown in
