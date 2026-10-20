@@ -6,8 +6,8 @@
 
 Артефакты собраны (версия `1.0.10`, сборка `11`) и должны быть выложены в GitHub Releases как `v1.0.10`:
 
-- **[Скачать Blockerino 1.0.10 для Android (APK)](https://github.com/Nerdlin/blockerino/releases/download/v1.0.10/blockerino-1.0.10.apk)** · APK · сборка 11
-- **[Скачать Blockerino 1.0.10 Android App Bundle (AAB)](https://github.com/Nerdlin/blockerino/releases/download/v1.0.10/blockerino-1.0.10.aab)** · AAB · сборка 11 (для Google Play Console)
+- **[Скачать Blockerino 1.0.10 для Android (APK)](https://github.com/Nerdlin/blockerino/releases/download/v1.0.10/blockerino-1.0.10.apk)** · APK · 50,0 МиБ · сборка 11
+- **[Скачать Blockerino 1.0.10 Android App Bundle (AAB)](https://github.com/Nerdlin/blockerino/releases/download/v1.0.10/blockerino-1.0.10.aab)** · AAB · 68,7 МиБ · сборка 11 (для Google Play Console)
 
 ## 🎮 Что нового и исправлено
 
@@ -59,14 +59,14 @@ WHERE key = 'android_version';
 - **runtimeVersion:** 1.0.10.
 - **Архитектуры:** universal (arm64-v8a, armeabi-v7a, x86, x86_64).
 
-- **Размер APK:** _заполнить после сборки_.
-- **Размер AAB:** _заполнить после сборки_.
+- **Размер APK:** 52 478 508 байт.
+- **Размер AAB:** 72 014 302 байт.
 
 SHA-256 контрольные суммы:
 
 ```text
-APK: _заполнить после сборки_
-AAB: _заполнить после сборки_
+APK: 9EB0176F372278F717431393EAC7646CA657576892967205AEFFC6F74B362FF4
+AAB: E629DED90B55FC239D0CD07D75B26E4CF9A6BA090E1C54D1344DA445F54F110E
 ```
 
 </details>
