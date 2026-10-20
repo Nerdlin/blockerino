@@ -1,11 +1,9 @@
 import { useEffect } from "react";
-import { Platform, Pressable, StyleSheet, Text, View, ViewStyle, useWindowDimensions } from "react-native";
-import Animated, { BounceInUp, Easing, FadeIn, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import { Image, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import Animated, { BounceInUp, Easing, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
 import { cssColors } from "@/constants/Color";
 import { GameModeType } from '@/hooks/useAppState';
-import { PieceData } from "@/constants/Piece";
-import { PieceView } from "./PieceView";
 import { shopStateAtom } from "@/constants/Shop";
 import { dailyRewardOpenAtom, dailyRewardStatusAtom } from "@/constants/DailyReward";
 import UiIcon from "@/components/UiIcon";
@@ -15,37 +13,6 @@ import PixelIcon from "./PixelIcon";
 import { useLanguage } from "@/constants/Localization";
 
 const CHAOS_VIOLET = "#7C3AED";
-
-const logoBPiece: PieceData = {
-	matrix: [
-		[1, 1, 1, 0],
-		[1, 0, 0, 1],
-		[1, 1, 1, 0],
-		[1, 0, 0, 1],
-		[1, 1, 1, 0]
-	],
-	distributionPoints: 0,
-	color: { r: 255, g: 51, b: 90 }
-};
-const logoNPiece: PieceData = {
-	matrix: [
-		[1, 1, 1, 1],
-		[1, 0, 0, 1],
-		[1, 0, 0, 1],
-		[1, 0, 0, 1]
-	],
-	distributionPoints: 0,
-	color: { r: 255, g: 0, b: 255 }
-};
-
-function BlockerinoLogo({blockSize, style}: {blockSize: number, style: ViewStyle}) {
-	const nTop = blockSize * 80/30
-	const nLeft = blockSize * 50/30
-	return <View style={[{width: blockSize * 4 + nLeft, height: blockSize * 4 + nTop}, style]}>
-		<PieceView style={{boxShadow: '5px 5px 50px #000000', backgroundColor: 'rgba(0, 0, 0, 0.6)'}} piece={logoBPiece} blockSize={blockSize}></PieceView>
-		<PieceView style={{transform: [{ translateX: nLeft }, { translateY: nTop }], position: 'absolute', zIndex: -1}} piece={logoNPiece} blockSize={blockSize}></PieceView>
-	</View>
-}
 
 // Big web screens get the logo and buttons scaled up as one block; phones and native stay at 1.
 export function getMainMenuScale(width: number, height: number): number {
@@ -103,7 +70,7 @@ export default function MainMenu() {
 			<PixelIcon name="medal" size={27} color="#F0AF0C" secondaryColor="#FFFFFF" />
 		</Pressable>
 
-		<BlockerinoLogo style={{position: 'absolute', bottom: 10, left: 10}} blockSize={5}></BlockerinoLogo>
+		<Image source={require("../assets/images/icon.png")} style={styles.cornerLogo} accessibilityLabel="Blockerino" />
 		<View style={[{ width: '100%', alignItems: 'center' }, menuScale > 1 && { transform: [{ scale: menuScale }] }]}>
 		<Animated.Text entering={BounceInUp.duration(800)} style={[styles.logo, isShortScreen && { fontSize: 32, marginBottom: 16 }]}>
 			blockerino
@@ -154,10 +121,6 @@ export default function MainMenu() {
 			<QuietButton title={t("mainmenu.optionsTitle")} onClick={() => appendAppState(MenuStateType.OPTIONS)} />
 		</View>
 		</View>
-
-		<Animated.Text entering={FadeIn} style={styles.footer}>
-			{t("mainmenu.betaVersion")}
-		</Animated.Text>
 	</View>
 }
 
@@ -336,6 +299,14 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		width: '100%',
 		height: '100%'
+	},
+	cornerLogo: {
+		position: "absolute",
+		bottom: 12,
+		left: 12,
+		width: 48,
+		height: 48,
+		borderRadius: 10,
 	},
 	logo: {
 		fontFamily: "Silkscreen",

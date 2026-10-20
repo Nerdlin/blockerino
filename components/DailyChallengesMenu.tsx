@@ -88,7 +88,7 @@ export default function DailyChallengesMenu() {
                 style={[
                     styles.challengeRow,
                     {
-                        borderColor: featured ? color : currentTheme.textSecondary,
+                        borderColor: color,
                         backgroundColor: featured ? "rgba(255, 215, 0, 0.08)" : "rgba(0, 0, 0, 0.24)",
                     },
                     featured && styles.featuredRow,
@@ -135,18 +135,20 @@ export default function DailyChallengesMenu() {
         ]}>
             <Animated.View entering={FadeIn} style={styles.contentContainer}>
                 <View style={styles.topRow}>
-                    <StylizedButton text={t("ch.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.backBtn} />
-                    {!showRating && (
+                    <StylizedButton text={t("ch.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.backBtn} textStyle={styles.topBtnText} />
+                    <Text style={[styles.header, { color: currentTheme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>{showRating ? t("ch.rating") : t("ch.header")}</Text>
+                    {!showRating ? (
                         <StylizedButton
                             text={t("ch.rating")}
                             onClick={() => setShowRating(true)}
                             backgroundColor={currentTheme.buttonSecondary}
                             style={styles.backBtn}
+                            textStyle={styles.topBtnText}
                         />
+                    ) : (
+                        <View style={styles.backBtn} />
                     )}
                 </View>
-
-                <Text style={[styles.header, { color: currentTheme.textPrimary }]}>{showRating ? t("ch.rating") : t("ch.header")}</Text>
                 {!showRating && (
                     <Text style={[styles.subHeader, { color: currentTheme.textSecondary }]}>{t("ch.subHeader")}</Text>
                 )}
@@ -176,19 +178,27 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     backBtn: {
-        alignSelf: "flex-start",
-        minWidth: 130,
+        width: 90,
+        minWidth: 90,
+        height: 38,
+        minHeight: 38,
+        margin: 0,
+        paddingHorizontal: 8,
+    },
+    topBtnText: {
+        fontSize: 12,
     },
     header: {
-        fontSize: 28,
+        flex: 1,
+        fontSize: 20,
         fontFamily: "Silkscreen",
-        marginTop: 8,
         textAlign: "center",
     },
     subHeader: {
-        fontSize: 12,
+        fontSize: 11,
         fontFamily: "Silkscreen",
-        marginBottom: 14,
+        marginTop: 2,
+        marginBottom: 12,
         textAlign: "center",
     },
     challengeList: {
@@ -196,17 +206,17 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     featuredRow: {
-        minHeight: 124,
-        borderWidth: 3,
+        minHeight: 112,
+        borderWidth: 2.5,
     },
     soonRow: {
         opacity: 0.55,
     },
     challengeRow: {
         width: "100%",
-        minHeight: 76,
-        borderWidth: 2,
-        borderRadius: 8,
+        minHeight: 84,
+        borderWidth: 1.5,
+        borderRadius: 10,
         padding: 10,
         flexDirection: "row",
         alignItems: "center",
@@ -274,8 +284,8 @@ const styles = StyleSheet.create({
     playBtn: {
         minWidth: 102,
         width: 102,
-        minHeight: 30,
-        height: 30,
+        minHeight: 36,
+        height: 36,
         paddingHorizontal: 4,
         paddingVertical: 3,
         marginTop: 4,

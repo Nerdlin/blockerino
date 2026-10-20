@@ -8,6 +8,8 @@ import Slider from '@react-native-community/slider';
 import SimplePopupView, { useUiScale } from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import SegmentedControl from "./SegmentedControl";
+import CosmeticPreview from "./CosmeticPreview";
+import ShopPreviewModal from "./ShopPreviewModal";
 import { cssColors } from "@/constants/Color";
 import {
 	getMoreGameLeaderboard,
@@ -861,18 +863,16 @@ export default function MoreGamesMenu() {
 				isMobile && { width: "94%", height: "92%", paddingHorizontal: 8 },
 			]}
 		>
-			<View style={[styles.moreHeaderRow, isMobile && { flexDirection: "column" }]}>
+			<View style={styles.moreHeaderRow}>
 				<StylizedButton text={t("common.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.topBackButton} textStyle={styles.smallButtonText} />
-				<View style={[styles.moreHeaderTextBlock, isMobile && { flex: 0, width: "100%" }]}>
-					<Text style={[styles.header, { color: currentTheme.textPrimary }]} numberOfLines={2} adjustsFontSizeToFit>
-						{activeCard ? t(`moregames.card.${activeCard.id}.title`) : (ratingPanel === "leaderboard" ? t("moregames.leaderboardTitle") : t("moregames.title"))}
-					</Text>
-					<Text style={[styles.subHeader, { color: currentTheme.textSecondary }]}>
-						{activeCard ? t(`moregames.help.${activeCard.id}`) : ratingPanel !== "list" ? t("moregames.subtitleRatings", { game: t(`moregames.label.${ratingGame}`) }) : t("moregames.subtitleList")}
-					</Text>
-				</View>
-				{!isMobile && <View style={styles.topBackSpacer} />}
+				<Text style={[styles.header, { color: currentTheme.textPrimary, flex: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
+					{activeCard ? t(`moregames.card.${activeCard.id}.title`) : (ratingPanel === "leaderboard" ? t("moregames.leaderboardTitle") : t("moregames.title"))}
+				</Text>
+				<View style={styles.topBackButton} />
 			</View>
+			<Text style={[styles.subHeader, { color: currentTheme.textSecondary, marginBottom: 12 }]}>
+				{activeCard ? t(`moregames.help.${activeCard.id}`) : ratingPanel !== "list" ? t("moregames.subtitleRatings", { game: t(`moregames.label.${ratingGame}`) }) : t("moregames.subtitleList")}
+			</Text>
 
 			{ratingPanel === "leaderboard" ? (
 				<MoreGameLeaderboardPanel
@@ -1092,6 +1092,7 @@ function ExtraGameShop() {
 	const [message, setMessage] = useState(t("moregames.shopHint"));
 
 	const [activeCategory, setActiveCategory] = useState<ShopCategory>("chess_piece");
+	const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
 
 	const handleItemPress = async (item: ShopItem) => {
 		const isOwned = state.ownedItemIds.includes(item.id);
@@ -1140,14 +1141,10 @@ function ExtraGameShop() {
 
 						return (
 							<View key={item.id} style={[{ width: "47%", minWidth: 140, minHeight: 180, borderWidth: 1.5, borderRadius: 10, padding: 8, alignItems: "center", justifyContent: "space-between", borderColor: isEquipped ? item.accent : "rgba(255,255,255,0.12)", backgroundColor: "rgba(0, 0, 0, 0.38)" }]}>
-								<View style={{ width: "100%", height: 40, borderRadius: 6, borderWidth: 1, borderColor: "rgba(255,255,255,0.16)", overflow: "hidden", backgroundColor: "rgba(255,255,255,0.04)", justifyContent: "center", alignItems: "center" }}>
-									<View style={{ flexDirection: "row", gap: 4 }}>
-										{item.previewColors.map((color, idx) => (
-											<View key={idx} style={{ width: 16, height: 16, borderWidth: 2, borderColor: "rgba(255,255,255,0.24)", backgroundColor: color }} />
-										))}
-									</View>
-								</View>
-								<Text style={{ fontFamily: "Silkscreen", fontSize: 11, textAlign: "center", marginTop: 8, color: currentTheme.textPrimary }} numberOfLines={1} adjustsFontSizeToFit>{item.title}</Text>
+								<Pressable onPress={() => setPreviewItem(item)} accessibilityLabel={item.title} style={{ width: "100%" }}>
+										<CosmeticPreview item={item} />
+									</Pressable>
+									<Text style={{ fontFamily: "Silkscreen", fontSize: 11, textAlign: "center", marginTop: 8, color: currentTheme.textPrimary }} numberOfLines={1} adjustsFontSizeToFit>{item.title}</Text>
 								<Text style={{ fontFamily: "Silkscreen", fontSize: 8, lineHeight: 11, textAlign: "center", minHeight: 34, color: currentTheme.textSecondary }} numberOfLines={3}>{item.description}</Text>
 								<Text style={{ fontFamily: "Silkscreen", fontSize: 9, textAlign: "center", color: isOwned ? item.accent : currentTheme.textSecondary, marginBottom: 4 }}>
 									{isOwned ? t("shop.owned") : t("shop.price", { price: item.price })}
@@ -1158,6 +1155,14 @@ function ExtraGameShop() {
 					})}
 				</View>
 			</View>
+			<ShopPreviewModal
+				item={previewItem}
+				owned={previewItem ? state.ownedItemIds.includes(previewItem.id) : false}
+				equipped={previewItem ? state.equipped[previewItem.category] === previewItem.id : false}
+				canAfford={previewItem ? state.balance >= previewItem.price : false}
+				onConfirm={async (item) => { await handleItemPress(item); setPreviewItem(null); }}
+				onClose={() => setPreviewItem(null)}
+			/>
 		</ScrollView>
 	);
 }
@@ -4206,13 +4211,15 @@ const styles = StyleSheet.create({
 		width: "100%",
 		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "space-between",
 		gap: 8,
-		marginBottom: 10,
+		marginBottom: 6,
 	},
 	topBackButton: {
-		minWidth: 82,
-		height: 34,
-		minHeight: 34,
+		width: 90,
+		minWidth: 90,
+		height: 38,
+		minHeight: 38,
 		margin: 0,
 		paddingHorizontal: 8,
 	},

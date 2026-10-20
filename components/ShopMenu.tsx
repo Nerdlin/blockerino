@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
-import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import SegmentedControl from "./SegmentedControl";
+import CosmeticPreview from "./CosmeticPreview";
+import ShopPreviewModal from "./ShopPreviewModal";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
 import {
@@ -33,6 +35,7 @@ export default function ShopMenu() {
 	const isMobile = width < 620;
 	const [activeCategory, setActiveCategory] = useState<ShopCategory>("piece_skin");
 	const [message, setMessage] = useState(t("shop.caption"));
+	const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
 
 	const items = useMemo(
 		() => getVisibleShopItemsByCategory(activeCategory, state.ownedItemIds),
@@ -116,9 +119,19 @@ export default function ShopMenu() {
 						isEquipped={state.equipped[item.category] === item.id}
 						canAfford={state.balance >= item.price}
 						onPress={() => handleItemPress(item)}
+						onPreview={() => setPreviewItem(item)}
 					/>
 				))}
 			</View>
+
+			<ShopPreviewModal
+				item={previewItem}
+				owned={previewItem ? state.ownedItemIds.includes(previewItem.id) : false}
+				equipped={previewItem ? state.equipped[previewItem.category] === previewItem.id : false}
+				canAfford={previewItem ? state.balance >= previewItem.price : false}
+				onConfirm={async (item) => { await handleItemPress(item); setPreviewItem(null); }}
+				onClose={() => setPreviewItem(null)}
+			/>
 
 			<Text style={[styles.catalogCount, { color: currentTheme.textSecondary }]}>
 				{t("shop.catalogCount", { count: visibleCatalogCount })}
@@ -134,12 +147,14 @@ function ShopItemCard({
 	isEquipped,
 	canAfford,
 	onPress,
+	onPreview,
 }: {
 	item: ShopItem;
 	isOwned: boolean;
 	isEquipped: boolean;
 	canAfford: boolean;
 	onPress: () => void;
+	onPreview: () => void;
 }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
@@ -158,7 +173,9 @@ function ShopItemCard({
 				backgroundColor: "rgba(0, 0, 0, 0.38)",
 			},
 		]}>
-			<CosmeticPreview item={item} />
+			<Pressable onPress={onPreview} accessibilityLabel={item.title} style={styles.previewTap}>
+				<CosmeticPreview item={item} />
+			</Pressable>
 			<Text style={[styles.itemTitle, { color: currentTheme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
 				{item.title}
 			</Text>
@@ -176,60 +193,6 @@ function ShopItemCard({
 				style={styles.cardButton}
 				textStyle={styles.cardButtonText}
 			/>
-		</View>
-	);
-}
-
-function CosmeticPreview({ item }: { item: ShopItem }) {
-	if (item.category === "background" && item.gradient) {
-		return (
-			<View style={styles.previewBox}>
-				{item.gradient.map((color, index) => (
-					<View key={`${item.id}-${index}`} style={[styles.previewStripe, { backgroundColor: color }]} />
-				))}
-			</View>
-		);
-	}
-
-	if (item.category === "music") {
-		return (
-			<View style={[styles.previewBox, styles.audioPreview]}>
-				{item.previewColors.map((color, index) => (
-					<View
-						key={`${item.id}-${index}`}
-						style={[
-							styles.musicBar,
-							{ backgroundColor: color, height: 12 + index * 8 },
-						]}
-					/>
-				))}
-			</View>
-		);
-	}
-
-	if (item.category === "sfx") {
-		return (
-			<View style={[styles.previewBox, styles.audioPreview]}>
-				{item.previewColors.map((color, index) => (
-					<View
-						key={`${item.id}-${index}`}
-						style={[
-							styles.soundDot,
-							{ backgroundColor: color, transform: [{ scale: 1 + index * 0.18 }] },
-						]}
-					/>
-				))}
-			</View>
-		);
-	}
-
-	return (
-		<View style={styles.previewBox}>
-			<View style={styles.blockPreviewRow}>
-				{item.previewColors.map((color, index) => (
-					<View key={`${item.id}-${index}`} style={[styles.blockPreview, { backgroundColor: color }]} />
-				))}
-			</View>
 		</View>
 	);
 }
@@ -353,6 +316,9 @@ const styles = StyleSheet.create({
 		padding: 10,
 		alignItems: "center",
 		justifyContent: "space-between",
+	},
+	previewTap: {
+		width: "100%",
 	},
 	previewBox: {
 		width: "100%",

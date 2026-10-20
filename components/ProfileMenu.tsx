@@ -445,7 +445,17 @@ export default function ProfileMenu() {
 				{ backgroundColor: currentTheme.menuBackground },
 			isMobile && { width: '92%', height: '85%', paddingHorizontal: 10 }
 		]}>
-			<Text style={[styles.sectionHeader, { color: currentTheme.textPrimary }]}>{t("profile.title")}</Text>
+			<View style={styles.topBar}>
+				<StylizedButton
+					onClick={handleButtonPress}
+					text={t("profile.back")}
+					backgroundColor={currentTheme.buttonSecondary}
+					style={styles.topBackButton}
+					textStyle={{ fontSize: 12 }}
+				/>
+				<Text style={[styles.sectionHeader, { color: currentTheme.textPrimary }]}>{t("profile.title")}</Text>
+				<View style={styles.topBackButton} />
+			</View>
 			
 			<ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
 				{loading ? (
@@ -602,15 +612,6 @@ export default function ProfileMenu() {
 				)}
 			</ScrollView>
 
-			<View style={styles.buttonsContainer}>
-				<StylizedButton 
-					onClick={handleButtonPress}
-					text={t("profile.back")}
-					backgroundColor={currentTheme.buttonSecondary}
-					style={isMobile && styles.mobileBottomButton}
-					textStyle={isMobile && styles.mobileBottomButtonText}
-				/>
-			</View>
 		</SimplePopupView>
 
 		{showAvatarPopup && (
@@ -662,10 +663,27 @@ export default function ProfileMenu() {
 
 const styles = StyleSheet.create({
 	inputLabel: { fontSize: 14, marginBottom: 8 },
+	topBar: {
+		width: '100%',
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		gap: 8,
+		marginBottom: 12,
+	},
+	topBackButton: {
+		width: 90,
+		minWidth: 90,
+		height: 38,
+		minHeight: 38,
+		margin: 0,
+		paddingHorizontal: 8,
+	},
 	sectionHeader: {
-		fontSize: 24,
+		flex: 1,
+		textAlign: 'center',
+		fontSize: 20,
 		fontFamily: 'Silkscreen',
-		marginBottom: 20,
 	},
 	scrollContainer: {
 		width: '100%',
@@ -699,8 +717,8 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center',
 		padding: 15,
-		borderWidth: 2,
-		borderRadius: 8,
+		borderWidth: 1.5,
+		borderRadius: 12,
 		minWidth: 100,
 	},
 	mobileStatBox: {
@@ -769,7 +787,9 @@ const styles = StyleSheet.create({
 		width: 80,
 		height: 80,
 		borderRadius: 40,
-		backgroundColor: 'rgba(255,255,255,0.2)',
+		backgroundColor: 'rgba(255,255,255,0.12)',
+		borderWidth: 3,
+		borderColor: '#FFD700',
 		alignItems: 'center',
 		justifyContent: 'center',
 		marginBottom: 16,

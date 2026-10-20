@@ -30,6 +30,13 @@ export default function AchievementsMenu() {
 		[achievements]
 	);
 
+	// Closest to done first, then not started, finished ones at the bottom.
+	const sorted = useMemo(() => {
+		const rank = (a: AchievementRow) => a.progress.complete ? 2 : a.progress.current > 0 ? 0 : 1;
+		const ratio = (a: AchievementRow) => a.progress.current / Math.max(1, a.progress.target);
+		return [...achievements].sort((a, b) => rank(a) - rank(b) || (rank(a) === 0 ? ratio(b) - ratio(a) : 0));
+	}, [achievements]);
+
 	// Secret states
 	const [firstStepsClicks, setFirstStepsClicks] = useState(0);
 	const [secretMessage, setSecretMessage] = useState<string | null>(null);
@@ -113,20 +120,23 @@ export default function AchievementsMenu() {
 				</Pressable>
 			</View>
 			{!loading && (
-				<View style={styles.summaryBlock}>
-					<Text style={[styles.summary, { color: currentTheme.textSecondary }]}>
-						{t("ach.completed", { done: completedCount, total: achievements.length })}
-					</Text>
-					<View style={[styles.progressTrack, { borderColor: currentTheme.textSecondary }]}>
-						<View
-							style={[
-								styles.progressFill,
-								{
-									width: `${achievements.length ? Math.round((completedCount / achievements.length) * 100) : 0}%` as `${number}%`,
-									backgroundColor: currentTheme.accent,
-								},
-							]}
-						/>
+				<View style={[styles.summaryCard, { borderColor: currentTheme.accent }]}>
+					<UiIcon name="medalGold" size={36} />
+					<View style={styles.summaryText}>
+						<Text style={[styles.summaryCount, { color: currentTheme.accent }]}>
+							{completedCount} / {achievements.length}
+						</Text>
+						<View style={styles.progressTrack}>
+							<View
+								style={[
+									styles.progressFill,
+									{
+										width: `${achievements.length ? Math.round((completedCount / achievements.length) * 100) : 0}%` as `${number}%`,
+										backgroundColor: currentTheme.accent,
+									},
+								]}
+							/>
+						</View>
 					</View>
 				</View>
 			)}
@@ -140,7 +150,8 @@ export default function AchievementsMenu() {
 				<ActivityIndicator size="large" color={currentTheme.accent} style={styles.loader} />
 			) : (
 				<View style={styles.list}>
-					{achievements.map((achievement) => {
+					{sorted.map((achievement) => {
+						const done = achievement.progress.complete;
 						const progressPercent = Math.min(100, Math.round((achievement.progress.current / achievement.progress.target) * 100));
 						const progressWidth = `${progressPercent}%` as `${number}%`;
 
@@ -151,50 +162,40 @@ export default function AchievementsMenu() {
 								style={[
 									styles.row,
 									{
-										borderColor: achievement.progress.complete ? currentTheme.accent : currentTheme.textSecondary,
-										backgroundColor: achievement.progress.complete ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.28)",
+										borderColor: done ? currentTheme.accent : "rgba(255, 255, 255, 0.16)",
+										backgroundColor: done ? "rgba(240, 175, 12, 0.10)" : "rgba(255, 255, 255, 0.04)",
 									},
 								]}
 							>
-								<View style={styles.leftSide}>
-									<View
-										style={[
-											styles.medalBadge,
-											{
-												borderColor: achievement.progress.complete ? currentTheme.accent : currentTheme.textSecondary,
-												backgroundColor: achievement.progress.complete ? "rgba(240, 175, 12, 0.16)" : "rgba(255, 255, 255, 0.05)",
-											},
-										]}
-									>
-										<AchievementIcon
-											achievementId={achievement.id}
-											size={27}
-											dimmed={!achievement.progress.complete}
-										/>
-									</View>
-									<View style={styles.titleBlock}>
+								<View
+									style={[
+										styles.medalBadge,
+										{
+											borderColor: done ? currentTheme.accent : "rgba(255, 255, 255, 0.2)",
+											backgroundColor: done ? "rgba(240, 175, 12, 0.16)" : "rgba(0, 0, 0, 0.35)",
+										},
+									]}
+								>
+									<AchievementIcon achievementId={achievement.id} size={27} dimmed={!done} />
+								</View>
+								<View style={styles.titleBlock}>
+									<View style={styles.titleLine}>
 										<Text style={[styles.title, { color: currentTheme.textPrimary }]} numberOfLines={1}>
 											{t(`ach.${achievement.id}.title`)}
 										</Text>
-										<Text style={[styles.howTo, { color: currentTheme.textSecondary }]} numberOfLines={1}>
-											{t(`ach.${achievement.id}.unlock`)}
+										<Text style={[styles.progress, { color: done ? currentTheme.accent : currentTheme.textSecondary }]}>
+											{done ? "✓" : `${achievement.progress.current}/${achievement.progress.target}`}
 										</Text>
-										<View style={[styles.progressTrack, { borderColor: currentTheme.textSecondary }]}>
-											<View
-												style={[
-													styles.progressFill,
-													{
-														width: progressWidth,
-														backgroundColor: achievement.progress.complete ? currentTheme.accent : currentTheme.buttonPrimary,
-													},
-												]}
-											/>
-										</View>
 									</View>
+									<Text style={[styles.howTo, { color: currentTheme.textSecondary }]} numberOfLines={2}>
+										{t(`ach.${achievement.id}.unlock`)}
+									</Text>
+									{!done && (
+										<View style={styles.progressTrack}>
+											<View style={[styles.progressFill, { width: progressWidth, backgroundColor: currentTheme.buttonPrimary }]} />
+										</View>
+									)}
 								</View>
-								<Text style={[styles.progress, { color: achievement.progress.complete ? currentTheme.accent : currentTheme.textSecondary }]}>
-									{achievement.progress.current}/{achievement.progress.target}
-								</Text>
 							</Pressable>
 						);
 					})}
@@ -231,15 +232,30 @@ const styles = StyleSheet.create({
 		fontSize: 20,
 		textAlign: "center",
 	},
-	summaryBlock: {
+	summaryCard: {
 		width: "100%",
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 14,
+		padding: 12,
+		borderWidth: 1.5,
+		borderRadius: 12,
 		marginBottom: 12,
+		backgroundColor: "rgba(240, 175, 12, 0.08)",
 	},
-	summary: {
-		fontFamily: "Silkscreen",
-		fontSize: 10,
-		textAlign: "center",
-		marginBottom: 6,
+	summaryText: {
+		flex: 1,
+		gap: 8,
+	},
+	summaryCount: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 20,
+	},
+	titleLine: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		gap: 8,
 	},
 	loader: {
 		marginVertical: 30,
@@ -252,8 +268,8 @@ const styles = StyleSheet.create({
 		width: "100%",
 		minHeight: 56,
 		borderWidth: 1.5,
-		borderRadius: 10,
-		paddingVertical: 8,
+		borderRadius: 12,
+		paddingVertical: 10,
 		paddingHorizontal: 10,
 		flexDirection: "row",
 		alignItems: "center",
@@ -268,10 +284,10 @@ const styles = StyleSheet.create({
 		minWidth: 0,
 	},
 	medalBadge: {
-		width: 36,
-		height: 36,
-		borderRadius: 4,
-		borderWidth: 1,
+		width: 44,
+		height: 44,
+		borderRadius: 10,
+		borderWidth: 1.5,
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -280,26 +296,26 @@ const styles = StyleSheet.create({
 		minWidth: 0,
 	},
 	title: {
-		fontFamily: "Silkscreen",
-		fontSize: 11,
+		flex: 1,
+		fontFamily: "SilkscreenBold",
+		fontSize: 12,
 	},
 	progress: {
 		fontFamily: "Silkscreen",
 		fontSize: 11,
-		minWidth: 52,
 		textAlign: "right",
 	},
 	progressTrack: {
 		width: "100%",
-		height: 5,
-		borderWidth: 1,
-		borderRadius: 2,
-		marginTop: 4,
+		height: 8,
+		borderRadius: 4,
+		marginTop: 6,
 		overflow: "hidden",
-		backgroundColor: "rgba(0, 0, 0, 0.35)",
+		backgroundColor: "rgba(255, 255, 255, 0.10)",
 	},
 	progressFill: {
 		height: "100%",
+		borderRadius: 4,
 	},
 	howTo: {
 		fontFamily: "Silkscreen",
