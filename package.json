@@ -96,5 +96,6 @@
     "typescript": "~5.9.2"
   },
   "private": true,
+  "license": "SEE LICENSE IN LICENSE",
   "homepage": "https://blockerino.aionerdlin.me"
 }

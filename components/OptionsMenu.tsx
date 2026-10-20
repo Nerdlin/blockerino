@@ -20,6 +20,7 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useShopState } from "@/constants/Shop";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { isAnalyticsEnabled, setAnalyticsEnabled } from "@/constants/Analytics";
+import { useRouter, type Href } from "expo-router";
 
 export default function OptionsMenu() {
 	const [ appState, setAppState, appendAppState, popAppState ] = useAppState();
@@ -114,6 +115,7 @@ export default function OptionsMenu() {
 		playSfx('menuClick');
 	};
 
+	const router = useRouter();
 	const [analyticsOn, setAnalyticsOn] = useState(true);
 	useEffect(() => { void isAnalyticsEnabled().then(setAnalyticsOn); }, []);
 	const handleAnalyticsToggle = (value: boolean) => {
@@ -282,6 +284,16 @@ export default function OptionsMenu() {
 							trackColor={{ false: "#767577", true: currentTheme.buttonPrimary }}
 						/>
 					</SettingLabel>
+				</View>
+
+				<View style={styles.settingSection}>
+					<Text style={[styles.sectionLabel, { color: currentTheme.textPrimary }]}>{t("settings.about")}</Text>
+					<StylizedButton
+						text={t("settings.licenses")}
+						onClick={() => router.push("/licenses" as Href)}
+						backgroundColor={currentTheme.buttonSecondary}
+						style={isMobile ? { minWidth: 200, margin: 4 } : { minWidth: 240, margin: 4 }}
+					/>
 				</View>
 
 				<View style={styles.settingSection}>

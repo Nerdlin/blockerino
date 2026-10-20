@@ -57,12 +57,18 @@ export default function PrivacyPolicy() {
                     <BulletPoint>Events are deleted automatically after 180 days.</BulletPoint>
                     <BulletPoint>You can switch collection off at any time in Options, under Privacy. The application then stops recording and discards events that were not yet sent.</BulletPoint>
 
-                    <Text style={styles.heading}>5. User Rights and Data Erasure</Text>
+                    <Text style={styles.heading}>5. Sign-In, Friends and Notifications</Text>
+                    <BulletPoint>Sign-in: if you sign in with Discord or Google, or with an email address, our authentication provider (Supabase) receives your account identifier, display name, email address and profile picture from that service. We use them only to run your account.</BulletPoint>
+                    <BulletPoint>Friends: friend requests and accepted friendships are stored with your account, and friends can see your nickname and season score.</BulletPoint>
+                    <BulletPoint>Push notifications (Android and iOS apps): if you allow notifications, a push token that identifies your device is stored with your account and sent to Expo and Google Firebase Cloud Messaging, which deliver the messages. We send notifications about being overtaken on the leaderboard, a streak that is about to end and the end of a season. Switch them off in your device settings or in the app; the token is then removed.</BulletPoint>
+                    <BulletPoint>In the web version and in Discord, the same messages are shown inside the game when you open it.</BulletPoint>
+
+                    <Text style={styles.heading}>6. User Rights and Data Erasure</Text>
                     <Text style={styles.paragraph}>
                         In accordance with global privacy standards, you maintain absolute sovereignty over your data. You reserve the right to request a complete purge of your records and associated metrics from our databases at any time by initiating a request via our official GitHub repository or Discord support channels.
                     </Text>
                     
-                    <Text style={styles.heading}>6. Policy Iterations</Text>
+                    <Text style={styles.heading}>7. Policy Iterations</Text>
                     <Text style={styles.paragraph}>
                         As the application evolves, we reserve the right to amend this Privacy Policy. Substantive modifications will be reflected directly on this page. Continued utilization of Blockerino following such revisions constitutes your explicit acknowledgment and consent to the updated terms.
                     </Text>

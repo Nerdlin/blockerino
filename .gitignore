@@ -52,3 +52,9 @@ deno.lock
 
 # Supabase CLI local cache
 supabase/.temp/
+
+# Firebase service account keys (secret): never commit
+*firebase-adminsdk*.json
+
+# Firebase client config: keep it out of the public repo, give EAS the file as a secret (docs/push-notifications.md)
+google-services.json

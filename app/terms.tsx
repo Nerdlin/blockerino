@@ -50,7 +50,22 @@ export default function TermsOfService() {
                         To the maximum extent permitted by applicable law, in no event shall the developer be held liable for any direct, indirect, incidental, punitive, or consequential damages (including, without limitation, loss of data, reputation, or access) arising out of or in any way connected with the utilization or performance of Blockerino, even if previously advised of the possibility of such damages.
                     </Text>
                     
-                    <Text style={styles.heading}>5. Modifications and Severability</Text>
+                    <Text style={styles.heading}>5. Intellectual Property</Text>
+                    <Text style={styles.paragraph}>
+                        Blockerino, including its source code, game design, artwork, audio, text and name, is the property of its developer and is protected by copyright. All rights are reserved. You receive a personal, non-exclusive, revocable right to play the officially published game; you may not copy, modify, redistribute, host or reverse engineer the application or use its name, branding or assets commercially without written permission. Third-party fonts and libraries remain under their own licenses; see the Licenses screen in Options.
+                    </Text>
+
+                    <Text style={styles.heading}>6. User Content</Text>
+                    <Text style={styles.paragraph}>
+                        Nicknames, avatars and similar content you provide must not be unlawful, hateful, impersonate another person or infringe the rights of others. You keep your rights in your content and grant the developer a limited, worldwide, royalty-free right to store and display it inside the game (for example on leaderboards and in friend lists). We may remove content or rename accounts that break these rules.
+                    </Text>
+
+                    <Text style={styles.heading}>7. Virtual Coins and Items</Text>
+                    <Text style={styles.paragraph}>
+                        Coins, cosmetics and other in-game items have no monetary value, cannot be exchanged for money or transferred outside the game, and remain available only for as long as the service operates. We may correct balances, scores and ratings that result from errors, exploits or abuse.
+                    </Text>
+
+                    <Text style={styles.heading}>8. Modifications and Severability</Text>
                     <Text style={styles.paragraph}>
                         We reserve the unilateral right to amend these Terms of Service at any given time without prior explicit notification. Continued utilization of the service following modifications constitutes binding acceptance of the updated terms. If any provision of these terms is deemed unlawful or unenforceable, that provision shall be deemed severable and shall not affect the validity of the remaining provisions.
                     </Text>

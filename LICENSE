@@ -1,4 +1,4 @@
-Copyright (c) 2025 Nerdlin. All rights reserved.
+Copyright (c) 2025-2026 Nerdlin. All rights reserved.
 
 This repository and all of its contents (source code, assets, artwork, text,
 database schemas and documentation, together the "Software") are the exclusive
@@ -27,4 +27,12 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM, OUT OF
 OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Third-party dependencies remain under their own licenses.
+Third-party dependencies remain under their own licenses; fonts and libraries that ship with the
+game are listed in THIRD_PARTY_NOTICES.md.
+
+License history
+
+Until 2026-10-19 this repository was published under the MIT License. Copies of the Software that were
+obtained under the MIT License before that date remain licensed to their holders under the MIT License
+for those copies. Every version published after that date is available only under the terms above.
+This change does not affect the copyright of Nerdlin in the Software.
