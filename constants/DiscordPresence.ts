@@ -3,7 +3,7 @@ import { GameModeType, MenuStateType } from '@/hooks/useAppState';
 // Art asset keys uploaded in Discord Developer Portal -> Rich Presence -> Art Assets.
 // Leave a key empty ('') until the asset exists: presence then falls back to text only.
 export const DISCORD_PRESENCE_ASSETS = {
-  logo: '',
+  logo: 'icon',
   classic: '',
   chaos: '',
   versus: '',
