@@ -16,8 +16,12 @@ import { useShopState } from "@/constants/Shop";
 import { GameOverReason, getGameOverMessage } from "@/constants/GameModes";
 import { useLanguage } from "@/constants/Localization";
 import { track } from "@/constants/Analytics";
+import { getHighScores } from "@/constants/Storage";
 
 const PLAYER_NAME_KEY = 'PLAYER_NAME';
+const GAMES_FINISHED_KEY = 'GAMES_FINISHED';
+// Guests are asked to create an account only after a few games, never straight after the first one.
+const ACCOUNT_PROMPT_AFTER_GAMES = 3;
 
 export default function GameOverModal({ score, gameMode, reason }: { score: number, gameMode: GameModeType, reason?: GameOverReason | null }) {
     const [setAppState, appendAppState] = useSetAppState();
@@ -29,6 +33,25 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'queued' | 'failed' | 'needs_name'>('idle');
     const [coinsAwarded, setCoinsAwarded] = useState(0);
     const [signedIn, setSignedIn] = useState(true);
+    const [bestScore, setBestScore] = useState<number | null>(null);
+    const [finishedCount, setFinishedCount] = useState(0);
+
+    useEffect(() => {
+        let active = true;
+        (async () => {
+            try {
+                // The list already contains this run once the game saved it, so "score >= best" means a record.
+                const best = (await getHighScores(gameMode, true, true, 1))[0]?.score ?? 0;
+                if (active) setBestScore(best);
+                const previous = Number(await AsyncStorage.getItem(GAMES_FINISHED_KEY)) || 0;
+                await AsyncStorage.setItem(GAMES_FINISHED_KEY, String(previous + 1));
+                if (active) setFinishedCount(previous + 1);
+            } catch {
+                // The record line is a nicety; the screen works without it.
+            }
+        })();
+        return () => { active = false; };
+    }, [gameMode]);
 
     useEffect(() => {
         let active = true;
@@ -150,6 +173,14 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
         setAppState(MenuStateType.MENU);
     };
 
+    const recordLine = bestScore === null || score <= 0 ? null : score >= bestScore ? (
+        <Text style={[styles.coinsText, { color: '#FFD700', marginBottom: 14 }]}>{t("over.newRecord")}</Text>
+    ) : (
+        <Text style={[styles.coinsText, { color: currentTheme.textSecondary, marginBottom: 14 }]}>
+            {t("over.toRecord", { points: bestScore - score, best: bestScore })}
+        </Text>
+    );
+
     return (
         <SimplePopupView style={[{ backgroundColor: currentTheme.menuBackground }]}>
             <Animated.Text
@@ -189,6 +220,23 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                 </Text>
             )}
 
+            {recordLine}
+
+            <View style={styles.buttonContainer}>
+                <StylizedButton
+                    text={t("over.playAgain")}
+                    onClick={handlePlayAgain}
+                    backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(0, 153, 51)' : currentTheme.buttonPrimary}
+                    style={{ minWidth: 240, height: 56 }}
+                />
+
+                <StylizedButton
+                    text={t("over.mainMenu")}
+                    onClick={handleMainMenu}
+                    backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(0, 102, 204)' : currentTheme.buttonSecondary}
+                />
+            </View>
+
             <View style={styles.statusContainer}>
                 {canEditNickname && (
                     <View style={{ width: '100%', alignItems: 'center', gap: 10 }}>
@@ -217,7 +265,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                             onClick={handleManualSubmit}
                             backgroundColor={currentTheme.buttonPrimary}
                         />
-                        {!signedIn && (
+                        {!signedIn && finishedCount >= ACCOUNT_PROMPT_AFTER_GAMES && (
                             <View style={{ width: '100%', alignItems: 'center', gap: 6, marginTop: 4 }}>
                                 <Text style={[styles.messageText, { color: currentTheme.textSecondary, paddingHorizontal: 0, fontSize: 11 }]}>
                                     {t("over.accountPrompt")}
@@ -266,19 +314,6 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                 {getGameOverMessage(gameMode, reason)}
             </Text>
 
-            <View style={styles.buttonContainer}>
-                <StylizedButton
-                    text={t("over.playAgain")}
-                    onClick={handlePlayAgain}
-                    backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(0, 153, 51)' : currentTheme.buttonPrimary}
-                />
-
-                <StylizedButton
-                    text={t("over.mainMenu")}
-                    onClick={handleMainMenu}
-                    backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(0, 102, 204)' : currentTheme.buttonSecondary}
-                />
-            </View>
         </SimplePopupView>
     );
 }
@@ -287,7 +322,7 @@ const styles = StyleSheet.create({
     gameOverText: {
         fontSize: 36,
         fontFamily: 'Silkscreen',
-        marginBottom: 30,
+        marginBottom: 16,
         textAlign: 'center',
         ...Platform.select({
             web: {
@@ -315,11 +350,12 @@ const styles = StyleSheet.create({
     coinsText: {
         fontSize: 14,
         fontFamily: 'Silkscreen',
-        marginBottom: 24,
+        marginBottom: 12,
         textAlign: 'center',
     },
     statusContainer: {
-        marginBottom: 20,
+        marginTop: 20,
+        marginBottom: 12,
         alignItems: 'center',
         paddingHorizontal: 20,
         width: '100%'
@@ -332,7 +368,7 @@ const styles = StyleSheet.create({
     messageText: {
         fontSize: 16,
         fontFamily: 'Silkscreen',
-        marginBottom: 30,
+        marginBottom: 12,
         textAlign: 'center',
         paddingHorizontal: 20,
     },

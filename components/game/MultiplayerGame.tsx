@@ -18,6 +18,7 @@ import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
 import { reportVersusResultOrQueue, submitGlobalHighScoreOrQueue } from '@/constants/OfflineSync';
 import { track } from '@/constants/Analytics';
+import { useLanguage } from '@/constants/Localization';
 import { recordSeasonScore } from '@/constants/SeasonScores';
 import { useLeaderboardPerk } from '@/constants/LeaderboardPerks';
 import { recordLocalMatchHistory } from '@/constants/MatchHistory';
@@ -102,6 +103,7 @@ function FloatingEmote({ text, onComplete }: { text: string; onComplete: () => v
 
 export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode, initialPlayerElo }: MultiplayerGameProps) {
     const { width, height } = useWindowDimensions();
+    const { t } = useLanguage();
     const safeAreaInsets = useSafeAreaInsets();
     const isLargeScreen = width >= 980;
     const isShortScreen = height < 700;
@@ -167,6 +169,10 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
     // End game variables
     const [restartRequestStatus, setRestartRequestStatus] = useState<'idle' | 'waiting_for_opponent' | 'received_request'>('idle');
+    const restartStatusRef = useRef(restartRequestStatus);
+    restartStatusRef.current = restartRequestStatus;
+    // Rematches keep a running score against the same opponent.
+    const [series, setSeries] = useState({ wins: 0, losses: 0 });
     const [, setAppState] = useAppState();
     const { currentTheme } = useTheme();
     const channelRef = useRef<any>(null);
@@ -476,7 +482,12 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 .on('broadcast', { event: 'restart_request' }, (payload) => {
                     const data = payload.payload;
                     if (data.role !== myRole) {
-                        setRestartRequestStatus('received_request');
+                        if (myRole === 'player1' && restartStatusRef.current === 'waiting_for_opponent') {
+                            // Both asked at the same moment: that is consent, nobody has to tap again.
+                            handleRestartAccept();
+                        } else {
+                            setRestartRequestStatus('received_request');
+                        }
                     }
                 })
                 .on('broadcast', { event: 'restart_accept' }, () => {
@@ -658,6 +669,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 const newElo = Math.max(0, currentElo + eloDiff);
                 AsyncStorage.setItem('PLAYER_ELO', newElo.toString());
                 setPlayerElo(newElo);
+                if (eloDiff > 0) setSeries((current) => ({ ...current, wins: current.wins + 1 }));
+                else if (eloDiff < 0) setSeries((current) => ({ ...current, losses: current.losses + 1 }));
                 if (eloDiff !== 0) void reportMyResult(eloDiff > 0 ? 'win' : 'loss');
             });
         }
@@ -1072,7 +1085,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                     </View>
 
                     <StylizedButton
-                        text="Exit to Lobby"
+                        text={t("mp.exitLobby")}
                         onClick={handleExit}
                         backgroundColor={cssColors.spaceGray}
                     />
@@ -1085,14 +1098,14 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     
     let winnerMessage = "";
     if (opponentDisconnected) {
-        winnerMessage = "Opponent disconnected. You Win!";
+        winnerMessage = t("mp.opponentLeft");
     } else if (isGameOver && opponentIsGameOver) {
         if (score.value > opponentScore) {
-            winnerMessage = "Victory! You won!";
+            winnerMessage = t("mp.victory");
         } else if (opponentScore > score.value) {
-            winnerMessage = "Defeat! Opponent won.";
+            winnerMessage = t("mp.defeat");
         } else {
-            winnerMessage = "It's a Draw!";
+            winnerMessage = t("mp.draw");
         }
     }
 
@@ -1123,7 +1136,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                         </ScrollView>
 
 						<View style={{ marginVertical: 15 }}>
-							<StylizedButton text="Exit to Lobby" onClick={handleExit} backgroundColor={cssColors.spaceGray} />
+							<StylizedButton text={t("mp.exitLobby")} onClick={handleExit} backgroundColor={cssColors.spaceGray} />
 						</View>
 					</View>
 				) : viewMode === "opponent_watch" ? (
@@ -1322,28 +1335,33 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 {showWinnerOverlay && (
                     <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.85)' }]}>
                         <View style={[styles.modalBox, { backgroundColor: currentTheme.menuBackground }]}>
-                            <Text style={[styles.modalTitle, { color: currentTheme.buttonPrimary }]}>Game Over</Text>
+                            <Text style={[styles.modalTitle, { color: currentTheme.buttonPrimary }]}>{t("mp.matchOver")}</Text>
                             <Text style={[styles.modalMessage, { color: currentTheme.textPrimary }]}>{winnerMessage}</Text>
                             
                             <View style={styles.scoresComparison}>
                                 <Text style={[styles.finalScoreText, { color: currentTheme.textSecondary }]}>
-                                    Your Score: <Text style={{ color: currentTheme.textPrimary }}>{score.value}</Text>
+                                    {t("mp.scoreYou")} <Text style={{ color: currentTheme.textPrimary }}>{score.value}</Text>
                                 </Text>
                                 <Text style={[styles.finalScoreText, { color: currentTheme.textSecondary }]}>
-                                    {opponentName}'s Score: <Text style={{ color: currentTheme.textPrimary }}>{opponentScore}</Text>
+                                    {t("mp.scoreOpp", { name: opponentName })} <Text style={{ color: currentTheme.textPrimary }}>{opponentScore}</Text>
                                 </Text>
+                                {series.wins + series.losses > 0 && (
+                                    <Text style={[styles.finalScoreText, { color: currentTheme.accent }]}>
+                                        {t("mp.series", { me: series.wins, opp: series.losses })}
+                                    </Text>
+                                )}
                             </View>
 
                             {restartRequestStatus === 'idle' && !opponentDisconnected && (
                                 <>
                                     <StylizedButton 
-                                        text="Restart Game" 
+                                        text={t("mp.rematch")} 
                                         onClick={handleRestartRequest} 
                                         backgroundColor={currentTheme.buttonPrimary} 
                                         style={{ marginBottom: 10 }}
                                     />
                                     <StylizedButton 
-                                        text="Exit to Lobby" 
+                                        text={t("mp.exitLobby")} 
                                         onClick={handleExit} 
                                         backgroundColor={cssColors.spaceGray} 
                                     />
@@ -1351,16 +1369,16 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                             )}
                             {(restartRequestStatus === 'idle' && opponentDisconnected) && (
                                 <StylizedButton 
-                                    text="Exit to Lobby" 
+                                    text={t("mp.exitLobby")} 
                                     onClick={handleExit} 
                                     backgroundColor={currentTheme.buttonPrimary} 
                                 />
                             )}
                             {restartRequestStatus === 'waiting_for_opponent' && (
                                 <>
-                                    <Text style={[styles.modalMessage, { color: currentTheme.accent, marginBottom: 10 }]}>Waiting for opponent to accept...</Text>
+                                    <Text style={[styles.modalMessage, { color: currentTheme.accent, marginBottom: 10 }]}>{t("mp.rematchWaiting")}</Text>
                                     <StylizedButton 
-                                        text="Cancel" 
+                                        text={t("mp.cancel")} 
                                         onClick={handleRestartDecline} 
                                         backgroundColor={cssColors.spaceGray} 
                                     />
@@ -1368,15 +1386,15 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                             )}
                             {restartRequestStatus === 'received_request' && (
                                 <>
-                                    <Text style={[styles.modalMessage, { color: currentTheme.accent, marginBottom: 10 }]}>Opponent wants to play again!</Text>
+                                    <Text style={[styles.modalMessage, { color: currentTheme.accent, marginBottom: 10 }]}>{t("mp.rematchAsked")}</Text>
                                     <View style={{ flexDirection: 'row', gap: 10 }}>
                                         <StylizedButton 
-                                            text="Accept" 
+                                            text={t("mp.accept")} 
                                             onClick={handleRestartAccept} 
                                             backgroundColor={currentTheme.buttonPrimary} 
                                         />
                                         <StylizedButton 
-                                            text="Decline" 
+                                            text={t("mp.decline")} 
                                             onClick={handleRestartDecline} 
                                             backgroundColor={cssColors.spaceGray} 
                                         />
@@ -1391,20 +1409,20 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 {isGameOver && !opponentIsGameOver && !opponentDisconnected && viewMode === "active_player" && (
                     <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
                         <View style={[styles.modalBox, { backgroundColor: currentTheme.menuBackground }]}>
-                            <Text style={[styles.modalTitle, { color: currentTheme.accent }]}>Game Over</Text>
-                            <Text style={[styles.modalMessage, { color: currentTheme.textPrimary }]}>Waiting for opponent to finish...</Text>
-                            <Text style={[styles.finalScoreText, { color: currentTheme.textSecondary }]}>Your Score: {score.value}</Text>
-                            <Text style={[styles.finalScoreText, { color: currentTheme.textSecondary }]}>{opponentName}'s Score: {opponentScore}</Text>
+                            <Text style={[styles.modalTitle, { color: currentTheme.accent }]}>{t("mp.matchOver")}</Text>
+                            <Text style={[styles.modalMessage, { color: currentTheme.textPrimary }]}>{t("mp.waitingFinish")}</Text>
+                            <Text style={[styles.finalScoreText, { color: currentTheme.textSecondary }]}>{t("mp.scoreYou")} {score.value}</Text>
+                            <Text style={[styles.finalScoreText, { color: currentTheme.textSecondary }]}>{t("mp.scoreOpp", { name: opponentName })} {opponentScore}</Text>
                             <ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 15 }} />
                             
                             <StylizedButton 
-                                text="Watch Opponent" 
+                                text={t("mp.watchOpponent")} 
                                 onClick={() => setIsWatchingOpponent(true)} 
                                 backgroundColor={currentTheme.buttonPrimary} 
                                 style={{ marginBottom: 5 }}
                             />
                             
-                            <StylizedButton text="Exit to Lobby" onClick={handleExit} backgroundColor={cssColors.spaceGray} />
+                            <StylizedButton text={t("mp.exitLobby")} onClick={handleExit} backgroundColor={cssColors.spaceGray} />
                         </View>
                     </View>
                 )}

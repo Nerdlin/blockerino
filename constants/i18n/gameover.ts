@@ -18,6 +18,8 @@ export const gameover: ScreenDictionary = {
 		"over.syncFailed": "Could not sync score to leaderboard.",
 		"over.needName": "Enter a nickname first.",
 		"over.playAgain": "Play Again",
+		"over.newRecord": "NEW RECORD!",
+		"over.toRecord": "{points} to your record ({best})",
 		"over.mainMenu": "Main Menu",
 
 		// ContinueGameModal
@@ -61,6 +63,8 @@ export const gameover: ScreenDictionary = {
 		"over.syncFailed": "Не удалось синхронизировать результат.",
 		"over.needName": "Сначала введите ник.",
 		"over.playAgain": "Ещё раз",
+		"over.newRecord": "НОВЫЙ РЕКОРД!",
+		"over.toRecord": "До рекорда: {points} (рекорд {best})",
 		"over.mainMenu": "Меню",
 
 		// ContinueGameModal
