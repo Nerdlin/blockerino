@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, AppState, Platform, StyleSheet, Text, View, useWindowDimensions, Pressable } from "react-native";
+import FadeInView from "./FadeInView";
+import { AppState, Platform, StyleSheet, Text, View, useWindowDimensions, Pressable } from "react-native";
+import PixelLoader from "@/components/PixelLoader";
 import SimplePopupView from "./SimplePopupView";
 import AchievementIcon from "./AchievementIcon";
 import StylizedButton from "./StylizedButton";
@@ -147,17 +149,17 @@ export default function AchievementsMenu() {
 			)}
 
 			{loading ? (
-				<ActivityIndicator size="large" color={currentTheme.accent} style={styles.loader} />
+				<PixelLoader size="large" color={currentTheme.accent} style={styles.loader} />
 			) : (
 				<View style={styles.list}>
-					{sorted.map((achievement) => {
+					{sorted.map((achievement, achievementIndex) => {
 						const done = achievement.progress.complete;
 						const progressPercent = Math.min(100, Math.round((achievement.progress.current / achievement.progress.target) * 100));
 						const progressWidth = `${progressPercent}%` as `${number}%`;
 
 						return (
+							<FadeInView key={achievement.id} index={achievementIndex}>
 							<Pressable
-								key={achievement.id}
 								onPress={() => handleAchievementClick(achievement.id)}
 								style={[
 									styles.row,
@@ -197,6 +199,7 @@ export default function AchievementsMenu() {
 									)}
 								</View>
 							</Pressable>
+							</FadeInView>
 						);
 					})}
 				</View>

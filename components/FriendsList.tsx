@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TextInput, ScrollView, Alert, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, Alert, Pressable } from "react-native";
+import PixelLoader from "@/components/PixelLoader";
 import { supabase } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
 import { useLanguage } from '@/constants/Localization';
@@ -350,7 +351,7 @@ export default function FriendsList({ userId }: { userId: string }) {
     };
 
     if (loading) {
-        return <ActivityIndicator size="small" color={currentTheme.accent} />;
+        return <PixelLoader size="small" color={currentTheme.accent} />;
     }
 
     const acceptedFriends = friends.filter(f => f.status === 'accepted');

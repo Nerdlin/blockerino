@@ -1,6 +1,7 @@
 import { GameModeType, useAppState } from "@/hooks/useAppState";
 import { track } from "@/constants/Analytics";
-import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, ActivityIndicator, Image, Pressable } from "react-native";
+import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, Image, Pressable } from "react-native";
+import PixelLoader from "@/components/PixelLoader";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import SegmentedControl from "./SegmentedControl";
@@ -463,7 +464,7 @@ export default function ProfileMenu() {
 			
 			<ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
 				{loading ? (
-					<ActivityIndicator size="large" color={currentTheme.accent} />
+					<PixelLoader size="large" color={currentTheme.accent} />
 				) : (session || playerName) ? (
 					<View style={[styles.profileContainer, isMobile && styles.mobileProfileContainer]}>
 						<Pressable onPress={() => setShowAvatarPopup(true)} style={{ position: "relative" }}>

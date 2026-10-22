@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet } from "react-native";
+import PixelLoader from "@/components/PixelLoader";
 import { supabase } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
 import { getLocalMatchHistory, StoredMatchHistoryItem } from '@/constants/MatchHistory';
@@ -64,7 +65,7 @@ export default function MatchHistoryList({ userId }: { userId: string }) {
     }, [userId]);
 
     if (loading) {
-        return <ActivityIndicator size="small" color={currentTheme.accent} />;
+        return <PixelLoader size="small" color={currentTheme.accent} />;
     }
 
     if (history.length === 0) {

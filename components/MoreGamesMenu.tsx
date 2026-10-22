@@ -1,4 +1,5 @@
 import { Platform, UIManager, useWindowDimensions, ScrollView, View, Text, TextInput } from "react-native";
+import FadeInView from "./FadeInView";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { useAppState, MenuStateType } from "@/hooks/useAppState";
@@ -207,9 +208,9 @@ export default function MoreGamesMenu() {
 							<StylizedButton text={t("moregames.leaderboardTitle")} onClick={() => openRatingPanel("leaderboard")} backgroundColor={currentTheme.buttonPrimary} style={styles.leaderboardQuickButton} textStyle={styles.tinyButtonText} />
 						</View>
 					</View>
-					{RATED_MORE_GAME_CARDS.map((card) => (
+					{RATED_MORE_GAME_CARDS.map((card, cardIndex) => (
+						<FadeInView key={card.id} index={cardIndex}>
 						<View
-							key={card.id}
 							style={[
 								styles.moreGameRow,
 								{
@@ -244,6 +245,7 @@ export default function MoreGamesMenu() {
 								textStyle={[styles.smallButtonText, { color: getReadableButtonTextColor(card.color) }]}
 							/>
 						</View>
+						</FadeInView>
 					))}
 				</ScrollView>
 			) : (

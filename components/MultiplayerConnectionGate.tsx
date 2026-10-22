@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import PixelLoader from "@/components/PixelLoader";
 import { checkSupabaseConnectionDetails } from "@/constants/Connectivity";
 import type { SupabaseConnectionResult } from "@/constants/Connectivity";
 import { useTheme } from "@/constants/Theme";
@@ -52,7 +53,7 @@ export default function MultiplayerConnectionGate({
 
 			{checking && (
 				<View style={styles.checkingContainer}>
-					<ActivityIndicator size="large" color={currentTheme.accent} />
+					<PixelLoader size="large" color={currentTheme.accent} />
 					<Text style={[styles.status, { color: currentTheme.textSecondary }]}>Checking connection...</Text>
 				</View>
 			)}

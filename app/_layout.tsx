@@ -1,7 +1,8 @@
 import { Stack } from "expo-router";
 import Head from "expo-router/head";
 import { useEffect } from "react";
-import { ActivityIndicator, AppState, LogBox, Platform, Text, View } from "react-native";
+import { AppState, LogBox, Platform, Text, View } from "react-native";
+import PixelLoader from "@/components/PixelLoader";
 import { updateService } from "@/constants/UpdateService";
 import { flushPendingVersusReports, flushPendingGlobalHighScores } from "@/constants/OfflineSync";
 import { flushPendingSeasonScoresForSession } from "@/constants/SeasonScores";
@@ -114,7 +115,7 @@ export default function RootLayout() {
 	}, []);
 
 	if (isEmbedded && !isReady) {
-		return <View style={{ flex: 1, backgroundColor: '#050510', alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#FF335A" /></View>;
+		return <View style={{ flex: 1, backgroundColor: '#050510', alignItems: 'center', justifyContent: 'center' }}><PixelLoader color="#FF335A" /></View>;
 	}
 
 	return (

@@ -2,7 +2,8 @@ import { getHighScores, HighScore } from "@/constants/Storage";
 import { getGlobalHighScores, GlobalHighScore } from "@/constants/Supabase";
 import SimplePopupView from "./SimplePopupView";
 import { useCallback, useEffect, useState, useRef } from "react";
-import { StyleSheet, Text, View, ActivityIndicator, Pressable, TextInput, useWindowDimensions } from "react-native";
+import { StyleSheet, Text, View, Pressable, TextInput, useWindowDimensions } from "react-native";
+import PixelLoader from "@/components/PixelLoader";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { GameModeType, MenuStateType, useAppStateValue, useSetAppState } from "@/hooks/useAppState";
@@ -209,7 +210,7 @@ export default function HighScores() {
                 accessibilityLabel={t("hs.refresh")}
                 style={[styles.refreshIcon, loading && { opacity: 0.5 }]}
             >
-                {loading ? <ActivityIndicator size="small" color={currentTheme.textPrimary} /> : <UiIcon name="refresh" size={18} />}
+                {loading ? <PixelLoader size="small" color={currentTheme.textPrimary} /> : <UiIcon name="refresh" size={18} />}
             </Pressable>
         </View>
 
@@ -241,7 +242,7 @@ export default function HighScores() {
             </View>
         )}
 
-        {loading && <ActivityIndicator size="large" color={currentTheme.textPrimary} />}
+        {loading && <PixelLoader size="large" color={currentTheme.textPrimary} />}
 
         {!loading && hasScores && (
             <View style={styles.scoreList}>

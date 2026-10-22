@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import PixelLoader from "@/components/PixelLoader";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import GlobalScoreRow from "./GlobalScoreRow";
@@ -63,7 +64,7 @@ export default function SeasonResultsMenu() {
 				))}
 			</View>
 
-			{loading && <ActivityIndicator size="large" color={currentTheme.textPrimary} />}
+			{loading && <PixelLoader size="large" color={currentTheme.textPrimary} />}
 
 			{!loading && !snapshot && (
 				<Text style={[styles.emptyText, { color: currentTheme.textSecondary }]}>{t("season.noResults")}</Text>

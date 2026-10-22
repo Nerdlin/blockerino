@@ -2,7 +2,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/constants/Supabase";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
-import { View, Text, Clipboard, ActivityIndicator, TextInput, useWindowDimensions, Pressable } from "react-native";
+import { View, Text, Clipboard, TextInput, useWindowDimensions, Pressable } from "react-native";
+import PixelLoader from "@/components/PixelLoader";
 import StylizedButton from "../StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { type UiGlyphName } from "@/constants/UiGlyphs";
@@ -421,7 +422,7 @@ export function OnlineRoomControls({
 						<Text style={[styles.waitingStatus, { color: currentTheme.textSecondary }]}>
 							{playerCount && connectedPlayersCount ? `WAITING FOR PLAYERS (${connectedPlayersCount}/${playerCount})...` : t("mp.waitingFriend")}
 						</Text>
-						<ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 20 }} />
+						<PixelLoader size="large" color={currentTheme.accent} style={{ marginVertical: 20 }} />
 	
 						<StylizedButton text={t("mp.cancel")} onClick={onDisconnect} backgroundColor={cssColors.spaceGray} />
 					</View>
@@ -430,7 +431,7 @@ export function OnlineRoomControls({
 				return (
 					<View style={styles.waitingContainer}>
 						<Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>{status === "error" ? t("mp.connectionError") : t("mp.connecting")}</Text>
-						{status !== "error" && <ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 30 }} />}
+						{status !== "error" && <PixelLoader size="large" color={currentTheme.accent} style={{ marginVertical: 30 }} />}
 						<StylizedButton text={t("mp.cancel")} onClick={onDisconnect} backgroundColor={cssColors.spaceGray} />
 					</View>
 				);

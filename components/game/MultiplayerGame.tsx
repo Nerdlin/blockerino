@@ -1,7 +1,8 @@
 import { PieceData, getBlockCount } from '@/constants/Piece';
 import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-dnd';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, View, useWindowDimensions, ActivityIndicator, ScrollView, Image } from 'react-native';
+import { Platform, StyleSheet, Text, View, useWindowDimensions, ScrollView, Image } from "react-native";
+import PixelLoader from "@/components/PixelLoader";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
 import Animated, { ReduceMotion, runOnJS, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
@@ -1413,7 +1414,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                             <Text style={[styles.modalMessage, { color: currentTheme.textPrimary }]}>{t("mp.waitingFinish")}</Text>
                             <Text style={[styles.finalScoreText, { color: currentTheme.textSecondary }]}>{t("mp.scoreYou")} {score.value}</Text>
                             <Text style={[styles.finalScoreText, { color: currentTheme.textSecondary }]}>{t("mp.scoreOpp", { name: opponentName })} {opponentScore}</Text>
-                            <ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 15 }} />
+                            <PixelLoader size="large" color={currentTheme.accent} style={{ marginVertical: 15 }} />
                             
                             <StylizedButton 
                                 text={t("mp.watchOpponent")} 

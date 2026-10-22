@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import { StyleSheet, Text, View, TextInput, ActivityIndicator, Clipboard, useWindowDimensions, ScrollView, Pressable, Platform, Image } from "react-native";
+import { StyleSheet, Text, View, TextInput, Clipboard, useWindowDimensions, ScrollView, Pressable, Platform, Image } from "react-native";
+import PixelLoader from "@/components/PixelLoader";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import SegmentedControl from "./SegmentedControl";
@@ -850,7 +851,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     </View>
 
                     {loadingLeaderboard ? (
-                        <ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 40 }} />
+                        <PixelLoader size="large" color={currentTheme.accent} style={{ marginVertical: 40 }} />
                     ) : (
                         <ScrollView style={styles.eloLeaderboardList} nestedScrollEnabled={true}>
                             {topEloList.length === 0 ? (
@@ -916,7 +917,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                 <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.waitingContainer}>
                     <Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>{t("mp.searchingMatch")}</Text>
                     <Text style={[styles.waitingSub, { color: currentTheme.textSecondary }]}>{t("mp.modeLabel", { mode: gameMode.toUpperCase() })}</Text>
-                    <ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 30 }} />
+                    <PixelLoader size="large" color={currentTheme.accent} style={{ marginVertical: 30 }} />
                     <StylizedButton text={t("mp.cancel")} onClick={cleanupLobby} backgroundColor={cssColors.spaceGray} />
                 </Animated.View>
             )}
@@ -932,7 +933,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     </View>
 
                     <Text style={[styles.waitingStatus, { color: currentTheme.textSecondary }]}>{t("mp.waitingFriend")}</Text>
-                    <ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 20 }} />
+                    <PixelLoader size="large" color={currentTheme.accent} style={{ marginVertical: 20 }} />
 
                     <StylizedButton text={t("mp.cancel")} onClick={cleanupLobby} backgroundColor={cssColors.spaceGray} />
                 </Animated.View>
@@ -941,7 +942,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
             {lobbyState === 'joining' && (
                 <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.waitingContainer}>
                     <Text style={[styles.waitingTitle, { color: currentTheme.textPrimary }]}>{t("mp.connecting")}</Text>
-                    <ActivityIndicator size="large" color={currentTheme.accent} style={{ marginVertical: 30 }} />
+                    <PixelLoader size="large" color={currentTheme.accent} style={{ marginVertical: 30 }} />
                 </Animated.View>
             )}
         </SimplePopupView>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import PixelLoader from "@/components/PixelLoader";
 import SegmentedControl from "./SegmentedControl";
 import UiIcon from "./UiIcon";
 import GlobalScoreRow from "./GlobalScoreRow";
@@ -64,7 +65,7 @@ export default function ChallengeLeaderboard() {
                 </Pressable>
             </View>
 
-            {loading && <ActivityIndicator size="large" color={currentTheme.textPrimary} />}
+            {loading && <PixelLoader size="large" color={currentTheme.textPrimary} />}
 
             {!loading && scores.length > 0 && (
                 <View style={styles.scoreList}>

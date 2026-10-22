@@ -45,7 +45,7 @@ export default function StylizedButton({
                 }
             }} 
             onHoverIn={handleHoverIn}
-            style={[
+            style={({ pressed }) => [
                 styles.stylizedButton, 
                 {
                     backgroundColor, 
@@ -54,6 +54,7 @@ export default function StylizedButton({
                     borderColor: borderColor ? borderColor : "transparent",
                     opacity: disabled ? 0.5 : 1
                 }, 
+                pressed && !disabled ? { transform: [{ scale: 0.96 }], opacity: 0.88 } : null,
                 style
             ]}
         >
