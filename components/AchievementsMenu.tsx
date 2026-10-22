@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import AnimatedNumber from "./AnimatedNumber";
 import FadeInView from "./FadeInView";
 import { AppState, StyleSheet, Text, View, useWindowDimensions, Pressable } from "react-native";
 import PixelLoader from "@/components/PixelLoader";
@@ -175,9 +176,10 @@ export default function AchievementsMenu() {
 				<View style={[styles.summaryCard, { borderColor: currentTheme.accent }]}>
 					<UiIcon name="medalGold" size={36} />
 					<View style={styles.summaryText}>
-						<Text style={[styles.summaryCount, { color: currentTheme.accent }]}>
-							{completedCount} / {achievements.length}
-						</Text>
+						<View style={styles.summaryCountRow}>
+							<AnimatedNumber value={completedCount} style={[styles.summaryCount, { color: currentTheme.accent }]} />
+							<Text style={[styles.summaryCount, { color: currentTheme.accent }]}> / {achievements.length}</Text>
+						</View>
 						<View style={styles.progressTrack}>
 							<View
 								style={[
@@ -389,6 +391,10 @@ const styles = StyleSheet.create({
 	summaryText: {
 		flex: 1,
 		gap: 8,
+	},
+	summaryCountRow: {
+		flexDirection: "row",
+		alignItems: "center",
 	},
 	summaryCount: {
 		fontFamily: "SilkscreenBold",

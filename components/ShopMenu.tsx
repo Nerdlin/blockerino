@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import AnimatedNumber from "./AnimatedNumber";
+import FadeInView from "./FadeInView";
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -90,7 +92,7 @@ export default function ShopMenu() {
 					/>
 					<Text style={[styles.title, { color: currentTheme.textPrimary }]}>{t("shop.title")}</Text>
 					<View style={[styles.coinsPill, { borderColor: currentTheme.accent }]}>
-						<Text style={[styles.balance, { color: currentTheme.accent }]}>{state.balance}</Text>
+						<AnimatedNumber value={state.balance} style={[styles.balance, { color: currentTheme.accent }]} />
 					</View>
 				</View>
 				<Text style={[styles.caption, { color: currentTheme.textSecondary }]}>{message}</Text>
@@ -111,9 +113,9 @@ export default function ShopMenu() {
 			</View>
 
 			<View style={[styles.itemsGrid, isMobile && styles.mobileItemsGrid]}>
-				{items.map((item) => (
+				{items.map((item, itemIndex) => (
+					<FadeInView key={`${activeCategory}-${item.id}`} index={itemIndex} style={styles.cardSlot}>
 					<ShopItemCard
-						key={item.id}
 						item={item}
 						isOwned={state.ownedItemIds.includes(item.id)}
 						isEquipped={state.equipped[item.category] === item.id}
@@ -121,6 +123,7 @@ export default function ShopMenu() {
 						onPress={() => handleItemPress(item)}
 						onPreview={() => setPreviewItem(item)}
 					/>
+					</FadeInView>
 				))}
 			</View>
 
@@ -307,9 +310,12 @@ const styles = StyleSheet.create({
 	mobileItemsGrid: {
 		gap: 8,
 	},
-	card: {
+	cardSlot: {
 		width: "48%",
 		minWidth: 120,
+	},
+	card: {
+		width: "100%",
 		minHeight: 210,
 		borderWidth: 1.5,
 		borderRadius: 10,

@@ -1,5 +1,5 @@
-import React, { createContext, useContext } from "react";
-import { View, ScrollView, StyleSheet, Platform, useWindowDimensions } from "react-native";
+import React, { createContext, useContext, useEffect, useRef } from "react";
+import { Animated, Easing, View, ScrollView, StyleSheet, Platform, useWindowDimensions } from "react-native";
 
 // On big web screens the whole popup card is scaled up as one piece, so every screen keeps its
 // phone layout but nothing looks tiny. Returns 1 on phones and native.
@@ -26,13 +26,27 @@ export default function SimplePopupView({
 }) {
 	const { width, height } = useWindowDimensions();
 	const scale = getPopupScale(width, height);
+	// Every popup eases in: it fades up from a few pixels lower.
+	const enter = useRef(new Animated.Value(0)).current;
+	useEffect(() => {
+		Animated.timing(enter, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+	}, [enter]);
 	if (style === undefined)
 		style = [];
 	// A screen that starts with a Back button asks for the top ("justifyContent: flex-start") instead of floating in the middle.
 	const alignTop = StyleSheet.flatten(style)?.justifyContent === "flex-start";
     return (
 		<UiScaleContext.Provider value={scale}>
-		<View style={[styles.popupContainer, ...style, scale > 1 && { transform: [{ scale }] }]}>
+		<Animated.View
+			style={[
+				styles.popupContainer,
+				...style,
+				{
+					opacity: enter,
+					transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }, ...(scale > 1 ? [{ scale }] : [])],
+				},
+			]}
+		>
 			<ScrollView
 				ref={scrollRef}
 				style={styles.scrollView}
@@ -43,7 +57,7 @@ export default function SimplePopupView({
 			>
 				{children}
 			</ScrollView>
-		</View>
+		</Animated.View>
 		</UiScaleContext.Provider>
 	);
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import FadeInView from "./FadeInView";
 import { AppState, StyleSheet, Text, View } from "react-native";
 import { useAtom } from "jotai";
 import SimplePopupView from "./SimplePopupView";
@@ -135,7 +136,7 @@ export default function DailyRewardHost() {
 				<Text style={[styles.line, { color: currentTheme.textPrimary }]}>{t("daily.streakDay", { days: shownStreak })}</Text>
 				{claimedNow ? (
 					<>
-						<Text style={[styles.reward, { color: "#FFD700" }]}>{t("daily.claimed", { coins: claim.reward })}</Text>
+						<FadeInView pop><Text style={[styles.reward, { color: "#FFD700" }]}>{t("daily.claimed", { coins: claim.reward })}</Text></FadeInView>
 						<Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("daily.comeBack", { coins: claim.nextReward })}</Text>
 					</>
 				) : alreadyClaimed ? (

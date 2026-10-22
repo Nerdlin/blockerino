@@ -1,4 +1,6 @@
 import { GameModeType, useAppState } from "@/hooks/useAppState";
+import AnimatedNumber from "./AnimatedNumber";
+import FadeInView from "./FadeInView";
 import { track } from "@/constants/Analytics";
 import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, Image, Pressable } from "react-native";
 import PixelLoader from "@/components/PixelLoader";
@@ -467,6 +469,7 @@ export default function ProfileMenu() {
 					<PixelLoader size="large" color={currentTheme.accent} />
 				) : (session || playerName) ? (
 					<View style={[styles.profileContainer, isMobile && styles.mobileProfileContainer]}>
+						<FadeInView pop>
 						<Pressable onPress={() => setShowAvatarPopup(true)} style={{ position: "relative" }}>
 							{avatarUrl && avatarUrl.startsWith("http") ? (
 								<Image source={{ uri: avatarUrl }} style={[styles.avatarPlaceholder, { backgroundColor: "transparent" }]} />
@@ -477,6 +480,7 @@ export default function ProfileMenu() {
 							)}
 							<View style={styles.editAvatarBadge}><Text style={{ fontSize: 10 }}>✏️</Text></View>
 						</Pressable>
+						</FadeInView>
 						<Text style={[styles.welcomeText, { color: perk?.tier.color ?? currentTheme.textPrimary }]}>
 							{playerName || session?.user.email}
 						</Text>
@@ -497,39 +501,39 @@ export default function ProfileMenu() {
 
 						{activeTab === "stats" && (
 							<View style={styles.statsContainer}>
-								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
-									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{shopState.balance}</Text>
+								<FadeInView index={0} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
+									<AnimatedNumber value={shopState.balance} style={[styles.statValue, { color: currentTheme.accent }]} />
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.coins")}</Text>
-								</View>
-								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
-									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{playerElo !== null ? playerElo : "N/A"}</Text>
+								</FadeInView>
+								<FadeInView index={1} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
+									{playerElo !== null ? <AnimatedNumber value={playerElo} style={[styles.statValue, { color: currentTheme.accent }]} /> : <Text style={[styles.statValue, { color: currentTheme.accent }]}>N/A</Text>}
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.elo")}</Text>
-								</View>
-								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
-									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{classicScore}</Text>
+								</FadeInView>
+								<FadeInView index={2} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
+									<AnimatedNumber value={classicScore} style={[styles.statValue, { color: currentTheme.accent }]} />
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.classic")}</Text>
-								</View>
-								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
-									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{chaosScore}</Text>
+								</FadeInView>
+								<FadeInView index={3} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
+									<AnimatedNumber value={chaosScore} style={[styles.statValue, { color: currentTheme.accent }]} />
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.chaos")}</Text>
-								</View>
-								<View style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
-									<Text style={[styles.statValue, { color: currentTheme.accent }]}>{gamesPlayed}</Text>
+								</FadeInView>
+								<FadeInView index={4} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
+									<AnimatedNumber value={gamesPlayed} style={[styles.statValue, { color: currentTheme.accent }]} />
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.matches")}</Text>
-								</View>
+								</FadeInView>
 							</View>
 						)}
 
 						{activeTab === "history" && (
-							<View style={styles.tabContentContainer}>
+							<FadeInView key="history" style={styles.tabContentContainer}>
 								<MatchHistoryList userId={session?.user?.id || playerName} />
-							</View>
+							</FadeInView>
 						)}
 
 						{activeTab === "friends" && (
-							<View style={styles.tabContentContainer}>
+							<FadeInView key="friends" style={styles.tabContentContainer}>
 								<FriendsList userId={session?.user?.id || playerName} />
-							</View>
+							</FadeInView>
 						)}
 
 						<StylizedButton 

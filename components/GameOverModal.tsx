@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import AnimatedNumber from "./AnimatedNumber";
+import FadeInView from "./FadeInView";
 import { StyleSheet, Text, View, Platform, TextInput } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -205,19 +207,23 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                 {t("over.yourScore")}
             </Text>
 
-            <Text style={[
-                styles.scoreValue,
-                {
-                    color: currentTheme.id === ThemeType.BLUE ? 'rgb(255, 204, 0)' : currentTheme.accent
-                }
-            ]}>
-                {score}
-            </Text>
+            <AnimatedNumber
+                value={score}
+                duration={900}
+                style={[
+                    styles.scoreValue,
+                    {
+                        color: currentTheme.id === ThemeType.BLUE ? 'rgb(255, 204, 0)' : currentTheme.accent
+                    }
+                ]}
+            />
 
             {coinsAwarded > 0 && (
-                <Text style={[styles.coinsText, { color: currentTheme.accent }]}>
-                    {t("over.coinsAwarded", { coins: coinsAwarded })}
-                </Text>
+                <FadeInView pop delay={700}>
+                    <Text style={[styles.coinsText, { color: currentTheme.accent }]}>
+                        {t("over.coinsAwarded", { coins: coinsAwarded })}
+                    </Text>
+                </FadeInView>
             )}
 
             {recordLine}

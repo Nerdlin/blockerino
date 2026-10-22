@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import FadeInView from "./FadeInView";
 import { Image, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, { BounceInUp, Easing, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
@@ -105,6 +106,7 @@ export default function MainMenu() {
 			title={t("mainmenu.versusTitle")}
 			flavorText={t("mainmenu.versusFlavor")}
 		/>
+		<FadeInView index={4} delay={250} style={{ width: "100%", alignItems: "center" }}>
 		<View style={[styles.rowWrap, isShortScreen && { marginBottom: 8 }]}>
 			<MainTile
 				title={t("mainmenu.challengesTitle")}
@@ -117,10 +119,13 @@ export default function MainMenu() {
 				onClick={() => appendAppState(MenuStateType.MORE_GAMES)}
 			/>
 		</View>
+		</FadeInView>
+		<FadeInView index={5} delay={250} style={{ width: "100%", alignItems: "center" }}>
 		<View style={[styles.rowWrap, styles.quietRow]}>
 			<QuietButton title={t("mainmenu.highScoresTitle")} onClick={() => appendAppState(MenuStateType.HIGH_SCORES)} />
 			<QuietButton title={t("mainmenu.optionsTitle")} onClick={() => appendAppState(MenuStateType.OPTIONS)} />
 		</View>
+		</FadeInView>
 		</View>
 	</View>
 }
