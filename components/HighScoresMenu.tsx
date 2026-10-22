@@ -252,6 +252,18 @@ export default function HighScores() {
             </View>
         )}
 
+
+        { !hasScores && !loading &&
+            <>
+                <Text style={[styles.noScoresText, { color: currentTheme.textPrimary }, isMobile && { fontSize: 20 }]}>
+                    {showFriends ? t("hs.noFriendsScores") : t("hs.noGlobalScores")}
+                </Text>
+                <StylizedButton text={t("hs.play", { mode: currentModeConfig.shortTitle })} onClick={() => {
+                    setAppState(gameMode)
+                }} backgroundColor={currentModeConfig.challenge?.color ?? currentTheme.buttonPrimary}></StylizedButton>
+            </>
+        }
+
         {authChecked && !signedIn && (
             <View style={styles.guestNickname}>
                 <Text style={[styles.guestNicknameLabel, { color: currentTheme.textSecondary }]}>{t("hs.yourNickname")}</Text>
@@ -276,17 +288,6 @@ export default function HighScores() {
                 )}
             </View>
         )}
-
-        { !hasScores && !loading &&
-            <>
-                <Text style={[styles.noScoresText, { color: currentTheme.textPrimary }, isMobile && { fontSize: 20 }]}>
-                    {showFriends ? t("hs.noFriendsScores") : t("hs.noGlobalScores")}
-                </Text>
-                <StylizedButton text={t("hs.play", { mode: currentModeConfig.shortTitle })} onClick={() => {
-                    setAppState(gameMode)
-                }} backgroundColor={currentModeConfig.challenge?.color ?? currentTheme.buttonPrimary}></StylizedButton>
-            </>
-        }
     </SimplePopupView>
 }
 

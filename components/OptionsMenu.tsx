@@ -429,10 +429,12 @@ function SettingLabel({
 	descStyle?: object;
 }) {
 	return (
-		<View style={styles.settingLabelContainer}>
-			<Text style={[styles.settingTitle, labelStyle]}>{title}</Text>
-			{description && <Text style={[styles.settingDesc, descStyle]}>{description}</Text>}
-			<View style={styles.settingLabelChildren}>
+		<View style={styles.settingRow}>
+			<View style={styles.settingText}>
+				<Text style={[styles.settingTitle, labelStyle]}>{title}</Text>
+				{description && <Text style={[styles.settingDesc, descStyle]}>{description}</Text>}
+			</View>
+			<View style={styles.settingControl}>
 				{children}
 			</View>
 		</View>
@@ -440,21 +442,20 @@ function SettingLabel({
 }
 
 const styles = StyleSheet.create({
-	settingLabelContainer: {
-		width: '80%',
-		paddingRight: 72,
-		height: 'auto',
-		justifyContent: 'flex-start',
-		alignItems: 'flex-start',
-		marginTop: 6,
-		marginBottom: 6
+	settingRow: {
+		width: '92%',
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		gap: 12,
+		marginVertical: 6,
 	},
-	settingLabelChildren: {
-		width: 'auto',
-		height: 'auto',
-		position: 'absolute',
-		alignSelf: 'flex-end',
-		justifyContent: 'flex-end',
+	settingText: {
+		flex: 1,
+		minWidth: 0,
+	},
+	settingControl: {
+		flexShrink: 0,
 	},
 	optionsScroll: {
 		width: "100%",
