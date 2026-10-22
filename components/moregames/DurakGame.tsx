@@ -12,6 +12,8 @@ import StylizedButton from "../StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { useUiScale } from "../SimplePopupView";
 import Slider from "@react-native-community/slider";
+import { DurakBotView, chooseDurakAction } from "@/constants/bots/DurakBot";
+import { BotPanel, useBotSettings } from "./BotPanel";
 import { DurakBout, DurakState, DurakVariant, OnlineRole } from "./types";
 import { DURAK_DECK_SIZES, DURAK_EMOJIS, DurakModeToggleColumn, OnlineRoomControls, SegmentButton, createRoomCode, formatCoins, getActiveDurakRoles, getDurakNetPrize, getNextDurakRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
 import { CARD_SKINS, ExtraGameCosmetics } from "./cosmetics";
@@ -389,6 +391,11 @@ const { t } = useLanguage();
 	}, [showEmote, state, t]);
 
 	const room = useMiniGameRoom("durak", handleEvent, playerName);
+	// Against the computer there is no room: the player sits at player1 and the other seats are played by the bot.
+	const { difficulty: botDifficulty, setDifficulty: setBotDifficulty, vsBot, setVsBot } = useBotSettings("durak");
+	const [botMode, setBotMode] = useState(false);
+	const seat: OnlineRole | null = botMode ? "player1" : room.role;
+	const online = botMode || room.isConnected;
 	useEffect(() => {
 		if (room.role && room.isConnected) setPlayerNames(current => ({ ...current, [room.role!]: playerName }));
 	}, [room.role, room.isConnected, playerName]);
@@ -455,12 +462,12 @@ const { t } = useLanguage();
 
 	const sendEmoji = (emoji: string) => {
 		setShowEmojis(false);
-		if (!room.role) return;
-		showEmote(room.role, emoji);
+		if (!seat) return;
+		showEmote(seat, emoji);
 		room.send("emoji", { emoji });
 	};
 
-	const myHand = room.role && state ? state.hands[room.role] : [];
+	const myHand = seat && state ? state.hands[seat] : [];
 
 	// Sync localHandOrder whenever the actual hand changes (cards drawn/removed)
 	useEffect(() => {
@@ -513,12 +520,12 @@ const { t } = useLanguage();
 	};
 
 	const callOutCheat = (boutIndex: number, isDefense: boolean) => {
-		if (!state || !room.role || state.winner || state.cancelled || !state.variants.includes("cheat")) return;
+		if (!state || !seat || state.winner || state.cancelled || !state.variants.includes("cheat")) return;
 		const bout = state.table[boutIndex];
 		if (!bout) return;
 
 		if (isDefense && bout.defense) {
-			if (state.defender === room.role) return; // Cannot accuse yourself
+			if (state.defender === seat) return; // Cannot accuse yourself
 			const isLegal = canBeatDurakCard(bout.defense, bout.attack, state.trump, ["throw_in"]);
 			if (!isLegal) {
 				const next: DurakState = {
@@ -533,7 +540,7 @@ const { t } = useLanguage();
 			}
 		} else if (!isDefense) {
 			if (boutIndex === 0 && state.table.length === 1) return;
-			if (state.attacker === room.role) return; // Cannot accuse yourself
+			if (state.attacker === seat) return; // Cannot accuse yourself
 			const previousCards = state.table.slice(0, boutIndex).flatMap(b => [b.attack, b.defense]).filter(Boolean) as string[];
 			if (previousCards.length === 0) return;
 			const validRanks = new Set(previousCards.map(cardRank));
@@ -551,14 +558,14 @@ const { t } = useLanguage();
 		}
 	};
 
-	const playCard = (card: string, targetIndexOverride?: number) => {
-		if (!state || !room.role || state.winner || state.cancelled) return;
-		if (!room.isConnected || !state.hands[room.role].includes(card)) return;
-		if (room.role === state.attacker && (state.phase === "attack" || state.phase === "throw" || state.phase === "defend")) {
-			if (!canThrowDurakCard(state, card, room.role) || state.table.length >= Math.min(6, state.hands[state.defender].length + state.table.filter((bout) => bout.defense).length)) return;
+	const playCard = (card: string, targetIndexOverride?: number, actor: OnlineRole | null = seat) => {
+		if (!state || !actor || state.winner || state.cancelled) return;
+		if (!online || !state.hands[actor].includes(card)) return;
+		if (actor === state.attacker && (state.phase === "attack" || state.phase === "throw" || state.phase === "defend")) {
+			if (!canThrowDurakCard(state, card, actor) || state.table.length >= Math.min(6, state.hands[state.defender].length + state.table.filter((bout) => bout.defense).length)) return;
 			const next: DurakState = {
 				...state,
-				hands: { ...state.hands, [room.role]: removeCard(state.hands[room.role], card) },
+				hands: { ...state.hands, [actor]: removeCard(state.hands[actor], card) },
 				table: [...state.table, { attack: card, defense: null }],
 				phase: "defend",
 				message: `${roleLabel(state.defender)} defends.`,
@@ -567,8 +574,8 @@ const { t } = useLanguage();
 			return;
 		}
 
-		if (room.role === state.defender && state.phase === "defend") {
-			const canCheat = state.variants.includes("cheat") && !state.bustedCheaters?.includes(room.role);
+		if (actor === state.defender && state.phase === "defend") {
+			const canCheat = state.variants.includes("cheat") && !state.bustedCheaters?.includes(actor);
 			const target = resolveDurakCardTarget(state.table, card, state.trump, state.variants, targetIndexOverride, canCheat);
 			if (!target) return;
 
@@ -577,7 +584,7 @@ const { t } = useLanguage();
 				if (state.table.length + 1 > Math.min(6, state.hands[nextDefender].length)) return;
 				const next: DurakState = {
 					...state,
-					hands: { ...state.hands, [room.role]: removeCard(state.hands[room.role], card) },
+					hands: { ...state.hands, [actor]: removeCard(state.hands[actor], card) },
 					table: [...state.table, { attack: card, defense: null }],
 					attacker: state.defender,
 					defender: nextDefender,
@@ -591,7 +598,7 @@ const { t } = useLanguage();
 			const defended = nextTable.every((bout) => bout.defense);
 			const next: DurakState = {
 				...state,
-				hands: { ...state.hands, [room.role]: removeCard(state.hands[room.role], card) },
+				hands: { ...state.hands, [actor]: removeCard(state.hands[actor], card) },
 				table: nextTable,
 				phase: defended ? "throw" : "defend",
 				message: defended ? "Defended. Attacker may throw more or pass." : "Defend the next card.",
@@ -600,8 +607,8 @@ const { t } = useLanguage();
 		}
 	};
 
-	const passRound = () => {
-		if (!state || state.cancelled || state.winner || !room.isConnected || !room.role || room.role !== state.attacker || !allDefended) return;
+	const passRound = (actor: OnlineRole | null = seat) => {
+		if (!state || state.cancelled || state.winner || !online || !actor || actor !== state.attacker || !allDefended) return;
 		const nextAttacker = state.defender;
 		const nextDefender = getNextDurakRole(nextAttacker, state.playerCount, state.hands);
 		syncState(drawDurakCards({
@@ -615,8 +622,8 @@ const { t } = useLanguage();
 		}, state.attacker));
 	};
 
-	const takeRound = () => {
-		if (!state || state.cancelled || state.winner || !room.isConnected || !room.role || room.role !== state.defender || state.table.length === 0) return;
+	const takeRound = (actor: OnlineRole | null = seat) => {
+		if (!state || state.cancelled || state.winner || !online || !actor || actor !== state.defender || state.table.length === 0) return;
 		const tableCards = getTableCards(state.table);
 		const nextAttacker = getNextDurakRole(state.defender, state.playerCount, state.hands);
 		const nextDefender = getNextDurakRole(nextAttacker, state.playerCount, state.hands);
@@ -644,6 +651,51 @@ const { t } = useLanguage();
 		ratingSubmittedRef.current = null;
 		room.connect("player1", undefined, Number(playerCount));
 	};
+
+	const startBotGame = () => {
+		// The computer neither cheats nor accuses, so a cheating table becomes a fair one. No bet, no rating.
+		const variants = activeVariants.includes("cheat") ? [...activeVariants.filter((variant) => variant !== "cheat"), "fair" as DurakVariant] : activeVariants;
+		const count = Number(playerCount);
+		const roles = getActiveDurakRoles(count);
+		setBetError(null);
+		setCoinResult(null);
+		setBotMode(true);
+		setPlayerNames(Object.fromEntries(roles.map((role, index) => [role, index === 0 ? playerName : count > 2 ? `Computer ${index}` : "Computer"])));
+		setPlayerAvatars(Object.fromEntries(roles.map((role) => [role, ""])));
+		setOpponentReady(true);
+		setState(createDurakState(count, variants, deckSize, 0));
+	};
+
+	const leaveBotGame = () => {
+		setBotMode(false);
+		setState(null);
+		setOpponentReady(false);
+		setPlayerNames({});
+	};
+
+	useEffect(() => {
+		if (!botMode || !state || state.winner || state.cancelled) return;
+		// Whoever has to answer an open attack acts; otherwise the attacker leads or decides to throw in or pass.
+		const actor = state.table.some((bout) => !bout.defense) ? state.defender : state.attacker;
+		if (actor === "player1") return;
+		const view: DurakBotView = {
+			hand: state.hands[actor],
+			table: state.table,
+			trump: state.trump,
+			deckCount: state.deck.length,
+			isAttacker: actor === state.attacker,
+			isDefender: actor === state.defender,
+			defenderHandSize: state.hands[state.defender].length,
+		};
+		const timer = setTimeout(() => {
+			const action = chooseDurakAction(view, botDifficulty);
+			if (action.type === "attack") playCard(action.card, undefined, actor);
+			else if (action.type === "defend") playCard(action.card, action.index, actor);
+			else if (action.type === "take") takeRound(actor);
+			else if (action.type === "pass") passRound(actor);
+		}, 900);
+		return () => clearTimeout(timer);
+	}, [botMode, state, botDifficulty]);
 
 	const join = () => {
 		// The table bet is set by the host; it is checked when the host announces it.
@@ -725,12 +777,12 @@ const { t } = useLanguage();
 		for (const role of roles) {
 			const label = roleLabel(role as OnlineRole);
 			if (msg.includes(label)) {
-				const name = role === room.role ? `${playerName} (you)` : (playerNames[role as OnlineRole] || label);
+				const name = role === seat ? `${playerName} (you)` : (playerNames[role as OnlineRole] || label);
 				msg = msg.replace(new RegExp(`\\b${label}\\b`, 'g'), name);
 			}
 		}
 		return msg;
-	}, [state?.message, playerNames, playerName, room.role]);
+	}, [state?.message, playerNames, playerName, seat]);
 
 	if (room.role && !opponentReady) {
 		return (
@@ -767,8 +819,14 @@ const { t } = useLanguage();
 						</View>
 					</View>
 
-					<Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary }]}>{t("durak.yourBet")}</Text>
-					<BetSlider value={bet} onChange={(v) => { setBet(v); setBetError(null); }} maxBalance={shopState.balance} />
+						<BotPanel vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); if (next) setActiveVariants((prev) => (prev.includes("cheat") ? [...prev.filter((variant) => variant !== "cheat"), "fair"] : prev)); }} difficulty={botDifficulty} onDifficultyChange={setBotDifficulty} friendLabel={t("bot.online")} />
+
+					{!vsBot && (
+						<>
+						<Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary }]}>{t("durak.yourBet")}</Text>
+						<BetSlider value={bet} onChange={(v) => { setBet(v); setBetError(null); }} maxBalance={shopState.balance} />
+						</>
+					)}
 
 					<Animated.Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary, transform: [{ translateX: shakeAnim }] }]}>{t("durak.players")}</Animated.Text>
 					<Animated.View style={[styles.segmentRow, { transform: [{ translateX: shakeAnim }] }]}>
@@ -810,6 +868,9 @@ const { t } = useLanguage();
 					</Animated.View>
 
 					<View style={{ marginTop: 40, alignItems: "center", width: "100%" }}>
+						{vsBot ? (
+							<StylizedButton text={t("bot.play")} onClick={startBotGame} backgroundColor={currentTheme.buttonPrimary} />
+						) : (
 						<OnlineRoomControls
 							roomCode={room.roomCode}
 							setRoomCode={room.setRoomCode}
@@ -819,6 +880,7 @@ const { t } = useLanguage();
 							onJoin={join}
 							onDisconnect={room.disconnect}
 						/>
+						)}
 					</View>
 
 					{betError && <Text style={styles.durakBetError}>{betError}</Text>}
@@ -864,7 +926,7 @@ const { t } = useLanguage();
 						{/* Opponents */}
 						<View style={styles.durakTopOpponents}>
 							{activeRoles.map((role) => {
-								const isMe = role === room.role;
+								const isMe = role === seat;
 								const avatar = playerAvatars[role];
 								const isAttacker = role === state.attacker;
 								const isDefender = role === state.defender;
@@ -963,7 +1025,7 @@ const { t } = useLanguage();
 											});
 										}}
 										onDragMove={(x, y) => {
-											if (room.role !== state.defender) return;
+											if (seat !== state.defender) return;
 											const hoveredIndex = boutRects.current.findIndex((rect, i) => {
 												if (!rect || state.table[i]?.defense) return false;
 												return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
@@ -986,6 +1048,11 @@ const { t } = useLanguage();
 
 						{state.cancelled ? (
 							<StylizedButton text="Leave" onClick={() => { room.disconnect(); setState(null); setOpponentReady(false); }} backgroundColor={cssColors.spaceGray} />
+							) : state.winner && botMode ? (
+							<View style={[styles.controlRow, { position: 'absolute', bottom: 120, zIndex: 100 }]}>
+								<StylizedButton text={t("bot.newGame")} onClick={startBotGame} backgroundColor={currentTheme.buttonPrimary} style={{ height: 40 }} textStyle={{ fontSize: 12 }} />
+								<StylizedButton text="Leave" onClick={leaveBotGame} backgroundColor={cssColors.spaceGray} style={{ height: 40 }} textStyle={{ fontSize: 12 }} />
+							</View>
 						) : state.winner ? (
 							<View style={[styles.controlRow, { position: 'absolute', bottom: 120, zIndex: 100 }]}>
 								{restartStatus === 'idle' && (
@@ -1035,8 +1102,8 @@ const { t } = useLanguage();
 							</View>
 						) : (
 							<View style={[styles.controlRow, { position: 'absolute', bottom: 120, zIndex: 100 }]}>
-								<StylizedButton text={t("durak.pass")} onClick={passRound} backgroundColor="#B45309" borderColor="#FDE68A" style={[styles.miniActionButton, styles.durakPassButton, { width: 100 }]} textStyle={{ fontSize: 10 }} disabled={room.role !== state.attacker || !allDefended} />
-								<StylizedButton text={t("durak.take")} onClick={takeRound} backgroundColor="#166534" borderColor="#86EFAC" style={[styles.miniActionButton, styles.durakTakeButton, { width: 100 }]} textStyle={{ fontSize: 10 }} disabled={room.role !== state.defender || state.table.every(b => !b.attack)} />
+								<StylizedButton text={t("durak.pass")} onClick={() => passRound()} backgroundColor="#B45309" borderColor="#FDE68A" style={[styles.miniActionButton, styles.durakPassButton, { width: 100 }]} textStyle={{ fontSize: 10 }} disabled={seat !== state.attacker || !allDefended} />
+								<StylizedButton text={t("durak.take")} onClick={() => takeRound()} backgroundColor="#166534" borderColor="#86EFAC" style={[styles.miniActionButton, styles.durakTakeButton, { width: 100 }]} textStyle={{ fontSize: 10 }} disabled={seat !== state.defender || state.table.every(b => !b.attack)} />
 								<Pressable onPress={() => setShowEmojis(!showEmojis)} style={[styles.durakEmojiButton, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: currentTheme.accent }]}>
 									<PixelIcon name="face-happy" size={20} color="#FACC15" />
 								</Pressable>
