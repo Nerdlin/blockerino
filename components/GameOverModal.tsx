@@ -8,7 +8,7 @@ import { GameModeType, MenuStateType, useSetAppState } from "@/hooks/useAppState
 import { supabase } from "@/constants/Supabase";
 import { setProfileAuthIntent } from "@/constants/ProfileIntent";
 import { useSoundSettings } from "@/constants/Sound";
-import { useTheme, ThemeType } from "@/constants/Theme";
+import {useTheme, ThemeType, opaqueColor } from "@/constants/Theme";
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { normalizePlayerName } from "@/constants/Multiplayer";
@@ -184,7 +184,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
     );
 
     return (
-        <SimplePopupView style={[{ backgroundColor: currentTheme.menuBackground }]}>
+        <SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
             <Animated.Text
                 entering={FadeIn.duration(1000)}
                 style={[

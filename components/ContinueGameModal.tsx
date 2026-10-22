@@ -2,7 +2,7 @@ import React from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
-import { useTheme } from "@/constants/Theme";
+import {useTheme, opaqueColor } from "@/constants/Theme";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { GameModeType } from "@/hooks/useAppState";
 import { getGameModeConfig } from "@/constants/GameModes";
@@ -24,7 +24,7 @@ export default function ContinueGameModal({
     const modeTitle = getGameModeConfig(gameMode).title;
 
     return (
-        <SimplePopupView style={[{ backgroundColor: currentTheme.menuBackground }]}>
+        <SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
             <Animated.Text
                 entering={FadeIn.duration(1000)}
                 style={[

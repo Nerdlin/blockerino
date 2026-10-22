@@ -50,15 +50,28 @@ function orderedMoves(chess: Chess): Verbose[] {
 	return moves.sort((a, b) => weight(b) - weight(a));
 }
 
-function search(chess: Chess, depth: number, alpha: number, beta: number, ply: number): number {
+/** Thrown inside the search when the time budget is used up; the caller then keeps the last finished depth. */
+class OutOfTime extends Error {}
+
+interface Clock {
+	deadline: number;
+	nodes: number;
+}
+
+function search(chess: Chess, depth: number, alpha: number, beta: number, ply: number, clock: Clock | null): number {
 	if (depth === 0) return evaluate(chess);
+	if (clock) {
+		clock.nodes += 1;
+		// looking at the clock is cheap but not free: once every 64 nodes is plenty
+		if ((clock.nodes & 63) === 0 && Date.now() > clock.deadline) throw new OutOfTime();
+	}
 	const moves = orderedMoves(chess);
 	if (moves.length === 0) return chess.inCheck() ? -MATE + ply : 0;
 
 	let best = -Infinity;
 	for (const move of moves) {
 		chess.move({ from: move.from, to: move.to, promotion: move.promotion });
-		const score = -search(chess, depth - 1, -beta, -alpha, ply + 1);
+		const score = -search(chess, depth - 1, -beta, -alpha, ply + 1, clock);
 		chess.undo();
 		if (score > best) best = score;
 		if (best > alpha) alpha = best;
@@ -67,27 +80,46 @@ function search(chess: Chess, depth: number, alpha: number, beta: number, ply: n
 	return best;
 }
 
-const DEPTH: Record<BotDifficulty, number> = { easy: 1, medium: 2, hard: 3 };
+const DEPTH: Record<BotDifficulty, number> = { easy: 1, medium: 2, hard: 4 };
+/** Thinking time per move; a slow phone then simply searches less deep instead of making the player wait. */
+const TIME_BUDGET_MS: Record<BotDifficulty, number> = { easy: 400, medium: 1200, hard: 2200 };
 
-/** Scores every legal move at the level's depth. Higher is better for the side to move. */
-function scoreMoves(chess: Chess, depth: number): { move: Verbose; score: number }[] {
+/** Scores every legal move at the given depth. Higher is better for the side to move. */
+function scoreMoves(chess: Chess, depth: number, clock: Clock | null): { move: Verbose; score: number }[] {
 	const result: { move: Verbose; score: number }[] = [];
 	for (const move of orderedMoves(chess)) {
 		chess.move({ from: move.from, to: move.to, promotion: move.promotion });
-		const score = -search(chess, depth - 1, -Infinity, Infinity, 1);
+		// a move that mates is always the best one, whatever the depth
+		const score = chess.isCheckmate() ? MATE : -search(chess, depth - 1, -Infinity, Infinity, 1, clock);
 		chess.undo();
 		result.push({ move, score });
 	}
 	return result.sort((a, b) => b.score - a.score);
 }
 
+/** Deepens one ply at a time and keeps the result of the last depth that finished inside the time budget. */
+function bestScored(fen: string, maxDepth: number, budgetMs: number): { move: Verbose; score: number }[] {
+	let best = scoreMoves(new Chess(fen), 1, null);
+	const clock: Clock = { deadline: Date.now() + budgetMs, nodes: 0 };
+	for (let depth = 2; depth <= maxDepth; depth++) {
+		try {
+			// a fresh board for each depth: an aborted search leaves the old one half way through its moves
+			best = scoreMoves(new Chess(fen), depth, clock);
+		} catch (error) {
+			if (error instanceof OutOfTime) break;
+			throw error;
+		}
+	}
+	return best;
+}
+
 /**
  * Picks the bot's move for the position (FEN). Returns null when there is no legal move.
  *  - easy: often plays a random legal move, otherwise the best move one ply ahead
- *  - medium: two plies, now and then one of the three best moves instead of the best
- *  - hard: three plies, always the best move found
+ *  - medium: up to two plies, now and then one of the three best moves instead of the best
+ *  - hard: up to four plies within about two seconds, always the best move found
  */
-export function chooseChessMove(fen: string, difficulty: BotDifficulty, rng: Rng = Math.random): ChessBotMove | null {
+export function chooseChessMove(fen: string, difficulty: BotDifficulty, rng: Rng = Math.random, options: { timeBudgetMs?: number } = {}): ChessBotMove | null {
 	const chess = new Chess(fen);
 	const legal = chess.moves({ verbose: true }) as unknown as Verbose[];
 	if (legal.length === 0) return null;
@@ -96,7 +128,7 @@ export function chooseChessMove(fen: string, difficulty: BotDifficulty, rng: Rng
 
 	if (difficulty === "easy" && rng() < 0.4) return toMove(legal[randomInt(rng, legal.length)]);
 
-	const scored = scoreMoves(chess, DEPTH[difficulty]);
+	const scored = bestScored(fen, DEPTH[difficulty], options.timeBudgetMs ?? TIME_BUDGET_MS[difficulty]);
 	if (difficulty === "medium" && scored.length > 1 && rng() < 0.15) {
 		return toMove(pickRandom(rng, scored.slice(0, 3)).move);
 	}

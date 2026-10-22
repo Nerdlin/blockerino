@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
-import { useTheme } from "@/constants/Theme";
+import {useTheme, opaqueColor } from "@/constants/Theme";
 import { cssColors } from "@/constants/Color";
 import { SECOND_CHANCE_DECISION_SECONDS } from "@/constants/SecondChance";
 import { useLanguage } from "@/constants/Localization";
@@ -45,7 +45,7 @@ export default function SecondChanceModal({
 	}, [onDecline, secondsLeft]);
 
 	return (
-		<SimplePopupView style={[styles.popup, { backgroundColor: currentTheme.menuBackground }]}>
+		<SimplePopupView style={[styles.popup, { backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
 			<Text style={[styles.title, { color: currentTheme.buttonPrimary }]}>{t("over.extraChance")}</Text>
 			<Text style={[styles.timer, { color: currentTheme.accent }]}>{t("over.seconds", { seconds: secondsLeft })}</Text>
 			<Text style={[styles.message, { color: currentTheme.textSecondary }]}>

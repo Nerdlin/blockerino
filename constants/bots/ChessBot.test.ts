@@ -55,7 +55,8 @@ describe("chooseChessMove", () => {
 	it("answers the first move quickly enough on hard", () => {
 		const started = Date.now();
 		chooseChessMove(new Chess().fen(), "hard", seeded(1));
-		expect(Date.now() - started).toBeLessThan(6000);
+		// the thinking time is capped, so a slow phone answers in about two seconds too
+		expect(Date.now() - started).toBeLessThan(4000);
 	});
 
 	it("beats a random mover on medium", () => {
@@ -67,7 +68,7 @@ describe("chooseChessMove", () => {
 			let plies = 0;
 			while (!chess.isGameOver() && plies < 120) {
 				const botTurn = (chess.turn() === "w") === botIsWhite;
-				if (botTurn) chess.move(chooseChessMove(chess.fen(), "medium", rng)!);
+				if (botTurn) chess.move(chooseChessMove(chess.fen(), "medium", rng, { timeBudgetMs: 120 })!);
 				else {
 					const moves = chess.moves({ verbose: true }) as any[];
 					chess.move(moves[Math.floor(rng() * moves.length)]);
