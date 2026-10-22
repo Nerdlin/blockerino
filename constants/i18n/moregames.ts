@@ -2,6 +2,17 @@ import type { ScreenDictionary } from "./index";
 
 export const moregames: ScreenDictionary = {
 	en: {
+		// Playing against the computer
+		"bot.opponent": "Opponent",
+		"bot.friend": "Friend",
+		"bot.computer": "Computer",
+		"bot.difficulty": "Difficulty",
+		"bot.easy": "Easy",
+		"bot.medium": "Medium",
+		"bot.hard": "Hard",
+		"bot.noRewards": "Practice only: no rating or coins.",
+		"bot.thinking": "Computer thinks...",
+		"bot.newGame": "New game",
 		"moregames.help.shop": "Choose a look for your next game.",
 		"moregames.help.chess": "Select a piece, then a highlighted square.",
 		"moregames.help.sudoku": "Each row, column and 3×3 box needs the digits 1–9.",
@@ -185,6 +196,17 @@ export const moregames: ScreenDictionary = {
 		"battleship.timer": "{time}s",
 	},
 	ru: {
+		// Игра против компьютера
+		"bot.opponent": "Соперник",
+		"bot.friend": "Друг",
+		"bot.computer": "Компьютер",
+		"bot.difficulty": "Сложность",
+		"bot.easy": "Лёгкий",
+		"bot.medium": "Средний",
+		"bot.hard": "Сложный",
+		"bot.noRewards": "Тренировка: без рейтинга и монет.",
+		"bot.thinking": "Компьютер думает...",
+		"bot.newGame": "Новая игра",
 		"moregames.help.shop": "Выберите оформление для следующей партии.",
 		"moregames.help.chess": "Выберите фигуру, затем подсвеченную клетку.",
 		"moregames.help.sudoku": "В каждой строке, столбце и квадрате 3×3 нужны цифры 1–9.",

@@ -4,6 +4,8 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { submitMoreGameMatchResult } from "@/constants/Supabase";
 import { View, Text, Pressable } from "react-native";
 import StylizedButton from "../StylizedButton";
+import { chooseTicTacToeMove } from "@/constants/bots/TicTacToeBot";
+import { BotPanel, useBotSettings } from "./BotPanel";
 import { OnlineRole, TicMark } from "./types";
 import { OnlineRoomControls, isDuelRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
 import { styles } from "./styles";
@@ -17,6 +19,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 	const [opponentName, setOpponentName] = useState("Opponent");
 	const [remoteResult, setRemoteResult] = useState<string | null>(null);
 	const ratingSubmittedRef = useRef<string | null>(null);
+	const { difficulty, setDifficulty, vsBot, setVsBot } = useBotSettings("tictactoe");
 	const winner = getTicTacToeWinner(board);
 	const isDraw = !winner && board.every(Boolean);
 
@@ -61,6 +64,21 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 		roomRef.current = { role: room.role, send: room.send };
 	}, [room.role, room.send]);
 
+	// Against the computer the player is X and the computer answers as O after a short pause.
+	const botActive = vsBot && !room.role;
+	useEffect(() => {
+		if (!botActive || turn !== "O" || winner || isDraw) return;
+		const timer = setTimeout(() => {
+			const index = chooseTicTacToeMove(board, "O", difficulty);
+			if (index < 0) return;
+			const nextBoard = [...board];
+			nextBoard[index] = "O";
+			setBoard(nextBoard);
+			setTurn("X");
+		}, 450);
+		return () => clearTimeout(timer);
+	}, [botActive, board, turn, winner, isDraw, difficulty]);
+
 	const reset = () => {
 		const nextBoard = Array(9).fill(null);
 		setBoard(nextBoard);
@@ -72,6 +90,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 
 	const play = (index: number) => {
 		if (winner || isDraw || remoteResult || board[index]) return;
+		if (botActive && turn !== "X") return;
 		if (room.role && !room.isConnected) return;
 		const online = room.isConnected && isDuelRole(room.role);
 		const myMark: TicMark = room.role === "player2" ? "O" : "X";
@@ -85,7 +104,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 		room.send("move", { board: nextBoard, turn: nextTurn });
 	};
 
-	const status = remoteResult || (winner ? t("moregames.wins", { name: winner }) : isDraw ? t("moregames.draw") : room.role && !opponentReady ? t("moregames.waitingOpponent") : t("moregames.turn", { name: turn }));
+	const status = remoteResult || (winner ? t("moregames.wins", { name: winner }) : isDraw ? t("moregames.draw") : room.role && !opponentReady ? t("moregames.waitingOpponent") : botActive && turn === "O" ? t("bot.thinking") : t("moregames.turn", { name: turn }));
 
 	useEffect(() => {
 		if (!room.isConnected || !isDuelRole(room.role)) return;
@@ -122,8 +141,8 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 					role={room.role}
 					status={room.status}
 					opponentReady={opponentReady}
-					onHost={() => { reset(); setOpponentReady(false); room.connect("player1"); }}
-					onJoin={() => { reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
+					onHost={() => { setVsBot(false); reset(); setOpponentReady(false); room.connect("player1"); }}
+					onJoin={() => { setVsBot(false); reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
 					onDisconnect={room.disconnect}
 				/>
 			</View>
@@ -145,6 +164,9 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 				))}
 			</View>
 			<StylizedButton text={t("moregames.reset")} onClick={reset} backgroundColor={currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
+			{!room.role && (
+				<BotPanel vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); reset(); }} difficulty={difficulty} onDifficultyChange={(next) => { setDifficulty(next); reset(); }} />
+			)}
 			<View style={{ marginTop: 20, alignItems: "center", width: "100%" }}>
 				<OnlineRoomControls
 					roomCode={room.roomCode}
@@ -152,8 +174,8 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 					role={room.role}
 					status={room.status}
 					opponentReady={opponentReady}
-					onHost={() => { reset(); setOpponentReady(false); room.connect("player1"); }}
-					onJoin={() => { reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
+					onHost={() => { setVsBot(false); reset(); setOpponentReady(false); room.connect("player1"); }}
+					onJoin={() => { setVsBot(false); reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
 					onDisconnect={room.disconnect}
 				/>
 			</View>
