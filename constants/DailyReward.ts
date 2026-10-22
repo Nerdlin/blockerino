@@ -1,4 +1,5 @@
 import { atom } from "jotai";
+import { noteStreakBest } from "./Achievements";
 import { supabase } from "./Supabase";
 
 // Daily login streak. The server owns the streak and pays the coins (daily_streak migration); this file
@@ -66,7 +67,9 @@ export async function fetchDailyRewardStatus(): Promise<DailyRewardStatus | null
 		if (!session?.user) return null;
 		const { data, error } = await supabase.rpc("daily_reward_status");
 		if (error) return null;
-		return parseDailyRewardStatus(data);
+		const status = parseDailyRewardStatus(data);
+		if (status) noteStreakBest(status.best);
+		return status;
 	} catch {
 		return null;
 	}
@@ -79,7 +82,9 @@ export async function claimDailyReward(): Promise<{ state: "claimed" | "already"
 		if (!session?.user) return null;
 		const { data, error } = await supabase.rpc("claim_daily_reward");
 		if (error) return null;
-		return parseDailyRewardClaim(data);
+		const claim = parseDailyRewardClaim(data);
+		if (claim) noteStreakBest(claim.claim.best);
+		return claim;
 	} catch {
 		return null;
 	}

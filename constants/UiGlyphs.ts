@@ -34,15 +34,15 @@ export const UI_GLYPHS = {
 	refresh: {
 		palette: { a: "#E2E8F0", b: "#94A3B8", c: "#FFFFFF", d: "#FFFFFF" },
 		rows: [
-			"..aaaaa.a",
-			".aa...aaa",
-			"aa.....aa",
+			".aaaaa...",
+			"a.....a.a",
+			"a......aa",
+			"a.....aaa",
+			"a........",
 			"a.......a",
-			"a.......a",
-			"a.......a",
-			"aa.....aa",
-			".aa...aa.",
-			"..aaaaa..",
+			"a......a.",
+			".a....a..",
+			"..aaaa...",
 		],
 	},
 	swap: {

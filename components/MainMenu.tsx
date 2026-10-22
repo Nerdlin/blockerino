@@ -66,6 +66,7 @@ export default function MainMenu() {
 		<Pressable
 			onPress={() => appendAppState(MenuStateType.ACHIEVEMENTS)}
 			style={styles.achievementsButton}
+			accessibilityLabel={t("ach.header")}
 		>
 			<PixelIcon name="medal" size={27} color="#F0AF0C" secondaryColor="#FFFFFF" />
 		</Pressable>

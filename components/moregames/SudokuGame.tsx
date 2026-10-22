@@ -2,6 +2,7 @@ import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { useState, useRef, useEffect } from "react";
 import { submitMoreGameSoloResult } from "@/constants/Supabase";
+import { recordMoreGameWin } from "@/constants/Achievements";
 import { View, Text, Pressable } from "react-native";
 import StylizedButton from "../StylizedButton";
 import { cssColors } from "@/constants/Color";
@@ -113,6 +114,7 @@ export function SudokuGame({ cosmetics, playerName, onRatingChange }: { cosmetic
 	useEffect(() => {
 		if (!finished || ratingSubmittedRef.current) return;
 		ratingSubmittedRef.current = true;
+		if (complete) recordMoreGameWin("sudoku");
 		void submitMoreGameSoloResult({
 			gameId: "sudoku",
 			playerName,

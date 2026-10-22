@@ -3,6 +3,7 @@ import { atom, useAtom } from "jotai";
 import { useCallback, useEffect } from "react";
 import { supabase } from "./Supabase";
 import { track } from "./Analytics";
+import { noteCoinBalance } from "./Achievements";
 
 export type ShopCategory = "piece_skin" | "background" | "music" | "sfx" | "chess_piece" | "chess_board" | "sea_skin" | "card_skin" | "sudoku_theme" | "mahjong_theme";
 export type BackgroundScene = "classic" | "ender" | "sunset" | "ice" | "cyber";
@@ -815,7 +816,9 @@ export function normalizeShopState(value: Partial<ShopState> | null | undefined)
 export async function loadShopState(): Promise<ShopState> {
 	try {
 		const raw = await AsyncStorage.getItem(SHOP_STATE_KEY);
-		return normalizeShopState(raw ? JSON.parse(raw) : null);
+		const loaded = normalizeShopState(raw ? JSON.parse(raw) : null);
+		noteCoinBalance(loaded.balance);
+		return loaded;
 	} catch (error) {
 		console.error("Error loading shop state:", error);
 		return createDefaultShopState();
@@ -823,6 +826,7 @@ export async function loadShopState(): Promise<ShopState> {
 }
 
 export async function saveShopState(state: ShopState): Promise<void> {
+	noteCoinBalance(state.balance);
 	try {
 		await AsyncStorage.setItem(SHOP_STATE_KEY, JSON.stringify(normalizeShopState(state)));
 	} catch (error) {

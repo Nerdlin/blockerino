@@ -1,23 +1,35 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import FadeInView from "./FadeInView";
-import { AppState, Platform, StyleSheet, Text, View, useWindowDimensions, Pressable } from "react-native";
+import { AppState, StyleSheet, Text, View, useWindowDimensions, Pressable } from "react-native";
 import PixelLoader from "@/components/PixelLoader";
 import SimplePopupView from "./SimplePopupView";
 import AchievementIcon from "./AchievementIcon";
+import SegmentedControl from "./SegmentedControl";
 import StylizedButton from "./StylizedButton";
 import UiIcon from "./UiIcon";
 import { useTheme } from "@/constants/Theme";
 import { cssColors } from "@/constants/Color";
 import {
+	ACHIEVEMENT_CHAIN_GROUPS,
+	AchievementGroup,
 	AchievementRow,
 	getAchievementRows,
 	subscribeToAchievementProgress,
 	subscribeToAchievementUnlocks,
 } from "@/constants/Achievements";
+import {
+	AchievementChainView,
+	buildChainViews,
+	claimAchievements,
+	readClaimedAchievements,
+} from "@/constants/AchievementRewards";
 import { useAppState } from "@/hooks/useAppState";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { useShopState } from "@/constants/Shop";
+import { useAccountIdentity } from "@/hooks/useAccountIdentity";
+import { loadShopState, useShopState } from "@/constants/Shop";
 import { useLanguage } from "@/constants/Localization";
+
+const GROUPS: AchievementGroup[] = ["solo", "versus", "games", "economy"];
 
 export default function AchievementsMenu() {
 	const { currentTheme } = useTheme();
@@ -25,42 +37,54 @@ export default function AchievementsMenu() {
 	const [, , , popAppState] = useAppState();
 	const { width } = useWindowDimensions();
 	const isMobile = width < 600;
+	const { signedIn } = useAccountIdentity();
 	const [achievements, setAchievements] = useState<AchievementRow[]>([]);
+	const [claimed, setClaimed] = useState<string[]>([]);
 	const [loading, setLoading] = useState(true);
-	const completedCount = useMemo(
-		() => achievements.filter((achievement) => achievement.progress.complete).length,
-		[achievements]
-	);
+	const [group, setGroup] = useState<AchievementGroup>("solo");
+	const [claiming, setClaiming] = useState(false);
+	const [claimNote, setClaimNote] = useState<{ text: string; ok: boolean } | null>(null);
 
-	// Closest to done first, then not started, finished ones at the bottom.
-	const sorted = useMemo(() => {
-		const rank = (a: AchievementRow) => a.progress.complete ? 2 : a.progress.current > 0 ? 0 : 1;
-		const ratio = (a: AchievementRow) => a.progress.current / Math.max(1, a.progress.target);
-		return [...achievements].sort((a, b) => rank(a) - rank(b) || (rank(a) === 0 ? ratio(b) - ratio(a) : 0));
-	}, [achievements]);
+	const chains = useMemo(() => buildChainViews(achievements, claimed), [achievements, claimed]);
+	const completedCount = useMemo(() => achievements.filter((achievement) => achievement.progress.complete).length, [achievements]);
+	const pendingCoins = useMemo(() => chains.reduce((sum, chain) => sum + chain.claimableCoins, 0), [chains]);
+	const pendingIds = useMemo(() => chains.flatMap((chain) => chain.claimable.map((tier) => tier.id)), [chains]);
+
+	// Per tab: rewards waiting first, then the chains closest to their next tier, then not started, finished ones last.
+	const visibleChains = useMemo(() => {
+		const inGroup = chains.filter((chain) => ACHIEVEMENT_CHAIN_GROUPS[chain.chain] === group);
+		const rank = (chain: AchievementChainView) => (chain.claimable.length > 0 ? 0 : chain.allDone ? 3 : chain.focus.progress.current > 0 ? 1 : 2);
+		const ratio = (chain: AchievementChainView) => chain.focus.progress.current / Math.max(1, chain.focus.target);
+		return [...inGroup].sort((a, b) => rank(a) - rank(b) || (rank(a) === 1 ? ratio(b) - ratio(a) : 0));
+	}, [chains, group]);
+
+	const waitingByGroup = useMemo(() => {
+		const counts: Record<AchievementGroup, number> = { solo: 0, versus: 0, games: 0, economy: 0 };
+		for (const chain of chains) if (chain.claimable.length > 0) counts[ACHIEVEMENT_CHAIN_GROUPS[chain.chain]] += 1;
+		return counts;
+	}, [chains]);
 
 	// Secret states
 	const [firstStepsClicks, setFirstStepsClicks] = useState(0);
 	const [secretMessage, setSecretMessage] = useState<string | null>(null);
 	const { state: shopState, commit: commitShopState } = useShopState();
 
-	const handleAchievementClick = async (id: string) => {
-		if (id === "first_steps") {
-			if (shopState.ownedItemIds.includes("sfx_custom")) return;
+	const handleChainPress = async (chain: AchievementChainView) => {
+		if (chain.chain !== "solo_games") return;
+		if (shopState.ownedItemIds.includes("sfx_custom")) return;
 
-			const newClicks = firstStepsClicks + 1;
-			setFirstStepsClicks(newClicks);
+		const newClicks = firstStepsClicks + 1;
+		setFirstStepsClicks(newClicks);
 
-			if (newClicks === 7) {
-				setSecretMessage("SECRET UNLOCKED: Custom SFX URL in Shop!");
-				const newState = {
-					...shopState,
-					ownedItemIds: [...shopState.ownedItemIds, "sfx_custom"]
-				};
-				await commitShopState(newState);
-			} else if (newClicks >= 3) {
-				setSecretMessage(`${7 - newClicks} clicks remaining...`);
-			}
+		if (newClicks === 7) {
+			setSecretMessage("SECRET UNLOCKED: Custom SFX URL in Shop!");
+			const newState = {
+				...shopState,
+				ownedItemIds: [...shopState.ownedItemIds, "sfx_custom"],
+			};
+			await commitShopState(newState);
+		} else if (newClicks >= 3) {
+			setSecretMessage(`${7 - newClicks} clicks remaining...`);
 		}
 	};
 
@@ -70,11 +94,15 @@ export default function AchievementsMenu() {
 	// `silent` refreshes keep the current list on screen instead of showing the spinner.
 	const loadAchievements = useCallback(async (silent = false) => {
 		if (!silent || !hasLoadedRef.current) setLoading(true);
-		const rows = await getAchievementRows();
+		const [rows, storedClaims] = await Promise.all([getAchievementRows(), readClaimedAchievements()]);
 		if (!isMountedRef.current) return;
 		hasLoadedRef.current = true;
 		setAchievements(rows);
+		setClaimed(storedClaims);
 		setLoading(false);
+		// The server knows which tiers were paid (also on other devices).
+		const fromServer = await claimAchievements([]);
+		if (fromServer && isMountedRef.current) setClaimed(fromServer.claimed);
 	}, []);
 
 	useEffect(() => {
@@ -97,7 +125,29 @@ export default function AchievementsMenu() {
 		};
 	}, [loadAchievements]);
 
+	const claim = async (ids: string[]) => {
+		if (claiming || ids.length === 0) return;
+		setClaiming(true);
+		setClaimNote(null);
+		const result = await claimAchievements(ids);
+		setClaiming(false);
+		if (!isMountedRef.current) return;
+		if (!result) {
+			setClaimNote({ text: t("ach.claimFailed"), ok: false });
+			return;
+		}
+		setClaimed(result.claimed);
+		if (result.coins !== null) {
+			const latest = await loadShopState();
+			await commitShopState({ ...latest, balance: result.coins }, []);
+		}
+		const paid = result.granted.reduce((sum, id) => sum + (achievements.find((row) => row.id === id)?.reward ?? 0), 0);
+		setClaimNote({ text: t("ach.claimed", { coins: paid }), ok: true });
+	};
+
 	useEscapeKey(popAppState);
+
+	const tabLabel = (key: AchievementGroup) => `${t(`ach.tab.${key}`)}${waitingByGroup[key] > 0 ? " •" : ""}`;
 
 	return (
 		<SimplePopupView style={[
@@ -140,72 +190,156 @@ export default function AchievementsMenu() {
 							/>
 						</View>
 					</View>
+					{pendingCoins > 0 && signedIn && (
+						<StylizedButton
+							text={t("ach.claimAll", { coins: pendingCoins })}
+							onClick={() => void claim(pendingIds)}
+							backgroundColor="#16A34A"
+							disabled={claiming}
+							style={styles.claimAllButton}
+							textStyle={styles.claimText}
+						/>
+					)}
 				</View>
+			)}
+			{!loading && pendingCoins > 0 && !signedIn && (
+				<Text style={[styles.note, { color: currentTheme.accent }]}>{t("ach.signInToClaim", { coins: pendingCoins })}</Text>
+			)}
+			{claimNote && (
+				<Text style={[styles.note, { color: claimNote.ok ? "#4ADE80" : "#F87171" }]}>{claimNote.text}</Text>
 			)}
 			{secretMessage && (
 				<Text style={{ fontFamily: 'Silkscreen', fontSize: 12, color: '#FFD700', marginBottom: 10, textAlign: 'center' }}>
 					{secretMessage}
 				</Text>
 			)}
+			<View style={styles.tabs}>
+				<SegmentedControl<AchievementGroup>
+					small
+					value={group}
+					onChange={setGroup}
+					items={GROUPS.map((key) => ({ key, label: tabLabel(key) }))}
+				/>
+			</View>
 
 			{loading ? (
 				<PixelLoader size="large" color={currentTheme.accent} style={styles.loader} />
 			) : (
 				<View style={styles.list}>
-					{sorted.map((achievement, achievementIndex) => {
-						const done = achievement.progress.complete;
-						const progressPercent = Math.min(100, Math.round((achievement.progress.current / achievement.progress.target) * 100));
-						const progressWidth = `${progressPercent}%` as `${number}%`;
-
-						return (
-							<FadeInView key={achievement.id} index={achievementIndex}>
-							<Pressable
-								onPress={() => handleAchievementClick(achievement.id)}
-								style={[
-									styles.row,
-									{
-										borderColor: done ? currentTheme.accent : "rgba(255, 255, 255, 0.16)",
-										backgroundColor: done ? "rgba(240, 175, 12, 0.10)" : "rgba(255, 255, 255, 0.04)",
-									},
-								]}
-							>
-								<View
-									style={[
-										styles.medalBadge,
-										{
-											borderColor: done ? currentTheme.accent : "rgba(255, 255, 255, 0.2)",
-											backgroundColor: done ? "rgba(240, 175, 12, 0.16)" : "rgba(0, 0, 0, 0.35)",
-										},
-									]}
-								>
-									<AchievementIcon achievementId={achievement.id} size={27} dimmed={!done} />
-								</View>
-								<View style={styles.titleBlock}>
-									<View style={styles.titleLine}>
-										<Text style={[styles.title, { color: currentTheme.textPrimary }]} numberOfLines={1}>
-											{t(`ach.${achievement.id}.title`)}
-										</Text>
-										<Text style={[styles.progress, { color: done ? currentTheme.accent : currentTheme.textSecondary }]}>
-											{done ? "✓" : `${achievement.progress.current}/${achievement.progress.target}`}
-										</Text>
-									</View>
-									<Text style={[styles.howTo, { color: currentTheme.textSecondary }]} numberOfLines={2}>
-										{t(`ach.${achievement.id}.unlock`)}
-									</Text>
-									{!done && (
-										<View style={styles.progressTrack}>
-											<View style={[styles.progressFill, { width: progressWidth, backgroundColor: currentTheme.buttonPrimary }]} />
-										</View>
-									)}
-								</View>
-							</Pressable>
-							</FadeInView>
-						);
-					})}
+					{visibleChains.map((chain, chainIndex) => (
+						<FadeInView key={`${group}-${chain.chain}`} index={chainIndex}>
+							<ChainCard
+								chain={chain}
+								signedIn={signedIn}
+								claiming={claiming}
+								onPress={() => void handleChainPress(chain)}
+								onClaim={() => void claim(chain.claimable.map((tier) => tier.id))}
+							/>
+						</FadeInView>
+					))}
 				</View>
 			)}
 
 		</SimplePopupView>
+	);
+}
+
+function ChainCard({
+	chain,
+	signedIn,
+	claiming,
+	onPress,
+	onClaim,
+}: {
+	chain: AchievementChainView;
+	signedIn: boolean;
+	claiming: boolean;
+	onPress: () => void;
+	onClaim: () => void;
+}) {
+	const { currentTheme } = useTheme();
+	const { t } = useLanguage();
+	const { focus } = chain;
+	const done = chain.allDone;
+	const ready = chain.claimable.length > 0;
+	const progressPercent = Math.min(100, Math.round((focus.progress.current / focus.progress.target) * 100));
+	const borderColor = ready ? "#4ADE80" : done ? currentTheme.accent : "rgba(255, 255, 255, 0.16)";
+
+	return (
+		<Pressable
+			onPress={onPress}
+			style={[
+				styles.row,
+				{
+					borderColor,
+					backgroundColor: ready ? "rgba(74, 222, 128, 0.08)" : done ? "rgba(240, 175, 12, 0.10)" : "rgba(255, 255, 255, 0.04)",
+				},
+			]}
+		>
+			<View
+				style={[
+					styles.medalBadge,
+					{
+						borderColor: done || ready ? currentTheme.accent : "rgba(255, 255, 255, 0.2)",
+						backgroundColor: done ? "rgba(240, 175, 12, 0.16)" : "rgba(0, 0, 0, 0.35)",
+					},
+				]}
+			>
+				<AchievementIcon achievementId={focus.id} size={27} dimmed={!focus.progress.complete} />
+			</View>
+			<View style={styles.titleBlock}>
+				<View style={styles.titleLine}>
+					<Text style={[styles.chainTitle, { color: currentTheme.textSecondary }]} numberOfLines={1}>
+						{t(`achc.${chain.chain}`)}
+					</Text>
+					<Text style={[styles.progress, { color: done ? currentTheme.accent : currentTheme.textSecondary }]}>
+						{done ? "✓" : `${focus.progress.current}/${focus.progress.target}`}
+					</Text>
+				</View>
+				<Text style={[styles.title, { color: currentTheme.textPrimary }]} numberOfLines={2}>
+					{t(`ach.${focus.id}.title`)}
+				</Text>
+				<Text style={[styles.howTo, { color: currentTheme.textSecondary }]} numberOfLines={2}>
+					{t(`ach.${focus.id}.unlock`)}
+				</Text>
+				{!done && (
+					<View style={styles.progressTrack}>
+						<View style={[styles.progressFill, { width: `${progressPercent}%` as `${number}%`, backgroundColor: currentTheme.buttonPrimary }]} />
+					</View>
+				)}
+				<View style={styles.pipRow}>
+					{chain.tiers.map((tier) => (
+						<View
+							key={tier.id}
+							style={[
+								styles.pip,
+								tier.progress.complete
+									? { backgroundColor: currentTheme.accent, borderColor: currentTheme.accent }
+									: { borderColor: "rgba(255, 255, 255, 0.3)" },
+							]}
+						/>
+					))}
+					<Text style={[styles.pipText, { color: currentTheme.textSecondary }]}>
+						{t("ach.tier", { n: chain.completedTiers, total: chain.tiers.length })}
+					</Text>
+				</View>
+			</View>
+			{ready ? (
+				<StylizedButton
+					text={`+${chain.claimableCoins}`}
+					onClick={signedIn ? onClaim : undefined}
+					backgroundColor={signedIn ? "#16A34A" : "#555"}
+					disabled={claiming || !signedIn}
+					style={styles.claimButton}
+					textStyle={styles.claimText}
+				/>
+			) : done ? null : (
+				<View style={styles.rewardChip}>
+					<UiIcon name="coin" size={14} />
+					<Text style={[styles.rewardText, { color: currentTheme.accent }]}>+{focus.reward}</Text>
+				</View>
+			)}
+		</Pressable>
 	);
 }
 
@@ -221,6 +355,9 @@ const styles = StyleSheet.create({
 	backButton: {
 		width: 80,
 		minWidth: 80,
+	},
+	buttonText: {
+		fontSize: 12,
 	},
 	refreshIcon: {
 		width: 44,
@@ -242,11 +379,11 @@ const styles = StyleSheet.create({
 		width: "100%",
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 14,
+		gap: 12,
 		padding: 12,
 		borderWidth: 1.5,
 		borderRadius: 12,
-		marginBottom: 12,
+		marginBottom: 8,
 		backgroundColor: "rgba(240, 175, 12, 0.08)",
 	},
 	summaryText: {
@@ -256,6 +393,32 @@ const styles = StyleSheet.create({
 	summaryCount: {
 		fontFamily: "SilkscreenBold",
 		fontSize: 20,
+	},
+	claimAllButton: {
+		minWidth: 0,
+		minHeight: 34,
+		margin: 0,
+		paddingHorizontal: 8,
+	},
+	claimButton: {
+		minWidth: 0,
+		minHeight: 34,
+		margin: 0,
+		paddingHorizontal: 8,
+	},
+	claimText: {
+		fontSize: 10,
+	},
+	note: {
+		fontFamily: "Silkscreen",
+		fontSize: 10,
+		textAlign: "center",
+		marginBottom: 8,
+	},
+	tabs: {
+		width: "100%",
+		alignItems: "center",
+		marginBottom: 10,
 	},
 	titleLine: {
 		flexDirection: "row",
@@ -282,13 +445,6 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		gap: 10,
 	},
-	leftSide: {
-		flex: 1,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-		minWidth: 0,
-	},
 	medalBadge: {
 		width: 44,
 		height: 44,
@@ -301,10 +457,15 @@ const styles = StyleSheet.create({
 		flex: 1,
 		minWidth: 0,
 	},
-	title: {
+	chainTitle: {
 		flex: 1,
+		fontFamily: "Silkscreen",
+		fontSize: 9,
+	},
+	title: {
 		fontFamily: "SilkscreenBold",
 		fontSize: 12,
+		marginTop: 2,
 	},
 	progress: {
 		fontFamily: "Silkscreen",
@@ -329,17 +490,30 @@ const styles = StyleSheet.create({
 		lineHeight: 12,
 		marginTop: 2,
 	},
-	buttons: {
+	pipRow: {
 		flexDirection: "row",
-		flexWrap: "wrap",
-		justifyContent: "center",
-		gap: 8,
-		marginTop: 12,
+		alignItems: "center",
+		gap: 4,
+		marginTop: 6,
 	},
-	button: {
-		minWidth: 130,
+	pip: {
+		width: 8,
+		height: 8,
+		borderWidth: 1.5,
+		borderRadius: 2,
 	},
-	buttonText: {
-		fontSize: 14,
+	pipText: {
+		fontFamily: "Silkscreen",
+		fontSize: 8,
+		marginLeft: 4,
+	},
+	rewardChip: {
+		alignItems: "center",
+		gap: 2,
+		minWidth: 44,
+	},
+	rewardText: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 10,
 	},
 });

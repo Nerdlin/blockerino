@@ -13,7 +13,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import AchievementIcon from "@/components/AchievementIcon";
-import { subscribeToAchievementUnlocks } from "@/constants/Achievements";
+import { ACHIEVEMENT_DEFINITIONS, subscribeToAchievementUnlocks } from "@/constants/Achievements";
 import { useLanguage } from "@/constants/Localization";
 import { useSoundSettings } from "@/constants/Sound";
 
@@ -45,6 +45,7 @@ function AchievementToast({ achievementId, onDone }: { achievementId: string; on
 	const { t } = useLanguage();
 	const { playSfx } = useSoundSettings();
 	const insets = useSafeAreaInsets();
+	const reward = ACHIEVEMENT_DEFINITIONS.find((definition) => definition.id === achievementId)?.reward ?? 0;
 
 	const translateY = useSharedValue(ENTER_OFFSET);
 	const iconScale = useSharedValue(0);
@@ -114,7 +115,7 @@ function AchievementToast({ achievementId, onDone }: { achievementId: string; on
 				</View>
 				<View style={styles.texts}>
 					<Text style={styles.kicker} numberOfLines={1}>
-						{t("ach.unlocked")}
+						{reward > 0 ? t("ach.unlockedReward", { coins: reward }) : t("ach.unlocked")}
 					</Text>
 					<Text style={styles.title} numberOfLines={1}>
 						{t(`ach.${achievementId}.title`)}

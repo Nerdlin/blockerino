@@ -18,6 +18,7 @@ import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
 import { reportVersusResultOrQueue, submitGlobalHighScoreOrQueue } from '@/constants/OfflineSync';
+import { recordVersusMatch } from '@/constants/Achievements';
 import { track } from '@/constants/Analytics';
 import { useLanguage } from '@/constants/Localization';
 import { recordSeasonScore } from '@/constants/SeasonScores';
@@ -343,6 +344,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const reportMyResult = useCallback(async (result: 'win' | 'loss') => {
         if (!isActivePlayerRole(myRole)) return;
         track('versus_result', { result, mode: gameMode });
+        recordVersusMatch(result === 'win');
         const { outcome } = await reportVersusResultOrQueue(roomId, result);
         if (outcome && outcome.status !== 'pending' && typeof outcome.elo === 'number') {
             AsyncStorage.setItem('PLAYER_ELO', outcome.elo.toString());

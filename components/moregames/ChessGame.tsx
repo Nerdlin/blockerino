@@ -6,6 +6,7 @@ import { LayoutAnimation, View, Text, Pressable } from "react-native";
 import { submitMoreGameMatchResult } from "@/constants/Supabase";
 import StylizedButton from "../StylizedButton";
 import { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics } from "./cosmetics";
+import { recordMoreGameWin } from "@/constants/Achievements";
 import { chooseChessMove } from "@/constants/bots/ChessBot";
 import Collapsible from "../Collapsible";
 import { BotPanel, useBotSettings } from "./BotPanel";
@@ -115,6 +116,23 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 		}, 500);
 		return () => clearTimeout(timer);
 	}, [botThinking, fen, history, difficulty]);
+
+	// Count the win for achievements once per finished game.
+	const winRecordedRef = useRef<string | null>(null);
+	useEffect(() => {
+		const online = room.isConnected && isDuelRole(room.role);
+		const myColor = room.role === "player2" ? "b" : "w";
+		const mated = game.isCheckmate() && game.turn() !== myColor;
+		const iWon = (online && (Boolean(remoteResult) || mated)) || (botActive && mated);
+		if (!iWon) {
+			if (!game.isGameOver() && !remoteResult) winRecordedRef.current = null;
+			return;
+		}
+		const key = `${room.roomCode}:${fen}:${remoteResult ?? ""}`;
+		if (winRecordedRef.current === key) return;
+		winRecordedRef.current = key;
+		recordMoreGameWin("chess", { vsBot: botActive, difficulty });
+	}, [botActive, difficulty, fen, game, remoteResult, room.isConnected, room.role, room.roomCode]);
 
 	const legalTargets = selected ? game.moves({ square: selected as any, verbose: true }).map((move: any) => move.to) : [];
 	const displayRanks = room.role === "player2" ? [...CHESS_RANKS].reverse() : CHESS_RANKS;

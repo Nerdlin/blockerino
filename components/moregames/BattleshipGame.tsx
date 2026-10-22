@@ -9,6 +9,7 @@ import StylizedButton from "../StylizedButton";
 import Collapsible from "../Collapsible";
 import { useUiScale } from "../SimplePopupView";
 import ShipArt from "@/components/ShipArt";
+import { recordMoreGameWin } from "@/constants/Achievements";
 import { chooseBattleshipShot } from "@/constants/bots/BattleshipBot";
 import { BotPanel, useBotSettings } from "./BotPanel";
 import { BattleShip, DuelRole, OnlineRole } from "./types";
@@ -470,6 +471,21 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 		}, 650);
 		return () => clearTimeout(timer);
 	}, [botMode, turn, winner, incomingShots, fleet, difficulty]);
+
+	// Count the win for achievements once per finished game.
+	const winRecordedRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (!winner) {
+			winRecordedRef.current = null;
+			return;
+		}
+		const iWon = botMode ? winner === "player1" : isDuelRole(room.role) && room.isConnected && winner === room.role;
+		if (!iWon) return;
+		const key = `${room.roomCode}:${botMode}:${winner}`;
+		if (winRecordedRef.current === key) return;
+		winRecordedRef.current = key;
+		recordMoreGameWin("battleship", { vsBot: botMode, difficulty });
+	}, [botMode, difficulty, room.isConnected, room.role, room.roomCode, winner]);
 
 	const fire = (cell: string) => {
 		if (targetCrossed.has(cell)) return;

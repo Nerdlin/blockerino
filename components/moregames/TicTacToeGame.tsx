@@ -5,6 +5,7 @@ import { submitMoreGameMatchResult } from "@/constants/Supabase";
 import { View, Text, Pressable } from "react-native";
 import StylizedButton from "../StylizedButton";
 import Collapsible from "../Collapsible";
+import { recordMoreGameWin } from "@/constants/Achievements";
 import { chooseTicTacToeMove } from "@/constants/bots/TicTacToeBot";
 import { BotPanel, useBotSettings } from "./BotPanel";
 import { OnlineRole, TicMark } from "./types";
@@ -79,6 +80,22 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 		}, 450);
 		return () => clearTimeout(timer);
 	}, [botActive, board, turn, winner, isDraw, difficulty]);
+
+	// Count the win for achievements once per finished game (online, left by the opponent, or against the computer).
+	const winRecordedRef = useRef<string | null>(null);
+	useEffect(() => {
+		const online = room.isConnected && isDuelRole(room.role);
+		const myMark: TicMark = room.role === "player2" ? "O" : "X";
+		const iWon = (online && (Boolean(remoteResult) || winner === myMark)) || (botActive && winner === "X");
+		if (!iWon) {
+			if (!winner && !remoteResult) winRecordedRef.current = null;
+			return;
+		}
+		const key = `${room.roomCode}:${board.join("")}:${remoteResult ?? ""}`;
+		if (winRecordedRef.current === key) return;
+		winRecordedRef.current = key;
+		recordMoreGameWin("tictactoe", { vsBot: botActive, difficulty });
+	}, [board, botActive, difficulty, remoteResult, room.isConnected, room.role, room.roomCode, winner]);
 
 	const reset = () => {
 		const nextBoard = Array(9).fill(null);

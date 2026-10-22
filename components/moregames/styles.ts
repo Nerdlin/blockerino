@@ -806,6 +806,20 @@ export const styles = StyleSheet.create({
 		fontSize: 9,
 		textAlign: "center",
 	},
+	durakModesHeader: {
+		width: "100%",
+		alignItems: "center",
+		gap: 4,
+		paddingVertical: 8,
+		marginTop: 16,
+		borderTopWidth: 1,
+		borderTopColor: "rgba(255, 255, 255, 0.12)",
+	},
+	durakModesSummary: {
+		fontFamily: "Silkscreen",
+		fontSize: 9,
+		textAlign: "center",
+	},
 	roomMeta: {
 		flex: 1,
 		flexShrink: 1,

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
+import { recordMoreGameWin } from "@/constants/Achievements";
 import { submitMoreGameSoloResult } from "@/constants/Supabase";
 import { View, Text, Pressable } from "react-native";
 import StylizedButton from "../StylizedButton";
@@ -151,6 +152,7 @@ export function MahjongGame({ cosmetics, playerName, onRatingChange }: { cosmeti
 	useEffect(() => {
 		if (remaining !== 0 || ratingSubmittedRef.current) return;
 		ratingSubmittedRef.current = true;
+		recordMoreGameWin("mahjong");
 		void submitMoreGameSoloResult({
 			gameId: "mahjong",
 			playerName,

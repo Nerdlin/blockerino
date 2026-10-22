@@ -13,6 +13,7 @@ import Collapsible from "../Collapsible";
 import { cssColors } from "@/constants/Color";
 import { useUiScale } from "../SimplePopupView";
 import Slider from "@react-native-community/slider";
+import { recordMoreGameWin } from "@/constants/Achievements";
 import { DurakBotView, chooseDurakAction } from "@/constants/bots/DurakBot";
 import { BotPanel, useBotSettings } from "./BotPanel";
 import { DurakBout, DurakState, DurakVariant, OnlineRole } from "./types";
@@ -250,6 +251,7 @@ const { t } = useLanguage();
 	const [localHandOrder, setLocalHandOrder] = useState<string[]>([]);
 	const [coinResult, setCoinResult] = useState<number | null>(null);
 	const [betError, setBetError] = useState<string | null>(null);
+	const [showModes, setShowModes] = useState(false);
 	// Settings of the table a guest is joining, announced by the host before the deal.
 	const [tableInfo, setTableInfo] = useState<{ bet: number; playerCount: number } | null>(null);
 	const [restartStatus, setRestartStatus] = useState<'idle' | 'waiting' | 'requested'>('idle');
@@ -698,6 +700,16 @@ const { t } = useLanguage();
 		return () => clearTimeout(timer);
 	}, [botMode, state, botDifficulty]);
 
+	// Count the win for achievements once per finished table.
+	const winRecordedRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (!state?.winner || state.draw || state.cancelled || !seat || state.winner !== seat) return;
+		if (!botMode && !room.isConnected) return;
+		if (winRecordedRef.current === state.tableId) return;
+		winRecordedRef.current = state.tableId;
+		recordMoreGameWin("durak", { vsBot: botMode, difficulty: botDifficulty });
+	}, [botDifficulty, botMode, room.isConnected, seat, state]);
+
 	const join = () => {
 		// The table bet is set by the host; it is checked when the host announces it.
 		setBetError(null);
@@ -846,8 +858,12 @@ const { t } = useLanguage();
 						))}
 					</View>
 
-					<Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary, marginTop: 40 }]}>{t("durak.modes")}</Text>
-					<Animated.View style={[styles.segmentRow, { alignItems: "flex-start", gap: 8, transform: [{ translateX: shakeAnim }] }]}>
+					<Pressable onPress={() => setShowModes((open) => !open)} style={styles.durakModesHeader} accessibilityRole="button">
+						<Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary }]}>{t("durak.modes")} {showModes ? "▲" : "▼"}</Text>
+						<Text style={[styles.durakModesSummary, { color: currentTheme.textPrimary }]} numberOfLines={2}>{activeVariants.map((variant) => t(getDurakVariantLabel(variant))).join(" · ")}</Text>
+					</Pressable>
+					<Collapsible visible={showModes}>
+<Animated.View style={[styles.segmentRow, { alignItems: "flex-start", gap: 8, transform: [{ translateX: shakeAnim }] }]}>
 						<DurakModeToggleColumn
 							topLabel={t("durak.modeThrowIn")} topIcon="arrow" topActive={activeVariants.includes("throw_in")} onTopPress={() => toggleVariant("throw_in")}
 							bottomLabel={t("durak.modeTransfer")} bottomIcon="swap" bottomActive={activeVariants.includes("transfer")} onBottomPress={() => toggleVariant("transfer")}
@@ -865,6 +881,7 @@ const { t } = useLanguage();
 							bottomLabel={t("durak.modeDraw")} bottomIcon="scales" bottomActive={activeVariants.includes("draw")} onBottomPress={() => toggleVariant("draw")}
 						/>
 					</Animated.View>
+					</Collapsible>
 
 					<View style={{ marginTop: 40, alignItems: "center", width: "100%" }}>
 						<Collapsible visible={vsBot}>
