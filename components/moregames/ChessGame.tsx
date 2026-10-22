@@ -6,6 +6,9 @@ import { LayoutAnimation, View, Text, Pressable } from "react-native";
 import { submitMoreGameMatchResult } from "@/constants/Supabase";
 import StylizedButton from "../StylizedButton";
 import { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics } from "./cosmetics";
+import { chooseChessMove } from "@/constants/bots/ChessBot";
+import Collapsible from "../Collapsible";
+import { BotPanel, useBotSettings } from "./BotPanel";
 import { DuelRole, OnlineRole } from "./types";
 import { OnlineRoomControls, isDuelRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
 import { styles } from "./styles";
@@ -42,6 +45,7 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 	const [remoteResult, setRemoteResult] = useState<string | null>(null);
 	const [showColorChoice, setShowColorChoice] = useState(false);
 	const ratingSubmittedRef = useRef<string | null>(null);
+	const { difficulty, setDifficulty, vsBot, setVsBot } = useBotSettings("chess");
 
 	const handleEvent = useCallback((event: string, payload: any, senderRole?: OnlineRole) => {
 		if (event === "system_joined" && senderRole) {
@@ -89,11 +93,29 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 
 	const game = useMemo(() => restoreChessGame(fen, history), [fen, history]);
 	const turnRole: DuelRole = game.turn() === "w" ? "player1" : "player2";
+	const botActive = vsBot && !room.role;
+	const botThinking = botActive && game.turn() === "b" && !game.isGameOver();
 	const status = remoteResult || (game.isCheckmate()
 		? t("moregames.checkmate", { color: t(turnRole === "player1" ? "moregames.black" : "moregames.white") })
 		: game.isDraw()
 			? t("moregames.draw")
-			: t("moregames.turn", { name: t(game.turn() === "w" ? "moregames.white" : "moregames.black") }));
+			: botThinking ? t("bot.thinking") : t("moregames.turn", { name: t(game.turn() === "w" ? "moregames.white" : "moregames.black") }));
+	// Against the computer the player has the white pieces and the computer answers as black after a short pause.
+	useEffect(() => {
+		if (!botThinking) return;
+		const timer = setTimeout(() => {
+			const reply = chooseChessMove(fen, difficulty);
+			if (!reply) return;
+			const nextGame = restoreChessGame(fen, history);
+			const move = nextGame.move(reply as any);
+			LayoutAnimation.configureNext({ duration: 350, update: { type: "easeInEaseOut" } });
+			setFen(nextGame.fen());
+			setHistory([...history, move.san]);
+			setSelected(null);
+		}, 500);
+		return () => clearTimeout(timer);
+	}, [botThinking, fen, history, difficulty]);
+
 	const legalTargets = selected ? game.moves({ square: selected as any, verbose: true }).map((move: any) => move.to) : [];
 	const displayRanks = room.role === "player2" ? [...CHESS_RANKS].reverse() : CHESS_RANKS;
 	const displayFiles = room.role === "player2" ? [...CHESS_FILES].reverse() : CHESS_FILES;
@@ -103,6 +125,7 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 		const myColor = room.role === "player2" ? "b" : "w";
 		if (isDuelRole(room.role) && (room.role !== turnRole || !opponentReady || remoteResult || game.turn() !== myColor)) return;
 		if (!room.role && game.isGameOver()) return;
+		if (botActive && game.turn() !== "w") return;
 		const piece = game.get(square as any);
 
 		if (!selected || piece?.color === game.turn()) {
@@ -323,17 +346,22 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 				return null;
 			})()}
 
+			{!room.role && (
+				<BotPanel vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); reset(); }} difficulty={difficulty} onDifficultyChange={(next) => { setDifficulty(next); reset(); }} />
+			)}
 			<View style={{ marginTop: 20, alignItems: "center", width: "100%" }}>
+				<Collapsible visible={!vsBot || Boolean(room.role)}>
 				<OnlineRoomControls
 					roomCode={room.roomCode}
 					setRoomCode={room.setRoomCode}
 					role={room.role}
 					status={room.status}
 					opponentReady={opponentReady}
-					onHost={() => { reset(); setOpponentReady(false); room.connect("player1"); }}
-					onJoin={() => { reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
+					onHost={() => { setVsBot(false); reset(); setOpponentReady(false); room.connect("player1"); }}
+					onJoin={() => { setVsBot(false); reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
 					onDisconnect={handleDisconnect}
 				/>
+				</Collapsible>
 			</View>
 		</View>
 	);

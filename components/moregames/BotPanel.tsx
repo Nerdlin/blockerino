@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useState } from "react";
 import { Text, View } from "react-native";
+import Collapsible from "../Collapsible";
 import SegmentedControl from "../SegmentedControl";
 import { useLanguage } from "@/constants/Localization";
 import { useTheme } from "@/constants/Theme";
@@ -92,8 +93,8 @@ export function BotPanel({
 					{ key: "bot", label: t("bot.computer") },
 				]}
 			/>
-			{vsBot && (
-				<>
+			<Collapsible visible={vsBot}>
+				<View style={{ gap: 6, alignItems: "center", paddingTop: 6 }}>
 					<Text style={[styles.botPanelTitle, { color: currentTheme.textSecondary }]}>{t("bot.difficulty")}</Text>
 					<SegmentedControl
 						small
@@ -106,8 +107,8 @@ export function BotPanel({
 						]}
 					/>
 					<Text style={[styles.botPanelHint, { color: currentTheme.textSecondary }]}>{t("bot.noRewards")}</Text>
-				</>
-			)}
+				</View>
+			</Collapsible>
 		</View>
 	);
 }

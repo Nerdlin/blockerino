@@ -6,6 +6,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { submitMoreGameMatchResult } from "@/constants/Supabase";
 import UiIcon from "@/components/UiIcon";
 import StylizedButton from "../StylizedButton";
+import Collapsible from "../Collapsible";
 import { useUiScale } from "../SimplePopupView";
 import ShipArt from "@/components/ShipArt";
 import { chooseBattleshipShot } from "@/constants/bots/BattleshipBot";
@@ -587,10 +588,11 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 						</View>
 						<View style={styles.battleLobbyButtons}>
 							<BotPanel vsBot={vsBot} onVsBotChange={setVsBot} difficulty={difficulty} onDifficultyChange={setDifficulty} friendLabel={t("bot.online")} />
-							{vsBot ? (
+							<Collapsible visible={vsBot}>
 								<StylizedButton text={t("bot.play")} onClick={startBotGame} backgroundColor={allShipsPlaced ? currentTheme.buttonPrimary : "#555"} style={{ marginTop: 10 }} disabled={!allShipsPlaced} />
-							) : (
-							<OnlineRoomControls
+							</Collapsible>
+							<Collapsible visible={!vsBot}>
+<OnlineRoomControls
 								roomCode={room.roomCode}
 								setRoomCode={room.setRoomCode}
 								role={room.role}
@@ -600,7 +602,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 								onDisconnect={room.disconnect}
 								disabled={!allShipsPlaced}
 							/>
-							)}
+							</Collapsible>
 							{!allShipsPlaced && (
 								<Text style={{ color: '#F87171', fontFamily: 'Silkscreen', fontSize: 9, textAlign: 'center', marginTop: 6 }}>
 									Place all ships first!

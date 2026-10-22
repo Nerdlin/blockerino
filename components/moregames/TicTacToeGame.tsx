@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { submitMoreGameMatchResult } from "@/constants/Supabase";
 import { View, Text, Pressable } from "react-native";
 import StylizedButton from "../StylizedButton";
+import Collapsible from "../Collapsible";
 import { chooseTicTacToeMove } from "@/constants/bots/TicTacToeBot";
 import { BotPanel, useBotSettings } from "./BotPanel";
 import { OnlineRole, TicMark } from "./types";
@@ -168,7 +169,8 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 				<BotPanel vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); reset(); }} difficulty={difficulty} onDifficultyChange={(next) => { setDifficulty(next); reset(); }} />
 			)}
 			<View style={{ marginTop: 20, alignItems: "center", width: "100%" }}>
-				<OnlineRoomControls
+				<Collapsible visible={!vsBot || Boolean(room.role)}>
+<OnlineRoomControls
 					roomCode={room.roomCode}
 					setRoomCode={room.setRoomCode}
 					role={room.role}
@@ -178,6 +180,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 					onJoin={() => { setVsBot(false); reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
 					onDisconnect={room.disconnect}
 				/>
+					</Collapsible>
 			</View>
 		</View>
 	);

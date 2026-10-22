@@ -9,6 +9,7 @@ import { durakReport, durakPayAnte, getPlayerProfileData, submitMoreGameMatchRes
 import UiIcon from "@/components/UiIcon";
 import PixelIcon from "@/components/PixelIcon";
 import StylizedButton from "../StylizedButton";
+import Collapsible from "../Collapsible";
 import { cssColors } from "@/constants/Color";
 import { useUiScale } from "../SimplePopupView";
 import Slider from "@react-native-community/slider";
@@ -821,12 +822,10 @@ const { t } = useLanguage();
 
 						<BotPanel vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); if (next) setActiveVariants((prev) => (prev.includes("cheat") ? [...prev.filter((variant) => variant !== "cheat"), "fair"] : prev)); }} difficulty={botDifficulty} onDifficultyChange={setBotDifficulty} friendLabel={t("bot.online")} />
 
-					{!vsBot && (
-						<>
-						<Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary }]}>{t("durak.yourBet")}</Text>
+					<Collapsible visible={!vsBot}>
+<Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary }]}>{t("durak.yourBet")}</Text>
 						<BetSlider value={bet} onChange={(v) => { setBet(v); setBetError(null); }} maxBalance={shopState.balance} />
-						</>
-					)}
+					</Collapsible>
 
 					<Animated.Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary, transform: [{ translateX: shakeAnim }] }]}>{t("durak.players")}</Animated.Text>
 					<Animated.View style={[styles.segmentRow, { transform: [{ translateX: shakeAnim }] }]}>
@@ -868,10 +867,11 @@ const { t } = useLanguage();
 					</Animated.View>
 
 					<View style={{ marginTop: 40, alignItems: "center", width: "100%" }}>
-						{vsBot ? (
-							<StylizedButton text={t("bot.play")} onClick={startBotGame} backgroundColor={currentTheme.buttonPrimary} />
-						) : (
-						<OnlineRoomControls
+						<Collapsible visible={vsBot}>
+<StylizedButton text={t("bot.play")} onClick={startBotGame} backgroundColor={currentTheme.buttonPrimary} />
+						</Collapsible>
+						<Collapsible visible={!vsBot}>
+<OnlineRoomControls
 							roomCode={room.roomCode}
 							setRoomCode={room.setRoomCode}
 							role={room.role}
@@ -880,7 +880,7 @@ const { t } = useLanguage();
 							onJoin={join}
 							onDisconnect={room.disconnect}
 						/>
-						)}
+						</Collapsible>
 					</View>
 
 					{betError && <Text style={styles.durakBetError}>{betError}</Text>}
