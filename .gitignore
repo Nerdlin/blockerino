@@ -58,3 +58,6 @@ supabase/.temp/
 
 # Firebase client config: keep it out of the public repo, give EAS the file as a secret (docs/push-notifications.md)
 google-services.json
+
+# Two-player test (scripts/e2e): browser profiles
+dist-e2e-profiles/

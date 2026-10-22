@@ -1,0 +1,275 @@
+// Two-player smoke test for the realtime games. It builds the web app against the LOCAL Supabase, starts two headless
+// Chrome windows (player A hosts, player B joins with the room code) and checks that every online game starts for both.
+//
+//   npx supabase start                      (once, Docker must be running)
+//   npm run e2e:two-player                  (add --skip-build to reuse the last build in dist-e2e/)
+//
+// It never talks to the live Supabase project: the app is built with the local URL and key only.
+
+import { spawn, spawnSync } from "node:child_process";
+import fs from "node:fs";
+import http from "node:http";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const outDirName = "dist-e2e";
+const outDir = path.join(root, outDirName);
+const profilesDir = path.join(root, "dist-e2e-profiles");
+const PORT = 8099;
+const LOCAL_API = "http://127.0.0.1:54321";
+const skipBuild = process.argv.includes("--skip-build");
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const isWindows = process.platform === "win32";
+
+function findChrome() {
+	const candidates = [
+		process.env.CHROME_PATH,
+		"C:/Program Files/Google/Chrome/Application/chrome.exe",
+		"C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+		"/usr/bin/google-chrome",
+		"/usr/bin/chromium",
+		"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+	].filter(Boolean);
+	const found = candidates.find((candidate) => fs.existsSync(candidate));
+	if (!found) throw new Error("Chrome not found. Set CHROME_PATH to the browser executable.");
+	return found;
+}
+
+function localAnonKey() {
+	const result = spawnSync("npx", ["supabase", "status", "-o", "env"], { cwd: root, encoding: "utf8", shell: isWindows });
+	const line = (result.stdout || "").split("\n").find((entry) => entry.startsWith("ANON_KEY"));
+	if (!line) throw new Error("Local Supabase is not running. Start it with: npx supabase start");
+	return line.split("=")[1].replace(/"/g, "").trim();
+}
+
+async function assertLocalSupabase() {
+	try {
+		const response = await fetch(`${LOCAL_API}/auth/v1/health`);
+		if (!response.ok && response.status !== 401) throw new Error(String(response.status));
+	} catch {
+		throw new Error("Local Supabase is not reachable on 127.0.0.1:54321. Start it with: npx supabase start");
+	}
+}
+
+function buildWeb(anonKey) {
+	console.log("Building the web app against the local Supabase...");
+	const result = spawnSync("npx", ["expo", "export", "--platform", "web", "--output-dir", outDirName], {
+		cwd: root,
+		stdio: "inherit",
+		shell: isWindows,
+		env: { ...process.env, EXPO_PUBLIC_SUPABASE_URL: LOCAL_API, EXPO_PUBLIC_SUPABASE_ANON_KEY: anonKey },
+	});
+	if (result.status !== 0) throw new Error("Web export failed.");
+}
+
+const MIME = { ".html": "text/html", ".js": "application/javascript", ".json": "application/json", ".css": "text/css", ".png": "image/png", ".ico": "image/x-icon", ".ttf": "font/ttf", ".svg": "image/svg+xml", ".mp3": "audio/mpeg", ".wav": "audio/wav" };
+
+function serve() {
+	const server = http.createServer((request, response) => {
+		const url = decodeURIComponent(request.url.split("?")[0]);
+		let file = path.join(outDir, url);
+		if (!file.startsWith(outDir)) { response.writeHead(403); return response.end(); }
+		if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, "index.html");
+		if (!fs.existsSync(file)) file = fs.existsSync(`${file}.html`) ? `${file}.html` : path.join(outDir, "index.html");
+		response.writeHead(200, { "Content-Type": MIME[path.extname(file)] || "application/octet-stream" });
+		fs.createReadStream(file).pipe(response);
+	});
+	return new Promise((resolve) => server.listen(PORT, () => resolve(server)));
+}
+
+// One headless Chrome per player, driven over the DevTools protocol.
+async function launchPlayer(name, port, chromePath) {
+	const profile = path.join(profilesDir, name);
+	fs.rmSync(profile, { recursive: true, force: true });
+	const chrome = spawn(chromePath, [
+		"--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
+		"--window-size=390,844", "--lang=en-US", "--hide-scrollbars", "--force-device-scale-factor=1", "about:blank",
+	], { stdio: "ignore" });
+	let targets;
+	for (let attempt = 0; attempt < 80 && !targets; attempt += 1) {
+		try { targets = await (await fetch(`http://127.0.0.1:${port}/json`)).json(); } catch { await sleep(250); }
+	}
+	const page = targets?.find((target) => target.type === "page");
+	if (!page) throw new Error(`Chrome for ${name} did not start.`);
+	const ws = new WebSocket(page.webSocketDebuggerUrl);
+	await new Promise((resolve) => ws.addEventListener("open", resolve));
+	let nextId = 0;
+	const pending = new Map();
+	ws.addEventListener("message", (message) => {
+		const data = JSON.parse(message.data);
+		if (data.id && pending.has(data.id)) { pending.get(data.id)(data); pending.delete(data.id); }
+	});
+	const send = (method, params = {}) => new Promise((resolve) => { const id = ++nextId; pending.set(id, resolve); ws.send(JSON.stringify({ id, method, params })); });
+	const evalJs = async (expression) => (await send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true })).result?.result?.value;
+	await send("Page.enable");
+	await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: false });
+
+	const mouse = async (x, y) => { for (const type of ["mouseMoved", "mousePressed", "mouseReleased"]) await send("Input.dispatchMouseEvent", { type, x, y, button: "left", clickCount: 1 }); };
+	const player = {
+		name, send, evalJs, mouse,
+		body: async () => ((await evalJs("document.body.innerText")) || "").split("\n").join(" | "),
+		clickText: async (text, nth = 0) => {
+			const rect = await evalJs(`(() => { const all = [...document.querySelectorAll('div,span')].filter(e => e.children.length === 0 && (e.textContent || '').trim().toLowerCase() === ${JSON.stringify(text.toLowerCase())}); const el = all[${nth}]; if (!el) return null; el.scrollIntoView({ block: 'center' }); const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+			if (!rect) throw new Error(`${name}: no element "${text}"`);
+			await mouse(rect.x, rect.y);
+		},
+		clickSel: async (selector) => {
+			const box = await evalJs(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+			if (!box) throw new Error(`${name}: no ${selector}`);
+			await mouse(box.x, box.y);
+		},
+		typeInto: async (index, text) => {
+			const box = await evalJs(`(() => { const el = document.querySelectorAll('input')[${index}]; if (!el) return null; el.scrollIntoView({ block: 'center' }); const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+			if (!box) throw new Error(`${name}: no input ${index}`);
+			await mouse(box.x, box.y);
+			await send("Input.insertText", { text });
+		},
+		inputCount: () => evalJs("document.querySelectorAll('input').length"),
+		open: async () => {
+			const url = `http://localhost:${PORT}/`;
+			await send("Page.navigate", { url }); await sleep(2500);
+			await evalJs("localStorage.setItem('FIRST_RUN_DONE','true')");
+			await send("Page.navigate", { url }); await sleep(3500);
+		},
+		reload: async () => { await send("Page.navigate", { url: `http://localhost:${PORT}/` }); await sleep(3500); },
+		waitFor: async (test, timeoutMs = 15000) => {
+			const deadline = Date.now() + timeoutMs;
+			while (Date.now() < deadline) {
+				if (test(await player.body())) return true;
+				await sleep(400);
+			}
+			return false;
+		},
+		close: () => { try { ws.close(); } catch { /* already closed */ } chrome.kill(); },
+	};
+	return player;
+}
+
+// ---- helpers shared by the scenarios ----
+
+const MORE_GAME_INDEX = { battleship: 0, durak: 1, chess: 2, tictactoe: 4 };
+
+async function openGame(player, game) {
+	await player.clickText("More Games"); await sleep(1500);
+	await player.clickText("Play", MORE_GAME_INDEX[game]); await sleep(2000);
+}
+
+async function hostAndJoin(a, b) {
+	await a.clickText("Host", 0); await sleep(3000);
+	const text = await a.body();
+	const code = (text.match(/Share code[^|]*\|\s*([0-9A-Z]{4,6})/i) || text.match(/\|\s*([0-9A-Z]{5,6})\s*\|\s*Copy/i))?.[1];
+	if (!code) throw new Error("the host never got a room code");
+	const inputs = await b.inputCount();
+	await b.typeInto(inputs - 1, code); await sleep(400);
+	await b.clickText("Join", 0);
+	return code;
+}
+
+async function register(player, label) {
+	const tag = Date.now().toString(36);
+	await player.clickSel('[aria-label="Profile"]'); await sleep(1500);
+	await player.clickText("Need an account?"); await sleep(800);
+	await player.typeInto(0, `${label}${tag.slice(-4)}`);
+	await player.typeInto(1, `e2e-${label.toLowerCase()}-${tag}@example.test`);
+	await player.typeInto(2, "Qa-test-pass-123");
+	await player.clickText("Register", 0); await sleep(4500);
+}
+
+// ---- scenarios: each throws when something is wrong ----
+
+const scenarios = {
+	async tictactoe(a, b) {
+		await Promise.all([a.open(), b.open()]);
+		for (const player of [a, b]) await openGame(player, "tictactoe");
+		await hostAndJoin(a, b);
+		for (const player of [a, b]) {
+			if (!(await player.waitFor((text) => /X turn/i.test(text) && !/waiting for opponent/i.test(text)))) throw new Error(`${player.name} never saw the board start`);
+		}
+	},
+
+	async chess(a, b) {
+		await Promise.all([a.open(), b.open()]);
+		for (const player of [a, b]) await openGame(player, "chess");
+		await hostAndJoin(a, b);
+		for (const player of [a, b]) {
+			if (!(await player.waitFor((text) => /White turn/i.test(text)))) throw new Error(`${player.name} never saw the board start`);
+		}
+		// White moves a pawn two squares; black must see it.
+		const pawns = await a.evalJs("(() => [...document.querySelectorAll('div,span')].filter(e => e.children.length === 0 && e.textContent.trim() === '\u2659').map(e => { const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; }))()");
+		if (!pawns || pawns.length < 5) throw new Error("could not find the white pawns");
+		const size = pawns[4].x - pawns[3].x;
+		await a.mouse(pawns[4].x, pawns[4].y); await sleep(500);
+		await a.mouse(pawns[4].x, pawns[4].y - 2 * size);
+		if (!(await b.waitFor((text) => /Black turn/i.test(text)))) throw new Error("the move never reached player B");
+	},
+
+	async battleship(a, b) {
+		await Promise.all([a.open(), b.open()]);
+		for (const player of [a, b]) {
+			await openGame(player, "battleship");
+			await player.mouse(221, 215); await sleep(800); // dice button: random fleet
+		}
+		await hostAndJoin(a, b);
+		for (const player of [a, b]) {
+			if (!(await player.waitFor((text) => /\bReady\b/i.test(text)))) throw new Error(`${player.name} never reached the Ready screen`);
+		}
+		await a.clickText("Ready", 0); await sleep(1200);
+		await b.clickText("Ready", 0);
+		for (const player of [a, b]) {
+			if (!(await player.waitFor((text) => /Target/i.test(text) && /My Fleet/i.test(text)))) throw new Error(`${player.name} never saw the battle start`);
+		}
+	},
+
+	async durak(a, b) {
+		await Promise.all([a.open(), b.open()]);
+		// A bet needs a signed-in account; new accounts hold 50 coins, below the 100 minimum, so the table has no bet.
+		await register(a, "DurA"); await register(b, "DurB");
+		await Promise.all([a.reload(), b.reload()]);
+		for (const player of [a, b]) {
+			await sleep(4000);
+			try { await player.clickText("Collect"); await sleep(1500); await player.clickText("OK"); } catch { /* already collected */ }
+			await sleep(500);
+			await openGame(player, "durak");
+		}
+		await hostAndJoin(a, b);
+		for (const player of [a, b]) {
+			if (!(await player.waitFor((text) => /Attack with any card/i.test(text)))) throw new Error(`${player.name} never saw the table start`);
+		}
+	},
+};
+
+async function main() {
+	const wanted = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
+	const names = wanted.length > 0 ? wanted : Object.keys(scenarios);
+	for (const name of names) if (!scenarios[name]) throw new Error(`Unknown scenario "${name}". Known: ${Object.keys(scenarios).join(", ")}`);
+
+	await assertLocalSupabase();
+	if (!skipBuild) buildWeb(localAnonKey());
+	else if (!fs.existsSync(outDir)) throw new Error("No build in dist-e2e/. Run without --skip-build first.");
+
+	const server = await serve();
+	const chromePath = findChrome();
+	const results = [];
+	for (const name of names) {
+		const a = await launchPlayer(`${name}-A`, 9401, chromePath);
+		const b = await launchPlayer(`${name}-B`, 9402, chromePath);
+		const started = Date.now();
+		try {
+			await scenarios[name](a, b);
+			results.push({ name, ok: true, seconds: Math.round((Date.now() - started) / 1000) });
+		} catch (error) {
+			results.push({ name, ok: false, error: error.message, seconds: Math.round((Date.now() - started) / 1000) });
+		}
+		a.close(); b.close();
+		await sleep(500);
+	}
+	server.close();
+	fs.rmSync(profilesDir, { recursive: true, force: true });
+
+	console.log("\nTwo-player results");
+	for (const result of results) console.log(`  ${result.ok ? "PASS" : "FAIL"}  ${result.name} (${result.seconds}s)${result.ok ? "" : `: ${result.error}`}`);
+	process.exit(results.every((result) => result.ok) ? 0 : 1);
+}
+
+main().catch((error) => { console.error(error.message); process.exit(1); });
