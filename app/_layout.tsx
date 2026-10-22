@@ -8,6 +8,7 @@ import { flushPendingSeasonScoresForSession } from "@/constants/SeasonScores";
 import { useDiscordSDK } from "@/hooks/useDiscordSDK";
 import { syncLocalHighScores } from "@/constants/LocalScoreSync";
 import { startAnalytics } from "@/constants/Analytics";
+import { startCrashReporting } from "@/constants/CrashReports";
 import { setupNotifications } from "@/constants/Notifications";
 
 // Suppress warnings from third-party libraries
@@ -80,6 +81,7 @@ export default function RootLayout() {
 		syncPendingScores();
 		const pendingScoreSyncTimer = setInterval(syncPendingScores, 15000);
 		const stopAnalytics = startAnalytics();
+		const stopCrashReporting = startCrashReporting();
 		void setupNotifications();
 
 		// Register service worker on web platform
@@ -102,6 +104,7 @@ export default function RootLayout() {
 		return () => {
 			updateAppStateSub.remove();
 			stopAnalytics();
+			stopCrashReporting();
 			clearInterval(updateTimer);
 			clearInterval(pendingScoreSyncTimer);
 			if (Platform.OS === 'web' && typeof window !== 'undefined' && window.removeEventListener) {

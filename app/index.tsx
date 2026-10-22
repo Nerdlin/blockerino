@@ -15,6 +15,7 @@ import Animated, {
 import Game from "@/components/game/Game";
 import { GameModeType } from '@/hooks/useAppState';
 import { track } from '@/constants/Analytics';
+import { setCrashScreen } from '@/constants/CrashReports';
 import { firstRunCoachAtom, shouldRunFirstRun } from '@/constants/FirstRun';
 import React, { useState, useEffect } from "react";
 import OptionsMenu from "@/components/OptionsMenu";
@@ -181,6 +182,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 	// Usage statistics: which screens are opened and which game modes are started.
 	useEffect(() => {
 		track("screen_view", { screen: currentAppState });
+		setCrashScreen(String(currentAppState));
 		if ((Object.values(GameModeType) as string[]).includes(currentAppState)) {
 			track("game_start", { mode: currentAppState });
 		}
