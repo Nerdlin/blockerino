@@ -8,6 +8,8 @@ import UiIcon from "@/components/UiIcon";
 import StylizedButton from "../StylizedButton";
 import { useUiScale } from "../SimplePopupView";
 import ShipArt from "@/components/ShipArt";
+import { chooseBattleshipShot } from "@/constants/bots/BattleshipBot";
+import { BotPanel, useBotSettings } from "./BotPanel";
 import { BattleShip, DuelRole, OnlineRole } from "./types";
 import { ExtraGameCosmetics, SEA_SKINS } from "./cosmetics";
 import { OnlineRoomControls, SHOT_RESEND_LIMIT, SHOT_RESEND_MS, getDuelOpponent, isDuelRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
@@ -163,6 +165,11 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 	const [winner, setWinner] = useState<DuelRole | null>(null);
 	const [winnerSource, setWinnerSource] = useState<"normal" | "forfeit" | null>(null);
 	const [ready, setReady] = useState(false);
+	// Playing against the computer: it is player2, its fleet and sunk ships live here, never in a room.
+	const { difficulty, setDifficulty, vsBot, setVsBot } = useBotSettings("battleship");
+	const [botMode, setBotMode] = useState(false);
+	const botFleetRef = useRef<BattleShip[]>([]);
+	const botSunkRef = useRef<string[][]>([]);
 	const [opponentReady, setOpponentReady] = useState(false);
 	// A peer is in the room. The waiting screen ends here; the Ready buttons live on the next screen.
 	const [opponentPresent, setOpponentPresent] = useState(false);
@@ -299,6 +306,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 		const timer = setInterval(() => {
 			setTimeLeft((prev) => {
 				if (prev <= 1) {
+					if (botMode && turn === "player1") setTurn("player2");
 					if (turn === roomRef.current.role && isDuelRole(roomRef.current.role)) {
 						roomRef.current.send("timeout_pass", { from: roomRef.current.role, to: getDuelOpponent(roomRef.current.role) });
 						setTurn(null);
@@ -309,14 +317,14 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 			});
 		}, 1000);
 		return () => clearInterval(timer);
-	}, [ready, opponentReady, winner, turn]);
+	}, [ready, opponentReady, winner, turn, botMode]);
 
 	useEffect(() => {
-		if (!room.role) {
+		if (!room.role && !botMode) {
 			setOpponentPresent(false);
 			setOpponentReady(false);
 		}
-	}, [room.role]);
+	}, [room.role, botMode]);
 
 	const resetLocal = () => {
 		setFleet(createDefaultFleet());
@@ -333,6 +341,26 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 		setTimeLeft(60);
 		ratingSubmittedRef.current = null;
 		pendingShotCellRef.current = null;
+		setBotMode(false);
+		botSunkRef.current = [];
+	};
+
+	const startBotGame = () => {
+		if (!fleet.every((ship) => isShipPlacementValid(ship, fleet))) return;
+		botFleetRef.current = createRandomFleet();
+		botSunkRef.current = [];
+		setIncomingShots({});
+		setTargetShots({});
+		setTargetSunk([]);
+		setWinner(null);
+		setWinnerSource(null);
+		setOpponentName("Computer");
+		setOpponentPresent(true);
+		setOpponentReady(true);
+		setReady(true);
+		setBotMode(true);
+		setTurn("player1");
+		setTimeLeft(60);
 	};
 
 	const placeSelectedShip = (cell: string) => {
@@ -417,8 +445,50 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 	const targetCrossed = getCrossedCells(targetSunk);
 	const ownCrossed = getCrossedCells(fleet.filter((ship) => ship.x >= 0 && getShipCells(ship).every((cell) => incomingShots[cell] === "hit")).map(getShipCells));
 
+	useEffect(() => {
+		if (!botMode || turn !== "player2" || winner) return;
+		const timer = setTimeout(() => {
+			const cell = chooseBattleshipShot(incomingShots, botSunkRef.current, difficulty);
+			if (incomingShots[cell]) return;
+			const occupied = occupiedFleetCells(fleet);
+			const hit = occupied.has(cell);
+			const nextIncoming: Record<string, "hit" | "miss"> = { ...incomingShots, [cell]: hit ? "hit" : "miss" };
+			setIncomingShots(nextIncoming);
+			const sunkCells = hit ? getSunkShipCells(fleet, nextIncoming, cell) : null;
+			if (sunkCells) botSunkRef.current = [...botSunkRef.current, sunkCells];
+			if ([...occupied].every((own) => nextIncoming[own] === "hit")) {
+				setWinnerSource("normal");
+				setWinner("player2");
+				return;
+			}
+			// A hit lets the computer fire again, a miss gives the turn back.
+			if (!hit) {
+				setTurn("player1");
+				setTimeLeft(60);
+			}
+		}, 650);
+		return () => clearTimeout(timer);
+	}, [botMode, turn, winner, incomingShots, fleet, difficulty]);
+
 	const fire = (cell: string) => {
 		if (targetCrossed.has(cell)) return;
+		if (botMode) {
+			if (winner || turn !== "player1" || targetShots[cell]) return;
+			const occupied = occupiedFleetCells(botFleetRef.current);
+			const hit = occupied.has(cell);
+			const nextShots: Record<string, "pending" | "hit" | "miss"> = { ...targetShots, [cell]: hit ? "hit" : "miss" };
+			setTargetShots(nextShots);
+			const sunkCells = hit ? getSunkShipCells(botFleetRef.current, nextShots, cell) : null;
+			if (sunkCells) setTargetSunk((current) => [...current, sunkCells]);
+			if ([...occupied].every((own) => nextShots[own] === "hit")) {
+				setWinnerSource("normal");
+				setWinner("player1");
+				return;
+			}
+			if (!hit) setTurn("player2");
+			setTimeLeft(60);
+			return;
+		}
 		if (!isDuelRole(room.role) || !room.isConnected || !ready || !opponentReady || winner || turn !== room.role || targetShots[cell] || pendingShotCellRef.current) return;
 		pendingShotCellRef.current = cell;
 		setTargetShots((current) => ({ ...current, [cell]: "pending" }));
@@ -472,7 +542,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 
 	const allShipsPlaced = fleet.every((ship) => isShipPlacementValid(ship, fleet));
 
-	if (!room.role) {
+	if (!room.role && !botMode) {
 		// Pre-lobby: place ships first, then host or join
 		return (
 			<View style={styles.onlineGame}>
@@ -516,6 +586,10 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 							<BattleGrid title={t("moregames.myFleet")} cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
 						</View>
 						<View style={styles.battleLobbyButtons}>
+							<BotPanel vsBot={vsBot} onVsBotChange={setVsBot} difficulty={difficulty} onDifficultyChange={setDifficulty} friendLabel={t("bot.online")} />
+							{vsBot ? (
+								<StylizedButton text={t("bot.play")} onClick={startBotGame} backgroundColor={allShipsPlaced ? currentTheme.buttonPrimary : "#555"} style={{ marginTop: 10 }} disabled={!allShipsPlaced} />
+							) : (
 							<OnlineRoomControls
 								roomCode={room.roomCode}
 								setRoomCode={room.setRoomCode}
@@ -526,6 +600,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 								onDisconnect={room.disconnect}
 								disabled={!allShipsPlaced}
 							/>
+							)}
 							{!allShipsPlaced && (
 								<Text style={{ color: '#F87171', fontFamily: 'Silkscreen', fontSize: 9, textAlign: 'center', marginTop: 6 }}>
 									Place all ships first!
@@ -560,7 +635,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 
 			{ready && opponentReady && !winner ? (
 				<View style={styles.battlePlayersHeader}>
-					<View style={[styles.battlePlayerBadge, turn === room.role ? styles.battleTurnActive : null]}>
+					<View style={[styles.battlePlayerBadge, turn === (botMode ? "player1" : room.role) ? styles.battleTurnActive : null]}>
 						<Text style={styles.battlePlayerName}>{playerName}</Text>
 						<Text style={styles.battlePlayerLabel}>{t("moregames.you")}</Text>
 					</View>
@@ -568,18 +643,18 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 					<View style={styles.battleTimerCenter}>
 						<Text style={styles.battleTimerText}>{t("battleship.timer", { time: timeLeft })}</Text>
 						<Text style={styles.battleTurnArrow}>
-							{turn === room.role ? "←" : "→"}
+							{turn === (botMode ? "player1" : room.role) ? "←" : "→"}
 						</Text>
 					</View>
 					
-					<View style={[styles.battlePlayerBadge, turn !== room.role ? styles.battleTurnActive : null]}>
+					<View style={[styles.battlePlayerBadge, turn !== (botMode ? "player1" : room.role) ? styles.battleTurnActive : null]}>
 						<Text style={styles.battlePlayerName}>{opponentName}</Text>
 						<Text style={styles.battlePlayerLabel}>{t("moregames.colPlayer")}</Text>
 					</View>
 				</View>
 			) : (
 				<Text style={[styles.gameStatus, { color: winner ? currentTheme.accent : currentTheme.textPrimary }]}>
-					{winner ? t("moregames.wins", { name: roleLabel(winner) }) : t("moregames.placeShips")}
+					{winner ? t("moregames.wins", { name: botMode ? (winner === "player1" ? playerName : opponentName) : roleLabel(winner) }) : t("moregames.placeShips")}
 				</Text>
 			)}
 			<View style={styles.battlePlayArea}>
@@ -621,6 +696,9 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 					</View>
 				</View>
 			</View>
+			{botMode && (
+				<StylizedButton text={t("bot.newGame")} onClick={resetLocal} backgroundColor={currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
+			)}
 		</View>
 	);
 }
