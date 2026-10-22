@@ -46,24 +46,24 @@ export const MORE_GAME_CARDS: MoreGameCard[] = [
 	},
 	{
 		id: "battleship",
-		title: "Sea Battle Online",
+		title: "Sea Battle",
 		color: "#38BDF8",
 		description: "10x10 duel with movable multi-cell ships, ready checks, hits and sunk fleet wins.",
-		tags: ["online", "10x10", "ships"],
+		tags: ["online", "bot", "10x10"],
 	},
 	{
 		id: "durak",
-		title: "Durak Online",
+		title: "Durak",
 		color: "#F97316",
 		description: "Realtime Durak with card faces, throw-in, transfer, cheat mode and 2-6 seats.",
-		tags: ["online", "cards", "2-6"],
+		tags: ["online", "bot", "cards"],
 	},
 	{
 		id: "chess",
-		title: "Chess Online",
+		title: "Chess",
 		color: "#E5E7EB",
 		description: "Legal moves, board rotation, checkmate/draw states and skinable boards.",
-		tags: ["online", "rules", "1v1"],
+		tags: ["online", "bot", "rules"],
 	},
 	{
 		id: "sudoku",
@@ -74,10 +74,10 @@ export const MORE_GAME_CARDS: MoreGameCard[] = [
 	},
 	{
 		id: "tictactoe",
-		title: "Tic-Tac-Toe Online",
+		title: "Tic-Tac-Toe",
 		color: "#F472B6",
 		description: "Quick local or realtime room-code duel with win and draw sync.",
-		tags: ["online", "quick", "1v1"],
+		tags: ["online", "bot", "quick"],
 	},
 	{
 		id: "mahjong",
