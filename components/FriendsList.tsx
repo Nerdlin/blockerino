@@ -477,6 +477,7 @@ const styles = StyleSheet.create({
         fontSize: 10,
     },
     searchRow: {
+        width: '100%',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
@@ -484,6 +485,7 @@ const styles = StyleSheet.create({
     },
     input: {
         flex: 1,
+        minWidth: 0,
         height: 40,
         borderWidth: 2,
         borderRadius: 4,
@@ -491,6 +493,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Silkscreen',
     },
     addButton: {
+        flexShrink: 0,
         minWidth: 70,
         height: 40,
         margin: 0,

@@ -682,7 +682,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 		reward: 25,
 		title: "Sparring Bot",
 		target: 1,
-		howToUnlock: "Beat the computer once.",
+		howToUnlock: "Beat the bot once.",
 		getCurrent: (_scores, stats) => stats.botWins,
 	},
 	{
@@ -691,7 +691,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 		reward: 100,
 		title: "Bot Basher",
 		target: 10,
-		howToUnlock: "Beat the computer 10 times.",
+		howToUnlock: "Beat the bot 10 times.",
 		getCurrent: (_scores, stats) => stats.botWins,
 	},
 	{
@@ -700,7 +700,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 		reward: 400,
 		title: "Bot Buster",
 		target: 50,
-		howToUnlock: "Beat the computer 50 times.",
+		howToUnlock: "Beat the bot 50 times.",
 		getCurrent: (_scores, stats) => stats.botWins,
 	},
 	{
@@ -709,7 +709,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 		reward: 100,
 		title: "Tough Nut",
 		target: 1,
-		howToUnlock: "Beat the computer on Hard.",
+		howToUnlock: "Beat the bot on Hard.",
 		getCurrent: (_scores, stats) => stats.botHardWins,
 	},
 	{
@@ -718,7 +718,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 		reward: 300,
 		title: "Machine Breaker",
 		target: 10,
-		howToUnlock: "Beat the computer on Hard 10 times.",
+		howToUnlock: "Beat the bot on Hard 10 times.",
 		getCurrent: (_scores, stats) => stats.botHardWins,
 	},
 	{
@@ -727,7 +727,7 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 		reward: 800,
 		title: "Terminator",
 		target: 25,
-		howToUnlock: "Beat the computer on Hard 25 times.",
+		howToUnlock: "Beat the bot on Hard 25 times.",
 		getCurrent: (_scores, stats) => stats.botHardWins,
 	},
 	{

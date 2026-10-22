@@ -28,13 +28,15 @@ export default function SimplePopupView({
 	const scale = getPopupScale(width, height);
 	if (style === undefined)
 		style = [];
+	// A screen that starts with a Back button asks for the top ("justifyContent: flex-start") instead of floating in the middle.
+	const alignTop = StyleSheet.flatten(style)?.justifyContent === "flex-start";
     return (
 		<UiScaleContext.Provider value={scale}>
 		<View style={[styles.popupContainer, ...style, scale > 1 && { transform: [{ scale }] }]}>
 			<ScrollView
 				ref={scrollRef}
 				style={styles.scrollView}
-				contentContainerStyle={styles.scrollContent}
+				contentContainerStyle={[styles.scrollContent, alignTop && { justifyContent: "flex-start" }]}
 				showsVerticalScrollIndicator={true}
 				keyboardShouldPersistTaps="handled"
 				nestedScrollEnabled

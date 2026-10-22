@@ -14,6 +14,7 @@ export default function FirstRunCoach({ onDismiss }: { onDismiss: () => void }) 
 				<Text style={[styles.title, { color: currentTheme.accent }]}>{t("firstrun.title")}</Text>
 				<Text style={[styles.line, { color: currentTheme.textPrimary }]}>{t("firstrun.drag")}</Text>
 				<Text style={[styles.line, { color: currentTheme.textPrimary }]}>{t("firstrun.clear")}</Text>
+				<Text style={[styles.line, { color: currentTheme.textSecondary }]}>{t("firstrun.combo")}</Text>
 				<StylizedButton
 					text={t("firstrun.gotIt")}
 					onClick={onDismiss}

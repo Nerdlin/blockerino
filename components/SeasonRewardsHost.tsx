@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, StyleSheet, Text, View } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
-import { useTheme } from "@/constants/Theme";
+import {useTheme, opaqueColor } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { supabase } from "@/constants/Supabase";
 import { getShopItem, loadShopState, useShopState } from "@/constants/Shop";
@@ -93,7 +93,7 @@ export default function SeasonRewardsHost() {
 	};
 
 	return (
-		<SimplePopupView style={[{ backgroundColor: currentTheme.menuBackground }]}>
+		<SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
 			<Text style={[styles.title, { color: currentTheme.buttonPrimary }]}>
 				{seasonKey ? t("season.endedTitle", { season: seasonKey }) : t("season.viewResults")}
 			</Text>

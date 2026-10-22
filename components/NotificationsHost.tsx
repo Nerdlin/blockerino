@@ -4,7 +4,7 @@ import { useAtomValue } from "jotai";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import UiIcon from "./UiIcon";
-import { useTheme } from "@/constants/Theme";
+import {useTheme, opaqueColor } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { supabase } from "@/constants/Supabase";
 import { MenuStateType, useAppStateValue, useSetAppState } from "@/hooks/useAppState";
@@ -83,7 +83,7 @@ export default function NotificationsHost() {
 	const hasRankings = items.some(pointsToRankings);
 
 	return (
-		<SimplePopupView style={[{ backgroundColor: currentTheme.menuBackground }]}>
+		<SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
 			<View style={styles.header}>
 				<Text style={[styles.title, { color: currentTheme.textPrimary }]}>{t("notif.title")}</Text>
 				<View style={[styles.countPill, { backgroundColor: currentTheme.buttonPrimary }]}>

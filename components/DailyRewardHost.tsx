@@ -4,7 +4,7 @@ import { useAtom } from "jotai";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import UiIcon from "./UiIcon";
-import { useTheme } from "@/constants/Theme";
+import {useTheme, opaqueColor } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { supabase } from "@/constants/Supabase";
 import { loadShopState, useShopState } from "@/constants/Shop";
@@ -125,7 +125,7 @@ export default function DailyRewardHost() {
 	const shownStreak = claim ? claim.streak : alreadyClaimed ? status.streak : status.nextStreak;
 
 	return (
-		<SimplePopupView style={[{ backgroundColor: currentTheme.menuBackground }]}>
+		<SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
 			<View style={styles.flame}>
 				<UiIcon name="fire" size={36} />
 			</View>

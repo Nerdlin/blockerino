@@ -663,7 +663,7 @@ const { t } = useLanguage();
 		setBetError(null);
 		setCoinResult(null);
 		setBotMode(true);
-		setPlayerNames(Object.fromEntries(roles.map((role, index) => [role, index === 0 ? playerName : count > 2 ? `Computer ${index}` : "Computer"])));
+		setPlayerNames(Object.fromEntries(roles.map((role, index) => [role, index === 0 ? playerName : count > 2 ? `Bot ${index}` : "Bot"])));
 		setPlayerAvatars(Object.fromEntries(roles.map((role) => [role, ""])));
 		setOpponentReady(true);
 		setState(createDurakState(count, variants, deckSize, 0));
@@ -824,7 +824,8 @@ const { t } = useLanguage();
 	return (
 		<View style={styles.onlineGame}>
 			{!state ? (
-				<ScrollView style={styles.moreList} contentContainerStyle={styles.durakPrep}>
+				<View style={{ flex: 1, width: "100%" }}>
+					<ScrollView style={styles.moreList} contentContainerStyle={styles.durakPrep}>
 					<View style={[styles.durakBalanceRow, { borderColor: currentTheme.accent }]}>
 						<View style={styles.durakCoinRow}>
 							<Text style={[styles.durakBalanceText, { color: currentTheme.textPrimary }]}>{t("durak.balance")}: {shopState.balance}</Text>
@@ -883,7 +884,9 @@ const { t } = useLanguage();
 					</Animated.View>
 					</Collapsible>
 
-					<View style={{ marginTop: 40, alignItems: "center", width: "100%" }}>
+					</ScrollView>
+					<View style={{ width: "100%", paddingBottom: 6 }}>
+					<View style={{ marginTop: 8, alignItems: "center", width: "100%" }}>
 						<Collapsible visible={vsBot}>
 <StylizedButton text={t("bot.play")} onClick={startBotGame} backgroundColor={currentTheme.buttonPrimary} />
 						</Collapsible>
@@ -901,7 +904,9 @@ const { t } = useLanguage();
 					</View>
 
 					{betError && <Text style={styles.durakBetError}>{betError}</Text>}
-				</ScrollView>
+				
+					</View>
+				</View>
 			) : (
 				<>
 					{state.winner || state.cancelled ? (
