@@ -198,5 +198,5 @@ export function useTheme() {
 
 /** The same colour without transparency, for popups that open on top of a menu and must not let it show through. */
 export function opaqueColor(color: string): string {
-  return color.replace(/rgba(([^,]+),([^,]+),([^,]+),[^)]+)/, "rgb($1,$2,$3)");
+  return color.replace(/rgba\(\s*([^,]+),\s*([^,]+),\s*([^,]+),[^)]+\)/i, "rgb($1, $2, $3)");
 }
