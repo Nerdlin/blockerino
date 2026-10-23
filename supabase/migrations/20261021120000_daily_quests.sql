@@ -97,7 +97,7 @@ BEGIN
       GET DIAGNOSTICS v_inserted = ROW_COUNT;
       IF v_inserted > 0 THEN
         v_total := v_total + public.daily_quest_reward('bonus');
-        v_granted := v_granted || 'bonus';
+        v_granted := array_append(v_granted, 'bonus'::text);
       END IF;
     END IF;
   END IF;
