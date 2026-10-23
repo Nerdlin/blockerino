@@ -6,6 +6,7 @@ import { View, Text, Pressable } from "react-native";
 import StylizedButton from "../StylizedButton";
 import Collapsible from "../Collapsible";
 import { recordMoreGameWin } from "@/constants/Achievements";
+import { recordGameOutcome } from "@/constants/GameStats";
 import { chooseTicTacToeMove } from "@/constants/bots/TicTacToeBot";
 import { BotPanel, useBotSettings } from "./BotPanel";
 import { OnlineRole, TicMark } from "./types";
@@ -24,6 +25,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 	const { difficulty, setDifficulty, vsBot, setVsBot } = useBotSettings("tictactoe");
 	const winner = getTicTacToeWinner(board);
 	const isDraw = !winner && board.every(Boolean);
+	const gameFinished = Boolean(winner) || isDraw || Boolean(remoteResult);
 
 	const handleEvent = useCallback((event: string, payload: any, senderRole?: OnlineRole) => {
 		if (event === "system_joined" && senderRole) {
@@ -87,15 +89,18 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 		const online = room.isConnected && isDuelRole(room.role);
 		const myMark: TicMark = room.role === "player2" ? "O" : "X";
 		const iWon = (online && (Boolean(remoteResult) || winner === myMark)) || (botActive && winner === "X");
-		if (!iWon) {
+		const iLost = !iWon && !remoteResult && Boolean(winner) && (online || botActive);
+		const drawn = !winner && isDraw && (online || botActive);
+		if (!iWon && !iLost && !drawn) {
 			if (!winner && !remoteResult) winRecordedRef.current = null;
 			return;
 		}
 		const key = `${room.roomCode}:${board.join("")}:${remoteResult ?? ""}`;
 		if (winRecordedRef.current === key) return;
 		winRecordedRef.current = key;
-		recordMoreGameWin("tictactoe", { vsBot: botActive, difficulty });
-	}, [board, botActive, difficulty, remoteResult, room.isConnected, room.role, room.roomCode, winner]);
+		if (iWon) recordMoreGameWin("tictactoe", { vsBot: botActive, difficulty });
+		else recordGameOutcome("tictactoe", iLost ? "loss" : "draw", { vsBot: botActive });
+	}, [board, botActive, difficulty, isDraw, remoteResult, room.isConnected, room.role, room.roomCode, winner]);
 
 	const reset = () => {
 		const nextBoard = Array(9).fill(null);
@@ -181,7 +186,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 					</Pressable>
 				))}
 			</View>
-			<StylizedButton text={t("moregames.reset")} onClick={reset} backgroundColor={currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
+			<StylizedButton text={gameFinished ? t(room.role ? "moregames.rematch" : "bot.newGame") : t("moregames.reset")} onClick={reset} backgroundColor={gameFinished ? "#16A34A" : currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
 			{!room.role && (
 				<BotPanel vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); reset(); }} difficulty={difficulty} onDifficultyChange={(next) => { setDifficulty(next); reset(); }} />
 			)}

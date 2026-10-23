@@ -7,6 +7,7 @@ import { submitMoreGameMatchResult } from "@/constants/Supabase";
 import StylizedButton from "../StylizedButton";
 import { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics } from "./cosmetics";
 import { recordMoreGameWin } from "@/constants/Achievements";
+import { recordGameOutcome } from "@/constants/GameStats";
 import { chooseChessMove } from "@/constants/bots/ChessBot";
 import Collapsible from "../Collapsible";
 import { BotPanel, useBotSettings } from "./BotPanel";
@@ -124,14 +125,17 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 		const myColor = room.role === "player2" ? "b" : "w";
 		const mated = game.isCheckmate() && game.turn() !== myColor;
 		const iWon = (online && (Boolean(remoteResult) || mated)) || (botActive && mated);
-		if (!iWon) {
+		const iLost = !iWon && game.isCheckmate() && (online || botActive);
+		const drawn = !iWon && !iLost && game.isDraw() && (online || botActive);
+		if (!iWon && !iLost && !drawn) {
 			if (!game.isGameOver() && !remoteResult) winRecordedRef.current = null;
 			return;
 		}
 		const key = `${room.roomCode}:${fen}:${remoteResult ?? ""}`;
 		if (winRecordedRef.current === key) return;
 		winRecordedRef.current = key;
-		recordMoreGameWin("chess", { vsBot: botActive, difficulty });
+		if (iWon) recordMoreGameWin("chess", { vsBot: botActive, difficulty });
+		else recordGameOutcome("chess", iLost ? "loss" : "draw", { vsBot: botActive });
 	}, [botActive, difficulty, fen, game, remoteResult, room.isConnected, room.role, room.roomCode]);
 
 	const legalTargets = selected ? game.moves({ square: selected as any, verbose: true }).map((move: any) => move.to) : [];

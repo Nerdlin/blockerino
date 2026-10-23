@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { recordQuestProgress } from "./DailyQuests";
+import { recordGameOutcome } from "./GameStats";
 import { GameModeType } from "@/hooks/useAppState";
 import { getHighScores, HighScore } from "@/constants/Storage";
 import { LEADERBOARD_GAME_MODES } from "@/constants/GameModes";
@@ -1132,6 +1133,7 @@ const WIN_STAT_BY_GAME: Record<string, WinStatField> = {
 export function recordMoreGameWin(gameId: string, options: { vsBot?: boolean; difficulty?: string } = {}): void {
 	const field = WIN_STAT_BY_GAME[gameId];
 	if (!field) return;
+	recordGameOutcome(gameId, "win", { vsBot: options.vsBot });
 	const progress: Partial<AchievementStats> = { [field]: 1 };
 	if (options.vsBot) {
 		progress.botWins = 1;
@@ -1142,6 +1144,7 @@ export function recordMoreGameWin(gameId: string, options: { vsBot?: boolean; di
 
 /** A finished Versus match (the player took part in it); `won` adds a win. */
 export function recordVersusMatch(won: boolean): void {
+	recordGameOutcome("versus", won ? "win" : "loss");
 	void recordAchievementProgress({ versusPlayed: 1, versusWins: won ? 1 : 0 });
 }
 

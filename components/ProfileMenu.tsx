@@ -1,5 +1,6 @@
 import { GameModeType, useAppState } from "@/hooks/useAppState";
 import AnimatedNumber from "./AnimatedNumber";
+import GameRecordsCard from "./GameRecordsCard";
 import FadeInView from "./FadeInView";
 import { track } from "@/constants/Analytics";
 import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, Image, Pressable } from "react-native";
@@ -521,6 +522,7 @@ export default function ProfileMenu() {
 									<AnimatedNumber value={gamesPlayed} style={[styles.statValue, { color: currentTheme.accent }]} />
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.matches")}</Text>
 								</FadeInView>
+								<GameRecordsCard />
 							</View>
 						)}
 

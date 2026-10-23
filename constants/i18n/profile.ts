@@ -21,6 +21,12 @@ export const profile: ScreenDictionary = {
 		"profile.elo": "Elo",
 		"profile.classic": "Classic",
 		"profile.chaos": "Chaos",
+		"record.title": "My record",
+		"record.empty": "Play a game against a person or a bot and your record shows up here.",
+		"record.people": "People",
+		"record.bots": "Bots",
+		"record.versus": "Block duels",
+		"record.legend": "wins - losses - draws",
 		"profile.matches": "Matches",
 
 		// Buttons
@@ -74,6 +80,12 @@ export const profile: ScreenDictionary = {
 		"profile.elo": "Эло",
 		"profile.classic": "Классика",
 		"profile.chaos": "Хаос",
+		"record.title": "Мои результаты",
+		"record.empty": "Сыграйте партию с человеком или ботом, и результаты появятся здесь.",
+		"record.people": "Люди",
+		"record.bots": "Боты",
+		"record.versus": "Дуэли блоков",
+		"record.legend": "победы - поражения - ничьи",
 		"profile.matches": "Матчи",
 
 		// Buttons

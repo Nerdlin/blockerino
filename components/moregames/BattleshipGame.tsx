@@ -10,6 +10,7 @@ import Collapsible from "../Collapsible";
 import { useUiScale } from "../SimplePopupView";
 import ShipArt from "@/components/ShipArt";
 import { recordMoreGameWin } from "@/constants/Achievements";
+import { recordGameOutcome } from "@/constants/GameStats";
 import { chooseBattleshipShot } from "@/constants/bots/BattleshipBot";
 import { BotPanel, useBotSettings } from "./BotPanel";
 import { BattleShip, DuelRole, OnlineRole } from "./types";
@@ -223,6 +224,10 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 			setWinner(roomRef.current.role);
 			return;
 		}
+		if (event === "rematch") {
+			rematchLocal();
+			return;
+		}
 		if (event === "ready_state") {
 			if (payload.playerName) setOpponentName(normalizeStoredPlayerName(payload.playerName));
 			setOpponentPresent(true);
@@ -345,6 +350,23 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 		pendingShotCellRef.current = null;
 		setBotMode(false);
 		botSunkRef.current = [];
+	};
+
+	// A new round with the same opponent: both sides place their fleets again, nobody has to rejoin.
+	const rematchLocal = () => {
+		setFleet(createDefaultFleet());
+		setSelectedShipId("b4");
+		setIncomingShots({});
+		setTargetShots({});
+		setTargetSunk([]);
+		setTurn("player1");
+		setWinner(null);
+		setWinnerSource(null);
+		setReady(false);
+		setOpponentReady(false);
+		setTimeLeft(60);
+		ratingSubmittedRef.current = null;
+		pendingShotCellRef.current = null;
 	};
 
 	const startBotGame = () => {
@@ -480,11 +502,13 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 			return;
 		}
 		const iWon = botMode ? winner === "player1" : isDuelRole(room.role) && room.isConnected && winner === room.role;
-		if (!iWon) return;
+		const iLost = !iWon && (botMode || (isDuelRole(room.role) && room.isConnected));
+		if (!iWon && !iLost) return;
 		const key = `${room.roomCode}:${botMode}:${winner}`;
 		if (winRecordedRef.current === key) return;
 		winRecordedRef.current = key;
-		recordMoreGameWin("battleship", { vsBot: botMode, difficulty });
+		if (iWon) recordMoreGameWin("battleship", { vsBot: botMode, difficulty });
+		else recordGameOutcome("battleship", "loss", { vsBot: botMode });
 	}, [botMode, difficulty, room.isConnected, room.role, room.roomCode, winner]);
 
 	const fire = (cell: string) => {
@@ -714,6 +738,9 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 					</View>
 				</View>
 			</View>
+			{winner && !botMode && isDuelRole(room.role) && room.isConnected && (
+				<StylizedButton text={t("moregames.rematch")} onClick={() => { rematchLocal(); room.send("rematch", {}); }} backgroundColor="#16A34A" style={styles.resetButton} textStyle={styles.smallButtonText} />
+			)}
 			{botMode && (
 				<StylizedButton text={t("bot.newGame")} onClick={resetLocal} backgroundColor={currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
 			)}

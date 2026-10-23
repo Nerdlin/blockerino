@@ -14,6 +14,7 @@ import { cssColors } from "@/constants/Color";
 import { useUiScale } from "../SimplePopupView";
 import Slider from "@react-native-community/slider";
 import { recordMoreGameWin } from "@/constants/Achievements";
+import { recordGameOutcome } from "@/constants/GameStats";
 import { DurakBotView, chooseDurakAction } from "@/constants/bots/DurakBot";
 import { BotPanel, useBotSettings } from "./BotPanel";
 import { DurakBout, DurakState, DurakVariant, OnlineRole } from "./types";
@@ -703,11 +704,15 @@ const { t } = useLanguage();
 	// Count the win for achievements once per finished table.
 	const winRecordedRef = useRef<string | null>(null);
 	useEffect(() => {
-		if (!state?.winner || state.draw || state.cancelled || !seat || state.winner !== seat) return;
+		if (!state?.winner || state.cancelled || !seat) return;
 		if (!botMode && !room.isConnected) return;
 		if (winRecordedRef.current === state.tableId) return;
+		// The durak is whoever is left holding cards; the first one out wins, the others in between are not counted.
+		const outcome = state.draw ? "draw" : state.winner === seat ? "win" : (state.hands[seat]?.length ?? 0) > 0 ? "loss" : null;
 		winRecordedRef.current = state.tableId;
-		recordMoreGameWin("durak", { vsBot: botMode, difficulty: botDifficulty });
+		if (!outcome) return;
+		if (outcome === "win") recordMoreGameWin("durak", { vsBot: botMode, difficulty: botDifficulty });
+		else recordGameOutcome("durak", outcome, { vsBot: botMode });
 	}, [botDifficulty, botMode, room.isConnected, seat, state]);
 
 	const join = () => {
@@ -1069,22 +1074,22 @@ const { t } = useLanguage();
 						</View>
 
 						{state.cancelled ? (
-							<StylizedButton text="Leave" onClick={() => { room.disconnect(); setState(null); setOpponentReady(false); }} backgroundColor={cssColors.spaceGray} />
+							<StylizedButton text={t("moregames.leave")} onClick={() => { room.disconnect(); setState(null); setOpponentReady(false); }} backgroundColor={cssColors.spaceGray} />
 							) : state.winner && botMode ? (
 							<View style={[styles.controlRow, { position: 'absolute', bottom: 120, zIndex: 100 }]}>
 								<StylizedButton text={t("bot.newGame")} onClick={startBotGame} backgroundColor={currentTheme.buttonPrimary} style={{ height: 40 }} textStyle={{ fontSize: 12 }} />
-								<StylizedButton text="Leave" onClick={leaveBotGame} backgroundColor={cssColors.spaceGray} style={{ height: 40 }} textStyle={{ fontSize: 12 }} />
+								<StylizedButton text={t("moregames.leave")} onClick={leaveBotGame} backgroundColor={cssColors.spaceGray} style={{ height: 40 }} textStyle={{ fontSize: 12 }} />
 							</View>
 						) : state.winner ? (
 							<View style={[styles.controlRow, { position: 'absolute', bottom: 120, zIndex: 100 }]}>
 								{restartStatus === 'idle' && (
 									<>
-										<StylizedButton text="Play Again" onClick={() => {
+										<StylizedButton text={t("moregames.rematch")} onClick={() => {
 											setRestartStatus('waiting');
 											setRestartAccepts(room.role ? [room.role] : []);
 											roomRef.current.send('restart_request', { role: room.role });
 										}} backgroundColor={currentTheme.buttonPrimary} style={{ height: 40 }} textStyle={{ fontSize: 12 }} />
-										<StylizedButton text="Leave" onClick={() => {
+										<StylizedButton text={t("moregames.leave")} onClick={() => {
 											roomRef.current.send('restart_decline', { role: room.role });
 											roomRef.current.disconnect();
 											setState(null);
@@ -1094,12 +1099,12 @@ const { t } = useLanguage();
 									</>
 								)}
 								{restartStatus === 'waiting' && (
-									<Text style={{ color: currentTheme.textSecondary, fontFamily: 'Silkscreen' }}>Waiting for players...</Text>
+									<Text style={{ color: currentTheme.textSecondary, fontFamily: 'Silkscreen' }}>{t("moregames.waitingForPlayers")}</Text>
 								)}
 								{restartStatus === 'requested' && (
 									<>
-										<Text style={{ color: currentTheme.textPrimary, fontFamily: 'Silkscreen', fontSize: 10, marginRight: 10 }}>Restart?</Text>
-										<StylizedButton text="Accept" onClick={() => {
+										<Text style={{ color: currentTheme.textPrimary, fontFamily: 'Silkscreen', fontSize: 10, marginRight: 10 }}>{t("moregames.restartAsk")}</Text>
+										<StylizedButton text={t("moregames.accept")} onClick={() => {
 											setRestartStatus('waiting');
 											roomRef.current.send('restart_accept', { role: room.role });
 											setRestartAccepts(prev => {
@@ -1112,7 +1117,7 @@ const { t } = useLanguage();
 												return next;
 											});
 										}} backgroundColor={currentTheme.buttonPrimary} style={{ height: 40 }} textStyle={{ fontSize: 12 }} />
-										<StylizedButton text="Decline" onClick={() => {
+										<StylizedButton text={t("moregames.decline")} onClick={() => {
 											roomRef.current.send('restart_decline', { role: room.role });
 											roomRef.current.disconnect();
 											setState(null);
