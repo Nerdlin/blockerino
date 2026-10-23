@@ -18,6 +18,8 @@ jest.mock("@/constants/Supabase", () => ({
 	submitMoreGameSoloResult: jest.fn(() => Promise.resolve(null)),
 }));
 
+jest.mock("@/constants/Sound", () => ({ useSoundSettings: () => ({ playSfx: jest.fn() }) }));
+jest.mock("expo-haptics", () => ({ notificationAsync: jest.fn(() => Promise.resolve()), NotificationFeedbackType: { Success: "success", Warning: "warning" } }));
 jest.mock("./StylizedButton", () => () => null);
 jest.mock("./SimplePopupView", () => ({ children }: any) => children);
 
