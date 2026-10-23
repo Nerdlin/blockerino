@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import FadeInView from "./FadeInView";
 import { Image, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, { BounceInUp, Easing, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
@@ -12,6 +12,8 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { shouldCheckConnectionBeforeStart } from "@/constants/GameStart";
 import PixelIcon from "./PixelIcon";
 import { useLanguage } from "@/constants/Localization";
+import { getDailyQuests, subscribeToDailyQuests } from "@/constants/DailyQuests";
+import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 
 const CHAOS_VIOLET = "#7C3AED";
 
@@ -31,6 +33,22 @@ export default function MainMenu() {
 	const shopBalance = useAtomValue(shopStateAtom).balance;
 	const streakStatus = useAtomValue(dailyRewardStatusAtom);
 	const setDailyRewardOpen = useSetAtom(dailyRewardOpenAtom);
+	const { signedIn } = useAccountIdentity();
+
+	// A green dot on the medal while finished daily quests wait to be collected.
+	const [questReady, setQuestReady] = useState(false);
+	useEffect(() => {
+		let active = true;
+		const refresh = () => void getDailyQuests().then((view) => {
+			if (active) setQuestReady(view.claimableIds.length > 0);
+		});
+		refresh();
+		const unsubscribe = subscribeToDailyQuests(refresh);
+		return () => {
+			active = false;
+			unsubscribe();
+		};
+	}, []);
 
 	const startSoloMode = (mode: GameModeType) => {
 		if (shouldCheckConnectionBeforeStart(mode)) {
@@ -70,6 +88,7 @@ export default function MainMenu() {
 			accessibilityLabel={t("ach.header")}
 		>
 			<PixelIcon name="medal" size={27} color="#F0AF0C" secondaryColor="#FFFFFF" />
+			{questReady && signedIn && <View style={styles.badgeDot} />}
 		</Pressable>
 
 		<Image source={require("../assets/images/icon.png")} style={styles.cornerLogo} accessibilityLabel="Blockerino" />
@@ -357,6 +376,17 @@ const styles = StyleSheet.create({
 		color: "#555",
 		position: "absolute",
 		bottom: 20,
+	},
+	badgeDot: {
+		position: "absolute",
+		top: -4,
+		right: -4,
+		width: 12,
+		height: 12,
+		borderRadius: 6,
+		backgroundColor: "#22C55E",
+		borderWidth: 2,
+		borderColor: "#141414",
 	},
 	achievementsButton: {
 		position: "absolute",

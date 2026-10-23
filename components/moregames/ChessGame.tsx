@@ -288,6 +288,7 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 					return (
 						<Pressable
 							key={square}
+							testID={`chess-sq-${square}`}
 							onPress={() => pressSquare(square)}
 							style={[
 								styles.chessCell,

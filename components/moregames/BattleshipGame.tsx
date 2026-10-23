@@ -624,7 +624,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 								setBoardLayout({ x: pageX, y: pageY, w, h });
 							});
 						}}>
-							<BattleGrid title={t("moregames.myFleet")} cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
+							<BattleGrid testPrefix="sea-mine" title={t("moregames.myFleet")} cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
 						</View>
 						<View style={styles.battleLobbyButtons}>
 							<BotPanel vsBot={vsBot} onVsBotChange={setVsBot} difficulty={difficulty} onDifficultyChange={setDifficulty} friendLabel={t("bot.online")} />
@@ -728,13 +728,13 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 					</View>
 				)}
 				<View style={[styles.battleBoardsVertical, { zIndex: 1 }]}>
-					{ready ? <BattleGrid title={t("moregames.target")} cells={targetShots} crossed={targetCrossed} onPress={fire} cosmetics={cosmetics} /> : null}
+					{ready ? <BattleGrid testPrefix="sea-target" title={t("moregames.target")} cells={targetShots} crossed={targetCrossed} onPress={fire} cosmetics={cosmetics} /> : null}
 					<View ref={boardRef} onLayout={() => {
 						measureScreenRect(boardRef.current, (pageX, pageY, w, h) => {
 							setBoardLayout({ x: pageX, y: pageY, w, h });
 						});
 					}}>
-						<BattleGrid title={t("moregames.myFleet")} cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
+						<BattleGrid testPrefix="sea-mine" title={t("moregames.myFleet")} cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
 					</View>
 				</View>
 			</View>
@@ -833,8 +833,10 @@ export function BattleGrid({
 	onPress,
 	cosmetics,
 	dragPreview,
+	testPrefix,
 }: {
 	title: string;
+	testPrefix?: string;
 	cells: Record<string, string>;
 	crossed?: Set<string>;
 	ships?: BattleShip[];
@@ -887,6 +889,7 @@ export function BattleGrid({
 							return (
 								<Pressable
 									key={cell}
+									testID={testPrefix ? `${testPrefix}-${cell}` : undefined}
 									onPress={() => onPress?.(cell)}
 									style={[styles.battleCell, { backgroundColor, borderColor: sea.cellBorder ?? currentTheme.gridBorder }]}
 								/>

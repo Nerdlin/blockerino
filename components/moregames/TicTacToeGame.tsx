@@ -188,6 +188,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 				{board.map((value, index) => (
 					<Pressable
 						key={index}
+						testID={`ttt-cell-${index}`}
 						onPress={() => play(index)}
 						style={[styles.ticCell, { borderColor: currentTheme.gridBorder, backgroundColor: hintCell === index ? "rgba(74, 222, 128, 0.35)" : currentTheme.emptyBlockBorder }]}
 					>

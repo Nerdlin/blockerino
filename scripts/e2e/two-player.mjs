@@ -239,6 +239,96 @@ const scenarios = {
 	},
 };
 
+// ---- solo scenarios: one player against a bot, plus a few screens that need no opponent ----
+
+const byTestId = (id) => `document.querySelector('[data-testid="${id}"]')`;
+async function clickTestId(player, id) {
+	const box = await player.evalJs(`(() => { const el = ${byTestId(id)}; if (!el) return null; el.scrollIntoView({ block: "center" }); const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+	if (!box) throw new Error(`${player.name}: no element ${id}`);
+	await player.mouse(box.x, box.y);
+}
+async function chooseBot(player, difficulty = "Easy") {
+	await player.clickText("Bot", 0); await sleep(900);
+	await player.clickText(difficulty, 0); await sleep(500);
+}
+
+const soloScenarios = {
+	async bot_tictactoe(a) {
+		await a.open();
+		await openGame(a, "tictactoe");
+		await chooseBot(a);
+		await clickTestId(a, "ttt-cell-4");
+		const answered = await (async () => {
+			const deadline = Date.now() + 8000;
+			while (Date.now() < deadline) {
+				if ((await a.evalJs(`[...document.querySelectorAll('[data-testid^="ttt-cell-"]')].filter((el) => el.textContent.trim() === "O").length`)) > 0) return true;
+				await sleep(400);
+			}
+			return false;
+		})();
+		if (!answered) throw new Error("the bot never answered with an O");
+		// A hint costs coins; a new guest has none, so it must say so instead of marking a cell.
+		await a.clickText("Hint (-20 coins)", 0); await sleep(600);
+		// With coins the hint marks a cell green; without them it says so.
+		const hinted = await (async () => {
+			const deadline = Date.now() + 4000;
+			while (Date.now() < deadline) {
+				if (/Not enough coins for a hint/i.test(await a.body())) return true;
+				if (await a.evalJs(`[...document.querySelectorAll('[data-testid^="ttt-cell-"]')].some((el) => getComputedStyle(el).backgroundColor.includes("74, 222, 128"))`)) return true;
+				await sleep(300);
+			}
+			return false;
+		})();
+		if (!hinted) throw new Error("the hint neither marked a cell nor explained the missing coins");
+	},
+
+	async bot_chess(a) {
+		await a.open();
+		await openGame(a, "chess");
+		await chooseBot(a);
+		await clickTestId(a, "chess-sq-e2"); await sleep(400);
+		await clickTestId(a, "chess-sq-e4");
+		if (!(await a.waitFor((text) => /Bot is thinking/i.test(text), 6000))) throw new Error("the bot never started thinking");
+		if (!(await a.waitFor((text) => /White turn/i.test(text), 20000))) throw new Error("the bot never replied");
+	},
+
+	async bot_battleship(a) {
+		await a.open();
+		await openGame(a, "battleship");
+		await a.mouse(221, 215); await sleep(800); // dice button: random fleet
+		await chooseBot(a);
+		await a.clickText("Play", 0); await sleep(1500);
+		await clickTestId(a, "sea-target-0,0");
+		const colors = async (prefix) => a.evalJs(`new Set([...document.querySelectorAll('[data-testid^="${prefix}-"]')].map((el) => getComputedStyle(el).backgroundColor)).size`);
+		const deadline = Date.now() + 10000;
+		let shotsLanded = false;
+		while (Date.now() < deadline && !shotsLanded) {
+			shotsLanded = (await colors("sea-target")) > 1 && (await colors("sea-mine")) > 1;
+			if (!shotsLanded) await sleep(500);
+		}
+		if (!shotsLanded) throw new Error("my shot or the bot reply never showed on the boards");
+	},
+
+	async bot_durak(a) {
+		await a.open();
+		await openGame(a, "durak");
+		await chooseBot(a);
+		await a.clickText("Play", 0);
+		if (!(await a.waitFor((text) => /Attack with any card|Bot is thinking|Pass|Take/i.test(text), 12000))) throw new Error("the Durak table never started");
+	},
+
+	async quests(a) {
+		await a.open();
+		await a.clickSel('[aria-label="Achievements"]'); await sleep(2000);
+		const text = await a.body();
+		if (!/Today.s quests/i.test(text)) throw new Error("the daily quests card is missing");
+		const rows = (text.match(/Clear [0-9]+ lines|Finish [0-9]+ solo games|Place [0-9]+ blocks|Beat a bot: [0-9]+|Play [0-9]+ duel|Win in More Games: [0-9]+/g) || []).length;
+		if (rows !== 3) throw new Error(`expected 3 quests, saw ${rows}: ${text.slice(0, 300)}`);
+	},
+};
+for (const fn of Object.values(soloScenarios)) fn.solo = true;
+Object.assign(scenarios, soloScenarios);
+
 async function main() {
 	const wanted = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 	const names = wanted.length > 0 ? wanted : Object.keys(scenarios);
@@ -253,7 +343,7 @@ async function main() {
 	const results = [];
 	for (const name of names) {
 		const a = await launchPlayer(`${name}-A`, 9401, chromePath);
-		const b = await launchPlayer(`${name}-B`, 9402, chromePath);
+		const b = scenarios[name].solo ? { name: `${name}-B`, close() {} } : await launchPlayer(`${name}-B`, 9402, chromePath);
 		const started = Date.now();
 		try {
 			await scenarios[name](a, b);
