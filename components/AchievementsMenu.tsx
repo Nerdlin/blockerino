@@ -7,6 +7,7 @@ import SimplePopupView from "./SimplePopupView";
 import AchievementIcon from "./AchievementIcon";
 import SegmentedControl from "./SegmentedControl";
 import StylizedButton from "./StylizedButton";
+import DailyQuestsCard from "./DailyQuestsCard";
 import UiIcon from "./UiIcon";
 import { useTheme } from "@/constants/Theme";
 import { cssColors } from "@/constants/Color";
@@ -204,6 +205,7 @@ export default function AchievementsMenu() {
 					)}
 				</View>
 			)}
+			{!loading && <DailyQuestsCard />}
 			{!loading && pendingCoins > 0 && !signedIn && (
 				<Text style={[styles.note, { color: currentTheme.accent }]}>{t("ach.signInToClaim", { coins: pendingCoins })}</Text>
 			)}

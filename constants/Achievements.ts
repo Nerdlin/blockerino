@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { recordQuestProgress } from "./DailyQuests";
 import { GameModeType } from "@/hooks/useAppState";
 import { getHighScores, HighScore } from "@/constants/Storage";
 import { LEADERBOARD_GAME_MODES } from "@/constants/GameModes";
@@ -1091,6 +1092,7 @@ export async function getAchievementStats(): Promise<AchievementStats> {
 }
 
 export async function recordAchievementProgress(progress: Partial<AchievementStats>): Promise<void> {
+	feedDailyQuests(progress);
 	pendingAchievementProgress = mergeAchievementProgress(
 		pendingAchievementProgress ?? getDefaultAchievementStats(),
 		progress
@@ -1103,6 +1105,17 @@ export async function recordAchievementProgress(progress: Partial<AchievementSta
 			});
 		}, ACHIEVEMENT_FLUSH_DELAY_MS);
 	}
+}
+
+/** The same events also move today's daily quests along. */
+function feedDailyQuests(progress: Partial<AchievementStats>): void {
+	recordQuestProgress("lines", progress.totalLinesCleared ?? 0);
+	recordQuestProgress("games", progress.soloGamesFinished ?? 0);
+	recordQuestProgress("pieces", progress.totalPiecesPlaced ?? 0);
+	recordQuestProgress("botWin", progress.botWins ?? 0);
+	recordQuestProgress("versus", progress.versusPlayed ?? 0);
+	const moreWins = (progress.chessWins ?? 0) + (progress.seaWins ?? 0) + (progress.durakWins ?? 0) + (progress.tictactoeWins ?? 0) + (progress.sudokuSolved ?? 0) + (progress.mahjongCleared ?? 0);
+	recordQuestProgress("moreWin", moreWins);
 }
 
 type WinStatField = "chessWins" | "seaWins" | "durakWins" | "tictactoeWins" | "sudokuSolved" | "mahjongCleared";
