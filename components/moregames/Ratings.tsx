@@ -4,17 +4,14 @@ import { useLanguage } from "@/constants/Localization";
 import SegmentedControl from "../SegmentedControl";
 import { MoreGameRating } from "@/constants/Supabase";
 import { useTheme } from "@/constants/Theme";
-import { MORE_GAME_CARDS, RATED_MORE_GAME_IDS, getMoreGameEloBadge } from "./shared";
+import { MORE_GAME_CARDS, RATED_MORE_GAME_IDS } from "./shared";
 import { styles } from "./styles";
 import { RatedMoreGameId } from "./types";
 
-export function RatingBadge({ elo, small = false }: { elo: number; small?: boolean }) {
-	const badge = getMoreGameEloBadge(elo);
-	return (
-		<View style={[styles.ratingBadgeCircle, small && styles.ratingBadgeCircleSmall, { backgroundColor: badge.color }]}>
-			<UiIcon name={badge.icon} size={small ? 18 : 27} />
-		</View>
-	);
+/** Share of games won, rounded; 0 for someone who has not played. */
+export function winRate(rating: { wins?: number; games_played?: number } | null | undefined): number {
+	const games = rating?.games_played || 0;
+	return games > 0 ? Math.round(((rating?.wins || 0) / games) * 100) : 0;
 }
 
 export function MoreGameTabs({ selected, onChange }: { selected: RatedMoreGameId; onChange: (game: RatedMoreGameId) => void }) {
@@ -57,11 +54,11 @@ export function MoreGameLeaderboardPanel({
 		<View style={styles.ratingScreen}>
 			<MoreGameTabs selected={gameId} onChange={onGameChange} />
 			<View style={[styles.ratingSummaryCard, { borderColor: currentTheme.buttonPrimary }]}>
-				<RatingBadge elo={myRating?.elo || 0} small />
+				<UiIcon name="medalGold" size={27} />
 				<View style={styles.myRatingTextBlock}>
 					<Text style={[styles.myRatingTitle, { color: currentTheme.buttonPrimary }]}>{playerName}</Text>
 					<Text style={[styles.myRatingMeta, { color: currentTheme.textSecondary }]}>
-						{myRating?.elo || 0} ELO | W {myRating?.wins || 0} / L {myRating?.losses || 0} / D {myRating?.draws || 0}
+						{t("moregames.myRecord", { wins: myRating?.wins || 0, losses: myRating?.losses || 0, draws: myRating?.draws || 0, rate: winRate(myRating) })}
 					</Text>
 				</View>
 			</View>
@@ -74,8 +71,9 @@ export function MoreGameLeaderboardPanel({
 			<View style={styles.leaderboardHeaderRow}>
 				<Text style={[styles.leaderboardHeaderText, { flex: 0.35 }]}>#</Text>
 				<Text style={[styles.leaderboardHeaderText, { flex: 1.75 }]}>{t("moregames.colPlayer")}</Text>
-				<Text style={[styles.leaderboardHeaderText, { flex: 1 }]}>{t("moregames.colTier")}</Text>
-				<Text style={[styles.leaderboardHeaderText, { flex: 0.65, textAlign: "right" }]}>{t("moregames.colElo")}</Text>
+				<Text style={[styles.leaderboardHeaderText, { flex: 0.7, textAlign: "right" }]}>{t("moregames.colWins")}</Text>
+				<Text style={[styles.leaderboardHeaderText, { flex: 0.7, textAlign: "right" }]}>{t("moregames.colGames")}</Text>
+				<Text style={[styles.leaderboardHeaderText, { flex: 0.7, textAlign: "right" }]}>{t("moregames.colRate")}</Text>
 			</View>
 			<ScrollView style={styles.leaderboardList} contentContainerStyle={styles.leaderboardListContent}>
 				{leaderboard.length === 0 ? (
@@ -83,10 +81,9 @@ export function MoreGameLeaderboardPanel({
 						{loading ? t("moregames.loadingRatings") : t("moregames.noRatings")}
 					</Text>
 				) : leaderboard.map((entry, index) => {
-					const badge = getMoreGameEloBadge(entry.elo);
 					const isMe = entry.player_name.toLowerCase() === playerName.toLowerCase();
 					return (
-						<View key={`${entry.game_id}-${entry.player_key || entry.player_name}`} style={[styles.leaderboardRow, isMe && { borderColor: badge.color, backgroundColor: "rgba(255,255,255,0.06)" }]}>
+						<View key={`${entry.game_id}-${entry.player_key || entry.player_name}`} style={[styles.leaderboardRow, isMe && { borderColor: currentTheme.buttonPrimary, backgroundColor: "rgba(255,255,255,0.06)" }]}>
 							<Text style={[styles.leaderboardRank, { flex: 0.35, color: currentTheme.textPrimary }]}>{index + 1}</Text>
 							<View style={{ flex: 1.75, flexDirection: 'row', alignItems: 'center' }}>
 								{entry.avatar_url && entry.avatar_url.startsWith("http") ? (
@@ -102,11 +99,9 @@ export function MoreGameLeaderboardPanel({
 									{entry.player_name}{isMe ? ` (${t("moregames.you")})` : ""}
 								</Text>
 							</View>
-							<View style={[styles.leaderboardTier, { flex: 1, backgroundColor: badge.color }]}>
-								<UiIcon name={badge.icon} size={9} />
-								<Text style={styles.leaderboardTierText}>{t(`moregames.tier.${badge.tier}`)}</Text>
-							</View>
-							<Text style={[styles.leaderboardElo, { flex: 0.65, color: currentTheme.textPrimary }]}>{entry.elo}</Text>
+							<Text style={[styles.leaderboardElo, { flex: 0.7, color: currentTheme.textPrimary }]}>{entry.wins}</Text>
+							<Text style={[styles.leaderboardElo, { flex: 0.7, color: currentTheme.textSecondary }]}>{entry.games_played}</Text>
+							<Text style={[styles.leaderboardElo, { flex: 0.7, color: currentTheme.textSecondary }]}>{winRate(entry)}%</Text>
 						</View>
 					);
 				})}

@@ -90,19 +90,6 @@ export const MORE_GAME_CARDS: MoreGameCard[] = [
 
 export const RATED_MORE_GAME_IDS: RatedMoreGameId[] = ["battleship", "durak", "chess", "tictactoe", "sudoku", "mahjong"];
 export const RATED_MORE_GAME_CARDS = MORE_GAME_CARDS.filter((card): card is MoreGameCard & { id: RatedMoreGameId } => card.id !== "shop");
-export const ELO_TIERS = [
-	{ tier: "Bronze", color: "#CD7F32", icon: "medalBronze" as const, min: 0, max: 800 },
-	{ tier: "Silver", color: "#C0C0C0", icon: "medalSilver" as const, min: 800, max: 1000 },
-	{ tier: "Gold", color: "#FFD700", icon: "medalGold" as const, min: 1000, max: 1200 },
-	{ tier: "Diamond", color: "#00BFFF", icon: "diamond" as const, min: 1200, max: 1400 },
-	{ tier: "Master", color: "#DA70D6", icon: "star" as const, min: 1400, max: 1600 },
-	{ tier: "Legend", color: "#FF4500", icon: "crown" as const, min: 1600, max: 2000 },
-];
-
-export function getMoreGameEloBadge(elo: number) {
-	return ELO_TIERS.find((tier) => elo < tier.max) || ELO_TIERS[ELO_TIERS.length - 1];
-}
-
 export function normalizeStoredPlayerName(value: string | null | undefined) {
 	const name = (value || "").trim().slice(0, 24);
 	return name || DEFAULT_MORE_GAME_PLAYER_NAME;
