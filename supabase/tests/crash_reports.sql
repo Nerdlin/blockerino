@@ -29,5 +29,13 @@ begin
   end;
 end $$;
 
+reset role;
+do $$
+declare top record;
+begin
+  select * into top from analytics_crashes_week order by reports_7d desc limit 1;
+  assert top.fingerprint = 'abcd1234' and top.reports_7d = 31 and top.trend = 'new', 'the week digest groups and ranks';
+end $$;
+
 rollback;
 select 'crash_reports ok' as result;
