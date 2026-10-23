@@ -9,6 +9,9 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useShopState } from "@/constants/Shop";
 import { MoreGameRating, getMoreGameLeaderboard, MoreGameRatingGameId, getPlayerMoreGameRating } from "@/constants/Supabase";
 import { track } from "@/constants/Analytics";
+import { subscribeToOutcomes } from "@/constants/GameStats";
+import { useSoundSettings } from "@/constants/Sound";
+import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import SimplePopupView from "./SimplePopupView";
@@ -41,6 +44,16 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 export default function MoreGamesMenu() {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
+	const { playSfx } = useSoundSettings();
+
+	// A finished game gets a sound: the win jingle, or the soft game-over tone for a loss.
+	useEffect(() => subscribeToOutcomes((_game, outcome) => {
+		if (outcome === "draw") return;
+		void playSfx(outcome === "win" ? "achievement" : "gameOver");
+		if (Platform.OS !== "web") {
+			void Haptics.notificationAsync(outcome === "win" ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning).catch(() => undefined);
+		}
+	}), [playSfx]);
 	const [, , appendAppState, popAppState] = useAppState();
 	const { checked: authChecked, signedIn, name: accountName } = useAccountIdentity();
 	const openAccountScreen = (intent: "login" | "register") => {

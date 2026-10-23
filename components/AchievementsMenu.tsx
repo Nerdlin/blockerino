@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AnimatedNumber from "./AnimatedNumber";
 import FadeInView from "./FadeInView";
-import { AppState, StyleSheet, Text, View, useWindowDimensions, Pressable } from "react-native";
+import { AppState, Platform, StyleSheet, Text, View, useWindowDimensions, Pressable } from "react-native";
 import PixelLoader from "@/components/PixelLoader";
 import SimplePopupView from "./SimplePopupView";
 import AchievementIcon from "./AchievementIcon";
@@ -30,12 +30,15 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { loadShopState, useShopState } from "@/constants/Shop";
 import { useLanguage } from "@/constants/Localization";
+import { useSoundSettings } from "@/constants/Sound";
+import * as Haptics from "expo-haptics";
 
 const GROUPS: AchievementGroup[] = ["solo", "versus", "games", "economy"];
 
 export default function AchievementsMenu() {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
+	const { playSfx } = useSoundSettings();
 	const [, , , popAppState] = useAppState();
 	const { width } = useWindowDimensions();
 	const isMobile = width < 600;
@@ -145,6 +148,8 @@ export default function AchievementsMenu() {
 		}
 		const paid = result.granted.reduce((sum, id) => sum + (achievements.find((row) => row.id === id)?.reward ?? 0), 0);
 		setClaimNote({ text: t("ach.claimed", { coins: paid }), ok: true });
+		void playSfx("achievement");
+		if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
 	};
 
 	useEscapeKey(popAppState);

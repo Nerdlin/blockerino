@@ -60,7 +60,23 @@ export function gamesPlayed(record: GameRecord): number {
 
 let queue: Promise<void> = Promise.resolve();
 
+const listeners = new Set<(gameId: string, outcome: GameOutcome, vsBot: boolean) => void>();
+/** Called at once when a result is recorded; the More Games screen plays a sound for it. */
+export function subscribeToOutcomes(listener: (gameId: string, outcome: GameOutcome, vsBot: boolean) => void): () => void {
+	listeners.add(listener);
+	return () => {
+		listeners.delete(listener);
+	};
+}
+
 export function recordGameOutcome(gameId: string, outcome: GameOutcome, options: { vsBot?: boolean } = {}): void {
+	listeners.forEach((listener) => {
+		try {
+			listener(gameId, outcome, Boolean(options.vsBot));
+		} catch {
+			// a broken listener must not lose the result
+		}
+	});
 	queue = queue.catch(() => undefined).then(async () => {
 		try {
 			const records = parseGameRecords(await AsyncStorage.getItem(KEY));

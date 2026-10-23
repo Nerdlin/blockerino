@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, StyleSheet, Text, View } from "react-native";
+import { AppState, Platform, StyleSheet, Text, View } from "react-native";
 import StylizedButton from "./StylizedButton";
 import UiIcon from "./UiIcon";
 import FadeInView from "./FadeInView";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
+import { useSoundSettings } from "@/constants/Sound";
+import * as Haptics from "expo-haptics";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { loadShopState, useShopState } from "@/constants/Shop";
 import {
@@ -21,6 +23,7 @@ export default function DailyQuestsCard() {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
 	const { signedIn } = useAccountIdentity();
+	const { playSfx } = useSoundSettings();
 	const { commit: commitShopState } = useShopState();
 	const [view, setView] = useState<DailyQuestsView | null>(null);
 	const [claiming, setClaiming] = useState(false);
@@ -79,6 +82,8 @@ export default function DailyQuestsCard() {
 			return sum + (view.quests.find((quest) => quest.id === id)?.reward ?? 0);
 		}, 0);
 		setNote({ text: t("ach.claimed", { coins: paid }), ok: true });
+		void playSfx("achievement");
+		if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
 		await refresh();
 	};
 
