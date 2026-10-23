@@ -9,6 +9,7 @@ import { recordMoreGameWin } from "@/constants/Achievements";
 import { recordGameOutcome } from "@/constants/GameStats";
 import { chooseTicTacToeMove } from "@/constants/bots/TicTacToeBot";
 import { BotPanel, useBotSettings } from "./BotPanel";
+import { HintButton } from "./HintButton";
 import { OnlineRole, TicMark } from "./types";
 import { OnlineRoomControls, isDuelRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
 import { styles } from "./styles";
@@ -102,6 +103,14 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 		else recordGameOutcome("tictactoe", iLost ? "loss" : "draw", { vsBot: botActive });
 	}, [board, botActive, difficulty, isDraw, remoteResult, room.isConnected, room.role, room.roomCode, winner]);
 
+	// A paid hint marks the best cell for X; it goes away with the next move.
+	const [hintCell, setHintCell] = useState<number | null>(null);
+	useEffect(() => setHintCell(null), [board]);
+	const showHint = () => {
+		const index = chooseTicTacToeMove(board, "X", "hard");
+		if (index >= 0) setHintCell(index);
+	};
+
 	const reset = () => {
 		const nextBoard = Array(9).fill(null);
 		setBoard(nextBoard);
@@ -180,7 +189,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 					<Pressable
 						key={index}
 						onPress={() => play(index)}
-						style={[styles.ticCell, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}
+						style={[styles.ticCell, { borderColor: currentTheme.gridBorder, backgroundColor: hintCell === index ? "rgba(74, 222, 128, 0.35)" : currentTheme.emptyBlockBorder }]}
 					>
 						<Text style={[styles.ticText, { color: value === "X" ? "#38BDF8" : "#F472B6" }]}>{value}</Text>
 					</Pressable>
@@ -188,7 +197,10 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 			</View>
 			<StylizedButton text={gameFinished ? t(room.role ? "moregames.rematch" : "bot.newGame") : t("moregames.reset")} onClick={reset} backgroundColor={gameFinished ? "#16A34A" : currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
 			{!room.role && (
-				<BotPanel vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); reset(); }} difficulty={difficulty} onDifficultyChange={(next) => { setDifficulty(next); reset(); }} />
+				<>
+					{botActive && <HintButton disabled={gameFinished || turn !== "X"} onHint={showHint} />}
+					<BotPanel vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); reset(); }} difficulty={difficulty} onDifficultyChange={(next) => { setDifficulty(next); reset(); }} />
+				</>
 			)}
 			<View style={{ marginTop: 20, alignItems: "center", width: "100%" }}>
 				<Collapsible visible={!vsBot || Boolean(room.role)}>

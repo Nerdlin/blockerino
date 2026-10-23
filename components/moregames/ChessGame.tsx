@@ -11,6 +11,7 @@ import { recordGameOutcome } from "@/constants/GameStats";
 import { chooseChessMove } from "@/constants/bots/ChessBot";
 import Collapsible from "../Collapsible";
 import { BotPanel, useBotSettings } from "./BotPanel";
+import { HintButton } from "./HintButton";
 import { DuelRole, OnlineRole } from "./types";
 import { OnlineRoomControls, isDuelRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
 import { styles } from "./styles";
@@ -137,6 +138,14 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 		if (iWon) recordMoreGameWin("chess", { vsBot: botActive, difficulty });
 		else recordGameOutcome("chess", iLost ? "loss" : "draw", { vsBot: botActive });
 	}, [botActive, difficulty, fen, game, remoteResult, room.isConnected, room.role, room.roomCode]);
+
+	// A paid hint marks the best move for the player; it goes away as soon as the position changes.
+	const [hint, setHint] = useState<{ from: string; to: string } | null>(null);
+	useEffect(() => setHint(null), [fen]);
+	const showHint = () => {
+		const move = chooseChessMove(fen, "hard", Math.random, { timeBudgetMs: 1200 });
+		if (move) setHint({ from: move.from, to: move.to });
+	};
 
 	const legalTargets = selected ? game.moves({ square: selected as any, verbose: true }).map((move: any) => move.to) : [];
 	const displayRanks = room.role === "player2" ? [...CHESS_RANKS].reverse() : CHESS_RANKS;
@@ -282,7 +291,7 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 							onPress={() => pressSquare(square)}
 							style={[
 								styles.chessCell,
-								{ backgroundColor: selected === square ? "#FACC15" : boardColor },
+								{ backgroundColor: selected === square ? "#FACC15" : hint?.from === square ? "#38BDF8" : hint?.to === square ? "#4ADE80" : boardColor },
 							]}
 						>
 							{legal && <View style={styles.legalDot} />}
@@ -369,7 +378,10 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 			})()}
 
 			{!room.role && (
-				<BotPanel vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); reset(); }} difficulty={difficulty} onDifficultyChange={(next) => { setDifficulty(next); reset(); }} />
+				<>
+					{botActive && <HintButton disabled={game.isGameOver() || botThinking} onHint={showHint} />}
+					<BotPanel vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); reset(); }} difficulty={difficulty} onDifficultyChange={(next) => { setDifficulty(next); reset(); }} />
+				</>
 			)}
 			<View style={{ marginTop: 20, alignItems: "center", width: "100%" }}>
 				<Collapsible visible={!vsBot || Boolean(room.role)}>
