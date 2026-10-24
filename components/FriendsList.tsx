@@ -7,6 +7,7 @@ import { useLanguage } from '@/constants/Localization';
 import StylizedButton from './StylizedButton';
 import { rankFriendSuggestions } from '@/constants/FriendSearch';
 import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
+import { inviteModeRequestAtom } from "./InviteModeHost";
 import { useSetAtom } from 'jotai';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -50,6 +51,7 @@ export default function FriendsList({ userId }: { userId: string }) {
     const [searchLoading, setSearchLoading] = useState(false);
     const [suggestions, setSuggestions] = useState<FriendProfile[]>([]);
     const openProfile = useOpenPlayerProfile();
+    const askInviteMode = useSetAtom(inviteModeRequestAtom);
 
     const fetchFriends = async () => {
         setLoading(true);
@@ -254,22 +256,9 @@ export default function FriendsList({ userId }: { userId: string }) {
     const setMultiplayerPlayerElo = useSetAtom(multiplayerPlayerEloAtom);
     const [, setAppState] = useAppState();
 
-    const handleInvite1v1 = async (friendId: string, friendName: string) => {
-        Alert.alert(
-            t("friends.gameModeTitle"),
-            t("friends.gameModeMessage"),
-            [
-                { text: t("friends.cancel"), style: "cancel" },
-                {
-                    text: t("friends.casual"),
-                    onPress: () => sendInvite(friendId, friendName, GameModeType.Classic)
-                },
-                {
-                    text: t("friends.ranked"),
-                    onPress: () => sendInvite(friendId, friendName, GameModeType.Classic) // Using Classic as Ranked for now
-                }
-            ]
-        );
+    // The host (InviteModeHost) asks Classic or Chaos in a popup of the game's own style, then calls back.
+    const handleInvite1v1 = (friendId: string, friendName: string) => {
+        askInviteMode({ friendName, onPick: (mode) => void sendInvite(friendId, friendName, mode) });
     };
 
     const sendInvite = async (friendId: string, friendName: string, gameMode: GameModeType) => {

@@ -423,6 +423,25 @@ scenarios.profiles = async (a, b) => {
 	if (!text.includes("Versus rating 1234")) throw new Error("a friend should see a friends-only profile");
 };
 
+// A friend invites a friend to a Chaos 1v1: the host picks the mode in the game's own popup, the friend sees the
+// invite (host name and mode) and accepts, which leaves the menu for the game.
+scenarios.invite = async (a, b) => {
+	await a.open(); await b.open();
+	const nameA = await createAndLogIn(a, "InvA");
+	const nameB = await createAndLogIn(b, "InvB");
+	sql(`insert into friends (user_id_1, user_id_2, status) select pa.auth_user_id, pb.auth_user_id, 'accepted' from profiles pa, profiles pb where pa.player_name = '${nameA}' and pb.player_name = '${nameB}'`);
+	await b.clickText("Back", 0); await sleep(1500); // B waits on the main menu
+	await a.clickText("Friends", 0); await sleep(2500);
+	await a.clickText("1v1", 0); await sleep(1200);
+	if (!(await a.waitFor((text) => /Choose the game mode/.test(text), 6000))) throw new Error("the host never saw the mode popup: " + (await a.body()).slice(0, 300));
+	await a.clickText("Chaos 10x10", 0);
+	const seen = await b.waitFor((text) => text.includes(nameA) && /Chaos 10x10/.test(text) && /Accept/.test(text), 15000);
+	if (!seen) throw new Error("the friend never saw the invite: " + (await b.body()).slice(0, 300));
+	await b.clickText("Accept", 0); await sleep(4500);
+	const after = await b.body();
+	if (/Classic 8x8/.test(after)) throw new Error("the friend is still on the main menu after accepting: " + after.slice(0, 300));
+};
+
 async function main() {
 	const wanted = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 	const names = wanted.length > 0 ? wanted : Object.keys(scenarios);
@@ -458,3 +477,4 @@ async function main() {
 }
 
 main().catch((error) => { console.error(error.message); process.exit(1); });
+
