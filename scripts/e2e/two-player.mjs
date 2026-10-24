@@ -54,13 +54,23 @@ async function assertLocalSupabase() {
 
 function buildWeb(anonKey) {
 	console.log("Building the web app against the local Supabase...");
-	const result = spawnSync("npx", ["expo", "export", "--platform", "web", "--output-dir", outDirName], {
+	const result = spawnSync("npx", ["expo", "export", "--platform", "web", "--clear", "--output-dir", outDirName], {
 		cwd: root,
 		stdio: "inherit",
 		shell: isWindows,
 		env: { ...process.env, EXPO_PUBLIC_SUPABASE_URL: LOCAL_API, EXPO_PUBLIC_SUPABASE_ANON_KEY: anonKey },
 	});
 	if (result.status !== 0) throw new Error("Web export failed.");
+	assertBundleIsLocal();
+}
+
+// A cached transform from an ordinary build can keep the live project address inside this bundle; the scenarios
+// sign people up, so refuse to run unless the bundle really points at the local database.
+function assertBundleIsLocal() {
+	const dir = path.join(outDir, "_expo", "static", "js", "web");
+	const bundles = fs.existsSync(dir) ? fs.readdirSync(dir).filter((name) => name.endsWith(".js")) : [];
+	const local = bundles.some((name) => fs.readFileSync(path.join(dir, name), "utf8").includes(LOCAL_API));
+	if (!local) throw new Error("The e2e bundle does not point at the local Supabase (127.0.0.1:54321). Refusing to run: it could sign people up on the live project.");
 }
 
 const MIME = { ".html": "text/html", ".js": "application/javascript", ".json": "application/json", ".css": "text/css", ".png": "image/png", ".ico": "image/x-icon", ".ttf": "font/ttf", ".svg": "image/svg+xml", ".mp3": "audio/mpeg", ".wav": "audio/wav" };
@@ -170,10 +180,48 @@ async function register(player, label) {
 	const tag = Date.now().toString(36);
 	await player.clickSel('[aria-label="Profile"]'); await sleep(1500);
 	await player.clickText("Need an account?"); await sleep(800);
-	await player.typeInto(0, `${label}${tag.slice(-4)}`);
+	const nickname = `${label}${tag.slice(-4)}`;
+	await player.typeInto(0, nickname);
 	await player.typeInto(1, `e2e-${label.toLowerCase()}-${tag}@example.test`);
 	await player.typeInto(2, "Qa-test-pass-123");
 	await player.clickText("Register", 0); await sleep(4500);
+	return nickname;
+}
+
+// Local sign-up emails are rate limited (a couple per hour), so scenarios that only need two accounts make them
+// with the local admin API and sign in through the normal Log In screen.
+function localServiceKey() {
+	const result = spawnSync("npx", ["supabase", "status", "-o", "env"], { cwd: root, encoding: "utf8", shell: isWindows });
+	const line = (result.stdout || "").split(String.fromCharCode(10)).find((entry) => entry.startsWith("SERVICE_ROLE_KEY"));
+	if (!line) throw new Error("Local Supabase has no service key. Start it with: npx supabase start");
+	return line.split("=")[1].replace(/"/g, "").trim();
+}
+
+async function createAndLogIn(player, label) {
+	const tag = `${Date.now().toString(36).slice(-4)}${Math.floor(Math.random() * 36).toString(36)}`;
+	const nickname = `${label}${tag}`;
+	const email = `e2e-${label.toLowerCase()}-${tag}@example.test`;
+	const key = localServiceKey();
+	const response = await fetch(`${LOCAL_API}/auth/v1/admin/users`, {
+		method: "POST",
+		headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+		body: JSON.stringify({ email, password: "Qa-test-pass-123", email_confirm: true, user_metadata: { player_name: nickname } }),
+	});
+	if (!response.ok) throw new Error(`could not create ${nickname}: ${response.status} ${(await response.text()).slice(0, 200)}`);
+	await player.clickSel('[aria-label="Profile"]'); await sleep(1500);
+	await player.typeInto(0, email);
+	await player.typeInto(1, "Qa-test-pass-123");
+	await player.clickText("Log In", 0); await sleep(4500);
+	const after = await player.body();
+	if (/Invalid login|Log In/.test(after) && !/Log Out/i.test(after)) throw new Error(`${player.name}: login of ${email} failed: ${after.slice(0, 200)} | inputs: ${await player.evalJs("JSON.stringify([...document.querySelectorAll('input')].map((el) => el.value))")}`);
+	return nickname;
+}
+
+// Runs SQL on the LOCAL database (the same container db:check uses) to set up what the UI cannot, like a friendship.
+function sql(statement) {
+	const result = spawnSync("docker", ["exec", "-i", "supabase_db_blockerino", "psql", "-U", "postgres", "-d", "postgres", "-At", "-v", "ON_ERROR_STOP=1", "-c", statement], { encoding: "utf8" });
+	if (result.status !== 0) throw new Error("sql failed: " + (result.stderr || result.stdout).slice(0, 300));
+	return result.stdout.trim();
 }
 
 // ---- scenarios: each throws when something is wrong ----
@@ -329,6 +377,52 @@ const soloScenarios = {
 for (const fn of Object.values(soloScenarios)) fn.solo = true;
 Object.assign(scenarios, soloScenarios);
 
+// Two accounts: B opens A's profile from the friends list; A's privacy choice decides what B sees.
+scenarios.profiles = async (a, b) => {
+	await a.open(); await b.open();
+	const nameA = await createAndLogIn(a, "ProA");
+	const nameB = await createAndLogIn(b, "ProB");
+	sql(`insert into friends (user_id_1, user_id_2, status) select pa.auth_user_id, pb.auth_user_id, 'accepted' from profiles pa, profiles pb where pa.player_name = '${nameA}' and pb.player_name = '${nameB}'`);
+	sql(`update profiles set highscore_classic = 4242, elo = 1234 where player_name = '${nameA}'`);
+	sql(`insert into achievement_claims (user_id, achievement_id, reward) select auth_user_id, x.id, x.r from profiles, (values ('score_myth', 2000), ('first_steps', 25)) as x(id, r) where player_name = '${nameA}'`);
+	sql(`insert into player_game_records (user_id, game_id, wins, losses, draws) select auth_user_id, 'chess', 7, 2, 1 from profiles where player_name = '${nameA}'`);
+
+	const openFromFriends = async () => {
+		try { await b.clickText("Friends", 0); } catch (error) { throw new Error(`${error.message}; page: ${(await b.body()).slice(0, 300)}`); }
+		await sleep(2500);
+		await b.clickText(nameA, 0); await sleep(2500);
+	};
+
+	await openFromFriends();
+	let text = await b.body();
+	for (const needle of [nameA, "Versus rating 1234", "4242", "Rarest achievements", "Record"]) {
+		if (!text.includes(needle)) throw new Error(`friend profile lacks "${needle}": ${text.slice(0, 400)}`);
+	}
+	if (!/Remove friend/.test(text)) throw new Error("a friend's profile should offer Remove friend");
+	if (/@example\.test|owned_item|coins/i.test(text)) throw new Error("the profile leaked a private field");
+	await b.clickText("Close", 0); await sleep(500);
+
+	// A changes the setting in Options, like a player would.
+	await a.clickText("Back", 0); await sleep(1200);
+	await a.clickText("Options", 0); await sleep(1500);
+	// The switch only shows once the app knows the player is signed in.
+	if (!(await a.waitFor((text) => /Nobody/.test(text), 10000))) throw new Error("the profile visibility switch never appeared in Options");
+	await a.clickText("Nobody", 0); await sleep(1500);
+	const stored = sql(`select pp.visibility from profile_privacy pp join profiles p on p.auth_user_id = pp.user_id where p.player_name = '${nameA}'`);
+	if (stored !== "nobody") throw new Error(`the Options switch saved "${stored}", not nobody`);
+
+	await openFromFriends();
+	text = await b.body();
+	if (!/keeps their profile private/i.test(text)) throw new Error("a hidden profile should say so: " + text.slice(0, 300));
+	if (text.includes("Versus rating") || text.includes("4242")) throw new Error("a hidden profile still showed details");
+	await b.clickText("Close", 0); await sleep(500);
+
+	sql(`update profile_privacy set visibility = 'friends' where user_id = (select auth_user_id from profiles where player_name = '${nameA}')`);
+	await openFromFriends();
+	text = await b.body();
+	if (!text.includes("Versus rating 1234")) throw new Error("a friend should see a friends-only profile");
+};
+
 async function main() {
 	const wanted = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 	const names = wanted.length > 0 ? wanted : Object.keys(scenarios);
@@ -337,6 +431,7 @@ async function main() {
 	await assertLocalSupabase();
 	if (!skipBuild) buildWeb(localAnonKey());
 	else if (!fs.existsSync(outDir)) throw new Error("No build in dist-e2e/. Run without --skip-build first.");
+	assertBundleIsLocal();
 
 	const server = await serve();
 	const chromePath = findChrome();
