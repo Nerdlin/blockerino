@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/constants/Supabase";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useAtom } from "jotai";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -96,6 +96,8 @@ function PlayerProfileView({ name, onClose }: { name: string; onClose: () => voi
 	const nameColor = perk?.tier.color ?? currentTheme.textPrimary;
 
 	return (
+		<>
+		<Pressable accessibilityLabel={t("pp.close")} onPress={close} style={styles.scrim} />
 		<SimplePopupView
 			style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]}
 			footer={<StylizedButton text={t("pp.close")} onClick={close} backgroundColor={currentTheme.buttonSecondary} />}
@@ -136,6 +138,7 @@ function PlayerProfileView({ name, onClose }: { name: string; onClose: () => voi
 				</View>
 			)}
 		</SimplePopupView>
+		</>
 	);
 }
 
@@ -256,6 +259,17 @@ function Details({ profile, language }: { profile: PublicProfile; language: stri
 }
 
 const styles = StyleSheet.create({
+	// Dims whatever screen the profile was opened from, so its frame does not show through next to the profile's own.
+	scrim: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		// Same level as the popups: it comes after them in the tree, so it covers them, and the profile popup comes after it.
+		zIndex: 100,
+		backgroundColor: "rgba(4, 3, 10, 0.92)",
+	},
 	center: {
 		alignItems: "center",
 		gap: 12,
