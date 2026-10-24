@@ -7,8 +7,6 @@ import { GameRecords, RECORDED_GAME_IDS, emptyGameRecord, gamesPlayed, getGameRe
 
 // "My record": wins, losses and draws per game, people and bots counted apart. Only games that were played show up.
 export default function GameRecordsCard() {
-	const { currentTheme } = useTheme();
-	const { t } = useLanguage();
 	const [records, setRecords] = useState<GameRecords | null>(null);
 
 	useEffect(() => {
@@ -22,13 +20,20 @@ export default function GameRecordsCard() {
 	}, []);
 
 	if (!records) return null;
+	return <GameRecordsView records={records} />;
+}
+
+/** The record table for any set of records (mine, or another player's on their profile). */
+export function GameRecordsView({ records, title, emptyText }: { records: GameRecords; title?: string; emptyText?: string }) {
+	const { currentTheme } = useTheme();
+	const { t } = useLanguage();
 	const played = RECORDED_GAME_IDS.filter((id) => gamesPlayed(records[id] ?? emptyGameRecord()) > 0);
 
 	return (
 		<View style={[styles.card, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
-			<Text style={[styles.title, { color: currentTheme.textPrimary }]}>{t("record.title")}</Text>
+			<Text style={[styles.title, { color: currentTheme.textPrimary }]}>{title ?? t("record.title")}</Text>
 			{played.length === 0 ? (
-				<Text style={[styles.empty, { color: currentTheme.textSecondary }]}>{t("record.empty")}</Text>
+				<Text style={[styles.empty, { color: currentTheme.textSecondary }]}>{emptyText ?? t("record.empty")}</Text>
 			) : (
 				<>
 					<View style={styles.row}>

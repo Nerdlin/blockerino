@@ -48,6 +48,7 @@ import SeasonResultsMenu from "@/components/SeasonResultsMenu";
 import SeasonRewardsHost from "@/components/SeasonRewardsHost";
 import DailyRewardHost from "@/components/DailyRewardHost";
 import NotificationsHost from "@/components/NotificationsHost";
+import PlayerProfileHost from "@/components/PlayerProfileHost";
 import ProfileMenu from "@/components/ProfileMenu";
 import MoreGamesMenu from "@/components/MoreGamesMenu";
 import { getBackgroundParticleConfig, shopStateAtom, useShopBootstrap } from "@/constants/Shop";
@@ -294,6 +295,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 			<DailyRewardHost />
 			<NotificationsHost />
 			<AchievementToastHost />
+			<PlayerProfileHost />
 		</Animated.View>
 		</>
 	);

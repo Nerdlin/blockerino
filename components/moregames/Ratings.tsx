@@ -1,4 +1,5 @@
 import { View, Text, Pressable, ScrollView, Image } from "react-native";
+import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
 import UiIcon from "@/components/UiIcon";
 import { useLanguage } from "@/constants/Localization";
 import SegmentedControl from "../SegmentedControl";
@@ -49,6 +50,7 @@ export function MoreGameLeaderboardPanel({
 }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
+	const openProfile = useOpenPlayerProfile();
 
 	return (
 		<View style={styles.ratingScreen}>
@@ -83,7 +85,7 @@ export function MoreGameLeaderboardPanel({
 				) : leaderboard.map((entry, index) => {
 					const isMe = entry.player_name.toLowerCase() === playerName.toLowerCase();
 					return (
-						<View key={`${entry.game_id}-${entry.player_key || entry.player_name}`} style={[styles.leaderboardRow, isMe && { borderColor: currentTheme.buttonPrimary, backgroundColor: "rgba(255,255,255,0.06)" }]}>
+						<Pressable onPress={() => openProfile(entry.player_name)} key={`${entry.game_id}-${entry.player_key || entry.player_name}`} style={[styles.leaderboardRow, isMe && { borderColor: currentTheme.buttonPrimary, backgroundColor: "rgba(255,255,255,0.06)" }]}>
 							<Text style={[styles.leaderboardRank, { flex: 0.35, color: currentTheme.textPrimary }]}>{index + 1}</Text>
 							<View style={{ flex: 1.75, flexDirection: 'row', alignItems: 'center' }}>
 								{entry.avatar_url && entry.avatar_url.startsWith("http") ? (
@@ -102,7 +104,7 @@ export function MoreGameLeaderboardPanel({
 							<Text style={[styles.leaderboardElo, { flex: 0.7, color: currentTheme.textPrimary }]}>{entry.wins}</Text>
 							<Text style={[styles.leaderboardElo, { flex: 0.7, color: currentTheme.textSecondary }]}>{entry.games_played}</Text>
 							<Text style={[styles.leaderboardElo, { flex: 0.7, color: currentTheme.textSecondary }]}>{winRate(entry)}%</Text>
-						</View>
+						</Pressable>
 					);
 				})}
 			</ScrollView>

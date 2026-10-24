@@ -1,7 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Wins, losses and draws per game, kept on the device for the profile ("My record"). Games against a bot are
-// counted separately so a streak of easy wins does not pass for skill. Nothing here goes to the server.
+// counted separately so a streak of easy wins does not pass for skill. The counters are pushed to the account by
+// PlayerProfile.ts (so another phone and the public profile see them); this file only keeps them on the device.
 
 export type GameOutcome = "win" | "loss" | "draw";
 
@@ -54,11 +55,42 @@ export function addOutcome(record: GameRecord | undefined, outcome: GameOutcome,
 	return next;
 }
 
+/** Pure: counters only grow, so two sets of records merge by taking the larger value of every counter. */
+export function mergeGameRecords(a: GameRecords, b: GameRecords): GameRecords {
+	const result: GameRecords = {};
+	for (const gameId of new Set([...Object.keys(a), ...Object.keys(b)])) {
+		const left = a[gameId] ?? emptyGameRecord();
+		const right = b[gameId] ?? emptyGameRecord();
+		const merged = emptyGameRecord();
+		for (const field of FIELDS) merged[field] = Math.max(left[field], right[field]);
+		result[gameId] = merged;
+	}
+	return result;
+}
+
 export function gamesPlayed(record: GameRecord): number {
 	return FIELDS.reduce((sum, field) => sum + record[field], 0);
 }
 
 let queue: Promise<void> = Promise.resolve();
+
+const changeListeners = new Set<() => void>();
+/** Called after a result was saved; the account sync uses it to push the new counters. */
+export function subscribeToRecordChanges(listener: () => void): () => void {
+	changeListeners.add(listener);
+	return () => {
+		changeListeners.delete(listener);
+	};
+}
+function notifyRecordChanged() {
+	changeListeners.forEach((listener) => {
+		try {
+			listener();
+		} catch {
+			// a broken listener must not lose the result
+		}
+	});
+}
 
 const listeners = new Set<(gameId: string, outcome: GameOutcome, vsBot: boolean) => void>();
 /** Called at once when a result is recorded; the More Games screen plays a sound for it. */
@@ -82,10 +114,26 @@ export function recordGameOutcome(gameId: string, outcome: GameOutcome, options:
 			const records = parseGameRecords(await AsyncStorage.getItem(KEY));
 			records[gameId] = addOutcome(records[gameId], outcome, Boolean(options.vsBot));
 			await AsyncStorage.setItem(KEY, JSON.stringify(records));
+			notifyRecordChanged();
 		} catch {
 			// the record is a nicety; never fail a game over it
 		}
 	});
+}
+
+/** Adopts records from the account: the larger counter of device and server wins, so nothing is ever lowered. */
+export async function adoptGameRecords(incoming: GameRecords): Promise<GameRecords> {
+	let merged: GameRecords = incoming;
+	queue = queue.catch(() => undefined).then(async () => {
+		try {
+			merged = mergeGameRecords(parseGameRecords(await AsyncStorage.getItem(KEY)), incoming);
+			await AsyncStorage.setItem(KEY, JSON.stringify(merged));
+		} catch {
+			// the next sync tries again
+		}
+	});
+	await queue;
+	return merged;
 }
 
 export async function getGameRecords(): Promise<GameRecords> {

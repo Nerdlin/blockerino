@@ -6,7 +6,7 @@ import { isAnalyticsEnabled } from "./Analytics";
 import { supabase } from "./Supabase";
 
 // First-party crash reports (see the crash_reports migration). Same rules as the usage statistics: our own
-// Supabase table, nothing personal, off when the player switches "Usage statistics" off in Options.
+// Supabase table, nothing personal, off when the player switches "Help improve the game" off in Options.
 // A crash can kill the app before anything is sent, so every report is written to storage first and sent on the
 // next start. Every function here is safe to call anywhere: it never throws.
 

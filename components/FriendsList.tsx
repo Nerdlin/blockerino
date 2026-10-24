@@ -6,6 +6,7 @@ import { useTheme } from '@/constants/Theme';
 import { useLanguage } from '@/constants/Localization';
 import StylizedButton from './StylizedButton';
 import { rankFriendSuggestions } from '@/constants/FriendSearch';
+import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
 import { useSetAtom } from 'jotai';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -48,6 +49,7 @@ export default function FriendsList({ userId }: { userId: string }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchLoading, setSearchLoading] = useState(false);
     const [suggestions, setSuggestions] = useState<FriendProfile[]>([]);
+    const openProfile = useOpenPlayerProfile();
 
     const fetchFriends = async () => {
         setLoading(true);
@@ -403,7 +405,7 @@ export default function FriendsList({ userId }: { userId: string }) {
                     <Text style={[styles.sectionTitle, { color: currentTheme.textSecondary }]}>{t("friends.requestsTitle")}</Text>
                     {incomingRequests.map(f => (
                         <View key={f.id} style={[styles.friendRow, { backgroundColor: currentTheme.emptyBlockBorder }]}>
-                            <Text style={[styles.friendName, { color: currentTheme.textPrimary }]}>{getFriendName(f)}</Text>
+                            <Text style={[styles.friendName, { color: currentTheme.textPrimary }]} onPress={() => openProfile(getFriendName(f))}>{getFriendName(f)}</Text>
                             <View style={styles.actionsRow}>
                                 <StylizedButton text="V" onClick={() => handleAcceptRequest(f.id)} backgroundColor="rgb(50,200,50)" style={styles.actionBtn} textStyle={styles.actionBtnText}/>
                                 <StylizedButton text="X" onClick={() => handleDeleteOrCancel(f.id)} backgroundColor="rgb(200,50,50)" style={styles.actionBtn} textStyle={styles.actionBtnText}/>
@@ -434,7 +436,7 @@ export default function FriendsList({ userId }: { userId: string }) {
                 ) : (
                     acceptedFriends.map(f => (
                         <View key={f.id} style={[styles.friendRow, { backgroundColor: currentTheme.emptyBlockBorder }]}>
-                            <Text style={[styles.friendName, { color: currentTheme.textPrimary }]}>{getFriendName(f)}</Text>
+                            <Text style={[styles.friendName, { color: currentTheme.textPrimary }]} onPress={() => openProfile(getFriendName(f))}>{getFriendName(f)}</Text>
                             <View style={styles.actionsRow}>
                                 <StylizedButton text={t("friends.invite1v1")} onClick={() => handleInvite1v1(f.user_id_1 === userId ? f.user_id_2 : f.user_id_1, getFriendName(f))} backgroundColor={currentTheme.accent} style={styles.inviteBtn} textStyle={styles.actionBtnText}/>
                                 <StylizedButton text={t("friends.remove")} onClick={() => handleDeleteOrCancel(f.id)} backgroundColor="rgb(200,50,50)" style={styles.cancelBtn} textStyle={styles.actionBtnText}/>

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
+import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
 import { StyleSheet, Text, View, TextInput, Clipboard, useWindowDimensions, ScrollView, Pressable, Platform, Image } from "react-native";
 import PixelLoader from "@/components/PixelLoader";
 import SimplePopupView from "./SimplePopupView";
@@ -80,6 +81,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const [showEloScreen, setShowEloScreen] = useState(false);
     const [showEloLeaderboard, setShowEloLeaderboard] = useState(false);
     const [topEloList, setTopEloList] = useState<EloRating[]>([]);
+    const openProfile = useOpenPlayerProfile();
     const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
     const [refreshingPublicRooms, setRefreshingPublicRooms] = useState(false);
     
@@ -864,7 +866,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                     const badge = getEloBadge(entry.elo);
                                     const tier = getLeaderboardTier(index + 1);
                                     return (
-                                        <View key={entry.id || index} style={[
+                                        <Pressable onPress={() => openProfile(entry.player_name)} key={entry.id || index} style={[
                                             styles.eloLBRow,
                                             tier && {
                                                 backgroundColor: tier.background,
@@ -904,7 +906,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                             <Text style={[styles.eloLBValue, { color: currentTheme.textPrimary, flex: 0.8, textAlign: 'right' }]}>
                                                 {entry.elo}
                                             </Text>
-                                        </View>
+                                        </Pressable>
                                     );
                                 })
                             )}

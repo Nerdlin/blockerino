@@ -9,4 +9,4 @@ Reports go to the `crash_reports` table of our own Supabase (no third party). Op
 - `crash_reports` - the raw rows (stack, screen, app version, platform).
 
 Rows older than 90 days are deleted every night. Players can switch reporting off in Options
-("Usage statistics"). Clients can only call `report_crashes()`; they cannot read any of these.
+("Help improve the game"). Clients can only call `report_crashes()`; they cannot read any of these.

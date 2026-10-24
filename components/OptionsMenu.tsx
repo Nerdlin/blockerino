@@ -21,6 +21,8 @@ import { useShopState } from "@/constants/Shop";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { isAnalyticsEnabled, setAnalyticsEnabled } from "@/constants/Analytics";
 import { useRouter, type Href } from "expo-router";
+import { useAccountIdentity } from "@/hooks/useAccountIdentity";
+import { PROFILE_VISIBILITIES, getProfileVisibility, setProfileVisibility, type ProfileVisibility } from "@/constants/PlayerProfile";
 import { disablePush, enablePush, isPushEnabled, isPushSupported } from "@/constants/Notifications";
 
 export default function OptionsMenu() {
@@ -121,6 +123,31 @@ export default function OptionsMenu() {
 	const handleAnalyticsToggle = (value: boolean) => {
 		setAnalyticsOn(value);
 		void setAnalyticsEnabled(value);
+	};
+
+	const { signedIn } = useAccountIdentity();
+	const [visibility, setVisibility] = useState<ProfileVisibility>("everyone");
+	const [visibilityNote, setVisibilityNote] = useState<string | null>(null);
+	useEffect(() => {
+		if (!signedIn) return;
+		let active = true;
+		void getProfileVisibility().then((value) => {
+			if (active && value) setVisibility(value);
+		});
+		return () => {
+			active = false;
+		};
+	}, [signedIn]);
+	const handleVisibilityChange = async (next: ProfileVisibility) => {
+		if (next === visibility) return;
+		playSfx('menuClick');
+		const previous = visibility;
+		setVisibility(next);
+		setVisibilityNote(null);
+		if (!(await setProfileVisibility(next))) {
+			setVisibility(previous);
+			setVisibilityNote(t("pp.visFailed"));
+		}
 	};
 
 	const pushAvailable = isPushSupported();
@@ -308,6 +335,22 @@ export default function OptionsMenu() {
 						/>
 					</SettingLabel>
 
+					<View style={styles.visibilityBlock}>
+						<Text style={[styles.settingTitle, { color: currentTheme.textPrimary }]}>{t("pp.visibility")}</Text>
+						<Text style={[styles.settingDesc, { color: currentTheme.textSecondary, marginBottom: 8 }]}>
+							{signedIn ? t("pp.visibilityDesc") : t("pp.visSignIn")}
+						</Text>
+						{signedIn && (
+							<SegmentedControl
+								items={PROFILE_VISIBILITIES.map((key) => ({ key, label: t(`pp.vis.${key}`) }))}
+								value={visibility}
+								onChange={(next) => void handleVisibilityChange(next)}
+								small
+							/>
+						)}
+						{visibilityNote && <Text style={[styles.settingDesc, { color: "#F87171", marginTop: 6 }]}>{visibilityNote}</Text>}
+					</View>
+
 					{pushAvailable && (
 						<>
 							<SettingLabel
@@ -444,6 +487,11 @@ function SettingLabel({
 }
 
 const styles = StyleSheet.create({
+	visibilityBlock: {
+		width: '92%',
+		marginTop: 8,
+		marginBottom: 6,
+	},
 	settingRow: {
 		width: '92%',
 		flexDirection: 'row',

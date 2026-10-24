@@ -1,4 +1,5 @@
-import { Image, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
 import { GlobalHighScore } from "@/constants/Supabase";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage, TranslateVars } from "@/constants/Localization";
@@ -11,8 +12,9 @@ export default function GlobalScoreRow({ score, rank, highlightTop, hideTime }: 
     const { width, height } = useWindowDimensions();
     const isMobile = width < 600 || height < 700;
     const tier = highlightTop ? getLeaderboardTier(rank) : undefined;
+    const openProfile = useOpenPlayerProfile();
     return (
-        <View style={[
+        <Pressable onPress={() => openProfile(score.player_name)} style={[
             styles.scoreRow,
             isMobile && styles.mobileScoreRow,
             tier && {
@@ -45,7 +47,7 @@ export default function GlobalScoreRow({ score, rank, highlightTop, hideTime }: 
             <Text style={[styles.scoreNumberText, { color: currentTheme.textPrimary }, isMobile && styles.mobileScoreNumberText]} numberOfLines={1} adjustsFontSizeToFit>
                 {score.score}
             </Text>
-        </View>
+        </Pressable>
     );
 }
 
