@@ -19,10 +19,13 @@ export default function SimplePopupView({
 	children,
 	style,
 	scrollRef,
+	footer,
 }: {
 	children: React.ReactNode,
 	style?: any[],
-	scrollRef?: React.RefObject<ScrollView | null>
+	scrollRef?: React.RefObject<ScrollView | null>,
+	/** Pinned under the scrolling content, so the main buttons stay in reach on long popups. */
+	footer?: React.ReactNode,
 }) {
 	const { width, height } = useWindowDimensions();
 	const scale = getPopupScale(width, height);
@@ -49,7 +52,7 @@ export default function SimplePopupView({
 		>
 			<ScrollView
 				ref={scrollRef}
-				style={styles.scrollView}
+				style={footer ? styles.scrollViewWithFooter : styles.scrollView}
 				contentContainerStyle={[styles.scrollContent, alignTop && { justifyContent: "flex-start" }]}
 				showsVerticalScrollIndicator={true}
 				keyboardShouldPersistTaps="handled"
@@ -57,6 +60,7 @@ export default function SimplePopupView({
 			>
 				{children}
 			</ScrollView>
+			{footer && <View style={styles.footer}>{footer}</View>}
 		</Animated.View>
 		</UiScaleContext.Provider>
 	);
@@ -79,6 +83,18 @@ const styles = StyleSheet.create({
 	scrollView: {
 		width: '100%',
 		height: '100%'
+	},
+	scrollViewWithFooter: {
+		width: '100%',
+		flex: 1
+	},
+	footer: {
+		width: '100%',
+		alignItems: 'center',
+		paddingVertical: 8,
+		paddingHorizontal: 10,
+		borderTopWidth: 1,
+		borderTopColor: 'rgba(255, 255, 255, 0.18)'
 	},
 	scrollContent: {
 		alignItems: 'center',

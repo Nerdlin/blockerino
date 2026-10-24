@@ -146,8 +146,41 @@ export default function OptionsMenu() {
 		playSfx('menuClick');
 	};
 
+	const buttons = (
+		<View style={styles.buttonsContainer}>
+			<StylizedButton
+				onClick={handleButtonPress}
+				text="Back"
+				backgroundColor={currentTheme.buttonSecondary}
+				style={isMobile && styles.mobileBottomButton}
+				textStyle={isMobile && styles.mobileBottomButtonText}
+			/>
+
+			{(appState.containsGameMode() || appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
+				<>
+					{(appState.containsGameMode() && !appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
+						<StylizedButton
+							onClick={handleRestartPress}
+							text="Restart"
+							backgroundColor={currentTheme.buttonPrimary}
+							style={isMobile && styles.mobileBottomButton}
+							textStyle={isMobile && styles.mobileBottomButtonText}
+						/>
+					)}
+					<StylizedButton
+						onClick={handleQuitPress}
+						text="End Game"
+						backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(204, 51, 0)' : currentTheme.buttonPrimary}
+						style={isMobile && styles.mobileBottomButton}
+						textStyle={isMobile && styles.mobileBottomButtonText}
+					/>
+				</>
+			)}
+		</View>
+	);
+
 	return (
-		<SimplePopupView style={[
+		<SimplePopupView footer={buttons} style={[
 			{ backgroundColor: currentTheme.menuBackground },
 			isMobile && { width: '92%', height: '85%', paddingHorizontal: 10 }
 		]}>
@@ -316,37 +349,6 @@ export default function OptionsMenu() {
 							backgroundColor={currentTheme.buttonPrimary}
 							style={isMobile ? { minWidth: 160, marginVertical: 4 } : { minWidth: 190, marginVertical: 4 }}
 						/>
-					)}
-				</View>
-
-				<View style={styles.buttonsContainer}>
-					<StylizedButton
-						onClick={handleButtonPress}
-						text="Back"
-						backgroundColor={currentTheme.buttonSecondary}
-						style={isMobile && styles.mobileBottomButton}
-						textStyle={isMobile && styles.mobileBottomButtonText}
-					/>
-
-					{(appState.containsGameMode() || appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
-						<>
-							{(appState.containsGameMode() && !appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
-								<StylizedButton
-									onClick={handleRestartPress}
-									text="Restart"
-									backgroundColor={currentTheme.buttonPrimary}
-									style={isMobile && styles.mobileBottomButton}
-									textStyle={isMobile && styles.mobileBottomButtonText}
-								/>
-							)}
-							<StylizedButton
-								onClick={handleQuitPress}
-								text="End Game"
-								backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(204, 51, 0)' : currentTheme.buttonPrimary}
-								style={isMobile && styles.mobileBottomButton}
-								textStyle={isMobile && styles.mobileBottomButtonText}
-							/>
-						</>
 					)}
 				</View>
 			</ScrollView>
@@ -561,8 +563,8 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		width: '100%',
 		gap: 6,
-		marginTop: 20,
-		paddingBottom: 20,
+		marginTop: 0,
+		paddingBottom: 0,
 	},
 	mobileBottomButton: {
 		minWidth: 118,
