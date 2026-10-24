@@ -16,6 +16,7 @@ import { update } from "./update";
 import { daily } from "./daily";
 import { firstrun } from "./firstrun";
 import { notifications } from "./notifications";
+import { accessibility } from "./accessibility";
 
 export type ScreenDictionary = { en: Record<string, string>; ru: Record<string, string> };
 
@@ -35,6 +36,7 @@ const modules: ScreenDictionary[] = [
 	daily,
 	firstrun,
 	notifications,
+	accessibility,
 ];
 
 export const moduleTranslations: Record<Language, Record<string, string>> = {

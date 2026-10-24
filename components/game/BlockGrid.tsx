@@ -16,6 +16,7 @@ import { Theme, useTheme } from "@/constants/Theme";
 import { useDroppable } from "@mgcrea/react-native-dnd";
 import { useAtomValue } from "jotai";
 import { useEffect } from "react";
+import { useReduceMotion } from "@/constants/Accessibility";
 import { StyleSheet, Platform, View } from "react-native";
 import Animated, {
 	SharedValue,
@@ -108,9 +109,11 @@ interface GridBlockProps {
 	gridBlockSize: number;
 	currentTheme: Theme;
 	pieceSkinId: string;
+	/** Mirrors the "Animations" switch; a shared value so the UI-thread reactions see changes at once. */
+	reduceMotion: SharedValue<boolean>;
 }
 
-function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceSkinId }: GridBlockProps) {
+function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceSkinId, reduceMotion }: GridBlockProps) {
 	const loadBlockFlash = useSharedValue(0);
 	const placedBlockFall = useSharedValue(0);
 	const placedBlockDirectionX = useSharedValue(0);
@@ -130,6 +133,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceS
 				withTiming(1, { duration: 100 }),
 				withTiming(0, { duration: 250 })
 			);
+			if (reduceMotion.value) return;
 
 			const angle = Math.random() * Math.PI * 2;
 			const distance = 50 + Math.random() * 100;
@@ -153,6 +157,10 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceS
 		// Анимация волны для блоков, которые будут разрушены
 		else if ((cur === BoardBlockType.HOVERED_BREAK_FILLED || cur === BoardBlockType.HOVERED_BREAK_EMPTY) &&
 				(prev === BoardBlockType.FILLED || prev === BoardBlockType.EMPTY)) {
+			if (reduceMotion.value) {
+				waveEffect.value = 0.5;
+				return;
+			}
 			waveEffect.value = withRepeat(
 				withTiming(1, { duration: 400 }),
 				-1,
@@ -168,7 +176,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceS
 
 	// Анимация загрузки блоков при первом рендере
 	useEffect(() => {
-		if (board.value[y][x].blockType !== BoardBlockType.EMPTY)
+		if (board.value[y][x].blockType !== BoardBlockType.EMPTY || reduceMotion.value)
 			return;
 		const step = 70;
 		const upwardDelay = (boardSize - 1 - y) * step;
@@ -300,6 +308,11 @@ export default function BlockGrid({
 	const { currentTheme } = useTheme();
 	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
 	const { GRID_BLOCK_SIZE, HITBOX_SIZE } = useGameSizes(boardLength);
+	const reduceMotion = useReduceMotion();
+	const reduceMotionShared = useSharedValue(reduceMotion);
+	useEffect(() => {
+		reduceMotionShared.value = reduceMotion;
+	}, [reduceMotion, reduceMotionShared]);
 
 	forEachBoardBlock(board.value, (_block, x, y) => {
 		const blockPositionStyle = {
@@ -320,6 +333,7 @@ export default function BlockGrid({
 					gridBlockSize={GRID_BLOCK_SIZE}
 					currentTheme={currentTheme}
 					pieceSkinId={pieceSkinId}
+					reduceMotion={reduceMotionShared}
 				/>
 				<BlockDroppable
 					x={x}

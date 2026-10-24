@@ -21,6 +21,7 @@ import { useShopState } from "@/constants/Shop";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { isAnalyticsEnabled, setAnalyticsEnabled } from "@/constants/Analytics";
 import { useRouter, type Href } from "expo-router";
+import { useMotionSwitch } from "@/constants/Accessibility";
 import { disablePush, enablePush, isPushEnabled, isPushSupported } from "@/constants/Notifications";
 
 export default function OptionsMenu() {
@@ -122,6 +123,8 @@ export default function OptionsMenu() {
 		setAnalyticsOn(value);
 		void setAnalyticsEnabled(value);
 	};
+
+	const { reduced: reducedMotion, setReduced: setReducedMotion } = useMotionSwitch();
 
 	const pushAvailable = isPushSupported();
 	const [pushOn, setPushOn] = useState(false);
@@ -290,6 +293,21 @@ export default function OptionsMenu() {
 						onChange={handleLanguageChange}
 						small
 					/>
+				</View>
+
+				<View style={styles.settingSection}>
+					<SettingLabel
+						title={t("a11y.animations")}
+						description={t("a11y.animationsDesc")}
+						labelStyle={{ color: currentTheme.textPrimary }}
+						descStyle={{ color: currentTheme.textSecondary }}
+					>
+						<Switch
+							value={!reducedMotion}
+							onValueChange={(value) => void setReducedMotion(!value)}
+							trackColor={{ false: "#767577", true: currentTheme.buttonPrimary }}
+						/>
+					</SettingLabel>
 				</View>
 
 				<View style={styles.settingSection}>

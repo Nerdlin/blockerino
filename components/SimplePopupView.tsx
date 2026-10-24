@@ -1,3 +1,4 @@
+import { useReduceMotion } from "@/constants/Accessibility";
 import React, { createContext, useContext, useEffect, useRef } from "react";
 import { Animated, Easing, View, ScrollView, StyleSheet, Platform, useWindowDimensions } from "react-native";
 
@@ -29,11 +30,12 @@ export default function SimplePopupView({
 }) {
 	const { width, height } = useWindowDimensions();
 	const scale = getPopupScale(width, height);
+	const reduceMotion = useReduceMotion();
 	// Every popup eases in: it fades up from a few pixels lower.
 	const enter = useRef(new Animated.Value(0)).current;
 	useEffect(() => {
-		Animated.timing(enter, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-	}, [enter]);
+		Animated.timing(enter, { toValue: 1, duration: reduceMotion ? 0 : 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+	}, [enter, reduceMotion]);
 	if (style === undefined)
 		style = [];
 	// A screen that starts with a Back button asks for the top ("justifyContent: flex-start") instead of floating in the middle.
