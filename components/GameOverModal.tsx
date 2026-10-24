@@ -19,6 +19,9 @@ import { GameOverReason, getGameOverMessage } from "@/constants/GameModes";
 import { useLanguage } from "@/constants/Localization";
 import { track } from "@/constants/Analytics";
 import { getHighScores } from "@/constants/Storage";
+import { getGameModeConfig } from "@/constants/GameModes";
+import ShareCard, { SHARE_CARD_WIDTH } from "./ShareCard";
+import { buildShareText, shareScoreCard } from "@/constants/ShareScore";
 
 const PLAYER_NAME_KEY = 'PLAYER_NAME';
 const GAMES_FINISHED_KEY = 'GAMES_FINISHED';
@@ -37,6 +40,9 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
     const [signedIn, setSignedIn] = useState(true);
     const [bestScore, setBestScore] = useState<number | null>(null);
     const [finishedCount, setFinishedCount] = useState(0);
+    const shareCardRef = useRef<View>(null);
+    const [shareNote, setShareNote] = useState<string | null>(null);
+    const [sharing, setSharing] = useState(false);
 
     useEffect(() => {
         let active = true;
@@ -175,6 +181,20 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
         setAppState(MenuStateType.MENU);
     };
 
+    const modeTitle = getGameModeConfig(gameMode).title;
+    const isRecord = bestScore !== null && score > 0 && score >= bestScore;
+    const handleShare = async () => {
+        if (sharing) return;
+        playSfx('menuClick');
+        setSharing(true);
+        setShareNote(null);
+        const result = await shareScoreCard(shareCardRef, buildShareText(score, modeTitle, t("share.text")), t("share.dialog"));
+        setSharing(false);
+        track("share_score", { mode: gameMode, score, result });
+        if (result === 'copied') setShareNote(t("share.copied"));
+        else if (result === 'failed') setShareNote(t("share.failed"));
+    };
+
     const recordLine = bestScore === null || score <= 0 ? null : score >= bestScore ? (
         <Text style={[styles.coinsText, { color: '#FFD700', marginBottom: 14 }]}>{t("over.newRecord")}</Text>
     ) : (
@@ -184,6 +204,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
     );
 
     return (
+        <>
         <SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
             <Animated.Text
                 entering={FadeIn.duration(1000)}
@@ -236,12 +257,23 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                     style={{ minWidth: 240, height: 56 }}
                 />
 
+                {score > 0 && (
+                    <StylizedButton
+                        text={t("share.button")}
+                        onClick={handleShare}
+                        disabled={sharing}
+                        backgroundColor={currentTheme.accent}
+                    />
+                )}
+
                 <StylizedButton
                     text={t("over.mainMenu")}
                     onClick={handleMainMenu}
                     backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(0, 102, 204)' : currentTheme.buttonSecondary}
                 />
             </View>
+
+            {shareNote && <Text style={[styles.statusText, { color: currentTheme.textSecondary }]}>{shareNote}</Text>}
 
             <View style={styles.statusContainer}>
                 {canEditNickname && (
@@ -321,6 +353,19 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
             </Text>
 
         </SimplePopupView>
+        {/* Drawn off screen: this is the picture that gets shared. */}
+        <View pointerEvents="none" style={{ position: 'absolute', left: -(SHARE_CARD_WIDTH + 80), top: 0 }}>
+            <ShareCard
+                ref={shareCardRef}
+                score={score}
+                modeTitle={modeTitle}
+                playerName={playerName}
+                isRecord={isRecord}
+                recordText={t("over.newRecord")}
+                tagline={t("share.tagline")}
+            />
+        </View>
+        </>
     );
 }
 
