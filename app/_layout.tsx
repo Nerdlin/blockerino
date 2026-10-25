@@ -130,11 +130,13 @@ export default function RootLayout() {
 				<meta property="og:site_name" content="Blockerino" />
 				<meta property="og:title" content="Blockerino: pixel block puzzle with 1v1 duels" />
 				<meta property="og:description" content="Clear rows and columns, climb the leaderboards and duel your friends in real time. Free, in your browser, on Android and in Discord." />
-				<meta property="og:image" content="https://blockerino.aionerdlin.me/icon.png" />
-				<meta name="twitter:card" content="summary" />
+				<meta property="og:image" content="https://blockerino.aionerdlin.me/social-preview.png" />
+				<meta property="og:image:width" content="1280" />
+				<meta property="og:image:height" content="640" />
+				<meta name="twitter:card" content="summary_large_image" />
 				<meta name="twitter:title" content="Blockerino: pixel block puzzle with 1v1 duels" />
 				<meta name="twitter:description" content="Clear rows and columns, climb the leaderboards and duel your friends in real time." />
-				<meta name="twitter:image" content="https://blockerino.aionerdlin.me/icon.png" />
+				<meta name="twitter:image" content="https://blockerino.aionerdlin.me/social-preview.png" />
 				<meta name="mobile-web-app-capable" content="yes" />
 				<style>{`
 					html, body, #root {
