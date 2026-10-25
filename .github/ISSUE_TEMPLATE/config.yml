@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions and chat / Вопросы и общение
+    url: https://github.com/Nerdlin/blockerino/discussions
+    about: Ask a question or share an idea in Discussions / Задай вопрос или поделись идеей в Discussions

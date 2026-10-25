@@ -1,0 +1,41 @@
+name: Bug report / Сообщить об ошибке
+description: Something does not work in Blockerino / Что-то работает не так
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version / Версия
+      description: Options → Settings → Version (e.g. 2.0.0), or "web" / "Discord"
+      placeholder: "2.0.0 (build 12)"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Where do you play? / Где играешь?
+      options:
+        - Android app
+        - Browser (web)
+        - Discord Activity
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device / Устройство
+      placeholder: "Samsung S25 Ultra, Android 16 / Chrome on Windows"
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? / Что произошло?
+      description: What did you expect, and what happened instead? Screenshots help. / Что ожидал и что получил? Скриншоты помогают.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Как повторить
+      placeholder: |
+        1. Open Versus
+        2. ...
