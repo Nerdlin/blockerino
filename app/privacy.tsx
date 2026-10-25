@@ -61,7 +61,7 @@ export default function PrivacyPolicy() {
 
                 <LegalHeading>8. Your Rights and Data Deletion</LegalHeading>
                 <LegalParagraph>
-                    You can ask us to access, correct or completely delete your account and associated data at any time by emailing nerdlinnut@gmail.com. Please write from the email linked to your account or include your player name so we can find it.
+                    You can delete your account and associated data yourself in the app (Profile, Delete account); the steps are also on blockerino.aionerdlin.me/delete-account. You can also ask us to access, correct or delete it by emailing nerdlinnut@gmail.com. Please write from the email linked to your account or include your player name so we can find it.
                 </LegalParagraph>
 
                 <LegalHeading>9. Children</LegalHeading>

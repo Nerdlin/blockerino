@@ -1,6 +1,8 @@
 import { GameModeType, useAppState } from "@/hooks/useAppState";
 import AnimatedNumber from "./AnimatedNumber";
+import { useSetAtom } from "jotai";
 import GameRecordsCard from "./GameRecordsCard";
+import { deleteAccountOpenAtom } from "./AccountDeleteHost";
 import FadeInView from "./FadeInView";
 import { track } from "@/constants/Analytics";
 import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, Image, Pressable } from "react-native";
@@ -430,6 +432,8 @@ export default function ProfileMenu() {
 		}
 	};
 
+	const setDeleteAccountOpen = useSetAtom(deleteAccountOpenAtom);
+
 	const handleLogout = async () => {
 		playSfx('menuClick');
 		setAuthLoading(true);
@@ -543,6 +547,14 @@ export default function ProfileMenu() {
 							text={t("profile.logOut")}
 							backgroundColor="rgb(204, 51, 0)"
 							style={{ marginTop: 20 }}
+						/>
+
+						<StylizedButton
+							onClick={() => { playSfx('menuClick'); setDeleteAccountOpen(true); }}
+							text={t("acct.open")}
+							backgroundColor="rgb(90, 30, 30)"
+							style={{ marginTop: 6, minHeight: 36 }}
+							textStyle={{ fontSize: 11 }}
 						/>
 					</View>
 				) : (

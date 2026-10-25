@@ -2,6 +2,13 @@ import type { ScreenDictionary } from "./index";
 
 export const playerprofile: ScreenDictionary = {
 	en: {
+		"acct.open": "Delete account",
+		"acct.title": "Delete your account?",
+		"acct.body": "Your profile, scores, coins, purchases, friends and achievements will be deleted for good. This cannot be undone.",
+		"acct.keeps": "Scores and settings stored on this phone stay until you clear the app data.",
+		"acct.confirm": "Delete forever",
+		"acct.cancel": "Cancel",
+		"acct.failed": "Could not delete the account. Check your connection and try again.",
 		"pp.loading": "Loading profile...",
 		"pp.notFound": "Player not found.",
 		"pp.error": "Could not load the profile. Check your connection.",
@@ -39,6 +46,13 @@ export const playerprofile: ScreenDictionary = {
 		"pp.visFailed": "Could not save. Try again.",
 	},
 	ru: {
+		"acct.open": "Удалить аккаунт",
+		"acct.title": "Удалить аккаунт?",
+		"acct.body": "Профиль, рекорды, монеты, покупки, друзья и достижения будут удалены навсегда. Это нельзя отменить.",
+		"acct.keeps": "Рекорды и настройки, сохранённые на этом телефоне, останутся, пока не очистишь данные приложения.",
+		"acct.confirm": "Удалить навсегда",
+		"acct.cancel": "Отмена",
+		"acct.failed": "Не удалось удалить аккаунт. Проверь соединение и попробуй ещё раз.",
 		"pp.loading": "Загружаю профиль...",
 		"pp.notFound": "Игрок не найден.",
 		"pp.error": "Не удалось загрузить профиль. Проверь соединение.",

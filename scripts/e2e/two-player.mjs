@@ -447,6 +447,25 @@ scenarios.invite = async (a, b) => {
 	if (/Classic 8x8/.test(after)) throw new Error("the friend is still on the main menu after accepting: " + after.slice(0, 300));
 };
 
+// A player deletes their own account from the Profile screen; the server must remove the profile and the sign-in.
+scenarios.delete_account = async (a) => {
+	await a.open();
+	const name = await createAndLogIn(a, "DelA");
+	const before = sql(`select count(*) from profiles where player_name = '${name}'`);
+	if (before !== "1") throw new Error(`expected the profile to exist before deleting (${before})`);
+	a.solo = true;
+	if (!(await a.waitFor((text) => /Delete account/.test(text), 8000))) throw new Error("the Profile screen has no Delete account button: " + (await a.body()).slice(0, 300));
+	await a.clickText("Delete account", 0); await sleep(1200);
+	if (!(await a.waitFor((text) => /Delete forever/.test(text), 6000))) throw new Error("the confirmation never appeared");
+	await a.clickText("Delete forever", 0); await sleep(4000);
+	const after = sql(`select count(*) from profiles where player_name = '${name}'`);
+	const users = sql(`select count(*) from auth.users where email like 'e2e-dela-%'`);
+	if (after !== "0" || users !== "0") throw new Error(`the account was not deleted (profiles ${after}, users ${users})`);
+	const text = await a.body();
+	if (/Delete account/.test(text)) throw new Error("the app still shows the account screen after deleting: " + text.slice(0, 200));
+};
+scenarios.delete_account.solo = true;
+
 async function main() {
 	const wanted = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 	const names = wanted.length > 0 ? wanted : Object.keys(scenarios);
