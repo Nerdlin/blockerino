@@ -8,6 +8,8 @@ const EXPO_PUSH_URL = Deno.env.get("EXPO_PUSH_URL") ?? "https://exp.host/--/api/
 const BATCH = 100;
 // A notification that could not be pushed within this window is stale; it stays in the in-app inbox only.
 const MAX_AGE_MS = 2 * 60 * 60 * 1000;
+// A match invite is only worth a push for a few minutes (the room is gone after that).
+const INVITE_MAX_AGE_MS = 3 * 60 * 1000;
 
 interface PendingNotification {
 	id: number;
@@ -62,7 +64,8 @@ Deno.serve(async (req) => {
 	const now = Date.now();
 	const messages: Record<string, unknown>[] = [];
 	for (const notification of notifications) {
-		if (now - Date.parse(notification.created_at) > MAX_AGE_MS) continue;
+		const maxAge = notification.kind === "invite" ? INVITE_MAX_AGE_MS : MAX_AGE_MS;
+		if (now - Date.parse(notification.created_at) > maxAge) continue;
 		for (const token of tokensByProfile.get(notification.profile_id) ?? []) {
 			const text = buildMessage(notification.kind, notification.payload ?? {}, (token.language === "ru" ? "ru" : "en") as Lang);
 			if (!text) continue;
@@ -74,6 +77,7 @@ Deno.serve(async (req) => {
 				priority: "high",
 				channelId: "default",
 				data: { notificationId: notification.id, kind: notification.kind },
+				ttl: notification.kind === "invite" ? 180 : undefined,
 			});
 		}
 	}

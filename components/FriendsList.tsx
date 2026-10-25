@@ -8,6 +8,7 @@ import StylizedButton from './StylizedButton';
 import { rankFriendSuggestions } from '@/constants/FriendSearch';
 import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
 import { inviteModeRequestAtom } from "./InviteModeHost";
+import { fetchFriendsOnline, notifyInvite } from "@/constants/Invites";
 import { useSetAtom } from 'jotai';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -52,6 +53,16 @@ export default function FriendsList({ userId }: { userId: string }) {
     const [suggestions, setSuggestions] = useState<FriendProfile[]>([]);
     const openProfile = useOpenPlayerProfile();
     const askInviteMode = useSetAtom(inviteModeRequestAtom);
+    const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
+
+    // Friends seen in the last two minutes get a green dot; asked again every 30 seconds while this list is open.
+    useEffect(() => {
+        let active = true;
+        const refresh = () => void fetchFriendsOnline().then((ids) => { if (active) setOnlineIds(ids); });
+        refresh();
+        const timer = setInterval(refresh, 30000);
+        return () => { active = false; clearInterval(timer); };
+    }, []);
 
     const fetchFriends = async () => {
         setLoading(true);
@@ -289,6 +300,9 @@ export default function FriendsList({ userId }: { userId: string }) {
             return;
         }
 
+        // A friend whose app is closed gets a push; one with the app open gets the live message below.
+        void notifyInvite(room.id, friendId);
+
         // 2. Broadcast invite to the friend after realtime is subscribed.
         const inviteChannel = supabase.channel(`invites:${friendId}`);
         const subscribed = await new Promise<boolean>((resolve) => {
@@ -425,7 +439,10 @@ export default function FriendsList({ userId }: { userId: string }) {
                 ) : (
                     acceptedFriends.map(f => (
                         <View key={f.id} style={[styles.friendRow, { backgroundColor: currentTheme.emptyBlockBorder }]}>
-                            <Text style={[styles.friendName, { color: currentTheme.textPrimary }]} onPress={() => openProfile(getFriendName(f))}>{getFriendName(f)}</Text>
+                            <View style={styles.nameWithDot}>
+                                <View style={[styles.onlineDot, onlineIds.has(f.user_id_1 === userId ? f.user_id_2 : f.user_id_1) ? styles.onlineDotOn : styles.onlineDotOff]} />
+                                <Text style={[styles.friendName, { color: currentTheme.textPrimary }]} onPress={() => openProfile(getFriendName(f))}>{getFriendName(f)}</Text>
+                            </View>
                             <View style={styles.actionsRow}>
                                 <StylizedButton text={t("friends.invite1v1")} onClick={() => handleInvite1v1(f.user_id_1 === userId ? f.user_id_2 : f.user_id_1, getFriendName(f))} backgroundColor={currentTheme.accent} style={styles.inviteBtn} textStyle={styles.actionBtnText}/>
                                 <StylizedButton text={t("friends.remove")} onClick={() => handleDeleteOrCancel(f.id)} backgroundColor="rgb(200,50,50)" style={styles.cancelBtn} textStyle={styles.actionBtnText}/>
@@ -439,6 +456,23 @@ export default function FriendsList({ userId }: { userId: string }) {
 }
 
 const styles = StyleSheet.create({
+    nameWithDot: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flexShrink: 1,
+    },
+    onlineDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+    },
+    onlineDotOn: {
+        backgroundColor: '#4ADE80',
+    },
+    onlineDotOff: {
+        backgroundColor: 'rgba(255,255,255,0.15)',
+    },
     container: {
         width: '100%',
         marginTop: 10,

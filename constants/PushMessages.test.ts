@@ -23,6 +23,14 @@ describe("push message texts", () => {
 		expect(buildMessage("season_ending", { board: "chaos", rank: 12, to_top10: 340 }, "ru")?.body).toContain("340 очков");
 	});
 
+	it("invites a friend to a match, with the host and the mode, in their language", () => {
+		expect(buildMessage("invite", { from: "Nina", mode: "chaos" }, "en")).toEqual({
+			title: "1v1 invite",
+			body: "Nina invites you to a Chaos 10×10 match. Open the game to accept.",
+		});
+		expect(buildMessage("invite", { mode: "classic" }, "ru")?.body).toContain("Друг");
+	});
+
 	it("survives missing or hostile payload values and unknown kinds", () => {
 		expect(buildMessage("overtaken", {}, "en")?.body).toContain("A player");
 		expect(buildMessage("overtaken", { by: "x".repeat(500), by_score: "NaN" }, "en")?.body.length).toBeLessThan(160);

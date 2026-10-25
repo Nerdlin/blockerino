@@ -2,7 +2,7 @@
 // Edge Function and the Jest tests can both load it.
 
 export type Lang = "en" | "ru";
-export type NotificationKind = "overtaken" | "streak_risk" | "season_ending";
+export type NotificationKind = "overtaken" | "streak_risk" | "season_ending" | "invite";
 
 export interface PushMessage {
 	title: string;
@@ -25,6 +25,14 @@ function str(value: unknown, fallback: string): string {
 /** Null for a kind this version does not know, so a new server-side kind never crashes an old sender. */
 export function buildMessage(kind: string, payload: Record<string, unknown>, lang: Lang): PushMessage | null {
 	const board = BOARD_NAMES[lang][str(payload.board, "classic")] ?? BOARD_NAMES[lang].classic;
+
+	if (kind === "invite") {
+		const from = str(payload.from, lang === "ru" ? "Друг" : "A friend");
+		const mode = BOARD_NAMES[lang][str(payload.mode, "classic")] ?? BOARD_NAMES[lang].classic;
+		return lang === "ru"
+			? { title: "Приглашение в 1v1", body: `${from} зовёт вас сыграть: ${mode}. Откройте игру, чтобы принять.` }
+			: { title: "1v1 invite", body: `${from} invites you to a ${mode} match. Open the game to accept.` };
+	}
 
 	if (kind === "overtaken") {
 		const by = str(payload.by, lang === "ru" ? "Игрок" : "A player");

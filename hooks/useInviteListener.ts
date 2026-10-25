@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSetAtom } from 'jotai';
-import { Alert } from 'react-native';
+import { Alert, AppState } from 'react-native';
 import { supabase } from '@/constants/Supabase';
 import { useAppState, MenuStateType, GameModeType } from '@/hooks/useAppState';
 import { useLanguage } from '@/constants/Localization';
 import { incomingInviteAtom } from '@/components/InviteModeHost';
+import { fetchPendingInvites, markInvitesRead } from '@/constants/Invites';
 
+// An invite reaches a player in two ways: live (a realtime message, while the app is open) and as a push (the app was
+// closed; opening it from the push brings the invite back from the server). Both end in the same popup; a room is
+// shown once, whichever way arrives first.
 export function useInviteListener(
     setMultiplayerRoomId: (id: string) => void,
     setMultiplayerRole: (role: "player1" | "player2") => void,
@@ -17,6 +21,7 @@ export function useInviteListener(
     const { t } = useLanguage();
     const setIncomingInvite = useSetAtom(incomingInviteAtom);
     const [userId, setUserId] = useState<string | null>(null);
+    const shownRooms = useRef(new Set<string>());
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user.id || null));
@@ -24,6 +29,51 @@ export function useInviteListener(
         return () => authListener.subscription.unsubscribe();
     }, []);
 
+    const presentInvite = useCallback((roomId: string, hostName: string, mode: GameModeType) => {
+        if (!userId || shownRooms.current.has(roomId)) return;
+        shownRooms.current.add(roomId);
+        setIncomingInvite({
+            hostName,
+            mode,
+            accept: async () => {
+                // First check if the room still exists and is waiting
+                const { data: room } = await supabase.from('matchmaking_rooms').select('status').eq('id', roomId).single();
+                if (!room || room.status !== 'waiting') {
+                    Alert.alert(t("invite.expiredTitle"), t("invite.expired"));
+                    return;
+                }
+
+                // Update room to playing with current user
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('player_name, elo')
+                    .or(`auth_user_id.eq.${userId},player_id.eq.${userId}`)
+                    .limit(1)
+                    .maybeSingle();
+                const myName = profile?.player_name || 'Player 2';
+
+                const { error } = await supabase.from('matchmaking_rooms').update({
+                    status: 'playing',
+                    player2_id: userId,
+                    player2_name: myName
+                }).eq('id', roomId);
+
+                if (error) {
+                    Alert.alert(t("invite.errorTitle"), t("invite.joinFailed"));
+                    return;
+                }
+
+                setMultiplayerRoomId(roomId);
+                setMultiplayerRole("player2");
+                setMultiplayerGameMode(mode);
+                setMultiplayerOpponentName(hostName);
+                setMultiplayerPlayerElo(typeof profile?.elo === 'number' ? profile.elo : 0);
+                setAppState(MenuStateType.MULTIPLAYER_GAME);
+            },
+        });
+    }, [userId, t, setIncomingInvite, setAppState, setMultiplayerRoomId, setMultiplayerRole, setMultiplayerGameMode, setMultiplayerOpponentName, setMultiplayerPlayerElo]);
+
+    // Live invites while the app is open.
     useEffect(() => {
         if (!userId) return;
 
@@ -31,51 +81,34 @@ export function useInviteListener(
             .on('broadcast', { event: '1v1_invite' }, (payload) => {
                 const { roomId, hostName, gameMode } = payload.payload;
                 const nextGameMode = Object.values(GameModeType).includes(gameMode) ? gameMode : GameModeType.Classic;
-                
-                setIncomingInvite({
-                    hostName: hostName || 'Player 1',
-                    mode: nextGameMode,
-                    accept: async () => {
-                            // First check if the room still exists and is waiting
-                            const { data: room } = await supabase.from('matchmaking_rooms').select('status').eq('id', roomId).single();
-                            if (!room || room.status !== 'waiting') {
-                                Alert.alert(t("invite.expiredTitle"), t("invite.expired"));
-                                return;
-                            }
-    
-                            // Update room to playing with current user
-                            const { data: profile } = await supabase
-                                .from('profiles')
-                                .select('player_name, elo')
-                                .or(`auth_user_id.eq.${userId},player_id.eq.${userId}`)
-                                .limit(1)
-                                .maybeSingle();
-                            const myName = profile?.player_name || 'Player 2';
-                            
-                            const { error } = await supabase.from('matchmaking_rooms').update({
-                                status: 'playing',
-                                player2_id: userId,
-                                player2_name: myName
-                            }).eq('id', roomId);
-    
-                            if (error) {
-                                Alert.alert(t("invite.errorTitle"), t("invite.joinFailed"));
-                                return;
-                            }
-    
-                            setMultiplayerRoomId(roomId);
-                            setMultiplayerRole("player2");
-                            setMultiplayerGameMode(nextGameMode);
-                            setMultiplayerOpponentName(hostName || 'Player 1');
-                            setMultiplayerPlayerElo(typeof profile?.elo === 'number' ? profile.elo : 0);
-                            setAppState(MenuStateType.MULTIPLAYER_GAME);
-                    },
-                });
+                presentInvite(roomId, hostName || 'Player 1', nextGameMode);
             })
             .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [userId, t, setIncomingInvite, setAppState, setMultiplayerRoomId, setMultiplayerRole, setMultiplayerGameMode, setMultiplayerOpponentName, setMultiplayerPlayerElo]);
+    }, [userId, presentInvite]);
+
+    // Invites that came as a push while the app was closed: asked at launch and whenever the app comes back.
+    useEffect(() => {
+        if (!userId) return;
+        let cancelled = false;
+        const check = async () => {
+            const pending = await fetchPendingInvites();
+            if (cancelled || pending.length === 0) return;
+            const newest = pending[0];
+            presentInvite(newest.roomId, newest.from || 'Player 1', newest.mode);
+            void markInvitesRead(pending.map((invite) => invite.id));
+        };
+        const timer = setTimeout(() => void check(), 1500);
+        const sub = AppState.addEventListener('change', (state) => {
+            if (state === 'active') void check();
+        });
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+            sub.remove();
+        };
+    }, [userId, presentInvite]);
 }

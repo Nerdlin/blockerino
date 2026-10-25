@@ -437,6 +437,11 @@ scenarios.invite = async (a, b) => {
 	await a.clickText("Chaos 10x10", 0);
 	const seen = await b.waitFor((text) => text.includes(nameA) && /Chaos 10x10/.test(text) && /Accept/.test(text), 15000);
 	if (!seen) throw new Error("the friend never saw the invite: " + (await b.body()).slice(0, 300));
+	// The invite also went to the server as a push (the friend could have had the app closed), and the friend counts as online.
+	const pushed = sql(`select count(*) from user_notifications n join profiles p on p.id = n.profile_id where p.player_name = '${nameB}' and n.kind = 'invite'`);
+	if (pushed !== "1") throw new Error(`expected one invite notification for the friend, found ${pushed}`);
+	const online = sql(`select count(*) from player_presence pr join profiles p on p.auth_user_id = pr.user_id where p.player_name = '${nameB}'`);
+	if (online !== "1") throw new Error(`the friend never reported presence (${online})`);
 	await b.clickText("Accept", 0); await sleep(4500);
 	const after = await b.body();
 	if (/Classic 8x8/.test(after)) throw new Error("the friend is still on the main menu after accepting: " + after.slice(0, 300));

@@ -54,6 +54,7 @@ import ProfileMenu from "@/components/ProfileMenu";
 import MoreGamesMenu from "@/components/MoreGamesMenu";
 import { getBackgroundParticleConfig, shopStateAtom, useShopBootstrap } from "@/constants/Shop";
 import { useInviteListener } from "@/hooks/useInviteListener";
+import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 
 // Suppress noisy library-specific deprecation warnings in developer tools
 LogBox.ignoreLogs([
@@ -122,6 +123,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 	const [ multiplayerGameMode, setMultiplayerGameMode ] = useAtom(multiplayerGameModeAtom);
 	const [ multiplayerPlayerElo, setMultiplayerPlayerElo ] = useAtom(multiplayerPlayerEloAtom);
 
+	usePresenceHeartbeat();
 	useInviteListener(
 		setMultiplayerRoomId,
 		setMultiplayerRole,

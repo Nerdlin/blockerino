@@ -46,9 +46,10 @@ export async function setupNotifications(): Promise<void> {
 	if (!isPushSupported()) return;
 	try {
 		Notifications.setNotificationHandler({
-			handleNotification: async () => ({
-				shouldShowBanner: true,
-				shouldShowList: true,
+			// A match invite while the app is open is already a popup (live message); the push would repeat it.
+			handleNotification: async (notification) => ({
+				shouldShowBanner: notification.request.content.data?.kind !== "invite",
+				shouldShowList: notification.request.content.data?.kind !== "invite",
 				shouldPlaySound: false,
 				shouldSetBadge: false,
 			}),
