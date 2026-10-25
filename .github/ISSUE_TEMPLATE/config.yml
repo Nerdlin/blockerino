@@ -1,5 +1,11 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
-  - name: Questions and chat / Вопросы и общение
-    url: https://github.com/Nerdlin/blockerino/discussions
-    about: Ask a question or share an idea in Discussions / Задай вопрос или поделись идеей в Discussions
+  - name: "💬 Questions and chat · Вопросы и общение"
+    url: https://github.com/Nerdlin/blockerino/discussions/categories/q-a
+    about: Ask a question in Discussions, someone will answer · Задай вопрос в Discussions, тебе ответят
+  - name: "🏆 Show your score · Покажи свой рекорд"
+    url: https://github.com/Nerdlin/blockerino/discussions/categories/show-and-tell
+    about: Share your best run, a screenshot or a video · Поделись рекордом, скриншотом или видео
+  - name: "🎮 Play now · Играть"
+    url: https://blockerino.aionerdlin.me
+    about: Open the game in your browser · Открыть игру в браузере

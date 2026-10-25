@@ -1,0 +1,17 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🙋 Ask a question · Задай вопрос
+        Please describe what you tried. If it looks like a bug, open an Issue instead. · Опиши, что пробовал. Если похоже на ошибку, лучше создай Issue.
+  - type: textarea
+    id: question
+    attributes:
+      label: "❓ Your question · Твой вопрос"
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: "📱 Platform and version · Платформа и версия"
+      placeholder: "Android 2.0.0 / web / Discord"

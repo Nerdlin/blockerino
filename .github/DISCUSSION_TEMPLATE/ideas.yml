@@ -1,0 +1,16 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 💡 Share an idea · Поделись идеей
+        Vote with 👍 on ideas you like. · Ставь 👍 идеям, которые нравятся.
+  - type: textarea
+    id: idea
+    attributes:
+      label: "✨ The idea · Идея"
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: "🎯 Why would it be good? · Почему это было бы хорошо?"

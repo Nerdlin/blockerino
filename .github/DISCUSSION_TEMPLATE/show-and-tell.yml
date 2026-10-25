@@ -1,0 +1,26 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🏆 Show your best run · Покажи лучшую игру
+        Scores, clutch combos, funny moments, Versus wins: everything counts. · Рекорды, красивые комбо, смешные моменты, победы в Versus: всё подходит.
+  - type: dropdown
+    id: mode
+    attributes:
+      label: "🎮 Mode · Режим"
+      options:
+        - Classic 8x8
+        - Chaos 10x10
+        - Versus 1v1
+        - Time Attack / Move Limit / Daily
+        - More Games
+  - type: input
+    id: score
+    attributes:
+      label: "🔢 Score or result · Счёт или результат"
+      placeholder: "24650"
+  - type: textarea
+    id: story
+    attributes:
+      label: "📝 Tell us about it · Расскажи"
+      description: "Drag a screenshot or a video here. · Перетащи сюда скриншот или видео."

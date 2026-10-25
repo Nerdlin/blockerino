@@ -1,19 +1,18 @@
-name: Bug report / Сообщить об ошибке
-description: Something does not work in Blockerino / Что-то работает не так
+name: "🐛 Bug report · Сообщить об ошибке"
+description: Something does not work in Blockerino · Что-то работает не так
+title: "[Bug]: "
 labels: ["bug"]
 body:
-  - type: input
-    id: version
+  - type: markdown
     attributes:
-      label: Version / Версия
-      description: Options → Settings → Version (e.g. 2.0.0), or "web" / "Discord"
-      placeholder: "2.0.0 (build 12)"
-    validations:
-      required: true
+      value: |
+        ## 🧩 Thanks for helping make Blockerino better! · Спасибо, что помогаешь сделать игру лучше!
+        The more details you give, the faster it gets fixed. A screenshot or a short screen recording helps a lot.
+        Чем подробнее опишешь, тем быстрее исправим. Скриншот или короткая запись экрана очень помогают.
   - type: dropdown
     id: platform
     attributes:
-      label: Where do you play? / Где играешь?
+      label: "📱 Where do you play? · Где играешь?"
       options:
         - Android app
         - Browser (web)
@@ -21,21 +20,42 @@ body:
     validations:
       required: true
   - type: input
+    id: version
+    attributes:
+      label: "🔢 Version · Версия"
+      description: "Android: Options → Settings → Version. Web / Discord: write \"web\" or \"discord\". · Android: Options → Version. Web / Discord: напиши «web» или «discord»."
+      placeholder: "2.0.0 (build 12)"
+    validations:
+      required: true
+  - type: input
     id: device
     attributes:
-      label: Device / Устройство
-      placeholder: "Samsung S25 Ultra, Android 16 / Chrome on Windows"
+      label: "📟 Device or browser · Устройство или браузер"
+      placeholder: "Samsung S25 Ultra, Android 16 / Chrome on Windows 11"
   - type: textarea
     id: what
     attributes:
-      label: What happened? / Что произошло?
-      description: What did you expect, and what happened instead? Screenshots help. / Что ожидал и что получил? Скриншоты помогают.
+      label: "❗ What happened? · Что произошло?"
+      description: "What did you expect, and what did you get instead? · Что ожидал и что получил?"
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Steps to reproduce / Как повторить
+      label: "🔁 How to reproduce · Как повторить"
       placeholder: |
-        1. Open Versus
-        2. ...
+        1. Open Versus 1v1
+        2. Invite a friend
+        3. …
+  - type: textarea
+    id: extra
+    attributes:
+      label: "🖼️ Screenshots or video · Скриншоты или видео"
+      description: "Drag a file here. · Перетащи файл сюда."
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: "✅ Before sending · Перед отправкой"
+      options:
+        - label: "I looked through existing issues and did not find the same one · Посмотрел существующие обращения, такого нет"
+          required: true
