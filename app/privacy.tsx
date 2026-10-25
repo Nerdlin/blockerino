@@ -4,29 +4,39 @@ import LegalPage, { LegalBullet, LegalHeading, LegalParagraph } from '@/componen
 export default function PrivacyPolicy() {
     return (
         <LegalPage title="Privacy Policy">
-            <LegalParagraph>Effective Date: July 21, 2026</LegalParagraph>
-                <LegalHeading>1. Information Collection and Scope</LegalHeading>
+                <LegalParagraph>Effective Date: October 27, 2026</LegalParagraph>
+                <LegalHeading>1. Information We Collect</LegalHeading>
                 <LegalParagraph>
-                    Blockerino operates as an independent application within the Discord ecosystem. We adhere strictly to a data-minimization principle, collecting exclusively the essential information required for core functionality. This is limited to data provided by the Discord API, explicitly your Discord User ID, username, and avatar hash.
+                    Blockerino collects only what it needs to run the game. Depending on how you sign in and play, this includes:
                 </LegalParagraph>
-                
-                <LegalHeading>2. Utilization of Data</LegalHeading>
+                <LegalBullet>Discord sign-in: your Discord User ID, username, display name and avatar hash.</LegalBullet>
+                <LegalBullet>Email or Google sign-in: your email address, and for Google your name and profile picture. Passwords are handled by our authentication provider and are never visible to us in plain text.</LegalBullet>
+                <LegalBullet>Game data: your player name, scores, Elo rating, match history, season results and rewards, achievements, friends list, shop purchases and equipped cosmetics, and game ratings.</LegalBullet>
+                <LegalBullet>Matchmaking data: temporary room and match information needed to connect you with an opponent.</LegalBullet>
                 <LegalParagraph>
-                    The data we collect is utilized strictly for operational and service-delivery purposes, which encompass:
+                    Some settings and progress (language, sound, saved games, offline scores) are also stored locally on your device or in your browser.
                 </LegalParagraph>
-                <LegalBullet>Persistent storage of user progression, Elo ratings, and historical match data.</LegalBullet>
-                <LegalBullet>Rendering user identities across global and server-specific leaderboards.</LegalBullet>
-                <LegalBullet>Facilitating real-time peer-to-peer multiplayer synchronization.</LegalBullet>
+
+                <LegalHeading>2. How We Use Data</LegalHeading>
+                <LegalBullet>Saving your progress, ratings, rewards and purchases.</LegalBullet>
+                <LegalBullet>Showing your name and avatar on leaderboards, in friend lists and in matches.</LegalBullet>
+                <LegalBullet>Running real-time multiplayer and matchmaking.</LegalBullet>
+                <LegalBullet>Preventing cheating and abuse.</LegalBullet>
                 <LegalParagraph>
-                    Under no circumstances do we monetize, lease, or disseminate your personally identifiable information (PII) to unauthorized third-party entities, advertising networks, or data brokers.
+                    We do not sell, rent or share your personal information with advertisers or data brokers.
                 </LegalParagraph>
-                
-                <LegalHeading>3. Infrastructure Security and Retention</LegalHeading>
+
+                <LegalHeading>3. Discord Activity and Rich Presence</LegalHeading>
                 <LegalParagraph>
-                    All operational data is securely encrypted and maintained on Supabase infrastructure, a SOC2-compliant Backend-as-a-Service architecture. We enforce strict Row Level Security (RLS) policies and cryptographically secured APIs to mitigate unauthorized access and ensure data integrity.
+                    When you play inside a Discord Activity, Blockerino asks for the identify and rpc.activities.write permissions. We use the second one only to show your current status on your Discord profile, for example the game mode you are playing, whether you are in a menu, a match or searching for an opponent, and for how long. We do not read your Discord messages, servers, friends or other activity.
                 </LegalParagraph>
-                
-                <LegalHeading>4. Anonymous Usage Statistics</LegalHeading>
+
+                <LegalHeading>4. Third-Party Services</LegalHeading>
+                <LegalParagraph>
+                    We rely on Discord (sign-in and Activity), Google (optional sign-in) and Supabase (database, authentication and server functions). Their handling of data is governed by their own privacy policies.
+                </LegalParagraph>
+
+                <LegalHeading>5. Anonymous Usage Statistics</LegalHeading>
                 <LegalParagraph>
                     To understand which parts of the game are used and where players get stuck, the application records anonymous usage events in our own database on Supabase. No third-party analytics or advertising service receives them.
                 </LegalParagraph>
@@ -36,7 +46,7 @@ export default function PrivacyPolicy() {
                 <LegalBullet>Crash reports: if the application crashes, it records the error text, a short technical trace, the screen you were on, the application version and your system version, in the same database and under the same switch. They are deleted after 90 days.</LegalBullet>
                 <LegalBullet>You can switch collection off at any time in Options, under Privacy. The application then stops recording and discards events that were not yet sent.</LegalBullet>
 
-                <LegalHeading>5. Sign-In, Friends and Notifications</LegalHeading>
+                <LegalHeading>6. Sign-In, Friends and Notifications</LegalHeading>
                 <LegalBullet>Sign-in: if you sign in with Discord or Google, or with an email address, our authentication provider (Supabase) receives your account identifier, display name, email address and profile picture from that service. We use them only to run your account.</LegalBullet>
                 <LegalBullet>Friends: friend requests and accepted friendships are stored with your account, and friends can see your nickname and season score.</LegalBullet>
                 <LegalBullet>Online status: while the app is open and you are signed in, it tells our server about once a minute that you are here. Only your accepted friends can see a green dot next to your name, for as long as the last signal is under two minutes old; nobody else can see it, and it is hidden when you choose "Nobody" for your profile in Options. The signal is deleted after two days.</LegalBullet>
@@ -44,16 +54,30 @@ export default function PrivacyPolicy() {
                 <LegalBullet>Push notifications (Android and iOS apps): if you allow notifications, a push token that identifies your device is stored with your account and sent to Expo and Google Firebase Cloud Messaging, which deliver the messages. We send notifications about being overtaken on the leaderboard, a streak that is about to end, the end of a season and a friend inviting you to a match (only while the invitation is fresh, a few minutes). Switch them off in your device settings or in the app; the token is then removed.</LegalBullet>
                 <LegalBullet>In the web version and in Discord, the same messages are shown inside the game when you open it.</LegalBullet>
 
-                <LegalHeading>6. User Rights and Data Erasure</LegalHeading>
+                <LegalHeading>7. Security and Retention</LegalHeading>
                 <LegalParagraph>
-                    In accordance with global privacy standards, you maintain absolute sovereignty over your data. You reserve the right to request a complete purge of your records and associated metrics from our databases at any time by initiating a request via our official GitHub repository or Discord support channels.
+                    Data is stored on Supabase infrastructure with Row Level Security and encrypted connections. We keep your data while your account exists, and delete it when you ask us to.
                 </LegalParagraph>
-                
-                <LegalHeading>7. Policy Iterations</LegalHeading>
+
+                <LegalHeading>8. Your Rights and Data Deletion</LegalHeading>
                 <LegalParagraph>
-                    As the application evolves, we reserve the right to amend this Privacy Policy. Substantive modifications will be reflected directly on this page. Continued utilization of Blockerino following such revisions constitutes your explicit acknowledgment and consent to the updated terms.
+                    You can ask us to access, correct or completely delete your account and associated data at any time by emailing nerdlinnut@gmail.com. Please write from the email linked to your account or include your player name so we can find it.
                 </LegalParagraph>
-            
+
+                <LegalHeading>9. Children</LegalHeading>
+                <LegalParagraph>
+                    Blockerino is not directed at children under 13, and we do not knowingly collect their data. If you believe a child has provided data, contact us and we will remove it.
+                </LegalParagraph>
+
+                <LegalHeading>10. Policy Changes</LegalHeading>
+                <LegalParagraph>
+                    We may update this Privacy Policy as the game evolves. The current version is always on this page, with its effective date at the top. Continued use after a change means you accept the updated policy.
+                </LegalParagraph>
+
+                <LegalHeading>11. Contact</LegalHeading>
+                <LegalParagraph>
+                    Questions about privacy: nerdlinnut@gmail.com.
+                </LegalParagraph>
         </LegalPage>
     );
 }
