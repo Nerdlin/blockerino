@@ -14,6 +14,7 @@ import { useSoundSettings } from "@/constants/Sound";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { useLeaderboardPerk } from "@/constants/LeaderboardPerks";
+import { nameFontFamily } from "@/constants/NameFont";
 import {
 	acceptFriendRequest,
 	deleteFriendRow,
@@ -154,7 +155,7 @@ function Header({ profile, nameColor }: { profile: PublicProfile; nameColor: str
 					<Text style={styles.avatarText}>{avatar || profile.name.charAt(0).toUpperCase()}</Text>
 				</View>
 			)}
-			<Text style={[styles.name, { color: nameColor }]} numberOfLines={1} adjustsFontSizeToFit>
+			<Text style={[styles.name, { color: nameColor, fontFamily: nameFontFamily(profile.name) }]} numberOfLines={1} adjustsFontSizeToFit>
 				{profile.name}
 			</Text>
 		</View>

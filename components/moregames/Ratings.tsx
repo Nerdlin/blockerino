@@ -1,5 +1,6 @@
 import { View, Text, Pressable, ScrollView, Image } from "react-native";
 import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
+import { nameFontFamily } from "@/constants/NameFont";
 import UiIcon from "@/components/UiIcon";
 import { useLanguage } from "@/constants/Localization";
 import SegmentedControl from "../SegmentedControl";
@@ -97,7 +98,7 @@ export function MoreGameLeaderboardPanel({
 										<Text style={{ fontSize: 10, color: '#fff' }}>{entry.player_name.charAt(0).toUpperCase()}</Text>
 									</View>
 								)}
-								<Text style={[styles.leaderboardName, { flexShrink: 1, color: currentTheme.textPrimary }]} numberOfLines={1}>
+								<Text style={[styles.leaderboardName, { flexShrink: 1, color: currentTheme.textPrimary, fontFamily: nameFontFamily(entry.player_name) }]} numberOfLines={1}>
 									{entry.player_name}{isMe ? ` (${t("moregames.you")})` : ""}
 								</Text>
 							</View>

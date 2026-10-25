@@ -9,6 +9,7 @@ import { rankFriendSuggestions } from '@/constants/FriendSearch';
 import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
 import { inviteModeRequestAtom } from "./InviteModeHost";
 import { fetchFriendsOnline, notifyInvite } from "@/constants/Invites";
+import { nameFontFamily } from "@/constants/NameFont";
 import { useSetAtom } from 'jotai';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -408,7 +409,7 @@ export default function FriendsList({ userId }: { userId: string }) {
                     <Text style={[styles.sectionTitle, { color: currentTheme.textSecondary }]}>{t("friends.requestsTitle")}</Text>
                     {incomingRequests.map(f => (
                         <View key={f.id} style={[styles.friendRow, { backgroundColor: currentTheme.emptyBlockBorder }]}>
-                            <Text style={[styles.friendName, { color: currentTheme.textPrimary }]} onPress={() => openProfile(getFriendName(f))}>{getFriendName(f)}</Text>
+                            <Text style={[styles.friendName, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(getFriendName(f)) }]} onPress={() => openProfile(getFriendName(f))}>{getFriendName(f)}</Text>
                             <View style={styles.actionsRow}>
                                 <StylizedButton text="V" onClick={() => handleAcceptRequest(f.id)} backgroundColor="rgb(50,200,50)" style={styles.actionBtn} textStyle={styles.actionBtnText}/>
                                 <StylizedButton text="X" onClick={() => handleDeleteOrCancel(f.id)} backgroundColor="rgb(200,50,50)" style={styles.actionBtn} textStyle={styles.actionBtnText}/>
@@ -441,7 +442,7 @@ export default function FriendsList({ userId }: { userId: string }) {
                         <View key={f.id} style={[styles.friendRow, { backgroundColor: currentTheme.emptyBlockBorder }]}>
                             <View style={styles.nameWithDot}>
                                 <View style={[styles.onlineDot, onlineIds.has(f.user_id_1 === userId ? f.user_id_2 : f.user_id_1) ? styles.onlineDotOn : styles.onlineDotOff]} />
-                                <Text style={[styles.friendName, { color: currentTheme.textPrimary }]} onPress={() => openProfile(getFriendName(f))}>{getFriendName(f)}</Text>
+                                <Text style={[styles.friendName, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(getFriendName(f)) }]} onPress={() => openProfile(getFriendName(f))}>{getFriendName(f)}</Text>
                             </View>
                             <View style={styles.actionsRow}>
                                 <StylizedButton text={t("friends.invite1v1")} onClick={() => handleInvite1v1(f.user_id_1 === userId ? f.user_id_2 : f.user_id_1, getFriendName(f))} backgroundColor={currentTheme.accent} style={styles.inviteBtn} textStyle={styles.actionBtnText}/>

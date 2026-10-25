@@ -102,6 +102,8 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 	const useCyrillicPixelFont = bootLanguage === "ru";
 	const [loaded] = useFonts({
 		"Press-Start-2P": require("../assets/fonts/PressStart2P-Regular.ttf"),
+		// For nicknames with Cyrillic letters in the English app (see constants/NameFont.ts).
+		PixelifySans: require("../assets/fonts/PixelifySans-Variable.ttf"),
 		SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
 		Silkscreen: useCyrillicPixelFont
 			? require("../assets/fonts/PixelifySans-Variable.ttf")

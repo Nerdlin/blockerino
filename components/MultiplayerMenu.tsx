@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
+import { nameFontFamily } from "@/constants/NameFont";
 import { StyleSheet, Text, View, TextInput, Clipboard, useWindowDimensions, ScrollView, Pressable, Platform, Image } from "react-native";
 import PixelLoader from "@/components/PixelLoader";
 import SimplePopupView from "./SimplePopupView";
@@ -64,7 +65,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         setProfileAuthIntent(intent);
         appendAppState(MenuStateType.PROFILE);
     };
-    const { width } = useWindowDimensions();
+    const { width, height: windowHeight } = useWindowDimensions();
     const isMobile = width < 600;
     
     const [playerName, setPlayerName] = useState("");
@@ -855,7 +856,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     {loadingLeaderboard ? (
                         <PixelLoader size="large" color={currentTheme.accent} style={{ marginVertical: 40 }} />
                     ) : (
-                        <ScrollView style={styles.eloLeaderboardList} nestedScrollEnabled={true}>
+                        <ScrollView style={[styles.eloLeaderboardList, { maxHeight: Math.max(300, windowHeight - 380) }]} nestedScrollEnabled={true}>
                             {topEloList.length === 0 ? (
                                 <Text style={[styles.noRoomsText, { color: currentTheme.textSecondary }]}>
                                     {t("mp.noRatings")}
@@ -891,7 +892,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                                  )}
                                                  <Text style={[styles.eloLBName, { 
                                                      color: currentTheme.textPrimary, 
-                                                     fontFamily: isMe ? 'SilkscreenBold' : 'Silkscreen',
+                                                     fontFamily: nameFontFamily(entry.player_name, isMe ? 'SilkscreenBold' : 'Silkscreen'),
                                                      flexShrink: 1
                                                  }]} numberOfLines={1}>
                                                     {entry.player_name}{isMe ? t("mp.you") : ''}
@@ -900,7 +901,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                             <View style={[styles.eloLBBadge, { backgroundColor: badge.color, flex: 0.8, alignSelf: 'center' }]}>
                                                 <View style={styles.eloLBBadgeContent}>
                                                     <UiIcon name={badge.icon} size={9} />
-                                                    <Text style={styles.eloLBBadgeText}>{badge.tier}</Text>
+                                                    <Text style={styles.eloLBBadgeText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{badge.tier}</Text>
                                                 </View>
                                             </View>
                                             <Text style={[styles.eloLBValue, { color: currentTheme.textPrimary, flex: 0.8, textAlign: 'right' }]}>

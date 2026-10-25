@@ -1,5 +1,6 @@
 import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
+import { nameFontFamily } from "@/constants/NameFont";
 import { GlobalHighScore } from "@/constants/Supabase";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage, TranslateVars } from "@/constants/Localization";
@@ -34,7 +35,7 @@ export default function GlobalScoreRow({ score, rank, highlightTop, hideTime }: 
                     ) : score.avatar_url ? (
                         <Text style={{ fontSize: 14, marginRight: 6 }}>{score.avatar_url}</Text>
                     ) : null}
-                    <Text style={[styles.scoreNameText, { color: currentTheme.textPrimary }, isMobile && styles.mobileScoreNameText]} numberOfLines={1}>
+                    <Text style={[styles.scoreNameText, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(score.player_name) }, isMobile && styles.mobileScoreNameText]} numberOfLines={1}>
                         {score.player_name}
                     </Text>
                 </View>
