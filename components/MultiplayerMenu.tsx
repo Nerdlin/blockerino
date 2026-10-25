@@ -856,7 +856,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     {loadingLeaderboard ? (
                         <PixelLoader size="large" color={currentTheme.accent} style={{ marginVertical: 40 }} />
                     ) : (
-                        <ScrollView style={[styles.eloLeaderboardList, { maxHeight: Math.max(300, windowHeight - 380) }]} nestedScrollEnabled={true}>
+                        <ScrollView style={[styles.eloLeaderboardList, { maxHeight: Math.max(300, windowHeight - 270) }]} nestedScrollEnabled={true}>
                             {topEloList.length === 0 ? (
                                 <Text style={[styles.noRoomsText, { color: currentTheme.textSecondary }]}>
                                     {t("mp.noRatings")}
