@@ -1,11 +1,9 @@
 name: EAS Update
 
 on:
+  # Manual only: a push to main must not ship code to every installed app by itself.
+  # GitHub -> Actions -> EAS Update -> Run workflow (see docs/release-process.md, "Updates over the air").
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - master
 
 jobs:
   update:
