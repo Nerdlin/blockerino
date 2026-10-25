@@ -1,6 +1,7 @@
 import React from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
+import Head from "expo-router/head";
 import { useFonts } from "expo-font";
 import AnimatedBackground from "@/components/AnimatedBackground";
 
@@ -25,6 +26,9 @@ export default function LegalPage({ title, children }: { title: string; children
 
 	return (
 		<View style={styles.container}>
+			<Head>
+				<title>{`${title} | Blockerino`}</title>
+			</Head>
 			<AnimatedBackground />
 			<ScrollView contentContainerStyle={[styles.scrollContent, compact && styles.scrollContentCompact]}>
 				<View style={styles.topRow}>

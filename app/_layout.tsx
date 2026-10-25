@@ -123,6 +123,18 @@ export default function RootLayout() {
 			<Head>
 				<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
 				<link rel="manifest" href="manifest.json" />
+				<title>Blockerino: pixel block puzzle with 1v1 duels</title>
+				<meta name="description" content="Free pixel block puzzle. Clear rows and columns, beat the monthly leaderboards, duel friends 1v1 in real time, and play chess, Sea Battle, Durak and more. Android, browser and Discord." />
+				<meta name="theme-color" content="#0D0B1A" />
+				<meta property="og:type" content="website" />
+				<meta property="og:site_name" content="Blockerino" />
+				<meta property="og:title" content="Blockerino: pixel block puzzle with 1v1 duels" />
+				<meta property="og:description" content="Clear rows and columns, climb the leaderboards and duel your friends in real time. Free, in your browser, on Android and in Discord." />
+				<meta property="og:image" content="https://blockerino.aionerdlin.me/icon.png" />
+				<meta name="twitter:card" content="summary" />
+				<meta name="twitter:title" content="Blockerino: pixel block puzzle with 1v1 duels" />
+				<meta name="twitter:description" content="Clear rows and columns, climb the leaderboards and duel your friends in real time." />
+				<meta name="twitter:image" content="https://blockerino.aionerdlin.me/icon.png" />
 				<meta name="mobile-web-app-capable" content="yes" />
 				<style>{`
 					html, body, #root {
