@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧩 BLOCKERINO
+# 🧩 BLOCKERINO: PIXEL DUELS
 
 ### Пиксельная головоломка с блоками: ставь фигуры, рви линии, лови комбо.
 

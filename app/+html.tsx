@@ -6,8 +6,8 @@ import type { PropsWithChildren } from 'react';
 const structuredData = {
 	'@context': 'https://schema.org',
 	'@type': 'VideoGame',
-	name: 'Blockerino',
-	alternateName: 'Blockerino by Nerdlin',
+	name: 'Blockerino: Pixel Duels',
+	alternateName: ['Blockerino', 'Blockerino by Nerdlin'],
 	url: 'https://blockerino.aionerdlin.me/',
 	description: 'Free pixel block puzzle by indie developer Nerdlin. Clear rows and columns, duel friends 1v1 in real time, beat monthly leaderboards, and play chess, Sea Battle (Battleship), Durak and tic-tac-toe. Runs in the browser, on Android and as a Discord Activity.',
 	genre: ['Puzzle', 'Block puzzle', 'Multiplayer'],
@@ -35,8 +35,8 @@ export default function Root({ children }: PropsWithChildren) {
 			<body>
 				{children}
 				<noscript>
-					<h1>Blockerino: pixel block puzzle with 1v1 duels</h1>
-					<p>Blockerino is a free pixel block puzzle game by indie developer Nerdlin. Clear rows and columns, climb monthly leaderboards and duel friends 1v1 in real time. Also includes chess, Sea Battle, Durak and tic-tac-toe. Play in the browser, on Android or as a Discord Activity. JavaScript is required to play.</p>
+					<h1>Blockerino: Pixel Duels, a pixel block puzzle with 1v1 duels</h1>
+					<p>Blockerino: Pixel Duels is a free pixel block puzzle game by indie developer Nerdlin. Clear rows and columns, climb monthly leaderboards and duel friends 1v1 in real time. Also includes chess, Sea Battle, Durak and tic-tac-toe. Play in the browser, on Android or as a Discord Activity. JavaScript is required to play.</p>
 				</noscript>
 			</body>
 		</html>

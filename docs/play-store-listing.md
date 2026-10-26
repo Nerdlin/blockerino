@@ -28,7 +28,7 @@
 
 ## Карточка
 
-- **Название:** Blockerino
+- **Название:** Blockerino: Pixel Duels
 - **Категория:** Games → Puzzle. **Теги:** puzzle, block puzzle, multiplayer
 - **Контакт для пользователей:** nerdlinnut@gmail.com
 - **Политика конфиденциальности:** https://blockerino.aionerdlin.me/privacy
