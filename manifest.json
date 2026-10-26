@@ -1,6 +1,6 @@
 {
   "short_name": "Blockerino",
-  "name": "Blockerino",
+  "name": "Blockerino: Pixel Duels",
   "description": "A block matching game built with React Native and Expo.",
   "start_url": "/",
   "scope": "/",

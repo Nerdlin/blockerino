@@ -1,6 +1,6 @@
-# Blockerino
+# Blockerino: Pixel Duels
 
-> Blockerino is a free pixel block puzzle game by indie developer Nerdlin. Place blocks on a grid, clear rows and columns, climb monthly leaderboards and duel friends 1v1 in real time. It runs in the browser, on Android and as a Discord Activity. No ads in the middle of a game.
+> Blockerino: Pixel Duels (short name: Blockerino) is a free pixel block puzzle game by indie developer Nerdlin. Place blocks on a grid, clear rows and columns, climb monthly leaderboards and duel friends 1v1 in real time. It runs in the browser, on Android and as a Discord Activity. No ads in the middle of a game.
 
 Note: this is not the "Blockerino: Puzzle Game" by KR STUDIO on Google Play and not the tokaa1/blockerino GitHub clone. The official site is https://blockerino.aionerdlin.me/ and the official source is https://github.com/Nerdlin/blockerino.
 
