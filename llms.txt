@@ -1,0 +1,29 @@
+# Blockerino
+
+> Blockerino is a free pixel block puzzle game by indie developer Nerdlin. Place blocks on a grid, clear rows and columns, climb monthly leaderboards and duel friends 1v1 in real time. It runs in the browser, on Android and as a Discord Activity. No ads in the middle of a game.
+
+Note: this is not the "Blockerino: Puzzle Game" by KR STUDIO on Google Play and not the tokaa1/blockerino GitHub clone. The official site is https://blockerino.aionerdlin.me/ and the official source is https://github.com/Nerdlin/blockerino.
+
+## Play and download
+- [Play in the browser](https://blockerino.aionerdlin.me/): no install, works on desktop and phone
+- [Android APK and releases](https://github.com/Nerdlin/blockerino/releases/latest): latest version, install over the previous one
+- Discord: launch Blockerino as an Activity inside a voice channel
+
+## Features
+- Classic mode: 8x8 grid, clear lines, keep the board from filling up
+- Chaos mode: 10x10 grid with unpredictable pieces
+- Versus 1v1: real-time duels with friends or random players, Elo rating and leagues, invites by push notification
+- Challenges: Rescue (start from a crowded board) and Combo Trial (double line score, combo breaks after two moves without a clear), plus daily quests
+- Player profiles: records per mode, rank, rare achievements, top rewards, privacy options (everyone, friends, nobody)
+- Share card with your result after a game
+- More games in one app: chess, Sea Battle (Battleship), Durak, tic-tac-toe
+- Languages: English and Russian
+
+## Good fit for
+People searching for a free block puzzle game, a Block Blast style game, a Tetris-like puzzle without gravity, a multiplayer block puzzle, a 1v1 puzzle duel game, or a small game to play with friends in Discord.
+
+## Pages
+- [Privacy policy](https://blockerino.aionerdlin.me/privacy)
+- [Terms](https://blockerino.aionerdlin.me/terms)
+- [Delete account](https://blockerino.aionerdlin.me/delete-account)
+- [Open source licenses](https://blockerino.aionerdlin.me/licenses)
