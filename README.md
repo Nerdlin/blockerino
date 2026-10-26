@@ -8,7 +8,7 @@
 
 <br />
 
-[![Release](https://img.shields.io/badge/Release-v1.0.9-22c55e?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Nerdlin/blockerino/releases/tag/v1.0.9)
+[![Release](https://img.shields.io/badge/Release-v2.0.0-22c55e?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.0)
 [![Platforms](https://img.shields.io/badge/Web_·_Android_·_iOS-1f2937?style=for-the-badge&logo=googlechrome&logoColor=white)](https://blockerino.aionerdlin.me)
 [![Discord](https://img.shields.io/badge/Discord_Activity-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/developers/docs/activities/overview)
 
@@ -19,7 +19,7 @@
 
 <br />
 
-**[▶ Играть в браузере](https://blockerino.aionerdlin.me)** &nbsp;·&nbsp; **[📥 Скачать APK](https://github.com/Nerdlin/blockerino/releases/download/v1.0.9/blockerino-1.0.9.apk)** &nbsp;·&nbsp; **[📖 Что нового](./docs/release-1.0.9.md)**
+**[▶ Играть в браузере](https://blockerino.aionerdlin.me)** &nbsp;·&nbsp; **[📥 Скачать APK](https://github.com/Nerdlin/blockerino/releases/download/v2.0.0/blockerino-2.0.0.apk)** &nbsp;·&nbsp; **[📖 Что нового](./docs/release-2.0.0.md)**
 
 <br />
 
@@ -34,20 +34,20 @@
 
 <br />
 
-<details>
-<summary><b>🔭 Coming soon…</b></summary>
+<details open>
+<summary><b>🆕 Что нового в 2.0</b></summary>
 
 <br />
 
-**Blockerino 2.0 уже собирается.** Без точных дат и громких обещаний, только намёки:
+- 👤 **Профили игроков:** рекорды, записи против людей и ботов, самые редкие достижения; вы решаете, кто видит ваш профиль
+- ⚔️ **Новый Versus:** карточка игрока, друзья онлайн, приглашение в 1v1 одним нажатием (с пушем, даже если приложение закрыто)
+- 🧩 **Челленджи Rescue и Combo Trial** с собственными таблицами лидеров
+- 📅 ежедневные награды, квесты и стрики
+- 🏅 награды за топ сезона и редкие достижения
+- 🖼 карточка результата, чтобы поделиться счётом
+- 🔄 обновления «по воздуху» и сборка для Google Play
 
-- 🤖 у игр появятся соперники, которые никогда не спят
-- 📅 у каждого дня будет свой повод заглянуть
-- 🏅 награды, за которые стоит побороться
-- 🔊 больше звуков, анимаций и мелочей, которые приятно трогать
-- 🥚 в игре давно спрятан секрет. Подсказка: иногда стоит нажать на что-нибудь несколько раз
-
-<sub>Проект живой. Следить за новостями можно в [релизах](https://github.com/Nerdlin/blockerino/releases).</sub>
+Полный список: [описание 2.0.0](./docs/release-2.0.0.md).
 
 </details>
 
@@ -57,15 +57,15 @@
 
 ## 📲 Скачать (Android)
 
-> **Последний релиз: [v1.0.9](https://github.com/Nerdlin/blockerino/releases/tag/v1.0.9)**, сборка 10.
+> **Последний релиз: [v2.0.0](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.0)**, сборка 12.
 > Исправления онлайн-игр (Sea Battle, Durak, шахматы), новые правила и вид Sea Battle, пиксельные масти в Durak и единый ник аккаунта в Versus и More Games.
 
 | Файл | Размер | Для чего |
 | --- | --- | --- |
-| 📥 [**blockerino-1.0.9.apk**](https://github.com/Nerdlin/blockerino/releases/download/v1.0.9/blockerino-1.0.9.apk) | 50,0 МиБ | Установка на телефон |
-| 📦 [**blockerino-1.0.9.aab**](https://github.com/Nerdlin/blockerino/releases/download/v1.0.9/blockerino-1.0.9.aab) | 68,7 МиБ | Google Play Console |
+| 📥 [**blockerino-2.0.0.apk**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.0/blockerino-2.0.0.apk) | 50,9 МиБ | Установка на телефон |
+| 📦 [**blockerino-2.0.0.aab**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.0/blockerino-2.0.0.aab) | 69,4 МиБ | Google Play Console |
 
-Подробности и история: [описание 1.0.9](./docs/release-1.0.9.md) · [все релизы](./docs)
+Подробности и история: [описание 1.0.9](./docs/release-2.0.0.md) · [все релизы](./docs)
 
 > 💡 **Веб-версию** можно установить как приложение: в Chrome выберите «Установить» или «Добавить на главный экран».
 
