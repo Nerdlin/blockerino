@@ -4,7 +4,6 @@ import {
 	consumeMoveLimitMove,
 	getGameModeConfig,
 	getInitialMovesRemaining,
-	hasGlobalLeaderboard,
 	isMoveLimitComplete,
 	MOVE_LIMIT_STARTING_MOVES,
 } from "./GameModes";
@@ -55,13 +54,6 @@ describe("Rescue and Combo Trial", () => {
 				expect(breakLines(board)).toBe(0);
 			}
 		}
-	});
-
-	it("keep the best score on the device only", () => {
-		expect(hasGlobalLeaderboard(GameModeType.Rescue)).toBe(false);
-		expect(hasGlobalLeaderboard(GameModeType.ComboTrial)).toBe(false);
-		expect(hasGlobalLeaderboard(GameModeType.Classic)).toBe(true);
-		expect(hasGlobalLeaderboard(GameModeType.MoveLimit)).toBe(true);
 	});
 
 	it("make the combo chain stricter and lines worth more", () => {

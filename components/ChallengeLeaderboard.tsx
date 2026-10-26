@@ -43,6 +43,7 @@ export default function ChallengeLeaderboard() {
     return (
         <View style={styles.container}>
             <SegmentedControl
+                small
                 items={CHALLENGE_LEADERBOARD_GAME_MODES.map((mode) => {
                     const modeConfig = getGameModeConfig(mode);
                     return { key: mode, label: modeConfig.shortTitle, color: modeConfig.challenge?.color ?? currentTheme.buttonPrimary };

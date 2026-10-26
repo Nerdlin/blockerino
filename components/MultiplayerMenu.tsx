@@ -20,6 +20,7 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { DEFAULT_ELO, getJoinRoomUpdate, isPlayerNameReady, isVisiblePublicRoom, normalizePlayerName } from "@/constants/Multiplayer";
 import { useLanguage } from "@/constants/Localization";
 import UiIcon from "@/components/UiIcon";
+import VersusFriendsStrip from "./VersusFriendsStrip";
 import type { UiGlyphName } from "@/constants/UiGlyphs";
 
 interface MultiplayerMenuProps {
@@ -603,38 +604,71 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         <View style={styles.topBackButton} />
                     </View>
 
-                    {authChecked && !signedIn && (
-                    <View style={styles.inputRow}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={[styles.label, { color: currentTheme.textSecondary, fontSize: 13 }]}>{t("mp.nickname")}</Text>
-                            <TextInput
-                                ref={nicknameInputRef}
-                                style={[styles.nicknameInput, {
-                                    color: currentTheme.textPrimary,
-                                    borderColor: matchError === NAME_REQUIRED_MESSAGE ? cssColors.brightNiceRed : currentTheme.textSecondary,
-                                    borderWidth: matchError === NAME_REQUIRED_MESSAGE ? 2 : 1,
-                                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                                    fontSize: 16,
-                                    padding: 6
-                                }]}
-                                value={playerName}
-                                onChangeText={handlePlayerNameChange}
-                                maxLength={20}
-                                placeholder={t("mp.nicknamePlaceholder")}
-                                placeholderTextColor={currentTheme.textSecondary}
-                            />
+                    {authChecked && (
+                        <View style={styles.playerCard}>
+                            <Pressable
+                                onPress={signedIn ? () => setShowEloScreen(true) : undefined}
+                                style={styles.playerCardMain}
+                                accessibilityLabel={t("mp.myRating")}
+                            >
+                                <View style={[styles.playerAvatar, { borderColor: getEloBadge(playerElo).color }]}>
+                                    <Text style={[styles.playerAvatarText, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(playerName, "SilkscreenBold") }]}>
+                                        {(playerName.trim()[0] || "?").toUpperCase()}
+                                    </Text>
+                                </View>
+                                <View style={{ flex: 1, minWidth: 0 }}>
+                                    {signedIn ? (
+                                        <Text style={[styles.playerCardName, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(playerName, "SilkscreenBold") }]} numberOfLines={1}>{playerName}</Text>
+                                    ) : (
+                                        <TextInput
+                                            ref={nicknameInputRef}
+                                            style={[styles.playerCardInput, {
+                                                color: currentTheme.textPrimary,
+                                                borderBottomColor: matchError === NAME_REQUIRED_MESSAGE ? cssColors.brightNiceRed : 'transparent',
+                                            }]}
+                                            value={playerName}
+                                            onChangeText={handlePlayerNameChange}
+                                            maxLength={20}
+                                            placeholder={t("mp.nicknamePlaceholder")}
+                                            placeholderTextColor={currentTheme.textSecondary}
+                                        />
+                                    )}
+                                    <View style={styles.playerCardMeta}>
+                                        <View style={[styles.tierPill, { backgroundColor: getEloBadge(playerElo).color }]}>
+                                            <Text style={styles.tierPillText}>{getEloBadge(playerElo).tier.toUpperCase()}</Text>
+                                        </View>
+                                        <Text style={[styles.playerCardElo, { color: currentTheme.textSecondary }]}>{playerElo}</Text>
+                                    </View>
+                                </View>
+                            </Pressable>
+                            {signedIn ? (
+                                <StylizedButton
+                                    text={t("mp.top")}
+                                    onClick={() => { setShowEloLeaderboard(true); loadEloLeaderboard(); }}
+                                    backgroundColor={currentTheme.buttonSecondary}
+                                    style={styles.playerCardButton}
+                                    textStyle={{ fontSize: 11 }}
+                                />
+                            ) : (
+                                <StylizedButton
+                                    text={t("mp.signIn")}
+                                    onClick={() => openAccountScreen('login')}
+                                    backgroundColor={currentTheme.accent}
+                                    style={styles.playerCardButton}
+                                    textStyle={{ fontSize: 11 }}
+                                />
+                            )}
                         </View>
-                    </View>
                     )}
-
                     {authChecked && !signedIn && (
-                        <View style={{ width: '100%', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                            <Text style={[styles.label, { color: currentTheme.textSecondary, fontSize: 11, textAlign: 'center' }]}>{t("over.accountPrompt")}</Text>
-                            <View style={{ flexDirection: 'row', gap: 8, width: '100%', justifyContent: 'center' }}>
-                                <StylizedButton text={t("over.createAccount")} onClick={() => openAccountScreen('register')} backgroundColor={currentTheme.accent} style={{ flex: 1, minWidth: 0, minHeight: 38, paddingHorizontal: 4, margin: 0 }} textStyle={{ fontSize: 10 }} />
-                                <StylizedButton text={t("over.haveAccount")} onClick={() => openAccountScreen('login')} backgroundColor={cssColors.spaceGray} style={{ flex: 1, minWidth: 0, minHeight: 38, paddingHorizontal: 4, margin: 0 }} textStyle={{ fontSize: 10 }} />
-                            </View>
-                        </View>
+                        <Pressable
+                            onPress={() => { setShowEloLeaderboard(true); loadEloLeaderboard(); }}
+                            style={({ pressed }) => [styles.eloLeaderboardBtn, { opacity: pressed ? 0.7 : 1, marginTop: 8 }]}
+                        >
+                            <Text style={styles.eloLeaderboardIcon}>{t("mp.top")}</Text>
+                            <Text style={[styles.eloLeaderboardBtnText, { color: currentTheme.accent }]}>{t("mp.eloLeaderboard")}</Text>
+                            <Text style={styles.eloCardArrow}>▸</Text>
+                        </Pressable>
                     )}
 
                     {matchError !== "" && (
@@ -643,23 +677,6 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     {successMessage !== "" && (
                         <Text style={[styles.errorText, { color: currentTheme.accent, marginTop: 4 }]}>{displayFeedback(successMessage)}</Text>
                     )}
-
-                    <Pressable
-                        onPress={() => {
-                            setShowEloLeaderboard(true);
-                            loadEloLeaderboard();
-                        }}
-                        style={({ pressed }) => [
-                            styles.eloLeaderboardBtn,
-                            { opacity: pressed ? 0.7 : 1 }
-                        ]}
-                    >
-                        <Text style={styles.eloLeaderboardIcon}>{t("mp.top")}</Text>
-                        <Text style={[styles.eloLeaderboardBtnText, { color: currentTheme.accent }]}>
-                            {t("mp.eloLeaderboard")}
-                        </Text>
-                        <Text style={styles.eloCardArrow}>▸</Text>
-                    </Pressable>
 
                     <View style={{ height: 8 }} />
                     <SegmentedControl
@@ -681,8 +698,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         />
                     </View>
 
-                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary, marginTop: 14, alignSelf: 'center' }]}>{t("mp.joinWithCode")}</Text>
-                    <View style={[styles.joinContainer, { borderColor: currentTheme.textSecondary, borderTopWidth: 0, paddingTop: 0, marginTop: 4, paddingBottom: 8 }]}>
+                    <View style={[styles.joinContainer, { borderColor: currentTheme.textSecondary, borderTopWidth: 0, paddingTop: 0, marginTop: 10, paddingBottom: 0 }]}>
                         <TextInput
                             style={[styles.codeInput, {
                                 color: currentTheme.textPrimary,
@@ -700,6 +716,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         />
                         <StylizedButton text={t("mp.join")} onClick={handleJoinRoom} backgroundColor={currentTheme.buttonPrimary} style={{ minWidth: 100, height: 32 }} textStyle={{ fontSize: 13 }} />
                     </View>
+
+                    {signedIn && playerId !== "" && <VersusFriendsStrip userId={playerId} />}
 
                     <View style={styles.publicRoomsHeaderRow}>
                         <Text style={[
@@ -964,6 +982,17 @@ const styles = StyleSheet.create({
         minWidth: 0,
         textAlign: 'center',
     },
+    playerCard: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', borderRadius: 10, padding: 8, marginBottom: 4 },
+    playerCardMain: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    playerAvatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+    playerAvatarText: { fontSize: 14 },
+    playerCardName: { fontSize: 13 },
+    playerCardInput: { fontFamily: 'SilkscreenBold', fontSize: 13, padding: 0, borderBottomWidth: 1, minWidth: 0 },
+    playerCardMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
+    tierPill: { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
+    tierPillText: { fontFamily: 'SilkscreenBold', fontSize: 8, color: '#000' },
+    playerCardElo: { fontFamily: 'Silkscreen', fontSize: 10 },
+    playerCardButton: { minWidth: 70, height: 34, minHeight: 34, margin: 0, paddingHorizontal: 8 },
     topBar: {
         width: '100%',
         flexDirection: 'row',

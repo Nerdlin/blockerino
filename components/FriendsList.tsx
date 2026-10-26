@@ -7,21 +7,9 @@ import { useLanguage } from '@/constants/Localization';
 import StylizedButton from './StylizedButton';
 import { rankFriendSuggestions } from '@/constants/FriendSearch';
 import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
-import { inviteModeRequestAtom } from "./InviteModeHost";
-import { fetchFriendsOnline, notifyInvite } from "@/constants/Invites";
+import { useFriendInvite } from "@/hooks/useFriendInvite";
+import { fetchFriendsOnline } from "@/constants/Invites";
 import { nameFontFamily } from "@/constants/NameFont";
-import { useSetAtom } from 'jotai';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-    multiplayerRoomIdAtom,
-    multiplayerRoleAtom,
-    multiplayerGameModeAtom,
-    multiplayerOpponentNameAtom,
-    multiplayerPlayerEloAtom,
-    MenuStateType,
-    useAppState,
-    GameModeType,
-} from '@/hooks/useAppState';
 
 function escapeIlikePattern(value: string): string {
     return value.replace(/[\\%_]/g, "\\$&");
@@ -53,7 +41,6 @@ export default function FriendsList({ userId }: { userId: string }) {
     const [searchLoading, setSearchLoading] = useState(false);
     const [suggestions, setSuggestions] = useState<FriendProfile[]>([]);
     const openProfile = useOpenPlayerProfile();
-    const askInviteMode = useSetAtom(inviteModeRequestAtom);
     const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
 
     // Friends seen in the last two minutes get a green dot; asked again every 30 seconds while this list is open.
@@ -261,100 +248,7 @@ export default function FriendsList({ userId }: { userId: string }) {
         fetchFriends();
     };
 
-    const setMultiplayerRoomId = useSetAtom(multiplayerRoomIdAtom);
-    const setMultiplayerRole = useSetAtom(multiplayerRoleAtom);
-    const setMultiplayerGameMode = useSetAtom(multiplayerGameModeAtom);
-    const setMultiplayerOpponentName = useSetAtom(multiplayerOpponentNameAtom);
-    const setMultiplayerPlayerElo = useSetAtom(multiplayerPlayerEloAtom);
-    const [, setAppState] = useAppState();
-
-    // The host (InviteModeHost) asks Classic or Chaos in a popup of the game's own style, then calls back.
-    const handleInvite1v1 = (friendId: string, friendName: string) => {
-        askInviteMode({ friendName, onPick: (mode) => void sendInvite(friendId, friendName, mode) });
-    };
-
-    const sendInvite = async (friendId: string, friendName: string, gameMode: GameModeType) => {
-        setSearchLoading(true); // Reusing search loader for simplicity
-
-        // 1. Create a private room
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('player_name, elo')
-            .or(`auth_user_id.eq.${userId},player_id.eq.${userId}`)
-            .limit(1)
-            .maybeSingle();
-        const storedName = await AsyncStorage.getItem('PLAYER_NAME');
-        const myName = profile?.player_name || storedName || 'Player 1';
-        const myElo = typeof profile?.elo === 'number' ? profile.elo : 0;
-
-        const { data: room, error } = await supabase.from('matchmaking_rooms').insert({
-            player1_id: userId,
-            player1_name: myName,
-            status: 'waiting',
-            is_private: true,
-            game_mode: gameMode,
-        }).select().single();
-
-        if (error || !room) {
-            Alert.alert(t("friends.errorTitle"), t("friends.createRoomFailed"));
-            setSearchLoading(false);
-            return;
-        }
-
-        // A friend whose app is closed gets a push; one with the app open gets the live message below.
-        void notifyInvite(room.id, friendId);
-
-        // 2. Broadcast invite to the friend after realtime is subscribed.
-        const inviteChannel = supabase.channel(`invites:${friendId}`);
-        const subscribed = await new Promise<boolean>((resolve) => {
-            const timeout = setTimeout(() => resolve(false), 5000);
-            inviteChannel.subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    clearTimeout(timeout);
-                    resolve(true);
-                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-                    clearTimeout(timeout);
-                    resolve(false);
-                }
-            });
-        });
-
-        if (!subscribed) {
-            await supabase.from('matchmaking_rooms').delete().eq('id', room.id).eq('status', 'waiting');
-            supabase.removeChannel(inviteChannel);
-            Alert.alert(t("friends.errorTitle"), t("friends.realtimeFailed"));
-            setSearchLoading(false);
-            return;
-        }
-
-        const sendResult = await inviteChannel.send({
-            type: 'broadcast',
-            event: '1v1_invite',
-            payload: {
-                roomId: room.id,
-                hostName: myName,
-                gameMode: gameMode
-            }
-        });
-        supabase.removeChannel(inviteChannel);
-
-        if (sendResult !== 'ok') {
-            await supabase.from('matchmaking_rooms').delete().eq('id', room.id).eq('status', 'waiting');
-            Alert.alert(t("friends.errorTitle"), t("friends.inviteSendFailed"));
-            setSearchLoading(false);
-            return;
-        }
-
-        // 3. Join the room as player1
-        setMultiplayerRoomId(room.id);
-        setMultiplayerRole('player1');
-        setMultiplayerGameMode(gameMode);
-        setMultiplayerOpponentName(friendName);
-        setMultiplayerPlayerElo(myElo);
-        setAppState(MenuStateType.MULTIPLAYER_GAME);
-
-        setSearchLoading(false);
-    };
+    const { inviteFriend: handleInvite1v1 } = useFriendInvite(userId);
 
     if (loading) {
         return <PixelLoader size="small" color={currentTheme.accent} />;

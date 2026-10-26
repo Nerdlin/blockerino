@@ -242,7 +242,7 @@ export interface GlobalHighScore {
 }
 
 // Получить топ N глобальных рекордов
-type HighScoreColumn = 'highscore_classic' | 'highscore_chaos' | 'highscore_time_attack' | 'highscore_daily' | 'highscore_move_limit';
+type HighScoreColumn = 'highscore_classic' | 'highscore_chaos' | 'highscore_time_attack' | 'highscore_daily' | 'highscore_move_limit' | 'highscore_rescue' | 'highscore_combo_trial';
 type HighScoreProfileRow = {
 	id?: string | number;
 	player_name?: string;

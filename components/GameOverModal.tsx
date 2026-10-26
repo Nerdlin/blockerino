@@ -19,7 +19,7 @@ import { GameOverReason, getGameOverMessage } from "@/constants/GameModes";
 import { useLanguage } from "@/constants/Localization";
 import { track } from "@/constants/Analytics";
 import { getHighScores } from "@/constants/Storage";
-import { getGameModeConfig, hasGlobalLeaderboard } from "@/constants/GameModes";
+import { getGameModeConfig } from "@/constants/GameModes";
 import ShareCard, { SHARE_CARD_WIDTH } from "./ShareCard";
 import { buildShareText, shareScoreCard } from "@/constants/ShareScore";
 
@@ -103,7 +103,6 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
     }, [awardCoins, score]);
 
     const doSubmit = React.useCallback(async (nameToSubmit: string) => {
-        if (!hasGlobalLeaderboard(gameMode)) return;
         const normalizedName = normalizePlayerName(nameToSubmit);
         if (!normalizedName) {
             setSubmitStatus('needs_name');
@@ -131,7 +130,6 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
 
     useEffect(() => {
         const checkAndSubmit = async () => {
-            if (!hasGlobalLeaderboard(gameMode)) return;
             try {
                 let savedName = await AsyncStorage.getItem(PLAYER_NAME_KEY);
                 const name = savedName ? normalizePlayerName(savedName) : '';
@@ -159,9 +157,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
         };
     });
 
-    // Rescue and Combo Trial keep their best score on the device: no nickname form, no submit.
-    const onLeaderboard = hasGlobalLeaderboard(gameMode);
-    const canEditNickname = onLeaderboard && (submitStatus === 'idle' || submitStatus === 'needs_name');
+    const canEditNickname = submitStatus === 'idle' || submitStatus === 'needs_name';
 
     const handlePlayAgain = () => {
         if (submitStatus === 'idle' && normalizePlayerName(playerName)) {

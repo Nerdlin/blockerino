@@ -22,8 +22,6 @@ export interface GameModeConfig {
 	comboResetMoves?: number;
 	lineScoreMultiplier?: number;
 	perfectClearBonus?: number;
-	// false = the best score stays on the device (no global leaderboard column on the server).
-	globalLeaderboard?: boolean;
 	challenge?: {
 		color: string;
 		buttonText: string;
@@ -94,7 +92,7 @@ export const GAME_MODE_CONFIGS: Record<GameModeType, GameModeConfig> = {
 	[GameModeType.MoveLimit]: {
 		id: GameModeType.MoveLimit,
 		title: "Move Limit",
-		shortTitle: "Move Limit",
+		shortTitle: "Moves",
 		leaderboardTitle: "Move Limit",
 		boardLength: 8,
 		handSize: 3,
@@ -117,7 +115,6 @@ export const GAME_MODE_CONFIGS: Record<GameModeType, GameModeConfig> = {
 		allowSecondChance: false,
 		startBoard: { minBlocks: 28, maxBlocks: 34 },
 		perfectClearBonus: 300,
-		globalLeaderboard: false,
 		challenge: {
 			color: "#FF8A3D",
 			buttonText: "Play Rescue",
@@ -136,7 +133,6 @@ export const GAME_MODE_CONFIGS: Record<GameModeType, GameModeConfig> = {
 		startBoard: { minBlocks: 14, maxBlocks: 18 },
 		comboResetMoves: 2,
 		lineScoreMultiplier: 2,
-		globalLeaderboard: false,
 		challenge: {
 			color: "#B57CFF",
 			buttonText: "Play Combo",
@@ -153,11 +149,6 @@ export const CHALLENGE_MODE_CARDS: ChallengeCard[] = [
 	{ type: "playable", mode: GameModeType.Rescue },
 	{ type: "playable", mode: GameModeType.ComboTrial },
 ];
-
-export function hasGlobalLeaderboard(mode: string): boolean {
-	const config = GAME_MODE_CONFIGS[mode as GameModeType];
-	return !config || config.globalLeaderboard !== false;
-}
 
 export const LEADERBOARD_GAME_MODES = [
 	GameModeType.Classic,
@@ -176,6 +167,8 @@ export const CHALLENGE_LEADERBOARD_GAME_MODES = [
 	GameModeType.DailyPuzzle,
 	GameModeType.TimeAttack,
 	GameModeType.MoveLimit,
+	GameModeType.Rescue,
+	GameModeType.ComboTrial,
 ] as const;
 
 export function getGameModeConfig(mode: GameModeType): GameModeConfig {
