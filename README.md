@@ -26,9 +26,9 @@
 <table>
   <tr>
     <td align="center"><img src="./docs/screenshots/menu.png" width="210" alt="Главное меню" /><br /><sub><b>Главное меню</b></sub></td>
-    <td align="center"><img src="./docs/screenshots/chaos.png" width="210" alt="Режим Chaos" /><br /><sub><b>Chaos 10×10</b></sub></td>
+    <td align="center"><img src="./docs/screenshots/versus.png" width="210" alt="Versus 1v1" /><br /><sub><b>Versus 1v1</b></sub></td>
+    <td align="center"><img src="./docs/screenshots/challenges.png" width="210" alt="Челленджи" /><br /><sub><b>Челленджи</b></sub></td>
     <td align="center"><img src="./docs/screenshots/more-games.png" width="210" alt="More Games" /><br /><sub><b>More Games</b></sub></td>
-    <td align="center"><img src="./docs/screenshots/durak-lobby.png" width="210" alt="Durak Online" /><br /><sub><b>Durak Online</b></sub></td>
   </tr>
 </table>
 
