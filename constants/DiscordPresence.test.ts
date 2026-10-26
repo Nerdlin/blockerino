@@ -8,7 +8,7 @@ import {
   updateDiscordPresence,
 } from './DiscordPresence';
 
-const noAssets = { logo: '', classic: '', chaos: '', versus: '', daily: '', speed: '', moveLimit: '' };
+const noAssets = { logo: '', classic: '', chaos: '', versus: '', daily: '', speed: '', moveLimit: '', rescue: '', comboTrial: '' };
 const assets = { ...noAssets, logo: 'logo', classic: 'classic', chaos: 'chaos', versus: 'versus' };
 
 describe('Discord presence content', () => {

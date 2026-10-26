@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import AchievementIcon from "@/components/AchievementIcon";
 import { ACHIEVEMENT_DEFINITIONS, subscribeToAchievementUnlocks } from "@/constants/Achievements";
+import { useAtomValue } from "jotai";
+import { dailyRewardOpenAtom } from "@/constants/DailyReward";
 import { useLanguage } from "@/constants/Localization";
 import { useSoundSettings } from "@/constants/Sound";
 
@@ -133,6 +135,8 @@ function AchievementToast({ achievementId, onDone }: { achievementId: string; on
 export default function AchievementToastHost() {
 	const [queue, setQueue] = useState<string[]>([]);
 	const [current, setCurrent] = useState<string | null>(null);
+	// The daily reward popup goes first; achievement toasts wait until it is closed.
+	const rewardOpen = useAtomValue(dailyRewardOpenAtom);
 
 	useEffect(
 		() =>
@@ -143,11 +147,11 @@ export default function AchievementToastHost() {
 	);
 
 	useEffect(() => {
-		if (current === null && queue.length > 0) {
+		if (current === null && queue.length > 0 && !rewardOpen) {
 			setCurrent(queue[0]);
 			setQueue((previous) => previous.slice(1));
 		}
-	}, [current, queue]);
+	}, [current, queue, rewardOpen]);
 
 	if (current === null) return null;
 

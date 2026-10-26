@@ -102,12 +102,12 @@ export function newEmptyBoard(boardLength: number): Board {
   });
 }
 
-export function createSeededBoard(boardLength: number, seedNum: number): Board {
+export function createSeededBoard(boardLength: number, seedNum: number, minBlocks: number = 10, maxBlocks: number = 15): Board {
   const board = newEmptyBoard(boardLength);
   const prng = makeSeededPrng(seedNum);
   
   // Prefill with 10 to 15 blocks
-  const numBlocks = prng.nextInt(10, 15);
+  const numBlocks = prng.nextInt(minBlocks, maxBlocks);
   
   const rowCounts = new Array(boardLength).fill(0);
   const colCounts = new Array(boardLength).fill(0);
@@ -123,7 +123,7 @@ export function createSeededBoard(boardLength: number, seedNum: number): Board {
 
   let placed = 0;
   let attempts = 0;
-  while (placed < numBlocks && attempts < 100) {
+  while (placed < numBlocks && attempts < 1000) {
     attempts++;
     const x = prng.nextInt(0, boardLength - 1);
     const y = prng.nextInt(0, boardLength - 1);
@@ -363,6 +363,16 @@ export function breakLines(board: Board): number {
   }
 
   return count;
+}
+
+export function isBoardEmpty(board: Board): boolean {
+  "worklet";
+  for (let row = 0; row < board.length; row++) {
+    for (let col = 0; col < board[row].length; col++) {
+      if (board[row][col].blockType !== BoardBlockType.EMPTY) return false;
+    }
+  }
+  return true;
 }
 
 export function forEachBoardBlock(board: Board, each: ((block: BoardBlock, x: number, y: number) => boolean) | ((block: BoardBlock, x: number, y: number) => void)) {

@@ -1,8 +1,10 @@
 import { GameModeType } from "@/hooks/useAppState";
+import { BoardBlockType, breakLines, createSeededBoard, isBoardEmpty, newEmptyBoard } from "./Board";
 import {
 	consumeMoveLimitMove,
 	getGameModeConfig,
 	getInitialMovesRemaining,
+	hasGlobalLeaderboard,
 	isMoveLimitComplete,
 	MOVE_LIMIT_STARTING_MOVES,
 } from "./GameModes";
@@ -36,5 +38,43 @@ describe("Move Limit mode rules", () => {
 	it("does not consume moves for non-limited modes", () => {
 		expect(consumeMoveLimitMove(GameModeType.Classic, 0)).toBe(0);
 		expect(isMoveLimitComplete(GameModeType.Classic, 0)).toBe(false);
+	});
+});
+
+describe("Rescue and Combo Trial", () => {
+	const filled = (board: { blockType: unknown }[][]) => board.flat().filter((cell) => cell.blockType === BoardBlockType.FILLED).length;
+
+	it("start from a pre-filled board without a ready line", () => {
+		for (const mode of [GameModeType.Rescue, GameModeType.ComboTrial]) {
+			const config = getGameModeConfig(mode);
+			for (let i = 0; i < 20; i++) {
+				const board = createSeededBoard(config.boardLength, i * 7919 + 1, config.startBoard!.minBlocks, config.startBoard!.maxBlocks);
+				const count = filled(board);
+				expect(count).toBeGreaterThanOrEqual(config.startBoard!.minBlocks);
+				expect(count).toBeLessThanOrEqual(config.startBoard!.maxBlocks);
+				expect(breakLines(board)).toBe(0);
+			}
+		}
+	});
+
+	it("keep the best score on the device only", () => {
+		expect(hasGlobalLeaderboard(GameModeType.Rescue)).toBe(false);
+		expect(hasGlobalLeaderboard(GameModeType.ComboTrial)).toBe(false);
+		expect(hasGlobalLeaderboard(GameModeType.Classic)).toBe(true);
+		expect(hasGlobalLeaderboard(GameModeType.MoveLimit)).toBe(true);
+	});
+
+	it("make the combo chain stricter and lines worth more", () => {
+		const combo = getGameModeConfig(GameModeType.ComboTrial);
+		expect(combo.comboResetMoves).toBe(2);
+		expect(combo.lineScoreMultiplier).toBe(2);
+		expect(getGameModeConfig(GameModeType.Rescue).perfectClearBonus).toBe(300);
+	});
+
+	it("detects a fully cleared board", () => {
+		expect(isBoardEmpty(newEmptyBoard(8))).toBe(true);
+		const board = newEmptyBoard(8);
+		board[3][3].blockType = BoardBlockType.FILLED;
+		expect(isBoardEmpty(board)).toBe(false);
 	});
 });

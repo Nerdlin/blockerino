@@ -32,6 +32,8 @@ export const moregames: ScreenDictionary = {
 		// Top panel
 		"moregames.playerNamePlaceholder": "PLAYER NAME",
 		"moregames.shopButton": "Shop",
+		"moregames.guestHint": "Guest · this device only",
+		"moregames.signIn": "Sign in",
 
 		// Game cards
 		"moregames.card.shop.title": "Extra Game Shop",
@@ -232,6 +234,8 @@ export const moregames: ScreenDictionary = {
 		// Top panel
 		"moregames.playerNamePlaceholder": "ИМЯ ИГРОКА",
 		"moregames.shopButton": "Магазин",
+		"moregames.guestHint": "Гость · только это устройство",
+		"moregames.signIn": "Войти",
 
 		// Game cards
 		"moregames.card.shop.title": "Магазин стилей",

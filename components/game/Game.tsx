@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
 import { ReduceMotion, runOnJS, useSharedValue } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes, createSeededBoard, cloneBoard, hasAnyPossibleMove } from '@/constants/Board';
+import { BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes, createSeededBoard, cloneBoard, hasAnyPossibleMove, isBoardEmpty } from '@/constants/Board';
 import { StatsGameHud, StickyGameHud } from '@/components/game/GameHud';
 import BlockGrid from '@/components/game/BlockGrid';
 import { createRandomHand, createRandomHandWorklet, createSeededHand, getDailyPuzzleKey, getNumericSeedFromDate } from '@/constants/Hand';
@@ -64,6 +64,10 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const handSize = modeConfig.handSize;
 	const timeLimitSeconds = modeConfig.timeLimitSeconds;
 	const allowSecondChance = modeConfig.allowSecondChance;
+	const comboResetMoves = modeConfig.comboResetMoves ?? handSize;
+	const lineScoreMultiplier = modeConfig.lineScoreMultiplier ?? 1;
+	const perfectClearBonus = modeConfig.perfectClearBonus ?? 0;
+	const startBoard = modeConfig.startBoard;
 
 	const isDaily = modeConfig.seedKind === "daily";
 	const dailyKey = isDaily ? getDailyPuzzleKey() : undefined;
@@ -82,7 +86,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const board = useSharedValue(
 		validInitialState 
 			? validInitialState.board 
-			: (isDaily ? createSeededBoard(boardLength, dailySeed) : newEmptyBoard(boardLength))
+			: (isDaily ? createSeededBoard(boardLength, dailySeed) : (startBoard ? createSeededBoard(boardLength, Math.floor(Math.random() * 1000000000), startBoard.minBlocks, startBoard.maxBlocks) : newEmptyBoard(boardLength)))
 	);
 	const draggingPiece = useSharedValue<number | null>(null);
 	const lastHoveredDropId = useSharedValue<string | null>(null);
@@ -400,7 +404,10 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				}
 				
 				// line break score + combo multiplier stuff
-				pointsEarned += linesBroken * boardLength * (combo.value / 2) * pieceBlockCount;
+				pointsEarned += linesBroken * boardLength * (combo.value / 2) * pieceBlockCount * lineScoreMultiplier;
+				if (perfectClearBonus > 0 && isBoardEmpty(newBoard)) {
+					pointsEarned += perfectClearBonus;
+				}
 				score.value += pointsEarned;
 
 				// Time Attack: +5s per broken line
@@ -410,7 +417,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			} else {
 				score.value += pointsEarned;
 				lastBrokenLine.value++;
-				if (lastBrokenLine.value >= handSize) {
+				if (lastBrokenLine.value >= comboResetMoves) {
 					combo.value = 0;
 					runOnJS(updateActiveCombo)(0);
 				}

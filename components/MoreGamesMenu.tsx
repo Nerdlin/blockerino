@@ -194,27 +194,25 @@ export default function MoreGamesMenu() {
 				<ScrollView style={styles.moreList} contentContainerStyle={styles.moreListContent}>
 					<View style={styles.moreTopPanel}>
 						{authChecked && !signedIn && (
-						<View style={styles.moreNameRow}>
-							<TextInput
-								value={draftPlayerName}
-								onChangeText={setDraftPlayerName}
-								onBlur={savePlayerName}
-								placeholder={t("moregames.playerNamePlaceholder")}
-								placeholderTextColor={currentTheme.textSecondary}
-								maxLength={24}
-								style={[styles.moreNameInput, { color: currentTheme.textPrimary, borderColor: currentTheme.gridBorder }]}
-							/>
-							<StylizedButton text={t("common.save")} onClick={savePlayerName} backgroundColor={currentTheme.buttonSecondary} style={styles.compactTopButton} textStyle={styles.tinyButtonText} />
-						</View>
-						)}
-						{authChecked && !signedIn && (
-							<View style={{ width: "100%", alignItems: "center", gap: 6, marginBottom: 8 }}>
-								<Text style={[styles.subHeader, { color: currentTheme.textSecondary, fontSize: 10, textAlign: "center" }]}>{t("over.accountPrompt")}</Text>
-								<View style={{ flexDirection: "row", gap: 8, width: "100%", justifyContent: "center" }}>
-									<StylizedButton text={t("over.createAccount")} onClick={() => openAccountScreen("register")} backgroundColor={currentTheme.accent} style={{ flex: 1, minWidth: 0, minHeight: 38, paddingHorizontal: 4, margin: 0 }} textStyle={styles.tinyButtonText} />
-									<StylizedButton text={t("over.haveAccount")} onClick={() => openAccountScreen("login")} backgroundColor={cssColors.spaceGray} style={{ flex: 1, minWidth: 0, minHeight: 38, paddingHorizontal: 4, margin: 0 }} textStyle={styles.tinyButtonText} />
-								</View>
+						<View style={styles.guestRow}>
+							<View style={[styles.guestAvatar, { borderColor: currentTheme.accent }]}>
+								<Text style={[styles.guestAvatarText, { color: currentTheme.textPrimary }]}>{(draftPlayerName.trim()[0] || "?").toUpperCase()}</Text>
 							</View>
+							<View style={{ flex: 1, minWidth: 0 }}>
+								<TextInput
+									value={draftPlayerName}
+									onChangeText={setDraftPlayerName}
+									onBlur={savePlayerName}
+									onSubmitEditing={savePlayerName}
+									placeholder={t("moregames.playerNamePlaceholder")}
+									placeholderTextColor={currentTheme.textSecondary}
+									maxLength={24}
+									style={[styles.guestNameInput, { color: currentTheme.textPrimary }]}
+								/>
+								<Text style={[styles.guestHint, { color: currentTheme.textSecondary }]} numberOfLines={1}>{t("moregames.guestHint")}</Text>
+							</View>
+							<StylizedButton text={t("moregames.signIn")} onClick={() => openAccountScreen("login")} backgroundColor={currentTheme.accent} style={styles.guestSignIn} textStyle={styles.tinyButtonText} />
+						</View>
 						)}
 						<View style={styles.moreQuickActions}>
 							<StylizedButton text={t("moregames.shopButton")} onClick={() => setActiveGame("shop")} backgroundColor="#FACC15" style={styles.shopQuickButton} textStyle={[styles.tinyButtonText, { color: "#111827" }]} />

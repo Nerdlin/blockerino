@@ -2,7 +2,6 @@ import { GameModeType } from "@/hooks/useAppState";
 
 export const MOVE_LIMIT_STARTING_MOVES = 30;
 
-export type PlannedChallengeId = "rescue" | "combo_trial";
 export type GameOverReason = "moves" | "time" | "move_limit";
 
 export interface GameModeConfig {
@@ -17,6 +16,14 @@ export interface GameModeConfig {
 	moveLimit?: number;
 	seedKind?: "daily";
 	seedSalt?: string;
+	// Challenge modes that start from a pre-filled board (random block count in [min, max]).
+	startBoard?: { minBlocks: number; maxBlocks: number };
+	// Moves without a line clear before the combo drops (default: the hand size).
+	comboResetMoves?: number;
+	lineScoreMultiplier?: number;
+	perfectClearBonus?: number;
+	// false = the best score stays on the device (no global leaderboard column on the server).
+	globalLeaderboard?: boolean;
 	challenge?: {
 		color: string;
 		buttonText: string;
@@ -25,21 +32,12 @@ export interface GameModeConfig {
 	};
 }
 
-export interface PlannedChallengeCard {
-	type: "planned";
-	id: PlannedChallengeId;
-	title: string;
-	color: string;
-	description: string;
-	tags: string[];
-}
-
 export interface PlayableChallengeCard {
 	type: "playable";
 	mode: GameModeType;
 }
 
-export type ChallengeCard = PlayableChallengeCard | PlannedChallengeCard;
+export type ChallengeCard = PlayableChallengeCard;
 
 export const GAME_MODE_CONFIGS: Record<GameModeType, GameModeConfig> = {
 	[GameModeType.Classic]: {
@@ -109,29 +107,57 @@ export const GAME_MODE_CONFIGS: Record<GameModeType, GameModeConfig> = {
 			tags: ["30 moves", "line +1", "combo +3"],
 		},
 	},
+	[GameModeType.Rescue]: {
+		id: GameModeType.Rescue,
+		title: "Rescue",
+		shortTitle: "Rescue",
+		leaderboardTitle: "Rescue",
+		boardLength: 8,
+		handSize: 3,
+		allowSecondChance: false,
+		startBoard: { minBlocks: 28, maxBlocks: 34 },
+		perfectClearBonus: 300,
+		globalLeaderboard: false,
+		challenge: {
+			color: "#FF8A3D",
+			buttonText: "Play Rescue",
+			description: "Crowded start. Full clear gives +300.",
+			tags: ["crowded", "survive", "clean +300"],
+		},
+	},
+	[GameModeType.ComboTrial]: {
+		id: GameModeType.ComboTrial,
+		title: "Combo Trial",
+		shortTitle: "Combo",
+		leaderboardTitle: "Combo Trial",
+		boardLength: 8,
+		handSize: 3,
+		allowSecondChance: true,
+		startBoard: { minBlocks: 14, maxBlocks: 18 },
+		comboResetMoves: 2,
+		lineScoreMultiplier: 2,
+		globalLeaderboard: false,
+		challenge: {
+			color: "#B57CFF",
+			buttonText: "Play Combo",
+			description: "Lines x2. Two misses break the chain.",
+			tags: ["combo", "x2 lines", "chain"],
+		},
+	},
 };
 
 export const CHALLENGE_MODE_CARDS: ChallengeCard[] = [
 	{ type: "playable", mode: GameModeType.DailyPuzzle },
 	{ type: "playable", mode: GameModeType.TimeAttack },
 	{ type: "playable", mode: GameModeType.MoveLimit },
-	{
-		type: "planned",
-		id: "rescue",
-		title: "Rescue",
-		color: "#FF8A3D",
-		description: "Start from a crowded board and dig out.",
-		tags: ["crowded", "survive", "soon"],
-	},
-	{
-		type: "planned",
-		id: "combo_trial",
-		title: "Combo Trial",
-		color: "#B57CFF",
-		description: "Score big by keeping line clears chained.",
-		tags: ["combo", "streak", "soon"],
-	},
+	{ type: "playable", mode: GameModeType.Rescue },
+	{ type: "playable", mode: GameModeType.ComboTrial },
 ];
+
+export function hasGlobalLeaderboard(mode: string): boolean {
+	const config = GAME_MODE_CONFIGS[mode as GameModeType];
+	return !config || config.globalLeaderboard !== false;
+}
 
 export const LEADERBOARD_GAME_MODES = [
 	GameModeType.Classic,

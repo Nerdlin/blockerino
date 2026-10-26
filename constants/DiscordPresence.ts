@@ -10,6 +10,8 @@ export const DISCORD_PRESENCE_ASSETS = {
   daily: '',
   speed: '',
   moveLimit: '',
+  rescue: '',
+  comboTrial: '',
 };
 
 export type DiscordPresenceScreen = 'menu' | 'singleplayer' | 'versus_lobby' | 'versus_game';
@@ -34,6 +36,8 @@ const MODE_LABELS: Record<GameModeType, string> = {
   [GameModeType.DailyPuzzle]: 'Daily Puzzle',
   [GameModeType.TimeAttack]: 'Speed Game',
   [GameModeType.MoveLimit]: 'Move Limit',
+  [GameModeType.Rescue]: 'Rescue',
+  [GameModeType.ComboTrial]: 'Combo Trial',
 };
 
 const MODE_ASSET_KEYS: Record<GameModeType, keyof typeof DISCORD_PRESENCE_ASSETS> = {
@@ -42,6 +46,8 @@ const MODE_ASSET_KEYS: Record<GameModeType, keyof typeof DISCORD_PRESENCE_ASSETS
   [GameModeType.DailyPuzzle]: 'daily',
   [GameModeType.TimeAttack]: 'speed',
   [GameModeType.MoveLimit]: 'moveLimit',
+  [GameModeType.Rescue]: 'rescue',
+  [GameModeType.ComboTrial]: 'comboTrial',
 };
 
 export function getPresenceModeLabel(mode: GameModeType | undefined): string {

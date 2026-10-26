@@ -1,6 +1,12 @@
 import { StyleSheet, Platform } from "react-native";
 
 export const styles = StyleSheet.create({
+	guestRow: { width: "100%", flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+	guestAvatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+	guestAvatarText: { fontFamily: "SilkscreenBold", fontSize: 14 },
+	guestNameInput: { fontFamily: "SilkscreenBold", fontSize: 13, paddingVertical: 2, paddingHorizontal: 0, minWidth: 0 },
+	guestHint: { fontFamily: "Silkscreen", fontSize: 9, marginTop: 1 },
+	guestSignIn: { minWidth: 82, minHeight: 36, height: 36, margin: 0, paddingHorizontal: 10 },
 	moreHeaderRow: {
 		width: "100%",
 		flexDirection: "row",

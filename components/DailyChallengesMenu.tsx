@@ -73,18 +73,17 @@ export default function DailyChallengesMenu() {
     };
 
     const renderCard = (card: ChallengeCard, index: number) => {
-        const featured = index === 0 && card.type === "playable";
-        const isPlayable = card.type === "playable";
-        const config = isPlayable ? getGameModeConfig(card.mode) : undefined;
-        const title = isPlayable ? config!.title : card.title;
-        const color = isPlayable ? config!.challenge?.color ?? currentTheme.buttonPrimary : card.color;
-        const description = isPlayable ? config!.challenge?.description ?? "" : card.description;
-                const bestScore = isPlayable ? bestScores[card.mode] ?? 0 : 0;
-        const isChecking = isPlayable && checkingMode === card.mode;
+        const featured = index === 0;
+        const config = getGameModeConfig(card.mode);
+        const title = config.title;
+        const color = config.challenge?.color ?? currentTheme.buttonPrimary;
+        const description = config.challenge?.description ?? "";
+        const bestScore = bestScores[card.mode] ?? 0;
+        const isChecking = checkingMode === card.mode;
 
         return (
             <View
-                key={isPlayable ? card.mode : card.id}
+                key={card.mode}
                 style={[
                     styles.challengeRow,
                     {
@@ -92,7 +91,6 @@ export default function DailyChallengesMenu() {
                         backgroundColor: featured ? "rgba(255, 215, 0, 0.08)" : "rgba(0, 0, 0, 0.24)",
                     },
                     featured && styles.featuredRow,
-                    !isPlayable && styles.soonRow,
                     isMobile && styles.mobileChallengeRow,
                 ]}
             >
@@ -110,16 +108,14 @@ export default function DailyChallengesMenu() {
                 </View>
 
                 <View style={[styles.cardAction, isMobile && styles.mobileCardAction]}>
-                    {isPlayable && (
-                        <Text style={[styles.bestScoreValue, { color: currentTheme.accent }]} numberOfLines={1} adjustsFontSizeToFit>
-                            {t("ch.best")} {bestScore}
-                        </Text>
-                    )}
+                    <Text style={[styles.bestScoreValue, { color: currentTheme.accent }]} numberOfLines={1} adjustsFontSizeToFit>
+                        {t("ch.best")} {bestScore}
+                    </Text>
                     <StylizedButton
-                        text={isPlayable ? (isChecking ? t("ch.checking") : config?.challenge?.buttonText ?? t("ch.play")) : t("ch.soon")}
-                        onClick={isPlayable ? () => startMode(card.mode) : undefined}
-                        backgroundColor={isPlayable ? color : cssColors.spaceGray}
-                        disabled={!isPlayable || isChecking}
+                        text={isChecking ? t("ch.checking") : config.challenge?.buttonText ?? t("ch.play")}
+                        onClick={() => startMode(card.mode)}
+                        backgroundColor={color}
+                        disabled={isChecking}
                         style={[styles.playBtn, isMobile && styles.mobilePlayBtn]}
                         textStyle={styles.playBtnText}
                     />

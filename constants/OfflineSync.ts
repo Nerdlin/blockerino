@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { reportVersusResult, submitGlobalHighScore, supabase } from "./Supabase";
+import { hasGlobalLeaderboard } from "./GameModes";
 import type { VersusReportOutcome, VersusResult } from "./Supabase";
 
 const PENDING_GLOBAL_HIGH_SCORES_KEY = "PENDING_GLOBAL_HIGH_SCORES";
@@ -138,7 +139,7 @@ export async function submitGlobalHighScoreOrQueue(
 	submitScore: HighScoreSubmitter = submitGlobalHighScore
 ): Promise<"synced" | "queued" | "skipped"> {
 	const normalizedName = normalizeQueueName(playerName);
-	if (!normalizedName || score <= 0) return "skipped";
+	if (!normalizedName || score <= 0 || !hasGlobalLeaderboard(gameMode)) return "skipped";
 	const ownerUserId = submitScore === submitGlobalHighScore ? (await supabase.auth.getSession()).data.session?.user.id : undefined;
 
 	try {

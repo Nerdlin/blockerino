@@ -19,7 +19,9 @@ export enum GameModeType {
 	Chaos = 'chaos',
 	DailyPuzzle = 'daily_puzzle',
 	TimeAttack = 'time_attack',
-	MoveLimit = 'move_limit'
+	MoveLimit = 'move_limit',
+	Rescue = 'rescue',
+	ComboTrial = 'combo_trial'
 }
 
 export const multiplayerRoomIdAtom = atom<string | null>(null);
