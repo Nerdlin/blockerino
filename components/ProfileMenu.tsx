@@ -1,7 +1,6 @@
 import { GameModeType, useAppState } from "@/hooks/useAppState";
 import AnimatedNumber from "./AnimatedNumber";
 import { useSetAtom } from "jotai";
-import GameRecordsCard from "./GameRecordsCard";
 import { deleteAccountOpenAtom } from "./AccountDeleteHost";
 import FadeInView from "./FadeInView";
 import { track } from "@/constants/Analytics";
@@ -194,10 +193,9 @@ export default function ProfileMenu() {
 			}
 
 			const { count, error } = await supabase
-				.from("matchmaking_rooms")
+				.from("match_history")
 				.select("*", { count: "exact", head: true })
-				.or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
-				.eq("status", "finished");
+				.or(`player1_id.eq.${userId},player2_id.eq.${userId}`);
 
 			if (!error && count !== null) {
 				setGamesPlayed(count);
@@ -526,7 +524,6 @@ export default function ProfileMenu() {
 									<AnimatedNumber value={gamesPlayed} style={[styles.statValue, { color: currentTheme.accent }]} />
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.matches")}</Text>
 								</FadeInView>
-								<GameRecordsCard />
 							</View>
 						)}
 

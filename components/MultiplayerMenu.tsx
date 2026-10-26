@@ -72,6 +72,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const [playerName, setPlayerName] = useState("");
     const [playerId, setPlayerId] = useState("");
     const [playerElo, setPlayerElo] = useState<number>(0);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [publicRooms, setPublicRooms] = useState<any[]>([]);
     const [selectedMode, setSelectedMode] = useState<GameModeType>(GameModeType.Classic);
     const [lobbyState, setLobbyState] = useState<'idle' | 'searching' | 'hosting' | 'joining'>('idle');
@@ -194,6 +195,20 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         supabase.auth.getSession().then(({ data }) => {
             const accountId = data.session?.user?.id;
             if (active && accountId) setPlayerId(accountId);
+        });
+        return () => { active = false; };
+    }, [authChecked, signedIn]);
+
+    // The card shows the account's avatar (picture or emoji) instead of the first letter.
+    useEffect(() => {
+        if (!authChecked || !signedIn) return;
+        let active = true;
+        void supabase.auth.getSession().then(async ({ data }) => {
+            const id = data.session?.user?.id;
+            if (!id) return;
+            const { data: rows } = await supabase.from('profiles').select('avatar_url').eq('auth_user_id', id).limit(1);
+            const url = (rows?.[0]?.avatar_url as string | null | undefined) || (data.session?.user?.user_metadata?.avatar_url as string | undefined) || null;
+            if (active) setAvatarUrl(url);
         });
         return () => { active = false; };
     }, [authChecked, signedIn]);
@@ -612,9 +627,13 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                 accessibilityLabel={t("mp.myRating")}
                             >
                                 <View style={[styles.playerAvatar, { borderColor: getEloBadge(playerElo).color }]}>
-                                    <Text style={[styles.playerAvatarText, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(playerName, "SilkscreenBold") }]}>
-                                        {(playerName.trim()[0] || "?").toUpperCase()}
-                                    </Text>
+                                    {avatarUrl && avatarUrl.startsWith("http") ? (
+                                        <Image source={{ uri: avatarUrl }} style={{ width: "100%", height: "100%" }} />
+                                    ) : (
+                                        <Text style={[styles.playerAvatarText, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(playerName, "SilkscreenBold") }]}>
+                                            {avatarUrl || (playerName.trim()[0] || "?").toUpperCase()}
+                                        </Text>
+                                    )}
                                 </View>
                                 <View style={{ flex: 1, minWidth: 0 }}>
                                     {signedIn ? (
@@ -984,7 +1003,7 @@ const styles = StyleSheet.create({
     },
     playerCard: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', borderRadius: 10, padding: 8, marginBottom: 4 },
     playerCardMain: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
-    playerAvatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+    playerAvatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
     playerAvatarText: { fontSize: 14 },
     playerCardName: { fontSize: 13 },
     playerCardInput: { fontFamily: 'SilkscreenBold', fontSize: 13, padding: 0, borderBottomWidth: 1, minWidth: 0 },

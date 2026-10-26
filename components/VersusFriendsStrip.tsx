@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import { supabase } from "@/constants/Supabase";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
@@ -11,6 +11,7 @@ import StylizedButton from "./StylizedButton";
 interface StripFriend {
 	id: string;
 	name: string;
+	avatar: string | null;
 }
 
 const MAX_SHOWN = 4;
@@ -37,15 +38,16 @@ export default function VersusFriendsStrip({ userId }: { userId: string }) {
 				return;
 			}
 			const [{ data: byAuth }, { data: byPlayer }] = await Promise.all([
-				supabase.from("profiles").select("auth_user_id, player_id, player_name").in("auth_user_id", ids),
-				supabase.from("profiles").select("auth_user_id, player_id, player_name").in("player_id", ids),
+				supabase.from("profiles").select("auth_user_id, player_id, player_name, avatar_url").in("auth_user_id", ids),
+				supabase.from("profiles").select("auth_user_id, player_id, player_name, avatar_url").in("player_id", ids),
 			]);
-			const names = new Map<string, string>();
+			const names = new Map<string, { name: string; avatar: string | null }>();
 			[...(byAuth ?? []), ...(byPlayer ?? [])].forEach((profile) => {
-				if (profile.auth_user_id) names.set(profile.auth_user_id, profile.player_name);
-				if (profile.player_id) names.set(profile.player_id, profile.player_name);
+				const entry = { name: profile.player_name as string, avatar: (profile.avatar_url as string | null) ?? null };
+				if (profile.auth_user_id) names.set(profile.auth_user_id, entry);
+				if (profile.player_id) names.set(profile.player_id, entry);
 			});
-			if (active) setFriends(ids.map((id) => ({ id, name: names.get(id) || "?" })));
+			if (active) setFriends(ids.map((id) => ({ id, name: names.get(id)?.name || "?", avatar: names.get(id)?.avatar ?? null })));
 		})();
 		return () => { active = false; };
 	}, [userId]);
@@ -74,7 +76,11 @@ export default function VersusFriendsStrip({ userId }: { userId: string }) {
 					return (
 						<View key={friend.id} style={[styles.card, { borderColor: "rgba(255,255,255,0.18)", opacity: online ? 1 : 0.5 }]}>
 							<View style={styles.avatar}>
-								<Text style={[styles.avatarText, { color: currentTheme.textPrimary }]}>{friend.name.trim()[0]?.toUpperCase() ?? "?"}</Text>
+								{friend.avatar && friend.avatar.startsWith("http") ? (
+									<Image source={{ uri: friend.avatar }} style={{ width: "100%", height: "100%", borderRadius: 15 }} />
+								) : (
+									<Text style={[styles.avatarText, { color: currentTheme.textPrimary }]}>{friend.avatar || friend.name.trim()[0]?.toUpperCase() || "?"}</Text>
+								)}
 								<View style={[styles.dot, { backgroundColor: online ? "#2ECC40" : "#666" }]} />
 							</View>
 							<Text style={[styles.name, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(friend.name, "SilkscreenBold") }]} numberOfLines={1}>{friend.name}</Text>
