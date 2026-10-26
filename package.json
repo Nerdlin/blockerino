@@ -12,7 +12,7 @@
     "lint": "expo lint",
     "build:android-release": "powershell -ExecutionPolicy Bypass -File ./scripts/build-android-release.ps1",
     "publish:android-update": "powershell -ExecutionPolicy Bypass -File ./scripts/publish-android-update.ps1",
-    "deploy": "gh-pages --nojekyll -d dist",
+    "deploy": "gh-pages --nojekyll --dotfiles -d dist",
     "predeploy": "npx cross-env GH_PAGES=1 expo export -p web",
     "tunnel": "cloudflared tunnel --url http://localhost:8081",
     "e2e:two-player": "node ./scripts/e2e/two-player.mjs",
