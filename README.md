@@ -65,7 +65,7 @@
 | 📥 [**blockerino-2.0.0.apk**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.0/blockerino-2.0.0.apk) | 50,9 МиБ | Установка на телефон |
 | 📦 [**blockerino-2.0.0.aab**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.0/blockerino-2.0.0.aab) | 69,4 МиБ | Google Play Console |
 
-Подробности и история: [описание 1.0.9](./docs/release-2.0.0.md) · [все релизы](./docs)
+Подробности и история: [описание 2.0.0](./docs/release-2.0.0.md) · [все релизы](./docs)
 
 > 💡 **Веб-версию** можно установить как приложение: в Chrome выберите «Установить» или «Добавить на главный экран».
 
