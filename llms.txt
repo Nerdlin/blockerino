@@ -7,7 +7,7 @@ Note: this is not the "Blockerino: Puzzle Game" by KR STUDIO on Google Play and 
 ## Play and download
 - [Play in the browser](https://blockerino.aionerdlin.me/): no install, works on desktop and phone
 - [Android APK and releases](https://github.com/Nerdlin/blockerino/releases/latest): latest version, install over the previous one
-- Discord: launch Blockerino as an Activity inside a voice channel
+- [Discord Activity](https://discord.com/application-directory/1529076492775194836): launch Blockerino Pixel Duels inside a voice channel (Activities button)
 
 ## Features
 - Classic mode: 8x8 grid, clear lines, keep the board from filling up
