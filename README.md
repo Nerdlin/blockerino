@@ -10,7 +10,7 @@
 
 [![Release](https://img.shields.io/badge/Release-v2.0.0-22c55e?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.0)
 [![Platforms](https://img.shields.io/badge/Web_·_Android_·_iOS-1f2937?style=for-the-badge&logo=googlechrome&logoColor=white)](https://blockerino.aionerdlin.me)
-[![Discord](https://img.shields.io/badge/Discord_Activity-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/application-directory/1529076492775194836)
+[![Discord](https://img.shields.io/badge/Discord_Activity-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/discovery/applications/1529076492775194836)
 
 [![React Native](https://img.shields.io/badge/React_Native-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://reactnative.dev/)
 [![Expo](https://img.shields.io/badge/Expo-1B1F23?style=flat-square&logo=expo&logoColor=white)](https://expo.dev/)
