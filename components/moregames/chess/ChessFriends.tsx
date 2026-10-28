@@ -5,7 +5,7 @@ import { fetchFriendsOnline } from "@/constants/Invites";
 import { useLanguage } from "@/constants/Localization";
 import { useTheme } from "@/constants/Theme";
 import { ChessRatings, fetchFriendChessRatings } from "@/constants/chess/ChessRatingsApi";
-import { isProvisional } from "@/constants/chess/ChessElo";
+import { START_RATING } from "@/constants/chess/ChessElo";
 import { TimeControl } from "@/constants/chess/TimeControls";
 import StylizedButton from "../../StylizedButton";
 
@@ -88,7 +88,7 @@ export function ChessFriends({
 			) : (
 				rows.map((row) => {
 					const entry = row.ratings?.[control.timeClass] ?? null;
-					const rating = entry && !isProvisional(entry.games) ? String(entry.rating) : "?";
+					const rating = String(entry?.rating ?? START_RATING);
 					return (
 						<View key={row.id} testID={`chess-friend-${row.id}`} style={[local.row, { borderColor: "rgba(255,255,255,0.18)", opacity: row.online ? 1 : 0.6 }]}>
 							<View style={[local.dot, { backgroundColor: row.online ? "#2ECC40" : "#666" }]} />

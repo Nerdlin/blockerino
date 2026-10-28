@@ -5,7 +5,7 @@ import { useLanguage } from "@/constants/Localization";
 import { ADAPTIVE_BOT, ADAPTIVE_BOT_ID, BotTier, CHESS_BOTS, ChessBotProfile, adaptiveBotElo, isBotUnlocked, nextBotToUnlock } from "@/constants/chess/BotRoster";
 import { ChessProgress } from "@/constants/chess/ChessProgress";
 import { ChessRatings } from "@/constants/chess/ChessRatingsApi";
-import { isProvisional, PROVISIONAL_GAMES } from "@/constants/chess/ChessElo";
+import { START_RATING } from "@/constants/chess/ChessElo";
 import { GameResult } from "@/constants/chess/ChessGameState";
 import { Color } from "@/constants/chess/ChessClock";
 import { TIME_CLASSES, TimeControl, formatTimeControl } from "@/constants/chess/TimeControls";
@@ -35,12 +35,12 @@ export function ChessLobby({
 			<View style={local.row}>
 				{TIME_CLASSES.map((timeClass) => {
 					const entry = ratings[timeClass];
-					const provisional = !entry || isProvisional(entry.games);
+					const games = entry?.games ?? 0;
 					return (
 						<View key={timeClass} testID={`chess-rating-${timeClass}`} style={[local.card, { borderColor: selected.timeClass === timeClass ? currentTheme.accent : "rgba(255,255,255,0.18)" }]}>
 							<Text style={[local.small, { color: currentTheme.textSecondary }]}>{t(`chess.${timeClass}`)}</Text>
-							<Text style={[local.big, { color: currentTheme.textPrimary }]}>{provisional ? "?" : entry!.rating}</Text>
-							{provisional ? <Text style={[local.tiny, { color: currentTheme.textSecondary }]}>{t("chess.provisional", { n: Math.min(PROVISIONAL_GAMES, entry?.games ?? 0) })}</Text> : null}
+							<Text style={[local.big, { color: currentTheme.textPrimary }]}>{entry?.rating ?? START_RATING}</Text>
+							<Text style={[local.tiny, { color: currentTheme.textSecondary }]}>{t("chess.games", { n: games })}</Text>
 						</View>
 					);
 				})}
