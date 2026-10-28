@@ -11,17 +11,26 @@ import { shuffleInPlace } from "./SudokuGame";
 import { ExtraGameCosmetics, MAHJONG_THEMES } from "./cosmetics";
 import { styles } from "./styles";
 
-export const MAHJONG_SYMBOLS = ["一", "二", "三", "竹", "花", "中", "發", "東", "南", "北", "白", "九", "萬", "風", "春", "月", "山", "水"];
-export const MAHJONG_LAYOUT = [
-	[0, 2, 0], [1, 2, 0], [2, 2, 0], [3, 2, 0], [4, 2, 0], [5, 2, 0],
-	[0, 3, 0], [1, 3, 0], [2, 3, 0], [3, 3, 0], [4, 3, 0], [5, 3, 0],
-	[1, 1, 0], [2, 1, 0], [3, 1, 0], [4, 1, 0],
-	[1, 4, 0], [2, 4, 0], [3, 4, 0], [4, 4, 0],
-	[2, 0, 0], [3, 0, 0], [2, 5, 0], [3, 5, 0],
-	[2, 2, 1], [3, 2, 1], [2, 3, 1], [3, 3, 1],
-	[1, 2, 1], [4, 2, 1], [1, 3, 1], [4, 3, 1],
-	[2, 2, 2], [3, 2, 2], [2, 3, 2], [3, 3, 2],
-];
+export const MAHJONG_SYMBOLS = ["四", "五", "六", "竹", "花", "中", "發", "東", "南", "北", "白", "九", "萬", "風", "春", "月", "山", "水"];
+export const MAHJONG_LAYOUT: [number, number, number][] = buildMahjongLayout();
+
+// A pyramid of three layers: a 7-wide base (38 tiles), a 5x4 middle (20) and a 2x2 top (4), 62 tiles in all. Each
+// x/y is one tile cell; the upper layers sit exactly over lower tiles so the covering test stays column-exact.
+function buildMahjongLayout(): [number, number, number][] {
+	const cells: [number, number, number][] = [];
+	for (let y = 0; y <= 5; y += 1) {
+		const edge = y === 0 || y === 5;
+		for (let x = edge ? 1 : 0; x <= (edge ? 5 : 6); x += 1) cells.push([x, y, 0]);
+	}
+	for (let y = 1; y <= 4; y += 1) for (let x = 1; x <= 5; x += 1) cells.push([x, y, 1]);
+	for (const [x, y] of [[2, 2], [3, 2], [2, 3], [3, 3]]) cells.push([x, y, 2]);
+	return cells;
+}
+
+export const MAHJONG_TILE_W = 46;
+export const MAHJONG_TILE_H = 58;
+export const MAHJONG_BOARD_W = 380;
+export const MAHJONG_BOARD_H = 392;
 
 // A tile is free when nothing sits on top of it (same column, higher layer) and at
 // least one of its left/right neighbours on the same layer is missing. The covering
@@ -138,13 +147,21 @@ export function shuffleMahjongTiles(tiles: MahjongTile[]): MahjongTile[] {
 }
 
 export function MahjongGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
-	const [boardWidth, setBoardWidth] = useState(370);
-	const boardScale = Math.min(1, boardWidth / 370);
+	const [boardWidth, setBoardWidth] = useState(MAHJONG_BOARD_W);
+	const boardScale = Math.min(1, boardWidth / MAHJONG_BOARD_W);
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
 	const [tiles, setTiles] = useState(createMahjongTiles);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [history, setHistory] = useState<MahjongTile[][]>([]);
+	const [hint, setHint] = useState<string[]>([]);
+	const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const clearHint = () => {
+		if (hintTimer.current) clearTimeout(hintTimer.current);
+		hintTimer.current = null;
+		setHint([]);
+	};
+	useEffect(() => () => { if (hintTimer.current) clearTimeout(hintTimer.current); }, []);
 	const ratingSubmittedRef = useRef(false);
 	const remaining = tiles.filter((tile) => !tile.removed).length;
 	const mahjong = MAHJONG_THEMES[cosmetics.mahjongTheme];
@@ -173,7 +190,16 @@ export function MahjongGame({ cosmetics, playerName, onRatingChange }: { cosmeti
 
 	const noMoves = remaining > 0 && freePairs.length === 0;
 
+	const showHint = () => {
+		if (freePairs.length === 0) return;
+		setSelectedId(null);
+		setHint(freePairs);
+		if (hintTimer.current) clearTimeout(hintTimer.current);
+		hintTimer.current = setTimeout(() => { hintTimer.current = null; setHint([]); }, 2500);
+	};
+
 	const pickTile = (id: string) => {
+		clearHint();
 		const picked = tiles.find((tile) => tile.id === id);
 		if (!picked || !isMahjongTileFree(picked, tiles)) return;
 		if (!selectedId) {
@@ -201,33 +227,36 @@ export function MahjongGame({ cosmetics, playerName, onRatingChange }: { cosmeti
 			<Text style={[styles.gameStatus, { color: remaining === 0 ? currentTheme.accent : noMoves ? "#F59E0B" : currentTheme.textPrimary }]}>
 				{remaining === 0 ? t("mahjong.boardCleared") : noMoves ? t("mahjong.noMoves") : t("mahjong.tilesLeft", { count: remaining })}
 			</Text>
-			<View onLayout={(event) => setBoardWidth(event.nativeEvent.layout.width)} style={{ width: '100%', height: 360 * boardScale, alignItems: 'center' }}>
-			<View style={[styles.mahjongLayerBoard, { backgroundColor: mahjong.board, borderColor: mahjong.boardBorder }, { position: 'absolute', left: Math.max(0, (boardWidth - 370) / 2), transformOrigin: 'top left', transform: [{ scale: boardScale }] }]}>
+			<View onLayout={(event) => setBoardWidth(event.nativeEvent.layout.width)} style={{ width: '100%', height: MAHJONG_BOARD_H * boardScale, alignItems: 'center' }}>
+			<View style={[styles.mahjongLayerBoard, { backgroundColor: mahjong.board, borderColor: mahjong.boardBorder }, { position: 'absolute', left: Math.max(0, (boardWidth - MAHJONG_BOARD_W) / 2), transformOrigin: 'top left', transform: [{ scale: boardScale }] }]}>
 				{tiles.map((tile) => {
 					if (tile.removed) return null;
 					const free = isMahjongTileFree(tile, tiles);
 					const selected = selectedId === tile.id;
-					const hinted = freePairs.includes(tile.id);
-					return (
-						<Pressable
-							key={tile.id}
-							onPress={() => pickTile(tile.id)}
-							style={[
-								styles.mahjongLayerTile,
-								{
-									left: 20 + tile.x * 51 + tile.z * 7,
-									top: 10 + tile.y * 56 - tile.z * 10,
-									zIndex: tile.z * 20 + tile.y,
-									opacity: free ? 1 : 0.58,
-									borderColor: selected ? "#FACC15" : hinted ? "#22D3EE" : mahjong.tileBorder,
-									backgroundColor: mahjong.tile,
-								},
-							]}
-						>
-							<Text style={[styles.mahjongText, { color: mahjong.text }]}>{tile.symbol}</Text>
-						</Pressable>
-					);
-				})}
+					const hinted = hint.includes(tile.id);
+						return (
+							<Pressable
+								key={tile.id}
+								onPress={() => pickTile(tile.id)}
+								style={[
+									styles.mahjongLayerTile,
+									{
+										left: 14 + tile.x * (MAHJONG_TILE_W + 2) + tile.z * 4,
+										top: 12 + tile.y * (MAHJONG_TILE_H + 2) - tile.z * 8,
+										zIndex: tile.z * 20 + tile.y,
+										borderColor: selected ? "#FACC15" : hinted ? "#22D3EE" : mahjong.tileBorder,
+										backgroundColor: mahjong.tile,
+										transform: [{ translateY: selected || hinted ? -4 : 0 }],
+									},
+									(selected || hinted) && { borderWidth: 3 },
+								]}
+							>
+								<Text style={[styles.mahjongText, { color: mahjong.text }]}>{tile.symbol}</Text>
+								{/* A blocked tile is shaded, not made see-through, so the tiles under it never show through */}
+								{!free && <View pointerEvents="none" style={styles.mahjongBlocked} />}
+							</Pressable>
+						);
+					})}
 			</View>
 			</View>
 			<View style={styles.controlRow}>
@@ -237,13 +266,15 @@ export function MahjongGame({ cosmetics, playerName, onRatingChange }: { cosmeti
 					setTiles(last);
 					setHistory((current) => current.slice(0, -1));
 					setSelectedId(null);
+					clearHint();
 				}} backgroundColor={cssColors.spaceGray} style={styles.resetButton} textStyle={styles.smallButtonText} />
+				<StylizedButton text={t("mahjong.hint")} onClick={showHint} backgroundColor="#0E7490" style={styles.resetButton} textStyle={styles.smallButtonText} />
 				<StylizedButton text={t("mahjong.shuffle")} onClick={() => {
 					setHistory((current) => [...current, tiles]);
 					setTiles((current) => shuffleMahjongTiles(current));
 					setSelectedId(null);
 				}} backgroundColor={currentTheme.buttonSecondary} style={styles.resetButton} textStyle={styles.smallButtonText} />
-				<StylizedButton text={t("mahjong.new")} onClick={() => { setTiles(createMahjongTiles()); setSelectedId(null); setHistory([]); ratingSubmittedRef.current = false; }} backgroundColor={currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
+				<StylizedButton text={t("mahjong.new")} onClick={() => { setTiles(createMahjongTiles()); setSelectedId(null); clearHint(); setHistory([]); ratingSubmittedRef.current = false; }} backgroundColor={currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
 			</View>
 		</View>
 	);

@@ -23,7 +23,7 @@ import { CARD_SKINS, ExtraGameCosmetics } from "./cosmetics";
 import { styles } from "./styles";
 import { measureScreenRect } from "./BattleshipGame";
 import { useIncomingGameInvite } from "@/constants/GameInvite";
-import { DurakFlight, DurakFlightLayer } from "./DurakFlights";
+import { DurakFlight, DurakFlightLayer, DurakFlightLayerHandle } from "./DurakFlights";
 
 // Full rank ordering so cardRankValue stays correct for every deck size.
 export const DURAK_RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
@@ -794,11 +794,10 @@ const { t } = useLanguage();
 
 	// Card flights: the deal from the deck, the sweep to the discard pile and the pick-up by the defender. They are derived
 	// from how the state changed, so they play the same for the bot, the host and the guest.
-	const [flights, setFlights] = useState<DurakFlight[]>([]);
+	const flightLayer = useRef<DurakFlightLayerHandle>(null);
 	const [tableWidth, setTableWidth] = useState(0);
 	const flightId = useRef(0);
 	const prevFlightState = useRef<DurakState | null>(null);
-	const removeFlight = useCallback((id: number) => setFlights((current) => current.filter((flight) => flight.id !== id)), []);
 	useEffect(() => {
 		if (tableWidth === 0) return;
 		const prev = prevFlightState.current;
@@ -844,7 +843,7 @@ const { t } = useLanguage();
 				}
 			}
 		}
-		if (next.length > 0) setFlights((current) => [...current, ...next]);
+		if (next.length > 0) flightLayer.current?.launch(next);
 		function role_isMe(role: OnlineRole) { return role === seat; }
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [state, tableWidth]);
@@ -989,7 +988,7 @@ const { t } = useLanguage();
 						</Text>
 					)}
 					<View style={[styles.durakTable, { height: tableHeight }]} onLayout={(event) => setTableWidth(event.nativeEvent.layout.width)}>
-							<DurakFlightLayer flights={flights} trump={state.trump} cosmetics={cosmetics} onDone={removeFlight} />
+							<DurakFlightLayer ref={flightLayer} trump={state.trump} cosmetics={cosmetics} />
 						<View style={[styles.durakStatusBar, { borderColor: currentTheme.accent, backgroundColor: "rgba(0,0,0,0.4)" }]}>
 							<Text style={[styles.durakStatusText, { color: currentTheme.textPrimary }]}>
 								{t("durak.players")}: {state.playerCount} · {t("durak.deck")}: {state.deckSize} · {t("durak.yourBet")}: {state.bet} {t("durak.coinsUnit")}

@@ -198,6 +198,7 @@ export const moregames: ScreenDictionary = {
 		"mahjong.tilesLeft": "{count} tiles left",
 		"mahjong.undo": "Undo",
 		"mahjong.shuffle": "Shuffle",
+		"mahjong.hint": "Hint",
 		"mahjong.new": "New Game",
 
 		// Battleship strings
@@ -400,6 +401,7 @@ export const moregames: ScreenDictionary = {
 		"mahjong.tilesLeft": "Осталось {count} плиток",
 		"mahjong.undo": "Отмена",
 		"mahjong.shuffle": "Перемешать",
+		"mahjong.hint": "Подсказка",
 		"mahjong.new": "Новая игра",
 
 		// Battleship strings

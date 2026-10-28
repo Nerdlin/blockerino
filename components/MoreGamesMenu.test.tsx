@@ -271,16 +271,26 @@ describe("puzzle and chess regressions", () => {
 	});
 
 	it("generates Mahjong layouts that can be fully cleared", () => {
-		for (let attempt = 0; attempt < 30; attempt++) {
-			const tiles = createMahjongTiles();
-			while (tiles.some((tile) => !tile.removed)) {
-				const free = tiles.filter((tile) => isMahjongTileFree(tile, tiles));
-				const first = free.find((tile) => free.some((other) => other.id !== tile.id && other.matchKey === tile.matchKey));
-				expect(first).toBeDefined();
-				if (!first) break;
-				const second = free.find((tile) => tile.id !== first.id && tile.matchKey === first.matchKey)!;
-				first.removed = second.removed = true;
+		// Symbols repeat on a 62-tile board, so a careless pick can dead-end; a clear order must still exist.
+		const solvable = (tiles: ReturnType<typeof createMahjongTiles>, failed: Set<string>): boolean => {
+			if (tiles.every((tile) => tile.removed)) return true;
+			const key = tiles.map((tile) => (tile.removed ? "0" : "1")).join("");
+			if (failed.has(key)) return false;
+			const free = tiles.filter((tile) => isMahjongTileFree(tile, tiles));
+			for (let i = 0; i < free.length; i++) {
+				for (let j = i + 1; j < free.length; j++) {
+					if (free[i].matchKey !== free[j].matchKey) continue;
+					free[i].removed = free[j].removed = true;
+					const ok = solvable(tiles, failed);
+					free[i].removed = free[j].removed = false;
+					if (ok) return true;
+				}
 			}
+			failed.add(key);
+			return false;
+		};
+		for (let attempt = 0; attempt < 30; attempt++) {
+			expect(solvable(createMahjongTiles(), new Set())).toBe(true);
 		}
 	});
 
