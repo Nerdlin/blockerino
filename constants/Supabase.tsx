@@ -148,10 +148,10 @@ async function getReusableProfileByName(playerName: string, userId: string): Pro
 export async function upsertAuthenticatedProfile(user: User, preferredName?: string): Promise<PlayerProfile | null> {
     const baseName = getUserDisplayName(user, preferredName);
     const providers = getUserProviders(user);
-    let playerName = baseName;
     const byAuth = await getExistingProfileForAuthUser(user.id);
     const reusableByName = byAuth ? null : await getReusableProfileByName(baseName, user.id);
     const targetProfile = byAuth || reusableByName;
+    let playerName = targetProfile?.player_name || baseName;
 
     const newAvatar = getUserAvatarUrl(user);
     const payload = {

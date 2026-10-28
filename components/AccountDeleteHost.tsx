@@ -45,10 +45,13 @@ export default function AccountDeleteHost() {
 		setBusy(true);
 		setFailed(false);
 		try {
-			const { data, error } = await supabase.rpc("delete_my_account");
-			if (error || !data || (data as { status?: unknown }).status !== "ok") throw error ?? new Error("not deleted");
-			track("account_deleted");
-			await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+			const { data: { session } } = await supabase.auth.getSession();
+			if (session) {
+				const { data, error } = await supabase.rpc("delete_my_account");
+				if (error || !data || (data as { status?: unknown }).status !== "ok") throw error ?? new Error("not deleted");
+				track("account_deleted");
+				await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+			}
 			await AsyncStorage.multiRemove([PLAYER_ID_KEY, PLAYER_NAME_KEY]).catch(() => undefined);
 			setBusy(false);
 			setOpen(false);
