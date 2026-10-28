@@ -23,6 +23,7 @@ import { CARD_SKINS, ExtraGameCosmetics } from "./cosmetics";
 import { styles } from "./styles";
 import { measureScreenRect } from "./BattleshipGame";
 import { useIncomingGameInvite } from "@/constants/GameInvite";
+import { DurakFlight, DurakFlightLayer } from "./DurakFlights";
 
 // Full rank ordering so cardRankValue stays correct for every deck size.
 export const DURAK_RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
@@ -791,6 +792,63 @@ const { t } = useLanguage();
 		})).then(() => onRatingChange());
 	}, [onRatingChange, playerName, playerNames, reportDurakResult, room.isConnected, room.role, room.roomCode, state]);
 
+	// Card flights: the deal from the deck, the sweep to the discard pile and the pick-up by the defender. They are derived
+	// from how the state changed, so they play the same for the bot, the host and the guest.
+	const [flights, setFlights] = useState<DurakFlight[]>([]);
+	const [tableWidth, setTableWidth] = useState(0);
+	const flightId = useRef(0);
+	const prevFlightState = useRef<DurakState | null>(null);
+	const removeFlight = useCallback((id: number) => setFlights((current) => current.filter((flight) => flight.id !== id)), []);
+	useEffect(() => {
+		if (tableWidth === 0) return;
+		const prev = prevFlightState.current;
+		prevFlightState.current = state;
+		if (!state || state.cancelled) return;
+		const roles = getActiveDurakRoles(state.playerCount);
+		const deckAt = { x: 44, y: 226 };
+		const centerAt = { x: tableWidth / 2, y: tableHeight * 0.45 };
+		const anchor = (role: OnlineRole) => {
+			if (role === seat) return { x: tableWidth / 2, y: tableHeight - 34 - 56 };
+			const i = Math.max(0, roles.indexOf(role));
+			return { x: tableWidth / 2 + (i - (roles.length - 1) / 2) * Math.min(110, tableWidth / roles.length), y: tableHeight * 0.19 };
+		};
+		const next: DurakFlight[] = [];
+		const add = (card: string, from: { x: number; y: number }, to: { x: number; y: number }, delay: number, fade = false, spin = 0) => {
+			if (next.length < 24) next.push({ id: ++flightId.current, card, from, to, delay, fade, spin });
+		};
+		const fresh = !prev || prev.tableId !== state.tableId || (!!prev.winner && !state.winner);
+		if (fresh) {
+			// the opening deal, round by round
+			let n = 0;
+			for (let round = 0; round < 6; round++) {
+				for (const role of roles) {
+					if (state.hands[role].length > round) add("back", deckAt, anchor(role), n++ * 70);
+				}
+			}
+		} else if (prev) {
+			const prevTable = getTableCards(prev.table);
+			const tableCleared = prev.table.length > 0 && state.table.length === 0;
+			const tookCards = tableCleared && state.discardCount === prev.discardCount;
+			if (tableCleared && !tookCards) {
+				prevTable.forEach((card, i) => add(card, centerAt, { x: tableWidth + 50, y: centerAt.y - 40 }, i * 60, true, 25 + i * 8));
+			} else if (tookCards) {
+				const to = anchor(prev.defender);
+				prevTable.forEach((card, i) => add(role_isMe(prev.defender) ? card : "back", centerAt, to, i * 60, true, -10 + i * 6));
+			}
+			let n = tableCleared ? prevTable.length : 0;
+			for (const role of roles) {
+				const taken = tookCards && role === prev.defender ? prevTable.length : 0;
+				const drawn = state.hands[role].length - prev.hands[role].length - taken;
+				if (drawn > 0 && state.deck.length < prev.deck.length) {
+					for (let i = 0; i < drawn; i++) add("back", deckAt, anchor(role), 250 + n++ * 80);
+				}
+			}
+		}
+		if (next.length > 0) setFlights((current) => [...current, ...next]);
+		function role_isMe(role: OnlineRole) { return role === seat; }
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [state, tableWidth]);
+
 	const pot = bet * Number(playerCount);
 	const prize = getDurakNetPrize(bet, Number(playerCount));
 
@@ -930,7 +988,8 @@ const { t } = useLanguage();
 							{coinResult >= 0 ? t("durak.youWon", { amount: coinResult }) : t("durak.youLost", { amount: Math.abs(coinResult) })}
 						</Text>
 					)}
-					<View style={[styles.durakTable, { height: tableHeight }]}>
+					<View style={[styles.durakTable, { height: tableHeight }]} onLayout={(event) => setTableWidth(event.nativeEvent.layout.width)}>
+							<DurakFlightLayer flights={flights} trump={state.trump} cosmetics={cosmetics} onDone={removeFlight} />
 						<View style={[styles.durakStatusBar, { borderColor: currentTheme.accent, backgroundColor: "rgba(0,0,0,0.4)" }]}>
 							<Text style={[styles.durakStatusText, { color: currentTheme.textPrimary }]}>
 								{t("durak.players")}: {state.playerCount} · {t("durak.deck")}: {state.deckSize} · {t("durak.yourBet")}: {state.bet} {t("durak.coinsUnit")}

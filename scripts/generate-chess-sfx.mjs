@@ -146,7 +146,7 @@ for (const [name, build] of Object.entries(sounds)) {
 	const wav = path.join(tmp, `${name}.wav`);
 	fs.writeFileSync(wav, wavBytes(build().data));
 	const out = path.join(outDir, `${name}.mp3`);
-	const result = spawnSync("ffmpeg", ["-y", "-loglevel", "error", "-i", wav, "-codec:a", "libmp3lame", "-b:a", "96k", out], { encoding: "utf8" });
+	const result = spawnSync("ffmpeg", ["-y", "-loglevel", "error", "-i", wav, "-af", "acompressor=threshold=-24dB:ratio=6:attack=1:release=50:makeup=8,alimiter=limit=0.89:level=false", "-codec:a", "libmp3lame", "-b:a", "96k", out], { encoding: "utf8" });
 	if (result.status !== 0) throw new Error(`ffmpeg failed for ${name}: ${result.stderr}`);
 	console.log(`${name}.mp3  ${(fs.statSync(out).size / 1024).toFixed(1)} KB`);
 }
