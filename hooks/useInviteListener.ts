@@ -8,6 +8,7 @@ import { incomingInviteAtom } from '@/components/InviteModeHost';
 import { fetchPendingInvites, markInvitesRead } from '@/constants/Invites';
 import { chessInviteAtom, parseChessInvite } from '@/constants/chess/ChessInvite';
 import { formatTimeControl } from '@/constants/chess/TimeControls';
+import { gameInviteAtom, parseGameInvite } from '@/constants/GameInvite';
 
 // An invite reaches a player in two ways: live (a realtime message, while the app is open) and as a push (the app was
 // closed; opening it from the push brings the invite back from the server). Both end in the same popup; a room is
@@ -23,6 +24,7 @@ export function useInviteListener(
     const { t } = useLanguage();
     const setIncomingInvite = useSetAtom(incomingInviteAtom);
     const setChessInvite = useSetAtom(chessInviteAtom);
+    const setGameInvite = useSetAtom(gameInviteAtom);
     const [userId, setUserId] = useState<string | null>(null);
     const shownRooms = useRef(new Set<string>());
 
@@ -100,12 +102,26 @@ export function useInviteListener(
                     },
                 });
             })
+            .on('broadcast', { event: 'game_invite' }, (payload) => {
+                const invite = parseGameInvite(payload.payload);
+                if (!invite || shownRooms.current.has(`${invite.game}:${invite.code}`)) return;
+                shownRooms.current.add(`${invite.game}:${invite.code}`);
+                setIncomingInvite({
+                    hostName: invite.hostName,
+                    mode: GameModeType.Classic,
+                    bodyText: t('invite.gameBody', { game: t(`invite.game.${invite.game}`) }),
+                    accept: () => {
+                        setGameInvite(invite);
+                        setAppState(MenuStateType.MORE_GAMES);
+                    },
+                });
+            })
             .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [userId, presentInvite, setIncomingInvite, setChessInvite, setAppState, t]);
+    }, [userId, presentInvite, setIncomingInvite, setChessInvite, setGameInvite, setAppState, t]);
 
     // Invites that came as a push while the app was closed: asked at launch and whenever the app comes back.
     useEffect(() => {

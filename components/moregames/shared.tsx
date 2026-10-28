@@ -5,6 +5,8 @@ import { useLanguage } from "@/constants/Localization";
 import { View, Text, Clipboard, TextInput, useWindowDimensions, Pressable } from "react-native";
 import PixelLoader from "@/components/PixelLoader";
 import StylizedButton from "../StylizedButton";
+import { InviteFriendsPanel } from "./InviteFriendsPanel";
+import type { InviteGame } from "@/constants/GameInvite";
 import { cssColors } from "@/constants/Color";
 import { type UiGlyphName } from "@/constants/UiGlyphs";
 import UiIcon from "@/components/UiIcon";
@@ -373,6 +375,8 @@ export function OnlineRoomControls({
 	onDisconnect,
 	joinText,
 	disabled,
+	inviteGame,
+	inviteHostName,
 }: {
 	roomCode: string;
 	setRoomCode: (value: string) => void;
@@ -386,6 +390,9 @@ export function OnlineRoomControls({
 	onDisconnect: () => void;
 	joinText?: string;
 	disabled?: boolean;
+	/** With these two a waiting host can invite a friend into the room. */
+	inviteGame?: InviteGame;
+	inviteHostName?: string;
 }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
@@ -410,6 +417,7 @@ export function OnlineRoomControls({
 							{playerCount && connectedPlayersCount ? `WAITING FOR PLAYERS (${connectedPlayersCount}/${playerCount})...` : t("mp.waitingFriend")}
 						</Text>
 						<PixelLoader size="large" color={currentTheme.accent} style={{ marginVertical: 20 }} />
+						{inviteGame && roomCode ? <InviteFriendsPanel game={inviteGame} roomCode={roomCode} hostName={inviteHostName || "Player"} /> : null}
 	
 						<StylizedButton text={t("mp.cancel")} onClick={onDisconnect} backgroundColor={cssColors.spaceGray} />
 					</View>

@@ -13,6 +13,7 @@ import { HintButton } from "./HintButton";
 import { OnlineRole, TicMark } from "./types";
 import { OnlineRoomControls, isDuelRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
 import { styles } from "./styles";
+import { useIncomingGameInvite } from "@/constants/GameInvite";
 
 export function TicTacToeGame({ playerName, onRatingChange }: { playerName: string; onRatingChange: () => void }) {
 	const { currentTheme } = useTheme();
@@ -64,6 +65,8 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 	}, [board, turn, remoteResult, t]);
 
 	const room = useMiniGameRoom("tictactoe", handleEvent, playerName);
+	// an accepted invitation from a friend: join their room right away
+	useIncomingGameInvite("tictactoe", (code) => { setVsBot(false); reset(); setOpponentReady(false); room.setRoomCode(code); room.connect("player2", code); });
 	const roomRef = useRef({ role: room.role, send: room.send });
 	useEffect(() => {
 		roomRef.current = { role: room.role, send: room.send };
@@ -167,7 +170,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 	if (room.role && !opponentReady) {
 		return (
 			<View style={[styles.onlineGame, { minHeight: 400, justifyContent: 'center' }]}>
-				<OnlineRoomControls
+				<OnlineRoomControls inviteGame="tictactoe" inviteHostName={playerName}
 					roomCode={room.roomCode}
 					setRoomCode={room.setRoomCode}
 					role={room.role}
@@ -205,7 +208,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 			)}
 			<View style={{ marginTop: 20, alignItems: "center", width: "100%" }}>
 				<Collapsible visible={!vsBot || Boolean(room.role)}>
-<OnlineRoomControls
+<OnlineRoomControls inviteGame="tictactoe" inviteHostName={playerName}
 					roomCode={room.roomCode}
 					setRoomCode={room.setRoomCode}
 					role={room.role}

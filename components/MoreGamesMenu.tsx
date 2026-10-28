@@ -11,6 +11,7 @@ import { MoreGameRating, getMoreGameLeaderboard, MoreGameRatingGameId, getPlayer
 import { track } from "@/constants/Analytics";
 import { useAtomValue } from "jotai";
 import { chessInviteAtom } from "@/constants/chess/ChessInvite";
+import { gameInviteAtom } from "@/constants/GameInvite";
 import { subscribeToOutcomes } from "@/constants/GameStats";
 import { useSoundSettings } from "@/constants/Sound";
 import * as Haptics from "expo-haptics";
@@ -67,6 +68,8 @@ export default function MoreGamesMenu() {
 	const [activeGame, setActiveGame] = useState<MoreGameId | null>(null);
 	const pendingChessInvite = useAtomValue(chessInviteAtom);
 	useEffect(() => { if (pendingChessInvite) setActiveGame("chess"); }, [pendingChessInvite]);
+	const pendingGameInvite = useAtomValue(gameInviteAtom);
+	useEffect(() => { if (pendingGameInvite) setActiveGame(pendingGameInvite.game); }, [pendingGameInvite]);
 	const { state: shopState } = useShopState();
 	
 	const cosmetics: ExtraGameCosmetics = useMemo(() => ({

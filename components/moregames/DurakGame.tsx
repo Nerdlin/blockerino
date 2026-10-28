@@ -22,6 +22,7 @@ import { DURAK_DECK_SIZES, DURAK_EMOJIS, DurakModeToggleColumn, OnlineRoomContro
 import { CARD_SKINS, ExtraGameCosmetics } from "./cosmetics";
 import { styles } from "./styles";
 import { measureScreenRect } from "./BattleshipGame";
+import { useIncomingGameInvite } from "@/constants/GameInvite";
 
 // Full rank ordering so cardRankValue stays correct for every deck size.
 export const DURAK_RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
@@ -715,8 +716,10 @@ const { t } = useLanguage();
 		else recordGameOutcome("durak", outcome, { vsBot: botMode });
 	}, [botDifficulty, botMode, room.isConnected, seat, state]);
 
-	const join = () => {
+	const join = () => joinRoom(room.roomCode);
+	const joinRoom = (code: string) => {
 		// The table bet is set by the host; it is checked when the host announces it.
+		setBotMode(false);
 		setBetError(null);
 		setCoinResult(null);
 		setTableInfo(null);
@@ -724,8 +727,11 @@ const { t } = useLanguage();
 		setOpponentReady(false);
 		setPlayerNames({});
 		ratingSubmittedRef.current = null;
-		room.connect('player2', room.roomCode);
+		room.setRoomCode(code);
+		room.connect('player2', code);
 	};
+	// an accepted invitation from a friend: join their table right away
+	useIncomingGameInvite("durak", joinRoom);
 
 	useEffect(() => {
 		if (state?.cancelled && room.role) {
@@ -810,7 +816,7 @@ const { t } = useLanguage();
 						{t("durak.tableInfo", { bet: tableInfo.bet, players: tableInfo.playerCount })}
 					</Text>
 				)}
-				<OnlineRoomControls
+				<OnlineRoomControls inviteGame="durak" inviteHostName={playerName}
 					roomCode={room.roomCode}
 					setRoomCode={room.setRoomCode}
 					role={room.role}
@@ -896,7 +902,7 @@ const { t } = useLanguage();
 <StylizedButton text={t("bot.play")} onClick={startBotGame} backgroundColor={currentTheme.buttonPrimary} />
 						</Collapsible>
 						<Collapsible visible={!vsBot}>
-<OnlineRoomControls
+<OnlineRoomControls inviteGame="durak" inviteHostName={playerName}
 							roomCode={room.roomCode}
 							setRoomCode={room.setRoomCode}
 							role={room.role}

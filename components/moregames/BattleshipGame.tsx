@@ -17,6 +17,7 @@ import { BattleShip, DuelRole, OnlineRole } from "./types";
 import { ExtraGameCosmetics, SEA_SKINS } from "./cosmetics";
 import { OnlineRoomControls, SHOT_RESEND_LIMIT, SHOT_RESEND_MS, getDuelOpponent, isDuelRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
 import { styles } from "./styles";
+import { useIncomingGameInvite } from "@/constants/GameInvite";
 
 export const BATTLE_BOARD_SIZE = 10;
 
@@ -333,6 +334,9 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 		}
 	}, [room.role, botMode]);
 
+	// an accepted invitation from a friend: join their room right away
+	useIncomingGameInvite("battleship", (code) => { setBotMode(false); resetLocal(); room.setRoomCode(code); room.connect("player2", code); });
+
 	const resetLocal = () => {
 		setFleet(createDefaultFleet());
 		setSelectedShipId("b4");
@@ -632,7 +636,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 								<StylizedButton text={t("bot.play")} onClick={startBotGame} backgroundColor={allShipsPlaced ? currentTheme.buttonPrimary : "#555"} style={{ marginTop: 10 }} disabled={!allShipsPlaced} />
 							</Collapsible>
 							<Collapsible visible={!vsBot}>
-<OnlineRoomControls
+<OnlineRoomControls inviteGame="battleship" inviteHostName={playerName}
 								roomCode={room.roomCode}
 								setRoomCode={room.setRoomCode}
 								role={room.role}
@@ -658,7 +662,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 	if (room.role && !opponentPresent) {
 		return (
 			<View style={[styles.onlineGame, { minHeight: 400, justifyContent: 'center' }]}>
-				<OnlineRoomControls
+				<OnlineRoomControls inviteGame="battleship" inviteHostName={playerName}
 					roomCode={room.roomCode}
 					setRoomCode={room.setRoomCode}
 					role={room.role}
