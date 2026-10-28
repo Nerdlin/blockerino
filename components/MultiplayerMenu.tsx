@@ -74,6 +74,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const [playerElo, setPlayerElo] = useState<number>(0);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [publicRooms, setPublicRooms] = useState<any[]>([]);
+    const quickScanRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const [selectedMode, setSelectedMode] = useState<GameModeType>(GameModeType.Classic);
     const [lobbyState, setLobbyState] = useState<'idle' | 'searching' | 'hosting' | 'joining'>('idle');
     const [gameMode, setGameMode] = useState<GameModeType>(GameModeType.Classic);
@@ -305,6 +306,10 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     };
 
     const cleanupLobby = async () => {
+        if (quickScanRef.current) {
+            clearInterval(quickScanRef.current);
+            quickScanRef.current = null;
+        }
         if (isMounted.current) {
             setLobbyState('idle');
         }
@@ -584,6 +589,99 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         }
     };
 
+    // Quick Match: join the oldest waiting public room of the chosen mode; if there is none, open one and wait. While
+    // waiting, look again every few seconds for a room that is OLDER than ours and join that one instead, so two
+    // players who opened rooms at the same moment still end up together (only the newer one moves).
+    const handleQuickMatch = async () => {
+        const normalizedName = getRequiredPlayerName();
+        if (!normalizedName) {
+            return;
+        }
+
+        setMatchError("");
+        setSuccessMessage("");
+        setGameMode(selectedMode);
+        setLobbyState('searching');
+
+        let activePlayerId = playerId;
+        if (!activePlayerId) {
+            activePlayerId = Crypto.randomUUID();
+            AsyncStorage.setItem('PLAYER_ID', activePlayerId);
+            setPlayerId(activePlayerId);
+        }
+        const myId = activePlayerId;
+
+        const joinOlderRoom = async (olderThan?: string, exceptRoomId?: string) => {
+            let query = supabase
+                .from('matchmaking_rooms')
+                .select('*')
+                .eq('is_private', false)
+                .eq('status', 'waiting')
+                .eq('game_mode', selectedMode)
+                .is('player2_name', null)
+                .neq('player1_id', myId)
+                .order('created_at', { ascending: true })
+                .limit(10);
+            if (olderThan) query = query.lt('created_at', olderThan);
+            const { data, error } = await query;
+            if (error) throw error;
+            for (const room of (data ?? []).filter((candidate) => candidate.id !== exceptRoomId && isVisiblePublicRoom(candidate))) {
+                const { data: joined, error: joinError } = await supabase
+                    .from('matchmaking_rooms')
+                    .update(getJoinRoomUpdate(normalizedName, myId))
+                    .eq('id', room.id)
+                    .eq('status', 'waiting')
+                    .is('player2_name', null)
+                    .select();
+                if (joinError) throw joinError;
+                if (joined && joined.length > 0) return joined[0];
+            }
+            return null;
+        };
+
+        try {
+            const found = await joinOlderRoom();
+            if (found) {
+                await cleanupLobby();
+                onStartGame(found.id, 'player2', found.player1_name, found.game_mode as GameModeType, playerElo);
+                return;
+            }
+
+            const { data: newRoom, error } = await supabase
+                .from('matchmaking_rooms')
+                .insert({
+                    player1_name: normalizedName,
+                    player1_id: myId,
+                    game_mode: selectedMode,
+                    status: 'waiting',
+                    is_private: false,
+                })
+                .select()
+                .single();
+            if (error) throw error;
+
+            currentRoomId.current = newRoom.id;
+            subscribeToRoom(newRoom.id, 'player1');
+
+            quickScanRef.current = setInterval(async () => {
+                if (currentRoomId.current !== newRoom.id) return;
+                try {
+                    const older = await joinOlderRoom(newRoom.created_at, newRoom.id);
+                    if (older && currentRoomId.current === newRoom.id) {
+                        await cleanupLobby();
+                        onStartGame(older.id, 'player2', older.player1_name, older.game_mode as GameModeType, playerElo);
+                    }
+                } catch (scanError) {
+                    console.error("Quick match scan error:", scanError);
+                }
+            }, 3000);
+        } catch (e) {
+            console.error("Quick match error:", e);
+            await cleanupLobby();
+            setMatchError(t("mp.createRoomFailed"));
+        }
+    };
+
     const handleSpectateRoom = (room: any) => {
         cleanupLobby();
         onStartGame(room.id, 'spectator', `${room.player1_name} vs ${room.player2_name || t("mp.opponent")}`, room.game_mode as GameModeType, playerElo);
@@ -707,6 +805,16 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         onChange={(mode) => setSelectedMode(mode)}
                     />
 
+                    <View style={styles.row}>
+                        <StylizedButton
+                            text={t("mp.quickMatch")}
+                            onClick={handleQuickMatch}
+                            backgroundColor="#2E9E4F"
+                            style={{ flex: 1, minWidth: 100, height: 46 }}
+                            textStyle={{ fontSize: 14 }}
+                        />
+                    </View>
+                    <View style={{ height: 8 }} />
                     <View style={styles.row}>
                         <StylizedButton
                             text={t("mp.createRoom")}

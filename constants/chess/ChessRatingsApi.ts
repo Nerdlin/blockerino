@@ -81,3 +81,38 @@ export async function reportChessMatch(input: {
 		return { status: "failed" };
 	}
 }
+
+export type QuickMatchResult =
+	| { status: "matched"; code: string; color: Color; opponent: string; control: string }
+	| { status: "searching"; waited: number }
+	| { status: "unauthenticated" | "no_profile" | "bad_request" | "failed" };
+
+export function parseQuickMatch(data: unknown): QuickMatchResult {
+	if (!data || typeof data !== "object") return { status: "failed" };
+	const row = data as Record<string, unknown>;
+	if (row.status === "matched" && typeof row.code === "string" && (row.color === "w" || row.color === "b") && typeof row.opponent === "string" && typeof row.control === "string") {
+		return { status: "matched", code: row.code.toUpperCase(), color: row.color, opponent: row.opponent, control: row.control };
+	}
+	if (row.status === "searching") return { status: "searching", waited: typeof row.waited === "number" ? row.waited : 0 };
+	if (row.status === "unauthenticated" || row.status === "no_profile" || row.status === "bad_request") return { status: row.status };
+	return { status: "failed" };
+}
+
+/** One step of the search: joins or refreshes the queue and returns a match when there is one. Call every ~2 s. */
+export async function quickMatchStep(control: string): Promise<QuickMatchResult> {
+	try {
+		const { data, error } = await supabase.rpc("chess_quick_match", { p_control: control });
+		if (error) return { status: "failed" };
+		return parseQuickMatch(data);
+	} catch {
+		return { status: "failed" };
+	}
+}
+
+export async function cancelQuickMatch(): Promise<void> {
+	try {
+		await supabase.rpc("chess_cancel_search");
+	} catch {
+		// the queue entry expires by itself after 15 seconds
+	}
+}

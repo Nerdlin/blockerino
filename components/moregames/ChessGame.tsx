@@ -11,6 +11,7 @@ import { ExtraGameCosmetics } from "./cosmetics";
 import { BotGame } from "./chess/BotGame";
 import { RoomGame } from "./chess/RoomGame";
 import { BotPicker, ChessLobby } from "./chess/ChessScreens";
+import { ChessSearch, FoundMatch } from "./chess/ChessSearch";
 import { styles } from "./styles";
 
 export { CHESS_FILES, CHESS_RANKS, UNICODE_PIECES, getChessBoardColors } from "./chess/ChessParts";
@@ -24,7 +25,7 @@ export function restoreChessGame(fen: string, history: string[]): Chess {
 	return new Chess(fen);
 }
 
-type Screen = "lobby" | "bots" | "bot" | "friend";
+type Screen = "lobby" | "bots" | "bot" | "friend" | "search" | "match";
 
 /**
  * Chess in More Games: a lobby with a rating per time class, bots with a fixed Elo, and games against a friend in a
@@ -36,6 +37,7 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 	const [ratings, setRatings] = useState<ChessRatings>(NO_RATINGS);
 	const [progress, setProgress] = useState<ChessProgress>({ beatenBots: [], form: [], lastTimeControl: null });
 	const [pick, setPick] = useState<{ bot: ChessBotProfile; color: Color; beatenBefore: boolean } | null>(null);
+	const [found, setFound] = useState<FoundMatch | null>(null);
 
 	const refreshRatings = useCallback(() => {
 		void fetchMyChessRatings().then(setRatings);
@@ -72,6 +74,7 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 					ratings={ratings}
 					selected={control}
 					onSelect={(next) => { setControl(next); void rememberTimeControl(next.id); }}
+					onFindOpponent={() => setScreen("search")}
 					onPlayFriend={() => setScreen("friend")}
 					onPlayBots={() => { refreshProgress(); setScreen("bots"); }}
 				/>
@@ -98,6 +101,24 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 					beatenBefore={pick.beatenBefore}
 					onExit={() => { refreshProgress(); setScreen("bots"); }}
 					onProgress={refreshProgress}
+				/>
+			)}
+			{screen === "search" && (
+				<ChessSearch
+					control={control}
+					onCancel={() => setScreen("lobby")}
+					onMatched={(match) => { setFound(match); setScreen("match"); }}
+				/>
+			)}
+			{screen === "match" && found && (
+				<RoomGame
+					key={found.code}
+					control={found.control}
+					playerName={playerName}
+					cosmetics={cosmetics}
+					autoMatch={{ code: found.code, color: found.color, opponent: found.opponent }}
+					onRatingsChanged={refreshRatings}
+					onExit={() => setScreen("lobby")}
 				/>
 			)}
 			{screen === "friend" && (

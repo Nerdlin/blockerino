@@ -16,12 +16,14 @@ export function ChessLobby({
 	ratings,
 	selected,
 	onSelect,
+	onFindOpponent,
 	onPlayFriend,
 	onPlayBots,
 }: {
 	ratings: ChessRatings;
 	selected: TimeControl;
 	onSelect: (control: TimeControl) => void;
+	onFindOpponent: () => void;
 	onPlayFriend: () => void;
 	onPlayBots: () => void;
 }) {
@@ -66,6 +68,7 @@ export function ChessLobby({
 				</View>
 			))}
 
+			<StylizedButton text={t("chess.findOpponent")} onClick={onFindOpponent} backgroundColor="#2E9E4F" style={local.button} textStyle={local.buttonText} />
 			<StylizedButton text={t("chess.playFriend")} onClick={onPlayFriend} backgroundColor="#1E88E5" style={local.button} textStyle={local.buttonText} />
 			<StylizedButton text={t("chess.playBots")} onClick={onPlayBots} backgroundColor="#7B3FE4" style={local.button} textStyle={local.buttonText} />
 		</View>

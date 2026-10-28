@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Clipboard, View } from "react-native";
+import { Clipboard, Text, View } from "react-native";
+import StylizedButton from "../../StylizedButton";
 import { useLanguage } from "@/constants/Localization";
 import { useTheme } from "@/constants/Theme";
 import { recordMoreGameWin } from "@/constants/Achievements";
@@ -47,12 +48,15 @@ export function RoomGame({
 	control,
 	playerName,
 	cosmetics,
+	autoMatch,
 	onRatingsChanged,
 	onExit,
 }: {
 	control: TimeControl;
 	playerName: string;
 	cosmetics: ExtraGameCosmetics;
+	/** A game the server paired: the room code and color are given, nobody types a code. White hosts, Black joins. */
+	autoMatch?: { code: string; color: Color; opponent: string };
 	onRatingsChanged: () => void;
 	onExit: () => void;
 }) {
@@ -64,11 +68,15 @@ export function RoomGame({
 	const [whiteRole, setWhiteRole] = useState<"player1" | "player2">("player1");
 	const [activeControl, setActiveControl] = useState<TimeControl>(control);
 	const [opponentReady, setOpponentReady] = useState(false);
-	const [opponentName, setOpponentName] = useState("Opponent");
+	const [opponentName, setOpponentName] = useState(autoMatch?.opponent ?? "Opponent");
 	const [rematch, setRematch] = useState({ me: false, them: false });
 	const [report, setReport] = useState<ReportOutcome | null>(null);
 	const [copied, setCopied] = useState(false);
 	const reportedRef = useRef<string | null>(null);
+	const gameNoRef = useRef(0);
+	const opponentReadyRef = useRef(false);
+	useEffect(() => { gameNoRef.current = gameNo; }, [gameNo]);
+	useEffect(() => { opponentReadyRef.current = opponentReady; }, [opponentReady]);
 
 	const setState = useCallback((next: ChessGameState | null) => {
 		stateRef.current = next;
@@ -107,9 +115,22 @@ export function RoomGame({
 			}
 			return;
 		}
+		if (event === "hello" && room.role === "player1") {
+			setOpponentReady(true);
+			const current = stateRef.current;
+			if (current) room.send("start", { control: activeControlRef.current.id, white: whiteRoleRef.current, number: gameNoRef.current });
+			else {
+				startGame(control, "player1", 1);
+				room.send("start", { control: control.id, white: "player1", number: 1 });
+			}
+			return;
+		}
 		if (event === "start") {
 			const parsed = parseTimeControl(payload?.control);
 			if (!parsed) return;
+			const number = Number(payload?.number) || 1;
+			// the host repeats its start for a guest that asked twice: the same game is not started again
+			if (stateRef.current && number === gameNoRef.current) return;
 			startGame(parsed, payload?.white === "player2" ? "player2" : "player1", Number(payload?.number) || 1);
 			return;
 		}
@@ -137,6 +158,41 @@ export function RoomGame({
 	const room = useMiniGameRoom("chess", handleEvent, playerName);
 	const whiteRoleRef = useRef(whiteRole);
 	useEffect(() => { whiteRoleRef.current = whiteRole; }, [whiteRole]);
+	const activeControlRef = useRef(activeControl);
+	useEffect(() => { activeControlRef.current = activeControl; }, [activeControl]);
+
+	// A paired game connects by itself: White hosts at once, Black joins a moment later and keeps saying hello until
+	// the host answers; nobody showing up within half a minute ends the attempt.
+	const connectRef = useRef(room.connect);
+	useEffect(() => { connectRef.current = room.connect; }, [room.connect]);
+	const autoCode = autoMatch?.code;
+	const autoColor = autoMatch?.color;
+	useEffect(() => {
+		if (!autoCode || !autoColor) return;
+		const timers: ReturnType<typeof setTimeout>[] = [];
+		let hello: ReturnType<typeof setInterval> | null = null;
+		if (autoColor === "w") connectRef.current("player1", autoCode);
+		else {
+			timers.push(setTimeout(() => {
+				connectRef.current("player2", autoCode);
+				hello = setInterval(() => {
+					if (stateRef.current) return;
+					roomRef.current.send("hello", {});
+				}, 1500);
+			}, 1200));
+		}
+		timers.push(setTimeout(() => {
+			if (opponentReadyRef.current) return;
+			roomRef.current.send("leave", {});
+			onExitRef.current();
+		}, 30000));
+		return () => {
+			timers.forEach(clearTimeout);
+			if (hello) clearInterval(hello);
+		};
+	}, [autoCode, autoColor]);
+	const onExitRef = useRef(onExit);
+	useEffect(() => { onExitRef.current = onExit; }, [onExit]);
 	useEffect(() => { roomRef.current = { role: room.role, send: room.send }; }, [room.role, room.send]);
 
 	const myColor: Color = room.role === whiteRole ? "w" : "b";
@@ -209,6 +265,16 @@ export function RoomGame({
 		room.disconnect();
 		onExit();
 	};
+
+	if (autoMatch && (!room.role || !opponentReady || !state)) {
+		return (
+			<View style={{ width: "100%", alignItems: "center", minHeight: 240, justifyContent: "center", gap: 12 }}>
+				<Text style={{ fontFamily: "SilkscreenBold", fontSize: 13, color: currentTheme.textPrimary, textAlign: "center" }}>{t("chess.matchFound", { name: autoMatch.opponent })}</Text>
+				<Text style={{ fontFamily: "Silkscreen", fontSize: 10, color: currentTheme.textSecondary }}>{t("chess.connecting")}</Text>
+				<StylizedButton text={t("chess.cancel")} onClick={() => { roomRef.current.send("leave", {}); room.disconnect(); onExit(); }} backgroundColor={currentTheme.buttonSecondary} style={{ minWidth: 110, height: 36, minHeight: 36, margin: 0 }} textStyle={{ fontSize: 11 }} />
+			</View>
+		);
+	}
 
 	if (!room.role || !opponentReady || !state) {
 		return (

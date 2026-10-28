@@ -1,7 +1,7 @@
 jest.mock("@/constants/Supabase", () => ({ supabase: { rpc: jest.fn(), auth: { getSession: jest.fn() } } }));
 
 import { chess } from "../i18n/chess";
-import { parseRatings, parseReport } from "./ChessRatingsApi";
+import { parseQuickMatch, parseRatings, parseReport } from "./ChessRatingsApi";
 import { TIME_CLASSES } from "./TimeControls";
 import { CHESS_BOTS } from "./BotRoster";
 
@@ -24,6 +24,23 @@ describe("rating rows from the server", () => {
 		expect(parseReport({ status: "pending" })).toEqual({ status: "pending", before: undefined, after: undefined });
 		expect(parseReport({ status: "weird" }).status).toBe("failed");
 		expect(parseReport(undefined).status).toBe("failed");
+	});
+});
+
+describe("quick match answers", () => {
+	it("reads a match, a wait and the problems", () => {
+		expect(parseQuickMatch({ status: "matched", code: "abc12345", color: "w", opponent: "ben", control: "180+2" })).toEqual({ status: "matched", code: "ABC12345", color: "w", opponent: "ben", control: "180+2" });
+		expect(parseQuickMatch({ status: "searching", waited: 7 })).toEqual({ status: "searching", waited: 7 });
+		expect(parseQuickMatch({ status: "searching" })).toEqual({ status: "searching", waited: 0 });
+		expect(parseQuickMatch({ status: "unauthenticated" }).status).toBe("unauthenticated");
+		expect(parseQuickMatch({ status: "no_profile" }).status).toBe("no_profile");
+	});
+
+	it("treats a malformed match as a failure", () => {
+		expect(parseQuickMatch({ status: "matched", code: "X", color: "green", opponent: "ben", control: "180+2" }).status).toBe("failed");
+		expect(parseQuickMatch({ status: "matched", code: 5 }).status).toBe("failed");
+		expect(parseQuickMatch(null).status).toBe("failed");
+		expect(parseQuickMatch("matched").status).toBe("failed");
 	});
 });
 
