@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTheme } from "@/constants/Theme";
 import { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics } from "../cosmetics";
 import { styles as gameStyles } from "../styles";
+import { BotLook } from "@/constants/chess/BotSprites";
+import { BotAvatar } from "./BotAvatar";
 
 export const CHESS_FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 export const CHESS_RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
@@ -152,10 +154,12 @@ export function PlayerBar({
 	clock,
 	active,
 	low,
+	look,
 }: {
 	name: string;
 	rating?: string;
 	color: string;
+	look?: BotLook;
 	clock?: string;
 	active: boolean;
 	low?: boolean;
@@ -163,9 +167,13 @@ export function PlayerBar({
 	const { currentTheme } = useTheme();
 	return (
 		<View style={local.bar}>
-			<View style={[local.avatar, { backgroundColor: color }]}>
-				<Text style={local.avatarText}>{name.trim()[0]?.toUpperCase() ?? "?"}</Text>
-			</View>
+			{look ? (
+				<BotAvatar look={look} color={color} size={34} />
+			) : (
+				<View style={[local.avatar, { backgroundColor: color }]}>
+					<Text style={local.avatarText}>{name.trim()[0]?.toUpperCase() ?? "?"}</Text>
+				</View>
+			)}
 			<Text numberOfLines={1} style={[local.name, { color: currentTheme.textPrimary }]}>{name}</Text>
 			{rating ? <Text style={[local.rating, { color: currentTheme.textSecondary }]}>{rating}</Text> : null}
 			{clock ? (

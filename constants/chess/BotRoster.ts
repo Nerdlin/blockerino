@@ -1,3 +1,5 @@
+import type { BotLook } from "./BotSprites";
+
 // The chess bots: named characters with a fixed Elo (like chess.com's "Martinfoot 250"), unlocked one after another
 // by beating the previous one. Echo is the adaptive bot: its Elo follows the player's rating instead of being fixed.
 
@@ -7,6 +9,7 @@ export type Lang = "en" | "ru";
 export type Localized = Record<Lang, string>;
 
 export interface ChessBotProfile {
+	look: BotLook;
 	id: string;
 	name: string;
 	elo: number;
@@ -20,16 +23,16 @@ export interface ChessBotProfile {
 export const ADAPTIVE_BOT_ID = "echo";
 
 export const CHESS_BOTS: ChessBotProfile[] = [
-	{ id: "pip", name: "Pip", elo: 400, tier: "new", color: "#FFC400", voice: "shy", greeting: { en: "Hi! I just learned how the knight moves.", ru: "Привет! Я только выучил, как ходит конь." } },
-	{ id: "dot", name: "Dot", elo: 500, tier: "new", color: "#FF8A3C", voice: "shy", greeting: { en: "Be gentle, okay?", ru: "Только не слишком строго, ладно?" } },
-	{ id: "nibble", name: "Nibble", elo: 650, tier: "new", color: "#FF5A7A", voice: "cheerful", greeting: { en: "Yum! Is that a pawn I see?", ru: "Ням! Это пешка?" } },
-	{ id: "tilt", name: "Tilt", elo: 800, tier: "beginner", color: "#4AC0FF", voice: "cheerful", greeting: { en: "Fast moves, big plans!", ru: "Быстрые ходы, большие планы!" } },
-	{ id: "roxy", name: "Roxy", elo: 950, tier: "beginner", color: "#4A8AFF", voice: "cheerful", greeting: { en: "Open files are my favorite.", ru: "Обожаю открытые линии." } },
-	{ id: "glitch", name: "Glitch", elo: 1100, tier: "beginner", color: "#7B3FE4", voice: "sly", greeting: { en: "Expect the unexpected.", ru: "Жди неожиданного." } },
-	{ id: "bob", name: "Bob", elo: 1200, tier: "intermediate", color: "#2E9E4F", voice: "calm", greeting: { en: "Bishops forever. Let's play.", ru: "Слоны навсегда. Играем." } },
-	{ id: "quill", name: "Quill", elo: 1300, tier: "intermediate", color: "#C77DFF", voice: "calm", greeting: { en: "I see two moves ahead. Do you?", ru: "Я вижу на два хода вперёд. А ты?" } },
-	{ id: "knox", name: "Knox", elo: 1400, tier: "intermediate", color: "#9AA3B5", voice: "calm", greeting: { en: "Solid and steady.", ru: "Надёжно и спокойно." } },
-	{ id: "vex", name: "Vex", elo: 1500, tier: "strong", color: "#FF3335", voice: "sly", greeting: { en: "Your king looks nervous already.", ru: "Твой король уже нервничает." } },
+	{ id: "pip", name: "Pip", elo: 400, tier: "new", color: "#FFC400", look: { skin: "#F2C9A0", hair: "short", hairColor: "#8B5A2B", shirt: "#FFC400", accessory: "cap", accent: "#FFC400", mouth: "smile" }, voice: "shy", greeting: { en: "Hi! I just learned how the knight moves.", ru: "Привет! Я только выучил, как ходит конь." } },
+	{ id: "dot", name: "Dot", elo: 500, tier: "new", color: "#FF8A3C", look: { skin: "#F7D6B5", hair: "bob", hairColor: "#2B2B3C", shirt: "#FF8A3C", accessory: "freckles", accent: "#FF8A3C", mouth: "flat" }, voice: "shy", greeting: { en: "Be gentle, okay?", ru: "Только не слишком строго, ладно?" } },
+	{ id: "nibble", name: "Nibble", elo: 650, tier: "new", color: "#FF5A7A", look: { skin: "#E8B98F", hair: "curly", hairColor: "#C8501E", shirt: "#FF5A7A", accessory: "none", accent: "#FF5A7A", mouth: "open" }, voice: "cheerful", greeting: { en: "Yum! Is that a pawn I see?", ru: "Ням! Это пешка?" } },
+	{ id: "tilt", name: "Tilt", elo: 800, tier: "beginner", color: "#4AC0FF", look: { skin: "#D9A57A", hair: "spiky", hairColor: "#2B2B3C", shirt: "#4AC0FF", accessory: "headband", accent: "#4AC0FF", mouth: "smile" }, voice: "cheerful", greeting: { en: "Fast moves, big plans!", ru: "Быстрые ходы, большие планы!" } },
+	{ id: "roxy", name: "Roxy", elo: 950, tier: "beginner", color: "#4A8AFF", look: { skin: "#F2C9A0", hair: "ponytail", hairColor: "#3B2A20", shirt: "#4A8AFF", accessory: "scarf", accent: "#4A8AFF", mouth: "smile" }, voice: "cheerful", greeting: { en: "Open files are my favorite.", ru: "Обожаю открытые линии." } },
+	{ id: "glitch", name: "Glitch", elo: 1100, tier: "beginner", color: "#7B3FE4", look: { skin: "#9AD0C2", hair: "short", hairColor: "#7B3FE4", shirt: "#7B3FE4", accessory: "glasses", accent: "#101018", mouth: "flat" }, voice: "sly", greeting: { en: "Expect the unexpected.", ru: "Жди неожиданного." } },
+	{ id: "bob", name: "Bob", elo: 1200, tier: "intermediate", color: "#2E9E4F", look: { skin: "#E8B98F", hair: "bald", hairColor: "#5A3A22", shirt: "#2E9E4F", accessory: "mustache", accent: "#2E9E4F", mouth: "smile" }, voice: "calm", greeting: { en: "Bishops forever. Let's play.", ru: "Слоны навсегда. Играем." } },
+	{ id: "quill", name: "Quill", elo: 1300, tier: "intermediate", color: "#C77DFF", look: { skin: "#F2C9A0", hair: "long", hairColor: "#C77DFF", shirt: "#C77DFF", accessory: "glasses", accent: "#6B3FA0", mouth: "flat" }, voice: "calm", greeting: { en: "I see two moves ahead. Do you?", ru: "Я вижу на два хода вперёд. А ты?" } },
+	{ id: "knox", name: "Knox", elo: 1400, tier: "intermediate", color: "#9AA3B5", look: { skin: "#C98D63", hair: "short", hairColor: "#2B2B3C", shirt: "#9AA3B5", accessory: "helm", accent: "#9AA3B5", mouth: "flat" }, voice: "calm", greeting: { en: "Solid and steady.", ru: "Надёжно и спокойно." } },
+	{ id: "vex", name: "Vex", elo: 1500, tier: "strong", color: "#FF3335", look: { skin: "#E0A98A", hair: "spiky", hairColor: "#101018", shirt: "#FF3335", accessory: "horns", accent: "#FF3335", mouth: "smile" }, voice: "sly", greeting: { en: "Your king looks nervous already.", ru: "Твой король уже нервничает." } },
 ];
 
 export const ADAPTIVE_BOT: Omit<ChessBotProfile, "elo"> = {
@@ -37,6 +40,7 @@ export const ADAPTIVE_BOT: Omit<ChessBotProfile, "elo"> = {
 	name: "Echo",
 	tier: "intermediate",
 	color: "#2EC4B6",
+	look: { skin: "#BFEAE5", hair: "bald", hairColor: "#2EC4B6", shirt: "#2EC4B6", accessory: "antenna", accent: "#2EC4B6", mouth: "flat" } as BotLook,
 	voice: "calm",
 	greeting: { en: "I play at your level. Let's see who improves first.", ru: "Я играю на твоём уровне. Посмотрим, кто вырастет первым." },
 };

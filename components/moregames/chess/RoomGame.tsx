@@ -24,7 +24,7 @@ import { normalizeStoredPlayerName, OnlineRoomControls, roleLabel, useMiniGameRo
 import { OnlineRole } from "../types";
 import { ExtraGameCosmetics } from "../cosmetics";
 import { ChessGameView } from "./ChessGameView";
-import { ChessResultCard } from "./ChessScreens";
+import { ResultLayer } from "./ChessScreens";
 
 /** Ticks while a clock runs, so the clocks on screen move; idle otherwise. */
 function useNow(active: boolean): number {
@@ -248,7 +248,7 @@ export function RoomGame({
 				: t("chess.unrated");
 
 	return (
-		<View style={{ width: "100%", alignItems: "center" }}>
+		<View style={{ width: "100%", alignItems: "center", position: "relative" }}>
 			<ChessGameView
 				state={state}
 				myColor={myColor}
@@ -266,7 +266,8 @@ export function RoomGame({
 				onCopyPgn={copyPgn}
 			/>
 			{state.result ? (
-				<ChessResultCard
+				<ResultLayer
+					top={112}
 					result={state.result}
 					myColor={myColor}
 					opponentName={opponentName}

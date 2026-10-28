@@ -7,13 +7,16 @@ import { Color, remainingMs, autoAbortLeftMs } from "@/constants/chess/ChessCloc
 import { ChessGameState, boardOf, canAbort, fenAfter, isPromotionMove, turnOf } from "@/constants/chess/ChessGameState";
 import { formatClock } from "@/constants/chess/TimeControls";
 import StylizedButton from "../../StylizedButton";
+import { BotLook } from "@/constants/chess/BotSprites";
 import { ExtraGameCosmetics } from "../cosmetics";
+import { BotAvatar } from "./BotAvatar";
 import { ChessBoard, MoveStrip, PlayerBar, PromotionPicker } from "./ChessParts";
 
 export interface PlayerInfo {
 	name: string;
 	rating?: string;
 	color: string;
+	look?: BotLook;
 }
 
 /**
@@ -115,12 +118,12 @@ export function ChessGameView({
 		<View style={local.root}>
 			{bubble ? (
 				<View style={local.bubbleRow}>
-					<View style={[local.bubbleAvatar, { backgroundColor: opponent.color }]} />
+					{opponent.look ? <BotAvatar look={opponent.look} color={opponent.color} size={44} /> : <View style={[local.bubbleAvatar, { backgroundColor: opponent.color }]} />}
 					<View style={local.bubble}><Text style={local.bubbleText}>{bubble}</Text></View>
 				</View>
 			) : null}
 
-			<PlayerBar name={opponent.name} rating={opponent.rating} color={opponent.color} clock={clockOf(topColor)} active={running === topColor} low={lowOf(topColor)} />
+			<PlayerBar name={opponent.name} rating={opponent.rating} color={opponent.color} look={opponent.look} clock={clockOf(topColor)} active={running === topColor} low={lowOf(topColor)} />
 			<ChessBoard fen={shownFen} flipped={flipped} selected={live ? selected : null} legalTargets={targets} lastMove={lastMove} hint={live ? hint ?? null : null} cosmetics={cosmetics} onPressSquare={press} />
 			<PlayerBar name={me.name} rating={me.rating} color={me.color} clock={clockOf(myColor)} active={running === myColor} low={lowOf(myColor)} />
 

@@ -15,7 +15,7 @@ import StylizedButton from "../../StylizedButton";
 import { ExtraGameCosmetics } from "../cosmetics";
 import { HintButton } from "../HintButton";
 import { ChessGameView } from "./ChessGameView";
-import { ChessResultCard } from "./ChessScreens";
+import { ResultLayer } from "./ChessScreens";
 
 /**
  * A game against one bot. No clock; hint (paid, like the other games) and undo are allowed because nothing is rated.
@@ -146,12 +146,12 @@ export function BotGame({
 	};
 
 	return (
-		<View style={{ width: "100%", alignItems: "center" }}>
+		<View style={{ width: "100%", alignItems: "center", position: "relative" }}>
 			<ChessGameView
 				state={state}
 				myColor={color}
 				me={{ name: playerName, color: currentTheme.accent }}
-				opponent={{ name: bot.name, rating: String(bot.elo), color: bot.color }}
+				opponent={{ name: bot.name, rating: String(bot.elo), color: bot.color, look: bot.look }}
 				cosmetics={cosmetics}
 				now={Date.now()}
 				bubble={bubble}
@@ -172,7 +172,8 @@ export function BotGame({
 				</View>
 			) : null}
 			{state.result ? (
-				<ChessResultCard
+				<ResultLayer
+					top={150}
 					result={state.result}
 					myColor={color}
 					opponentName={bot.name}

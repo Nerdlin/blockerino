@@ -10,6 +10,7 @@ import { GameResult } from "@/constants/chess/ChessGameState";
 import { Color } from "@/constants/chess/ChessClock";
 import { TIME_CLASSES, TIME_CONTROLS, TimeControl, formatTimeControl } from "@/constants/chess/TimeControls";
 import StylizedButton from "../../StylizedButton";
+import { BotAvatar } from "./BotAvatar";
 
 export function ChessLobby({
 	ratings,
@@ -116,7 +117,7 @@ export function BotPicker({
 				onPress={() => onPick({ ...ADAPTIVE_BOT, elo: echoElo }, choice)}
 				style={[local.botRow, { borderColor: currentTheme.accent }]}
 			>
-				<View style={[local.avatar, { backgroundColor: ADAPTIVE_BOT.color }]} />
+				<BotAvatar look={ADAPTIVE_BOT.look} color={ADAPTIVE_BOT.color} size={40} />
 				<View style={{ flex: 1 }}>
 					<Text style={[local.botName, { color: currentTheme.textPrimary }]}>{ADAPTIVE_BOT.name} · {t("chess.adaptive")}</Text>
 					<Text style={[local.tiny, { color: currentTheme.textSecondary }]}>{t("chess.eloValue", { elo: echoElo })} · {t("chess.adaptiveHint")}</Text>
@@ -138,7 +139,7 @@ export function BotPicker({
 								onPress={() => onPick(bot, choice)}
 								style={[local.botRow, { opacity: open ? 1 : 0.45, borderColor: "rgba(255,255,255,0.18)" }]}
 							>
-								<View style={[local.avatar, { backgroundColor: open ? bot.color : "#2A2A3C" }]} />
+								<BotAvatar look={bot.look} color={bot.color} size={40} locked={!open} />
 								<View style={{ flex: 1 }}>
 									<Text style={[local.botName, { color: currentTheme.textPrimary }]}>{bot.name}</Text>
 									<Text style={[local.tiny, { color: currentTheme.textSecondary }]}>
@@ -171,6 +172,7 @@ export function ChessResultCard({
 	onNewGame,
 	onCopyPgn,
 	newGameLabel,
+	onClose,
 }: {
 	result: GameResult;
 	myColor: Color;
@@ -182,6 +184,8 @@ export function ChessResultCard({
 	onNewGame: () => void;
 	onCopyPgn: () => void;
 	newGameLabel?: string;
+	/** Shows a close button; the card is then an overlay on the board. */
+	onClose?: () => void;
 }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
@@ -192,7 +196,12 @@ export function ChessResultCard({
 		: t("chess.lost");
 	const tone = result.winner === null || result.winner === "draw" ? currentTheme.textPrimary : result.winner === myColor ? "#2E9E4F" : "#F87171";
 	return (
-		<View testID="chess-result" style={[local.result, { borderColor: tone }]}>
+		<View testID="chess-result" style={[local.result, onClose && local.resultOverlay, { borderColor: tone }]}>
+			{onClose ? (
+				<Pressable testID="chess-result-close" accessibilityRole="button" accessibilityLabel="close" onPress={onClose} style={local.close}>
+					<Text style={[local.closeText, { color: currentTheme.textSecondary }]}>X</Text>
+				</Pressable>
+			) : null}
 			<Text style={[local.resultTitle, { color: tone }]}>{title}</Text>
 			<Text style={[local.small, { color: currentTheme.textSecondary }]}>{t(`chess.reason.${result.reason}`)} · {opponentName}</Text>
 			{ratingLine ? <Text style={[local.big, { color: currentTheme.textPrimary, marginTop: 8 }]}>{ratingLine}</Text> : null}
@@ -208,7 +217,46 @@ export function ChessResultCard({
 	);
 }
 
+type CardProps = Parameters<typeof ChessResultCard>[0];
+
+/**
+ * The result of a game as a card over the board (with a close button). Closing leaves a slim bar under the board with
+ * the outcome and the two main actions, so the final position stays visible.
+ */
+export function ResultLayer({ top, ...card }: Omit<CardProps, "onClose"> & { top: number }) {
+	const { currentTheme } = useTheme();
+	const { t } = useLanguage();
+	const [closed, setClosed] = useState(false);
+	if (!closed) {
+		return (
+			<View pointerEvents="box-none" style={[local.layer, { top }]}>
+				<ChessResultCard {...card} onClose={() => setClosed(true)} />
+			</View>
+		);
+	}
+	const title =
+		card.result.winner === null ? t("chess.aborted")
+		: card.result.winner === "draw" ? t("chess.drawn")
+		: card.result.winner === card.myColor ? t("chess.won")
+		: t("chess.lost");
+	return (
+		<View testID="chess-result-bar" style={local.bar}>
+			<Text style={[local.small, { color: currentTheme.textPrimary, flexShrink: 1 }]}>{title} · {t(`chess.reason.${card.result.reason}`)}</Text>
+			<View style={local.row}>
+				{card.onRematch ? <StylizedButton text={t("chess.rematch")} onClick={card.onRematch} backgroundColor="#2E9E4F" style={local.barButton} textStyle={local.buttonText} /> : null}
+				<StylizedButton text={card.newGameLabel ?? t("chess.newGame")} onClick={card.onNewGame} backgroundColor="#1E88E5" style={local.barButton} textStyle={local.buttonText} />
+			</View>
+		</View>
+	);
+}
+
 const local = StyleSheet.create({
+	layer: { position: "absolute", left: 0, right: 0, alignItems: "center", zIndex: 20 },
+	resultOverlay: { marginTop: 0, width: "92%", backgroundColor: "rgba(5,5,16,0.96)", shadowColor: "#000", shadowOpacity: 0.6, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 12 },
+	close: { position: "absolute", top: 4, right: 4, width: 30, height: 30, alignItems: "center", justifyContent: "center", zIndex: 2 },
+	closeText: { fontFamily: "SilkscreenBold", fontSize: 14 },
+	bar: { width: "100%", maxWidth: 336, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8, borderWidth: 1.5, borderColor: "rgba(255,255,255,0.25)", borderRadius: 8, padding: 8 },
+	barButton: { minWidth: 84, height: 32, minHeight: 32, margin: 0, paddingHorizontal: 8 },
 	screen: { width: "100%", maxWidth: 360, alignItems: "stretch", gap: 6 },
 	label: { fontFamily: "Silkscreen", fontSize: 10, marginTop: 8, marginBottom: 2 },
 	row: { flexDirection: "row", gap: 6, justifyContent: "center", flexWrap: "wrap" },
