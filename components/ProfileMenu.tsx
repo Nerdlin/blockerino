@@ -24,7 +24,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { loadShopState, syncShopStateWithProfile, useShopState } from "@/constants/Shop";
 import { PlayerProfile, getPlayerElo, getPlayerGlobalHighScore, upsertAuthenticatedProfile, updateProfileAvatar } from "@/constants/Supabase";
 import { getHighScores, createHighScore } from "@/constants/Storage";
-import { pickAndUploadAvatar } from "@/constants/AvatarUpload";
+import { pickAndUploadAvatar, removeAvatarFiles } from "@/constants/AvatarUpload";
 import { consumeProfileAuthIntent } from "@/constants/ProfileIntent";
 import MatchHistoryList from "./MatchHistoryList";
 import FriendsList from "./FriendsList";
@@ -136,7 +136,6 @@ export default function ProfileMenu() {
 	const [seasonTitles, setSeasonTitles] = useState<SeasonTitle[]>([]);
 	const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 	const [showAvatarPopup, setShowAvatarPopup] = useState(false);
-	const [customAvatarInput, setCustomAvatarInput] = useState("");
 	const [avatarUploading, setAvatarUploading] = useState(false);
 	const [avatarUploadFailed, setAvatarUploadFailed] = useState(false);
 	const [playerElo, setPlayerElo] = useState<number | null>(null);
@@ -644,19 +643,6 @@ export default function ProfileMenu() {
 			]}>
 				<Text style={[styles.sectionHeader, { color: currentTheme.textPrimary }]}>{t("profile.avatarTitle")}</Text>
 				<ScrollView style={{ width: "100%", marginTop: 20 }}>
-					<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
-						{["👾", "🤖", "🧙", "🥷", "👑", "🦊", "🐱", "🐶", "🐼", "💀", "👽", "👻", "🔥", "💎", "⭐"].map(emoji => (
-							<Pressable key={emoji} onPress={async () => {
-								if (!session?.user) return;
-								setAvatarUrl(emoji);
-								setShowAvatarPopup(false);
-								await updateProfileAvatar(session.user.id, emoji);
-							}} style={[styles.emojiAvatarBtn, avatarUrl === emoji && { borderColor: currentTheme.accent }]}>
-								<Text style={{ fontSize: 32 }}>{emoji}</Text>
-							</Pressable>
-						))}
-					</View>
-					
 					<StylizedButton
 						onClick={async () => {
 							if (!session?.user || avatarUploading) return;
@@ -679,25 +665,21 @@ export default function ProfileMenu() {
 					{avatarUploadFailed && <Text style={[styles.inputLabel, { color: "#F87171", marginTop: 8, textAlign: "center" }]}>{t("profile.uploadFailed")}</Text>}
 					<Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginTop: 8, textAlign: "center", fontSize: 11 }]}>{t("profile.avatarNotice")}</Text>
 
-					<Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginTop: 20, textAlign: "center" }]}>{t("profile.avatarUrlLabel")}</Text>
-					<TextInput 
-						style={[styles.input, { borderColor: currentTheme.gridBorder, color: currentTheme.textPrimary, backgroundColor: 'rgba(0,0,0,0.2)' }]}
-						placeholder="https://..."
-						placeholderTextColor={currentTheme.textSecondary}
-						value={customAvatarInput}
-						onChangeText={setCustomAvatarInput}
-					/>
-					<StylizedButton 
-						onClick={async () => {
-							if (!session?.user || !customAvatarInput.trim()) return;
-							setAvatarUrl(customAvatarInput.trim());
-							setShowAvatarPopup(false);
-							await updateProfileAvatar(session.user.id, customAvatarInput.trim());
-						}}
-						text={t("common.save")}
-						backgroundColor={currentTheme.buttonPrimary}
-						style={{ marginTop: 10 }}
-					/>
+					{avatarUrl && avatarUrl.startsWith("http") ? (
+						<StylizedButton
+							onClick={async () => {
+								if (!session?.user) return;
+								const userId = session.user.id;
+								setAvatarUrl(null);
+								setShowAvatarPopup(false);
+								await updateProfileAvatar(userId, null);
+								void removeAvatarFiles(userId);
+							}}
+							text={t("profile.removePhoto")}
+							backgroundColor="rgb(200,50,50)"
+							style={{ marginTop: 16 }}
+						/>
+					) : null}
 				</ScrollView>
 				<StylizedButton onClick={() => setShowAvatarPopup(false)} text={t("common.cancel")} backgroundColor={currentTheme.buttonSecondary} style={{ marginTop: 20 }} />
 			</SimplePopupView>

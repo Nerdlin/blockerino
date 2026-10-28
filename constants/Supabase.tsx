@@ -159,7 +159,8 @@ export async function upsertAuthenticatedProfile(user: User, preferredName?: str
         player_id: user.id,
         player_name: playerName,
         email: user.email ?? null,
-        avatar_url: newAvatar || targetProfile?.avatar_url || null,
+        // a picture the player already chose (an uploaded photo) wins over the one the sign-in provider offers
+        avatar_url: targetProfile?.avatar_url || newAvatar || null,
         login_providers: providers,
         last_login_at: new Date().toISOString(),
     } as any;
