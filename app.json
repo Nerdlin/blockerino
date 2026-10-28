@@ -24,6 +24,7 @@
       "package": "com.nerdlin.blockerino",
       "versionCode": 14,
       "blockedPermissions": [
+        "android.permission.CAMERA",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.RECORD_AUDIO",
