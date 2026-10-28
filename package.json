@@ -1,7 +1,7 @@
 {
   "name": "blockerino",
   "main": "expo-router/entry",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -17,7 +17,8 @@
     "tunnel": "cloudflared tunnel --url http://localhost:8081",
     "e2e:two-player": "node ./scripts/e2e/two-player.mjs",
     "db:check": "node ./scripts/db-check.mjs",
-    "e2e:chess-rpc": "node ./scripts/e2e/chess-rpc.mjs"
+    "e2e:chess-rpc": "node ./scripts/e2e/chess-rpc.mjs",
+    "e2e:avatar-storage": "node ./scripts/e2e/avatar-storage.mjs"
   },
   "jest": {
     "preset": "jest-expo",
