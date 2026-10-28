@@ -4,9 +4,19 @@ This repository and all of its contents (source code, assets, artwork, text,
 database schemas and documentation, together the "Software") are the exclusive
 property of Nerdlin. The Software is NOT open source.
 
-No license or right is granted to you except as follows: you may view and read
-the source code in this repository for personal, educational purposes, and play
-the officially published game.
+No license or right is granted to you except as follows:
+
+  1. You may view and read the source code in this repository for personal,
+     educational purposes, and play the officially published game.
+
+  2. Contribution fork. You may fork this repository on GitHub, and copy,
+     modify and run your fork locally, solely for the purpose of developing
+     and submitting contributions (pull requests, issues, patches) back to
+     the original repository, in accordance with CONTRIBUTING.md and CLA.md.
+     Your fork must keep this LICENSE and the copyright notice unchanged,
+     and must remain a public GitHub fork (or a private copy used only for
+     preparing a contribution). This permission ends for any fork that is
+     used for any other purpose.
 
 Without prior written permission from the copyright holder you may NOT:
 
