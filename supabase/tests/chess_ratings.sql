@@ -103,3 +103,4 @@ begin
 end $$;
 
 rollback;
+select 'chess_ratings ok' as result;

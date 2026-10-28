@@ -116,3 +116,29 @@ export async function cancelQuickMatch(): Promise<void> {
 		// the queue entry expires by itself after 15 seconds
 	}
 }
+
+/** Ratings of the caller's friends, keyed by the friend's account id. Empty for guests and on any failure. */
+export function parseFriendRatings(rows: unknown): Record<string, ChessRatings> {
+	const result: Record<string, ChessRatings> = {};
+	if (!Array.isArray(rows)) return result;
+	for (const row of rows) {
+		if (!row || typeof row !== "object") continue;
+		const entry = row as Record<string, unknown>;
+		const id = entry.friend_ref;
+		const timeClass = entry.time_class as TimeClass;
+		if (typeof id !== "string" || !TIME_CLASSES.includes(timeClass)) continue;
+		if (typeof entry.rating !== "number" || typeof entry.games_played !== "number") continue;
+		(result[id] ??= { bullet: null, blitz: null, rapid: null })[timeClass] = { rating: entry.rating, games: entry.games_played };
+	}
+	return result;
+}
+
+export async function fetchFriendChessRatings(): Promise<Record<string, ChessRatings>> {
+	try {
+		const { data, error } = await supabase.rpc("get_friend_chess_ratings");
+		if (error) return {};
+		return parseFriendRatings(data);
+	} catch {
+		return {};
+	}
+}

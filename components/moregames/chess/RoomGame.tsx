@@ -56,7 +56,7 @@ export function RoomGame({
 	playerName: string;
 	cosmetics: ExtraGameCosmetics;
 	/** A game the server paired: the room code and color are given, nobody types a code. White hosts, Black joins. */
-	autoMatch?: { code: string; color: Color; opponent: string };
+	autoMatch?: { code: string; color: Color; opponent: string; waitMs?: number };
 	onRatingsChanged: () => void;
 	onExit: () => void;
 }) {
@@ -166,6 +166,7 @@ export function RoomGame({
 	const connectRef = useRef(room.connect);
 	useEffect(() => { connectRef.current = room.connect; }, [room.connect]);
 	const autoCode = autoMatch?.code;
+	const autoWaitMs = autoMatch?.waitMs ?? 30000;
 	const autoColor = autoMatch?.color;
 	useEffect(() => {
 		if (!autoCode || !autoColor) return;
@@ -185,7 +186,7 @@ export function RoomGame({
 			if (opponentReadyRef.current) return;
 			roomRef.current.send("leave", {});
 			onExitRef.current();
-		}, 30000));
+		}, autoWaitMs));
 		return () => {
 			timers.forEach(clearTimeout);
 			if (hello) clearInterval(hello);

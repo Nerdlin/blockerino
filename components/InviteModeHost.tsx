@@ -11,6 +11,8 @@ import { GameModeType } from "@/hooks/useAppState";
 export interface IncomingInvite {
 	hostName: string;
 	mode: GameModeType;
+	/** Replaces the default "invites you to a 1v1" line (chess challenges). */
+	bodyText?: string;
 	accept: () => void;
 }
 
@@ -52,7 +54,7 @@ export default function InviteModeHost() {
 						<Text style={[styles.name, { color: currentTheme.accent }]} numberOfLines={1}>
 							{incoming.hostName}
 						</Text>
-						<Text style={[styles.hint, { color: currentTheme.textSecondary }]}>{t("invite.body", { mode: modeName })}</Text>
+						<Text style={[styles.hint, { color: currentTheme.textSecondary }]}>{incoming.bodyText ?? t("invite.body", { mode: modeName })}</Text>
 						<StylizedButton
 							text={t("invite.accept")}
 							onClick={() => {

@@ -9,6 +9,8 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useShopState } from "@/constants/Shop";
 import { MoreGameRating, getMoreGameLeaderboard, MoreGameRatingGameId, getPlayerMoreGameRating } from "@/constants/Supabase";
 import { track } from "@/constants/Analytics";
+import { useAtomValue } from "jotai";
+import { chessInviteAtom } from "@/constants/chess/ChessInvite";
 import { subscribeToOutcomes } from "@/constants/GameStats";
 import { useSoundSettings } from "@/constants/Sound";
 import * as Haptics from "expo-haptics";
@@ -63,6 +65,8 @@ export default function MoreGamesMenu() {
 	const { width } = useWindowDimensions();
 	const isMobile = width < 600;
 	const [activeGame, setActiveGame] = useState<MoreGameId | null>(null);
+	const pendingChessInvite = useAtomValue(chessInviteAtom);
+	useEffect(() => { if (pendingChessInvite) setActiveGame("chess"); }, [pendingChessInvite]);
 	const { state: shopState } = useShopState();
 	
 	const cosmetics: ExtraGameCosmetics = useMemo(() => ({

@@ -2,7 +2,7 @@ import { Chess } from "chess.js";
 import { AUTO_ABORT_MS, autoAbortLeftMs, createClock, flaggedSide, pressClock, remainingMs } from "./ChessClock";
 import { expectedScore, isProvisional, kFactor, MIN_RATING, newRating, ratingChange } from "./ChessElo";
 import { buildPgn, resultFromWinner } from "./ChessPgn";
-import { classifyTimeControl, formatClock, formatTimeControl, makeTimeControl, parseTimeControl, TIME_CONTROLS, timeControlsOf } from "./TimeControls";
+import { classifyTimeControl, customTimeControl, EXTRA_TIME_CONTROLS, formatClock, formatTimeControl, makeTimeControl, parseTimeControl, TIME_CONTROLS, timeControlsOf } from "./TimeControls";
 
 describe("time controls", () => {
 	it("classifies like chess.com", () => {
@@ -40,6 +40,22 @@ describe("time controls", () => {
 		expect(formatClock(7400)).toBe("0:07.4");
 		expect(formatClock(-5)).toBe("0:00.0");
 		expect(formatClock(3725000)).toBe("1:02:05");
+	});
+});
+
+describe("more and custom time controls", () => {
+	it("keeps every extra control valid for the server", () => {
+		for (const control of EXTRA_TIME_CONTROLS) expect(parseTimeControl(control.id)).toEqual(control);
+		expect(EXTRA_TIME_CONTROLS.map((control) => control.timeClass)).toEqual(["bullet", "bullet", "blitz", "rapid", "rapid", "rapid"]);
+	});
+
+	it("builds and clamps a custom control", () => {
+		expect(customTimeControl(7, 3)).toEqual(makeTimeControl(420, 3));
+		expect(customTimeControl(6, 1).timeClass).toBe("blitz");
+		expect(customTimeControl(7, 3).timeClass).toBe("rapid");
+		expect(customTimeControl(0, -5)).toEqual(makeTimeControl(60, 0));
+		expect(customTimeControl(999, 999)).toEqual(makeTimeControl(7200, 60));
+		expect(parseTimeControl(customTimeControl(120, 60).id)).not.toBeNull();
 	});
 });
 

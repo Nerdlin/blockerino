@@ -16,7 +16,8 @@
     "predeploy": "npx cross-env GH_PAGES=1 expo export -p web",
     "tunnel": "cloudflared tunnel --url http://localhost:8081",
     "e2e:two-player": "node ./scripts/e2e/two-player.mjs",
-    "db:check": "node ./scripts/db-check.mjs"
+    "db:check": "node ./scripts/db-check.mjs",
+    "e2e:chess-rpc": "node ./scripts/e2e/chess-rpc.mjs"
   },
   "jest": {
     "preset": "jest-expo",

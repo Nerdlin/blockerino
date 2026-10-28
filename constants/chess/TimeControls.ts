@@ -79,3 +79,23 @@ export function formatClock(ms: number): string {
 		? `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
 		: `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
+
+/** Shown under "More time controls", like chess.com's longer list. */
+export const EXTRA_TIME_CONTROLS: TimeControl[] = [
+	makeTimeControl(30, 0),
+	makeTimeControl(120, 0),
+	makeTimeControl(300, 2),
+	makeTimeControl(600, 5),
+	makeTimeControl(1200, 0),
+	makeTimeControl(3600, 0),
+];
+
+export const CUSTOM_MINUTES = { min: 1, max: 120 };
+export const CUSTOM_BONUS_SECONDS = { min: 0, max: 60 };
+
+/** A time control from the two sliders of the custom picker; both values are clamped to what the server accepts. */
+export function customTimeControl(minutes: number, bonusSeconds: number): TimeControl {
+	const m = Math.max(CUSTOM_MINUTES.min, Math.min(CUSTOM_MINUTES.max, Math.round(minutes)));
+	const b = Math.max(CUSTOM_BONUS_SECONDS.min, Math.min(CUSTOM_BONUS_SECONDS.max, Math.round(bonusSeconds)));
+	return makeTimeControl(m * 60, b);
+}

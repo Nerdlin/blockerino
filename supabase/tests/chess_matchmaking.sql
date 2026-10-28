@@ -99,3 +99,4 @@ begin
 end $$;
 
 rollback;
+select 'chess_matchmaking ok' as result;

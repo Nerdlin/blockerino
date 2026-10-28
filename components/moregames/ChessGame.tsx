@@ -1,5 +1,6 @@
 import { Chess } from "chess.js";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAtom } from "jotai";
 import { View } from "react-native";
 import { ChessBotProfile } from "@/constants/chess/BotRoster";
 import { Color } from "@/constants/chess/ChessClock";
@@ -11,6 +12,11 @@ import { ExtraGameCosmetics } from "./cosmetics";
 import { BotGame } from "./chess/BotGame";
 import { RoomGame } from "./chess/RoomGame";
 import { BotPicker, ChessLobby } from "./chess/ChessScreens";
+import { ChessFriend, ChessFriends } from "./chess/ChessFriends";
+import { ChessTimePicker } from "./chess/ChessTimePicker";
+import { chessInviteAtom, makeInviteCode, sendChessInvite } from "@/constants/chess/ChessInvite";
+import { useLanguage } from "@/constants/Localization";
+import { Alert } from "react-native";
 import { ChessSearch, FoundMatch } from "./chess/ChessSearch";
 import { styles } from "./styles";
 
@@ -25,7 +31,7 @@ export function restoreChessGame(fen: string, history: string[]): Chess {
 	return new Chess(fen);
 }
 
-type Screen = "lobby" | "bots" | "bot" | "friend" | "search" | "match";
+type Screen = "lobby" | "time" | "friends" | "bots" | "bot" | "friend" | "search" | "match";
 
 /**
  * Chess in More Games: a lobby with a rating per time class, bots with a fixed Elo, and games against a friend in a
@@ -37,7 +43,30 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 	const [ratings, setRatings] = useState<ChessRatings>(NO_RATINGS);
 	const [progress, setProgress] = useState<ChessProgress>({ beatenBots: [], form: [], lastTimeControl: null });
 	const [pick, setPick] = useState<{ bot: ChessBotProfile; color: Color; beatenBefore: boolean } | null>(null);
-	const [found, setFound] = useState<FoundMatch | null>(null);
+	const [found, setFound] = useState<(FoundMatch & { waitMs?: number }) | null>(null);
+	const { t } = useLanguage();
+	const [invite, setInvite] = useAtom(chessInviteAtom);
+
+	// An accepted challenge from a friend: join their room as Black right away.
+	useEffect(() => {
+		if (!invite) return;
+		setControl(invite.control);
+		setFound({ code: invite.code, color: "b", opponent: invite.hostName, control: invite.control, waitMs: 30000 });
+		setScreen("match");
+		setInvite(null);
+	}, [invite, setInvite]);
+
+	// Challenges a friend: opens a room with a random code as White, sends the code and waits for the answer.
+	const challenge = useCallback(async (friend: ChessFriend) => {
+		const code = makeInviteCode();
+		const sent = await sendChessInvite(friend.id, { code, hostName: playerName, control });
+		if (!sent) {
+			Alert.alert(t("chess.challengeFailed"));
+			return;
+		}
+		setFound({ code, color: "w", opponent: friend.name, control, waitMs: 60000 });
+		setScreen("match");
+	}, [control, playerName, t]);
 
 	const refreshRatings = useCallback(() => {
 		void fetchMyChessRatings().then(setRatings);
@@ -73,10 +102,25 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 				<ChessLobby
 					ratings={ratings}
 					selected={control}
-					onSelect={(next) => { setControl(next); void rememberTimeControl(next.id); }}
-					onFindOpponent={() => setScreen("search")}
-					onPlayFriend={() => setScreen("friend")}
+					onOpenTime={() => setScreen("time")}
+					onStart={() => setScreen("search")}
+					onPlayFriend={() => setScreen("friends")}
 					onPlayBots={() => { refreshProgress(); setScreen("bots"); }}
+				/>
+			)}
+			{screen === "time" && (
+				<ChessTimePicker
+					selected={control}
+					onPick={(next) => { setControl(next); void rememberTimeControl(next.id); setScreen("lobby"); }}
+					onBack={() => setScreen("lobby")}
+				/>
+			)}
+			{screen === "friends" && (
+				<ChessFriends
+					control={control}
+					onChallenge={(friend) => void challenge(friend)}
+					onPlayWithCode={() => setScreen("friend")}
+					onBack={() => setScreen("lobby")}
 				/>
 			)}
 			{screen === "bots" && (
@@ -116,7 +160,7 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 					control={found.control}
 					playerName={playerName}
 					cosmetics={cosmetics}
-					autoMatch={{ code: found.code, color: found.color, opponent: found.opponent }}
+					autoMatch={{ code: found.code, color: found.color, opponent: found.opponent, waitMs: found.waitMs }}
 					onRatingsChanged={refreshRatings}
 					onExit={() => setScreen("lobby")}
 				/>

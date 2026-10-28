@@ -8,22 +8,22 @@ import { ChessRatings } from "@/constants/chess/ChessRatingsApi";
 import { isProvisional, PROVISIONAL_GAMES } from "@/constants/chess/ChessElo";
 import { GameResult } from "@/constants/chess/ChessGameState";
 import { Color } from "@/constants/chess/ChessClock";
-import { TIME_CLASSES, TIME_CONTROLS, TimeControl, formatTimeControl } from "@/constants/chess/TimeControls";
+import { TIME_CLASSES, TimeControl, formatTimeControl } from "@/constants/chess/TimeControls";
 import StylizedButton from "../../StylizedButton";
 import { BotAvatar } from "./BotAvatar";
 
 export function ChessLobby({
 	ratings,
 	selected,
-	onSelect,
-	onFindOpponent,
+	onOpenTime,
+	onStart,
 	onPlayFriend,
 	onPlayBots,
 }: {
 	ratings: ChessRatings;
 	selected: TimeControl;
-	onSelect: (control: TimeControl) => void;
-	onFindOpponent: () => void;
+	onOpenTime: () => void;
+	onStart: () => void;
 	onPlayFriend: () => void;
 	onPlayBots: () => void;
 }) {
@@ -46,31 +46,24 @@ export function ChessLobby({
 				})}
 			</View>
 
-			<Text style={[local.label, { color: currentTheme.textSecondary }]}>{t("chess.timeControl")}</Text>
-			{TIME_CLASSES.map((timeClass) => (
-				<View key={timeClass} style={local.row}>
-					{TIME_CONTROLS.filter((control) => control.timeClass === timeClass).map((control) => {
-						const on = control.id === selected.id;
-						return (
-							<Pressable
-								key={control.id}
-								testID={`chess-tc-${control.id}`}
-								accessibilityRole="button"
-								accessibilityState={{ selected: on }}
-								accessibilityLabel={formatTimeControl(control)}
-								onPress={() => onSelect(control)}
-								style={[local.chip, { borderColor: on ? currentTheme.accent : "rgba(255,255,255,0.18)" }]}
-							>
-								<Text style={[local.chipText, { color: on ? currentTheme.accent : currentTheme.textPrimary }]}>{formatTimeControl(control)}</Text>
-							</Pressable>
-						);
-					})}
+			<Pressable testID="chess-time-button" accessibilityRole="button" accessibilityLabel={t("chess.timeControl")} onPress={onOpenTime} style={[local.menuRow, { borderColor: currentTheme.accent, marginTop: 12 }]}>
+				<View style={{ flex: 1 }}>
+					<Text style={[local.tiny, { color: currentTheme.textSecondary }]}>{t("chess.timeControl")}</Text>
+					<Text style={[local.menuTitle, { color: currentTheme.textPrimary }]}>{formatTimeControl(selected)} · {t(`chess.${selected.timeClass}`)}</Text>
 				</View>
-			))}
+				<Text style={[local.chevron, { color: currentTheme.accent }]}>{">"}</Text>
+			</Pressable>
 
-			<StylizedButton text={t("chess.findOpponent")} onClick={onFindOpponent} backgroundColor="#2E9E4F" style={local.button} textStyle={local.buttonText} />
-			<StylizedButton text={t("chess.playFriend")} onClick={onPlayFriend} backgroundColor="#1E88E5" style={local.button} textStyle={local.buttonText} />
-			<StylizedButton text={t("chess.playBots")} onClick={onPlayBots} backgroundColor="#7B3FE4" style={local.button} textStyle={local.buttonText} />
+			<StylizedButton text={t("chess.startGame")} onClick={onStart} backgroundColor="#2E9E4F" style={local.startButton} textStyle={{ fontSize: 15 }} />
+
+			<Pressable testID="chess-play-friend" accessibilityRole="button" accessibilityLabel={t("chess.playFriend")} onPress={onPlayFriend} style={[local.menuRow, { borderColor: "rgba(255,255,255,0.18)" }]}>
+				<Text style={[local.menuTitle, { color: currentTheme.textPrimary, flex: 1 }]}>{t("chess.playFriend")}</Text>
+				<Text style={[local.chevron, { color: currentTheme.textSecondary }]}>{">"}</Text>
+			</Pressable>
+			<Pressable testID="chess-play-bots" accessibilityRole="button" accessibilityLabel={t("chess.playBots")} onPress={onPlayBots} style={[local.menuRow, { borderColor: "rgba(255,255,255,0.18)" }]}>
+				<Text style={[local.menuTitle, { color: currentTheme.textPrimary, flex: 1 }]}>{t("chess.playBots")}</Text>
+				<Text style={[local.chevron, { color: currentTheme.textSecondary }]}>{">"}</Text>
+			</Pressable>
 		</View>
 	);
 }
@@ -271,6 +264,10 @@ const local = StyleSheet.create({
 	chipText: { fontFamily: "SilkscreenBold", fontSize: 11 },
 	button: { minWidth: 110, height: 38, minHeight: 38, margin: 0, marginTop: 8, paddingHorizontal: 12 },
 	buttonText: { fontSize: 12 },
+	menuRow: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 2, borderRadius: 10, paddingVertical: 14, paddingHorizontal: 14, backgroundColor: "rgba(255,255,255,0.04)", marginTop: 8 },
+	menuTitle: { fontFamily: "SilkscreenBold", fontSize: 13 },
+	chevron: { fontFamily: "SilkscreenBold", fontSize: 16 },
+	startButton: { width: "100%", height: 50, minHeight: 50, margin: 0, marginTop: 12 },
 	botRow: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 2, borderRadius: 8, padding: 8, backgroundColor: "rgba(255,255,255,0.04)", marginBottom: 4 },
 	avatar: { width: 30, height: 30, borderRadius: 4 },
 	botName: { fontFamily: "SilkscreenBold", fontSize: 12 },
