@@ -137,3 +137,53 @@ export function chooseChessMove(fen: string, difficulty: BotDifficulty, rng: Rng
 	const ties = scored.filter((entry) => entry.score === top);
 	return toMove(pickRandom(rng, ties).move);
 }
+
+/** How a bot of a given Elo plays: search depth, how often it just plays a random move, how often it settles for one of the best few. */
+export interface EngineParams {
+	depth: number;
+	/** Chance of a random legal move (a blunder) instead of a searched one. */
+	randomMoveChance: number;
+	/** Chance of choosing among the best `topN` moves instead of the best one. */
+	topPickChance: number;
+	topN: number;
+	timeBudgetMs: number;
+}
+
+// The table is a first calibration, not a measurement: the engine is a small alpha-beta search, so the ladder is
+// meant to be monotonic (a higher Elo beats a lower one more often than not), checked by the self-play test.
+const ENGINE_LADDER: { upTo: number; params: EngineParams }[] = [
+	{ upTo: 450, params: { depth: 1, randomMoveChance: 0.55, topPickChance: 0.3, topN: 4, timeBudgetMs: 200 } },
+	{ upTo: 550, params: { depth: 1, randomMoveChance: 0.42, topPickChance: 0.3, topN: 4, timeBudgetMs: 200 } },
+	{ upTo: 700, params: { depth: 1, randomMoveChance: 0.28, topPickChance: 0.25, topN: 3, timeBudgetMs: 250 } },
+	{ upTo: 850, params: { depth: 1, randomMoveChance: 0.14, topPickChance: 0.2, topN: 3, timeBudgetMs: 250 } },
+	{ upTo: 1000, params: { depth: 2, randomMoveChance: 0.14, topPickChance: 0.25, topN: 3, timeBudgetMs: 500 } },
+	{ upTo: 1150, params: { depth: 2, randomMoveChance: 0.06, topPickChance: 0.2, topN: 3, timeBudgetMs: 700 } },
+	{ upTo: 1250, params: { depth: 2, randomMoveChance: 0.02, topPickChance: 0.12, topN: 3, timeBudgetMs: 900 } },
+	{ upTo: 1350, params: { depth: 3, randomMoveChance: 0.01, topPickChance: 0.12, topN: 3, timeBudgetMs: 1200 } },
+	{ upTo: 1450, params: { depth: 3, randomMoveChance: 0, topPickChance: 0.06, topN: 2, timeBudgetMs: 1500 } },
+	{ upTo: Infinity, params: { depth: 4, randomMoveChance: 0, topPickChance: 0, topN: 1, timeBudgetMs: 2200 } },
+];
+
+export function engineParamsForElo(elo: number): EngineParams {
+	return (ENGINE_LADDER.find((step) => elo <= step.upTo) ?? ENGINE_LADDER[ENGINE_LADDER.length - 1]).params;
+}
+
+/** The move of a bot with the given Elo. Null when the game is over. */
+export function chooseChessMoveByElo(fen: string, elo: number, rng: Rng = Math.random, options: { timeBudgetMs?: number } = {}): ChessBotMove | null {
+	const chess = new Chess(fen);
+	const legal = chess.moves({ verbose: true }) as unknown as Verbose[];
+	if (legal.length === 0) return null;
+	const params = engineParamsForElo(elo);
+	const toMove = (move: Verbose): ChessBotMove => ({ from: move.from, to: move.to, promotion: move.promotion });
+
+	if (rng() < params.randomMoveChance) return toMove(legal[randomInt(rng, legal.length)]);
+
+	const scored = bestScored(fen, params.depth, options.timeBudgetMs ?? params.timeBudgetMs);
+	// once the bot searches, it never passes up a mate in one
+	if (scored[0].score >= MATE - 1) return toMove(scored[0].move);
+	if (params.topN > 1 && scored.length > 1 && rng() < params.topPickChance) {
+		return toMove(pickRandom(rng, scored.slice(0, params.topN)).move);
+	}
+	const top = scored[0].score;
+	return toMove(pickRandom(rng, scored.filter((entry) => entry.score === top)).move);
+}
