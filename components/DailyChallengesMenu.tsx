@@ -6,6 +6,7 @@ import StylizedButton from "./StylizedButton";
 import { GameModeType, useAppState } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
 import { getHighScores } from "@/constants/Storage";
+import { getMyServerHighScore } from "@/constants/Supabase";
 import { cssColors } from "@/constants/Color";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
@@ -50,7 +51,10 @@ export default function DailyChallengesMenu() {
         Promise.all(
             playableCards.map(async (card) => {
                 const scores = await getHighScores(card.mode, true, true, 1);
-                return [card.mode, scores[0]?.score ?? 0] as const;
+                const local = scores[0]?.score ?? 0;
+                // a fresh install or another device has no local record: the account's record from the server counts too
+                const server = await getMyServerHighScore(card.mode);
+                return [card.mode, Math.max(local, server ?? 0)] as const;
             })
         ).then((entries) => {
             if (!isMounted) return;

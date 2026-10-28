@@ -262,6 +262,22 @@ function getHighScoreColumn(gameMode: string): HighScoreColumn {
     return `highscore_${gameMode}` as HighScoreColumn;
 }
 
+/** The signed-in player's own best result in a mode as the server has it (null: signed out, no row or no column). */
+export async function getMyServerHighScore(gameMode: string): Promise<number | null> {
+    try {
+        const { data: session } = await supabase.auth.getSession();
+        const userId = session.session?.user?.id;
+        if (!userId) return null;
+        const column = getHighScoreColumn(gameMode);
+        const { data, error } = await supabase.from('profiles').select(column).eq('auth_user_id', userId).limit(1);
+        if (error || !data || data.length === 0) return null;
+        const value = (data[0] as unknown as Record<string, unknown>)[column];
+        return typeof value === 'number' ? value : null;
+    } catch {
+        return null;
+    }
+}
+
 function isMissingHighScoreColumnError(error: unknown, scoreColumn: HighScoreColumn): boolean {
     const err = error as { code?: string; message?: string; details?: string; hint?: string } | null;
     const message = `${err?.code || ''} ${err?.message || ''} ${err?.details || ''} ${err?.hint || ''}`.toLowerCase();
