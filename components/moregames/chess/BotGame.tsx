@@ -15,6 +15,7 @@ import StylizedButton from "../../StylizedButton";
 import { ExtraGameCosmetics } from "../cosmetics";
 import { HintButton } from "../HintButton";
 import { ChessGameView } from "./ChessGameView";
+import { useChessSounds } from "./useChessSounds";
 import { ResultLayer } from "./ChessScreens";
 
 /**
@@ -51,6 +52,8 @@ export function BotGame({
 	const botColor: Color = color === "w" ? "b" : "w";
 	const savedRef = useRef<string | null>(null);
 	const startedRef = useRef(Date.now());
+
+	useChessSounds(state, color, 0);
 
 	const say = useCallback((kind: QuipKind) => setBubble(botQuip(bot, kind, lang)), [bot, lang]);
 
@@ -164,6 +167,7 @@ export function BotGame({
 				onOfferDraw={() => {}}
 				onAnswerDraw={() => {}}
 				onCopyPgn={copyPgn}
+				onNewGame={onExit}
 			/>
 			{!state.result ? (
 				<View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>

@@ -10,7 +10,9 @@ import { GameResult } from "@/constants/chess/ChessGameState";
 import { Color } from "@/constants/chess/ChessClock";
 import { TIME_CLASSES, TimeControl, formatTimeControl } from "@/constants/chess/TimeControls";
 import StylizedButton from "../../StylizedButton";
+import Animated, { FadeIn, ZoomIn } from "react-native-reanimated";
 import { BotAvatar } from "./BotAvatar";
+import { PixelIcon } from "./PixelIcon";
 
 export function ChessLobby({
 	ratings,
@@ -38,6 +40,7 @@ export function ChessLobby({
 					const games = entry?.games ?? 0;
 					return (
 						<View key={timeClass} testID={`chess-rating-${timeClass}`} style={[local.card, { borderColor: selected.timeClass === timeClass ? currentTheme.accent : "rgba(255,255,255,0.18)" }]}>
+							<PixelIcon name={timeClass === "bullet" ? "bullet" : timeClass === "blitz" ? "blitz" : "rapid"} size={26} />
 							<Text style={[local.small, { color: currentTheme.textSecondary }]}>{t(`chess.${timeClass}`)}</Text>
 							<Text style={[local.big, { color: currentTheme.textPrimary }]}>{entry?.rating ?? START_RATING}</Text>
 							<Text style={[local.tiny, { color: currentTheme.textSecondary }]}>{t("chess.games", { n: games })}</Text>
@@ -47,6 +50,7 @@ export function ChessLobby({
 			</View>
 
 			<Pressable testID="chess-time-button" accessibilityRole="button" accessibilityLabel={t("chess.timeControl")} onPress={onOpenTime} style={[local.menuRow, { borderColor: currentTheme.accent, marginTop: 12 }]}>
+				<PixelIcon name={selected.timeClass === "bullet" ? "bullet" : selected.timeClass === "blitz" ? "blitz" : "rapid"} size={28} />
 				<View style={{ flex: 1 }}>
 					<Text style={[local.tiny, { color: currentTheme.textSecondary }]}>{t("chess.timeControl")}</Text>
 					<Text style={[local.menuTitle, { color: currentTheme.textPrimary }]}>{formatTimeControl(selected)} · {t(`chess.${selected.timeClass}`)}</Text>
@@ -57,10 +61,12 @@ export function ChessLobby({
 			<StylizedButton text={t("chess.startGame")} onClick={onStart} backgroundColor="#2E9E4F" style={local.startButton} textStyle={{ fontSize: 15 }} />
 
 			<Pressable testID="chess-play-friend" accessibilityRole="button" accessibilityLabel={t("chess.playFriend")} onPress={onPlayFriend} style={[local.menuRow, { borderColor: "rgba(255,255,255,0.18)" }]}>
+				<PixelIcon name="friends" size={26} />
 				<Text style={[local.menuTitle, { color: currentTheme.textPrimary, flex: 1 }]}>{t("chess.playFriend")}</Text>
 				<Text style={[local.chevron, { color: currentTheme.textSecondary }]}>{">"}</Text>
 			</Pressable>
 			<Pressable testID="chess-play-bots" accessibilityRole="button" accessibilityLabel={t("chess.playBots")} onPress={onPlayBots} style={[local.menuRow, { borderColor: "rgba(255,255,255,0.18)" }]}>
+				<PixelIcon name="robot" size={26} />
 				<Text style={[local.menuTitle, { color: currentTheme.textPrimary, flex: 1 }]}>{t("chess.playBots")}</Text>
 				<Text style={[local.chevron, { color: currentTheme.textSecondary }]}>{">"}</Text>
 			</Pressable>
@@ -192,7 +198,7 @@ export function ChessResultCard({
 		: t("chess.lost");
 	const tone = result.winner === null || result.winner === "draw" ? currentTheme.textPrimary : result.winner === myColor ? "#2E9E4F" : "#F87171";
 	return (
-		<View testID="chess-result" style={[local.result, onClose && local.resultOverlay, { borderColor: tone }]}>
+		<Animated.View testID="chess-result" entering={onClose ? ZoomIn.springify().damping(13) : FadeIn} style={[local.result, onClose && local.resultOverlay, { borderColor: tone }]}>
 			{onClose ? (
 				<Pressable testID="chess-result-close" accessibilityRole="button" accessibilityLabel="close" onPress={onClose} style={local.close}>
 					<Text style={[local.closeText, { color: currentTheme.textSecondary }]}>X</Text>
@@ -209,7 +215,7 @@ export function ChessResultCard({
 				<StylizedButton text={newGameLabel ?? t("chess.newGame")} onClick={onNewGame} backgroundColor="#1E88E5" style={local.button} textStyle={local.buttonText} />
 				<StylizedButton text={t("chess.pgn")} onClick={onCopyPgn} backgroundColor={currentTheme.buttonSecondary} style={local.button} textStyle={local.buttonText} />
 			</View>
-		</View>
+		</Animated.View>
 	);
 }
 
@@ -256,7 +262,7 @@ const local = StyleSheet.create({
 	screen: { width: "100%", maxWidth: 360, alignItems: "stretch", gap: 6 },
 	label: { fontFamily: "Silkscreen", fontSize: 10, marginTop: 8, marginBottom: 2 },
 	row: { flexDirection: "row", gap: 6, justifyContent: "center", flexWrap: "wrap" },
-	card: { flex: 1, borderWidth: 2, borderRadius: 8, padding: 8, backgroundColor: "rgba(255,255,255,0.04)", alignItems: "center" },
+	card: { flex: 1, borderWidth: 2, borderRadius: 8, padding: 8, backgroundColor: "rgba(255,255,255,0.04)", alignItems: "center", gap: 2 },
 	small: { fontFamily: "Silkscreen", fontSize: 10, textAlign: "center" },
 	big: { fontFamily: "SilkscreenBold", fontSize: 16, textAlign: "center" },
 	tiny: { fontFamily: "Silkscreen", fontSize: 9 },

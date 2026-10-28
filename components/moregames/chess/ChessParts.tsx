@@ -1,9 +1,23 @@
 import { Chess } from "chess.js";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, {
+	Easing,
+	FadeIn,
+	FadeOut,
+	useAnimatedStyle,
+	useSharedValue,
+	withRepeat,
+	withSequence,
+	withTiming,
+	ZoomIn,
+	ZoomOut,
+} from "react-native-reanimated";
 import { useTheme } from "@/constants/Theme";
+import { BotLook } from "@/constants/chess/BotSprites";
+import { TrackedPiece, livePieces, trackPieces } from "@/constants/chess/PieceTracker";
 import { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics } from "../cosmetics";
 import { styles as gameStyles } from "../styles";
-import { BotLook } from "@/constants/chess/BotSprites";
 import { BotAvatar } from "./BotAvatar";
 
 export const CHESS_FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -12,6 +26,9 @@ export const UNICODE_PIECES: Record<string, string> = {
 	wp: "♙", wn: "♘", wb: "♗", wr: "♖", wq: "♕", wk: "♔",
 	bp: "♟", bn: "♞", bb: "♝", br: "♜", bq: "♛", bk: "♚",
 };
+
+const BOARD_BORDER = 4;
+const MOVE_MS = 230;
 
 export function getChessBoardColors(board: ExtraGameCosmetics["chessBoard"], dark: boolean) {
 	const colors = CHESS_BOARD_COLORS[board] ?? CHESS_BOARD_COLORS.slate;
@@ -30,8 +47,90 @@ export function checkedKingSquare(fen: string): string | null {
 	return null;
 }
 
+/**
+ * The pieces to draw, with identities that survive moves. When the move list does not lead to the position (a game
+ * restored from a bare FEN), the pieces are read from the position instead and simply jump rather than slide.
+ */
+export function piecesFor(fen: string, moves: readonly string[]): (TrackedPiece & { square: string })[] {
+	const board = new Chess(fen).board().flat().filter((piece) => piece !== null);
+	const wanted = board.map((piece) => `${piece!.color}${piece!.type}@${piece!.square}`).sort().join();
+	try {
+		const tracked = livePieces(trackPieces(moves));
+		if (tracked.map((piece) => `${piece.color}${piece.type}@${piece.square}`).sort().join() === wanted) return tracked;
+	} catch {}
+	const counts: Record<string, number> = {};
+	return board.map((piece) => {
+		const prefix = `${piece!.color}${piece!.type}`;
+		counts[prefix] = (counts[prefix] ?? 0) + 1;
+		return { id: `${prefix}${counts[prefix]}`, type: piece!.type, color: piece!.color, square: piece!.square };
+	});
+}
+
+function AnimatedPiece({
+	x,
+	y,
+	size,
+	glyph,
+	color,
+	heavy,
+	settled,
+}: {
+	x: number;
+	y: number;
+	size: number;
+	glyph: string;
+	color: string;
+	heavy: boolean;
+	/** False while the board is first drawn, so the opening position does not fly in. */
+	settled: boolean;
+}) {
+	const left = useSharedValue(x);
+	const top = useSharedValue(y);
+	const lift = useSharedValue(0);
+	const first = useRef(true);
+	useEffect(() => {
+		if (first.current) {
+			first.current = false;
+			left.value = x;
+			top.value = y;
+			return;
+		}
+		if (left.value === x && top.value === y) return;
+		// the moving piece rises a little while it travels, so it reads as picked up and put down
+		lift.value = withSequence(withTiming(1, { duration: MOVE_MS * 0.4 }), withTiming(0, { duration: MOVE_MS * 0.6 }));
+		left.value = withTiming(x, { duration: MOVE_MS, easing: Easing.out(Easing.cubic) });
+		top.value = withTiming(y, { duration: MOVE_MS, easing: Easing.out(Easing.cubic) });
+	}, [x, y, left, top, lift]);
+	const style = useAnimatedStyle(() => ({
+		left: left.value,
+		top: top.value,
+		zIndex: lift.value > 0 ? 5 : 1,
+		transform: [{ scale: 1 + lift.value * 0.16 }],
+	}));
+	return (
+		<Animated.View
+			pointerEvents="none"
+			entering={settled ? FadeIn.duration(180) : undefined}
+			exiting={ZoomOut.duration(200)}
+			style={[local.piece, { width: size, height: size }, style]}
+		>
+			<Text style={[gameStyles.chessPiece, heavy && gameStyles.chessPieceClub, { color }]}>{glyph}</Text>
+		</Animated.View>
+	);
+}
+
+function CheckGlow({ x, y, size }: { x: number; y: number; size: number }) {
+	const glow = useSharedValue(0.25);
+	useEffect(() => {
+		glow.value = withRepeat(withSequence(withTiming(0.8, { duration: 500 }), withTiming(0.25, { duration: 500 })), -1, false);
+	}, [glow]);
+	const style = useAnimatedStyle(() => ({ opacity: glow.value }));
+	return <Animated.View pointerEvents="none" style={[{ position: "absolute", left: x, top: y, width: size, height: size, backgroundColor: "#F87171" }, style]} />;
+}
+
 export function ChessBoard({
 	fen,
+	moves,
 	flipped,
 	selected,
 	legalTargets,
@@ -41,6 +140,8 @@ export function ChessBoard({
 	onPressSquare,
 }: {
 	fen: string;
+	/** The moves (SAN) that lead to `fen`, so the pieces can slide from where they were. */
+	moves: readonly string[];
 	flipped: boolean;
 	selected: string | null;
 	legalTargets: string[];
@@ -51,28 +152,21 @@ export function ChessBoard({
 }) {
 	const ranks = flipped ? [...CHESS_RANKS].reverse() : CHESS_RANKS;
 	const files = flipped ? [...CHESS_FILES].reverse() : CHESS_FILES;
-	const board = new Chess(fen);
 	const kingInCheck = checkedKingSquare(fen);
 	const palette = CHESS_PIECE_COLORS[cosmetics.chessPieces];
-
-	const counts: Record<string, number> = {};
-	const pieces = board.board().flatMap((row, r) =>
-		row.map((piece, f) => {
-			if (!piece) return null;
-			const prefix = `${piece.color}${piece.type}`;
-			counts[prefix] = (counts[prefix] || 0) + 1;
-			return {
-				id: `${prefix}-${counts[prefix]}`,
-				label: UNICODE_PIECES[prefix],
-				color: piece.color,
-				top: `${ranks.indexOf(CHESS_RANKS[r]) * 12.5}%`,
-				left: `${files.indexOf(CHESS_FILES[f]) * 12.5}%`,
-			};
-		})
-	).filter((piece): piece is NonNullable<typeof piece> => piece !== null);
+	const [width, setWidth] = useState(336);
+	const [settled, setSettled] = useState(false);
+	useEffect(() => {
+		const timer = setTimeout(() => setSettled(true), 400);
+		return () => clearTimeout(timer);
+	}, []);
+	const cell = Math.max(1, (width - BOARD_BORDER * 2) / 8);
+	const onLayout = (event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width);
+	const pieces = useMemo(() => piecesFor(fen, moves), [fen, moves]);
+	const at = (square: string) => ({ x: files.indexOf(square[0]) * cell, y: ranks.indexOf(square[1]) * cell });
 
 	return (
-		<View style={gameStyles.chessBoard}>
+		<View style={gameStyles.chessBoard} onLayout={onLayout}>
 			{ranks.map((rank) =>
 				files.map((file) => {
 					const square = `${file}${rank}`;
@@ -91,29 +185,29 @@ export function ChessBoard({
 										selected === square ? "#FACC15"
 										: hint?.from === square ? "#38BDF8"
 										: hint?.to === square ? "#4ADE80"
-										: kingInCheck === square ? "#F87171"
 										: getChessBoardColors(cosmetics.chessBoard, dark),
 								},
 							]}
 						>
-							{marked && selected !== square && <View pointerEvents="none" style={local.lastMove} />}
-							{legalTargets.includes(square) && <View style={gameStyles.legalDot} />}
+							{marked && selected !== square ? (
+								<Animated.View key={`${square}-${moves.length}`} entering={FadeIn.duration(220)} pointerEvents="none" style={local.lastMove} />
+							) : null}
+							{legalTargets.includes(square) ? <Animated.View entering={ZoomIn.duration(140)} exiting={FadeOut.duration(80)} style={gameStyles.legalDot} /> : null}
 						</Pressable>
 					);
 				})
 			)}
+			{kingInCheck ? <CheckGlow {...at(kingInCheck)} size={cell} /> : null}
 			{pieces.map((piece) => (
-				<View key={piece.id} pointerEvents="none" style={[local.piece, { top: piece.top as never, left: piece.left as never }]}>
-					<Text
-						style={[
-							gameStyles.chessPiece,
-							palette.heavy && gameStyles.chessPieceClub,
-							{ color: piece.color === "b" ? palette.black : palette.white },
-						]}
-					>
-						{piece.label}
-					</Text>
-				</View>
+				<AnimatedPiece
+					key={piece.id}
+					{...at(piece.square)}
+					size={cell}
+					glyph={UNICODE_PIECES[`${piece.color}${piece.type}`]}
+					color={piece.color === "b" ? palette.black : palette.white}
+					heavy={palette.heavy}
+					settled={settled}
+				/>
 			))}
 		</View>
 	);
@@ -124,7 +218,7 @@ export function PromotionPicker({ color, cosmetics, label, onPick }: { color: "w
 	const { currentTheme } = useTheme();
 	const palette = CHESS_PIECE_COLORS[cosmetics.chessPieces];
 	return (
-		<View style={local.promotion}>
+		<Animated.View entering={ZoomIn.duration(160)} style={local.promotion}>
 			<Text style={[local.promotionLabel, { color: currentTheme.textSecondary }]}>{label}</Text>
 			<View style={local.promotionRow}>
 				{(["q", "r", "b", "n"] as const).map((piece) => (
@@ -142,7 +236,7 @@ export function PromotionPicker({ color, cosmetics, label, onPick }: { color: "w
 					</Pressable>
 				))}
 			</View>
-		</View>
+		</Animated.View>
 	);
 }
 
@@ -165,6 +259,11 @@ export function PlayerBar({
 	low?: boolean;
 }) {
 	const { currentTheme } = useTheme();
+	const pulse = useSharedValue(1);
+	useEffect(() => {
+		pulse.value = low && active ? withRepeat(withSequence(withTiming(1.12, { duration: 350 }), withTiming(1, { duration: 350 })), -1, false) : withTiming(1, { duration: 150 });
+	}, [low, active, pulse]);
+	const clockStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 	return (
 		<View style={local.bar}>
 			{look ? (
@@ -177,9 +276,9 @@ export function PlayerBar({
 			<Text numberOfLines={1} style={[local.name, { color: currentTheme.textPrimary }]}>{name}</Text>
 			{rating ? <Text style={[local.rating, { color: currentTheme.textSecondary }]}>{rating}</Text> : null}
 			{clock ? (
-				<View style={[local.clock, { borderColor: active ? currentTheme.accent : "rgba(255,255,255,0.2)" }]}>
+				<Animated.View style={[local.clock, { borderColor: active ? currentTheme.accent : "rgba(255,255,255,0.2)" }, clockStyle]}>
 					<Text style={[local.clockText, { color: low ? "#F87171" : active ? currentTheme.accent : currentTheme.textPrimary }]}>{clock}</Text>
-				</View>
+				</Animated.View>
 			) : null}
 		</View>
 	);
@@ -194,13 +293,13 @@ export function MoveStrip({ history, viewPly }: { history: string[]; viewPly: nu
 	return (
 		<View style={local.moves}>
 			{pairs.slice(-4).map((pair) => (
-				<Text key={pair.number} style={[local.move, { color: currentTheme.textSecondary }]}>
+				<Animated.Text key={pair.number} entering={FadeIn.duration(180)} style={[local.move, { color: currentTheme.textSecondary }]}>
 					{pair.number}.{" "}
 					<Text style={[local.moveSan, { color: currentTheme.textPrimary }, viewPly === pair.whitePly && local.moveActive]}>{pair.white}</Text>
 					{pair.black ? (
 						<Text style={[local.moveSan, { color: currentTheme.textPrimary }, viewPly === pair.whitePly + 1 && local.moveActive]}>{` ${pair.black}`}</Text>
 					) : null}
-				</Text>
+				</Animated.Text>
 			))}
 		</View>
 	);
@@ -208,7 +307,7 @@ export function MoveStrip({ history, viewPly }: { history: string[]; viewPly: nu
 
 const local = StyleSheet.create({
 	lastMove: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(255,196,0,0.42)" },
-	piece: { position: "absolute", width: "12.5%", height: "12.5%", alignItems: "center", justifyContent: "center" },
+	piece: { position: "absolute", alignItems: "center", justifyContent: "center" },
 	promotion: { alignItems: "center", gap: 6, marginTop: 8 },
 	promotionLabel: { fontFamily: "Silkscreen", fontSize: 10 },
 	promotionRow: { flexDirection: "row", gap: 8 },

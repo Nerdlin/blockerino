@@ -25,6 +25,7 @@ import { normalizeStoredPlayerName, OnlineRoomControls, roleLabel, useMiniGameRo
 import { OnlineRole } from "../types";
 import { ExtraGameCosmetics } from "../cosmetics";
 import { ChessGameView } from "./ChessGameView";
+import { useChessSounds } from "./useChessSounds";
 import { ResultLayer } from "./ChessScreens";
 
 /** Ticks while a clock runs, so the clocks on screen move; idle otherwise. */
@@ -199,6 +200,7 @@ export function RoomGame({
 	const myColor: Color = room.role === whiteRole ? "w" : "b";
 	const clockRunning = Boolean(state?.clock && !state.result);
 	const now = useNow(clockRunning);
+	useChessSounds(state, myColor, now);
 
 	// Flags and the auto-abort are settled on both sides by the same rule.
 	useEffect(() => {
@@ -331,6 +333,7 @@ export function RoomGame({
 				onOfferDraw={act.offerDraw}
 				onAnswerDraw={act.answerDraw}
 				onCopyPgn={copyPgn}
+				onNewGame={leave}
 			/>
 			{state.result ? (
 				<ResultLayer

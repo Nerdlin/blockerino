@@ -49,7 +49,18 @@ export type SoundType =
   | 'menuClick' 
   | 'invalidPlacement'
   | 'buttonHover'
-  | 'achievement';
+  | 'achievement'
+  | 'chessMove'
+  | 'chessCapture'
+  | 'chessCheck'
+  | 'chessCastle'
+  | 'chessPromote'
+  | 'chessStart'
+  | 'chessWin'
+  | 'chessLose'
+  | 'chessDraw'
+  | 'chessLowTime'
+  | 'chessSelect';
 
 const MUSIC_TRACK_RESOURCES = {
   backgroundMusic: require('../assets/sounds/background-music.mp3'),
@@ -122,6 +133,17 @@ const SFX_RESOURCES = {
   invalidPlacement: require('../assets/sounds/invalid-placement.mp3'),
   buttonHover: require('../assets/sounds/button-hover.mp3'),
   achievement: require('../assets/sounds/achievement-unlock.mp3'),
+  chessMove: require('../assets/sounds/chess/chess-move.mp3'),
+  chessCapture: require('../assets/sounds/chess/chess-capture.mp3'),
+  chessCheck: require('../assets/sounds/chess/chess-check.mp3'),
+  chessCastle: require('../assets/sounds/chess/chess-castle.mp3'),
+  chessPromote: require('../assets/sounds/chess/chess-promote.mp3'),
+  chessStart: require('../assets/sounds/chess/chess-start.mp3'),
+  chessWin: require('../assets/sounds/chess/chess-win.mp3'),
+  chessLose: require('../assets/sounds/chess/chess-lose.mp3'),
+  chessDraw: require('../assets/sounds/chess/chess-draw.mp3'),
+  chessLowTime: require('../assets/sounds/chess/chess-lowtime.mp3'),
+  chessSelect: require('../assets/sounds/chess/chess-select.mp3'),
   sfxWoodPlace: require('../assets/sounds/generated/sfx-wood-place.mp3'),
   sfxWoodClear: require('../assets/sounds/generated/sfx-wood-clear.mp3'),
   sfxWoodClick: require('../assets/sounds/generated/sfx-wood-click.mp3'),

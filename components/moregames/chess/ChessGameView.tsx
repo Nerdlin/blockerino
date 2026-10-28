@@ -1,6 +1,8 @@
 import { Chess } from "chess.js";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { useSoundSettings } from "@/constants/Sound";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { Color, remainingMs, autoAbortLeftMs } from "@/constants/chess/ChessClock";
@@ -11,6 +13,7 @@ import { BotLook } from "@/constants/chess/BotSprites";
 import { ExtraGameCosmetics } from "../cosmetics";
 import { BotAvatar } from "./BotAvatar";
 import { ChessBoard, MoveStrip, PlayerBar, PromotionPicker } from "./ChessParts";
+import { ChessMenuSheet, MenuItem } from "./ChessMenuSheet";
 
 export interface PlayerInfo {
 	name: string;
@@ -41,6 +44,7 @@ export function ChessGameView({
 	onOfferDraw,
 	onAnswerDraw,
 	onCopyPgn,
+	onNewGame,
 	extraActions,
 }: {
 	state: ChessGameState;
@@ -61,10 +65,13 @@ export function ChessGameView({
 	onOfferDraw: () => void;
 	onAnswerDraw: (accept: boolean) => void;
 	onCopyPgn: () => void;
+	/** The menu's "New game": leaves this game for the lobby (against a friend that counts as resigning). */
+	onNewGame: () => void;
 	extraActions?: React.ReactNode;
 }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
+	const { playSfx, sfxEnabled, toggleSfx } = useSoundSettings();
 	const [selected, setSelected] = useState<string | null>(null);
 	const [pending, setPending] = useState<{ from: string; to: string } | null>(null);
 	const [menuOpen, setMenuOpen] = useState(false);
@@ -75,6 +82,7 @@ export function ChessGameView({
 	const live = viewPly === null || viewPly >= plies;
 	const shownPly = live ? plies : Math.max(0, viewPly);
 	const shownFen = live ? state.fen : fenAfter(state, shownPly);
+	const shownMoves = useMemo(() => state.history.slice(0, shownPly), [state.history, shownPly]);
 
 	// A new move snaps the view back to the live position and drops any half-made selection.
 	useEffect(() => {
@@ -93,7 +101,10 @@ export function ChessGameView({
 		if (!live || !myTurn || pending) return;
 		const piece = new Chess(state.fen).get(square as never);
 		if (!selected || piece?.color === myColor) {
-			if (piece?.color === myColor) setSelected(selected === square ? null : square);
+			if (piece?.color === myColor) {
+				setSelected(selected === square ? null : square);
+				void playSfx("chessSelect");
+			}
 			return;
 		}
 		if (isPromotionMove(state, selected, square)) {
@@ -111,6 +122,14 @@ export function ChessGameView({
 	const abortLeft = state.clock ? autoAbortLeftMs(state.clock, state.startedAt, now) : null;
 	const running = state.clock?.running ? state.clock.turn : null;
 
+	const menuItems: MenuItem[] = [
+		{ key: "new", label: t("chess.newGame"), icon: "newgame", onPress: onNewGame },
+		...(friendGame && !state.result && !state.drawOfferFrom && !canAbort(state) ? [{ key: "draw", label: t("chess.offerDraw"), icon: "draw" as const, onPress: onOfferDraw }] : []),
+		{ key: "flip", label: t("chess.flip"), icon: "flip", onPress: () => setFlipped((value) => !value) },
+		{ key: "pgn", label: t("chess.pgn"), icon: "pgn", onPress: onCopyPgn },
+		{ key: "sound", label: t(sfxEnabled ? "chess.soundOn" : "chess.soundOff"), icon: "sound", onPress: () => void toggleSfx(!sfxEnabled) },
+	];
+
 	const offerIncoming = state.drawOfferFrom !== null && state.drawOfferFrom !== myColor;
 	const offerSent = state.drawOfferFrom === myColor;
 
@@ -119,12 +138,12 @@ export function ChessGameView({
 			{bubble ? (
 				<View style={local.bubbleRow}>
 					{opponent.look ? <BotAvatar look={opponent.look} color={opponent.color} size={44} /> : <View style={[local.bubbleAvatar, { backgroundColor: opponent.color }]} />}
-					<View style={local.bubble}><Text style={local.bubbleText}>{bubble}</Text></View>
+					<Animated.View key={bubble} entering={FadeIn.duration(220)} style={local.bubble}><Text style={local.bubbleText}>{bubble}</Text></Animated.View>
 				</View>
 			) : null}
 
 			<PlayerBar name={opponent.name} rating={opponent.rating} color={opponent.color} look={opponent.look} clock={clockOf(topColor)} active={running === topColor} low={lowOf(topColor)} />
-			<ChessBoard fen={shownFen} flipped={flipped} selected={live ? selected : null} legalTargets={targets} lastMove={lastMove} hint={live ? hint ?? null : null} cosmetics={cosmetics} onPressSquare={press} />
+			<ChessBoard fen={shownFen} moves={shownMoves} flipped={flipped} selected={live ? selected : null} legalTargets={targets} lastMove={lastMove} hint={live ? hint ?? null : null} cosmetics={cosmetics} onPressSquare={press} />
 			<PlayerBar name={me.name} rating={me.rating} color={me.color} clock={clockOf(myColor)} active={running === myColor} low={lowOf(myColor)} />
 
 			{pending ? (
@@ -178,25 +197,8 @@ export function ChessGameView({
 				</View>
 			) : null}
 
-			{menuOpen && !state.result ? (
-				<View style={[local.menu, { borderColor: currentTheme.textSecondary }]}>
-					{friendGame && !offerSent && !offerIncoming && !canAbort(state) ? (
-						<MenuItem testID="chess-menu-draw" label={t("chess.offerDraw")} onPress={() => { onOfferDraw(); setMenuOpen(false); }} />
-					) : null}
-					<MenuItem testID="chess-menu-flip" label={t("chess.flip")} onPress={() => { setFlipped((value) => !value); setMenuOpen(false); }} />
-					<MenuItem testID="chess-menu-pgn" label={t("chess.pgn")} onPress={() => { onCopyPgn(); setMenuOpen(false); }} />
-				</View>
-			) : null}
+			{menuOpen ? <ChessMenuSheet items={menuItems} onClose={() => setMenuOpen(false)} /> : null}
 		</View>
-	);
-}
-
-function MenuItem({ label, onPress, testID }: { label: string; onPress: () => void; testID: string }) {
-	const { currentTheme } = useTheme();
-	return (
-		<Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={local.menuItem}>
-			<Text style={[local.menuText, { color: currentTheme.textPrimary }]}>{label}</Text>
-		</Pressable>
 	);
 }
 

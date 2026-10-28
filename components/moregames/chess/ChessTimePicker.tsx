@@ -14,6 +14,7 @@ import {
 	formatTimeControl,
 } from "@/constants/chess/TimeControls";
 import StylizedButton from "../../StylizedButton";
+import { PixelIcon } from "./PixelIcon";
 
 /**
  * The "Time" screen, like chess.com's: three presets per class, a "more time controls" fold-out with longer and
@@ -51,7 +52,10 @@ export function ChessTimePicker({ selected, onPick, onBack }: { selected: TimeCo
 				const rows = [...TIME_CONTROLS, ...(more ? EXTRA_TIME_CONTROLS : [])].filter((control) => control.timeClass === timeClass);
 				return (
 					<View key={timeClass} style={{ width: "100%" }}>
-						<Text style={[local.label, { color: currentTheme.accent }]}>{t(`chess.${timeClass}`)}</Text>
+						<View style={local.heading}>
+							<PixelIcon name={timeClass === "bullet" ? "bullet" : timeClass === "blitz" ? "blitz" : "rapid"} size={22} />
+							<Text style={[local.headingText, { color: currentTheme.accent }]}>{t(`chess.${timeClass}`)}</Text>
+						</View>
 						<View style={local.grid}>{rows.map(chip)}</View>
 					</View>
 				);
@@ -102,6 +106,8 @@ const local = StyleSheet.create({
 	screen: { width: "100%", maxWidth: 360, alignItems: "stretch", gap: 4 },
 	title: { fontFamily: "SilkscreenBold", fontSize: 14, textAlign: "center", marginTop: 4 },
 	label: { fontFamily: "SilkscreenBold", fontSize: 11, marginTop: 10, marginBottom: 6 },
+	heading: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12, marginBottom: 8 },
+	headingText: { fontFamily: "SilkscreenBold", fontSize: 12 },
 	grid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
 	chip: { flexBasis: "31%", flexGrow: 1, borderWidth: 2, borderRadius: 6, paddingVertical: 10, alignItems: "center" },
 	chipText: { fontFamily: "SilkscreenBold", fontSize: 11 },
