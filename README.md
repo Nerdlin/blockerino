@@ -8,7 +8,7 @@
 
 <br />
 
-[![Release](https://img.shields.io/badge/Release-v2.0.0-22c55e?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.0)
+[![Release](https://img.shields.io/badge/Release-v2.0.2-22c55e?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.2)
 [![Platforms](https://img.shields.io/badge/Web_·_Android_·_iOS-1f2937?style=for-the-badge&logo=googlechrome&logoColor=white)](https://blockerino.aionerdlin.me)
 [![Discord](https://img.shields.io/badge/Discord_Activity-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/discovery/applications/1529076492775194836)
 
@@ -19,7 +19,7 @@
 
 <br />
 
-**[▶ Играть в браузере](https://blockerino.aionerdlin.me)** &nbsp;·&nbsp; **[📥 Скачать APK](https://github.com/Nerdlin/blockerino/releases/download/v2.0.0/blockerino-2.0.0.apk)** &nbsp;·&nbsp; **[📖 Что нового](./docs/release-2.0.0.md)**
+**[▶ Играть в браузере](https://blockerino.aionerdlin.me)** &nbsp;·&nbsp; **[📥 Скачать APK](https://github.com/Nerdlin/blockerino/releases/download/v2.0.2/blockerino-2.0.2.apk)** &nbsp;·&nbsp; **[📖 Что нового](./docs/release-2.0.2.md)**
 
 <br />
 
@@ -35,7 +35,7 @@
 <br />
 
 <details open>
-<summary><b>🆕 Что нового в 2.0</b></summary>
+<summary><b>🆕 Что нового в 2.0.x</b></summary>
 
 <br />
 
@@ -45,9 +45,13 @@
 - 📅 ежедневные награды, квесты и стрики
 - 🏅 награды за топ сезона и редкие достижения
 - 🖼 карточка результата, чтобы поделиться счётом
+- ♟ **Шахматы как на chess.com:** контроль времени с часами (пуля, блиц, рапид), рейтинг Elo, боты с характером, вызов друга и поиск соперника, пиксельные иконки и звуки
+- 📷 **Фото в аватарке** (2.0.2): загрузка с устройства, жалобы на фото
+- 🤝 **Приглашение друзей** в Durak, Sea Battle и Tic-Tac-Toe (2.0.2): создайте комнату и позовите друга онлайн одним нажатием
+- 📅 ежедневные задания из 28 видов, меняются каждый день
 - 🔄 обновления «по воздуху» и сборка для Google Play
 
-Полный список: [описание 2.0.0](./docs/release-2.0.0.md).
+Полный список: [2.0.2](./docs/release-2.0.2.md) · [2.0.1](./docs/release-2.0.1.md) · [2.0.0](./docs/release-2.0.0.md).
 
 </details>
 
@@ -57,15 +61,15 @@
 
 ## 📲 Скачать (Android)
 
-> **Последний релиз: [v2.0.0](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.0)**, сборка 12.
-> Исправления онлайн-игр (Sea Battle, Durak, шахматы), новые правила и вид Sea Battle, пиксельные масти в Durak и единый ник аккаунта в Versus и More Games.
+> **Последний релиз: [v2.0.2](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.2)**, сборка 14.
+> Фото в аватарке и жалобы на фото, приглашения друзей в Durak, Sea Battle и Tic-Tac-Toe, исправление шахматных вызовов, шахматы с часами, Elo и ботами (2.0.1), исправления удаления аккаунта и заданий дня.
 
 | Файл | Размер | Для чего |
 | --- | --- | --- |
-| 📥 [**blockerino-2.0.0.apk**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.0/blockerino-2.0.0.apk) | 50,9 МиБ | Установка на телефон |
-| 📦 [**blockerino-2.0.0.aab**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.0/blockerino-2.0.0.aab) | 69,4 МиБ | Google Play Console |
+| 📥 [**blockerino-2.0.2.apk**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.2/blockerino-2.0.2.apk) | 51,5 МиБ | Установка на телефон |
+| 📦 [**blockerino-2.0.2.aab**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.2/blockerino-2.0.2.aab) | 69,9 МиБ | Google Play Console |
 
-Подробности и история: [описание 2.0.0](./docs/release-2.0.0.md) · [все релизы](./docs)
+Подробности и история: [описание 2.0.2](./docs/release-2.0.2.md) · [все релизы](./docs)
 
 > 💡 **Веб-версию** можно установить как приложение: в Chrome выберите «Установить» или «Добавить на главный экран».
 
@@ -81,7 +85,7 @@
 - **Classic 8×8**: классический сбор линий.
 - **Chaos 10×10**: поле больше, в руке 5 фигур.
 - **Challenges**: ежедневный, Speed и Move Limit.
-- **Versus 1v1**: дуэли в реальном времени с рейтингом Elo.
+- **Versus 1v1**: дуэли в реальном времени с рейтингом Elo, поиск случайного соперника (Quick Match).
 
 </td>
     <td width="50%" valign="top">
@@ -100,7 +104,9 @@
 ### 🃏 More Games
 - **Sea Battle**: 10×10, ходишь снова при попадании.
 - **Durak**: 2–6 игроков, переводной, шулеры, 24/36/52 карты.
-- **Chess**, **Tic‑Tac‑Toe**: онлайн.
+- **Приглашение друга** в Durak, Sea Battle и Tic‑Tac‑Toe прямо из экрана комнаты.
+- **Chess**: часы, рейтинг Elo по классам (пуля, блиц, рапид), боты, вызов друга и подбор соперника.
+- **Tic‑Tac‑Toe**: онлайн.
 - **Sudoku** и **Mahjong**: соло.
 - **Магазин**: фигуры, доски, скины, рубашки, темы.
 
@@ -133,6 +139,8 @@ npm install
 | `npm start` | Expo для Android / iOS (эмулятор или Expo Go) |
 | `npm test` | Юнит-тесты (Jest) |
 | `npm run lint` | Проверка кода |
+| `npm run db:check` | Все миграции на чистой локальной базе плюс SQL-тесты (нужен Docker) |
+| `npm run e2e:chess-rpc` · `npm run e2e:avatar-storage` | Серверные проверки шахмат и хранилища аватарок на локальной базе |
 | `npm run tunnel` | Проброс порта через cloudflared (для Discord) |
 
 > Требуется [Node.js](https://nodejs.org/) v18+.
