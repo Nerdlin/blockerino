@@ -1,32 +1,19 @@
 import { Chess } from "chess.js";
-import { useTheme } from "@/constants/Theme";
-import { useLanguage } from "@/constants/Localization";
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { LayoutAnimation, View, Text, Pressable } from "react-native";
-import { submitMoreGameMatchResult } from "@/constants/Supabase";
-import StylizedButton from "../StylizedButton";
-import { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics } from "./cosmetics";
-import { recordMoreGameWin } from "@/constants/Achievements";
-import { recordGameOutcome } from "@/constants/GameStats";
-import { chooseChessMove } from "@/constants/bots/ChessBot";
-import Collapsible from "../Collapsible";
-import { BotPanel, useBotSettings } from "./BotPanel";
-import { HintButton } from "./HintButton";
-import { DuelRole, OnlineRole } from "./types";
-import { OnlineRoomControls, isDuelRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { View } from "react-native";
+import { ChessBotProfile } from "@/constants/chess/BotRoster";
+import { Color } from "@/constants/chess/ChessClock";
+import { ChessProgress, loadChessProgress, rememberTimeControl } from "@/constants/chess/ChessProgress";
+import { ChessRatings, NO_RATINGS, fetchMyChessRatings } from "@/constants/chess/ChessRatingsApi";
+import { START_RATING } from "@/constants/chess/ChessElo";
+import { DEFAULT_TIME_CONTROL, TimeControl, parseTimeControl } from "@/constants/chess/TimeControls";
+import { ExtraGameCosmetics } from "./cosmetics";
+import { BotGame } from "./chess/BotGame";
+import { RoomGame } from "./chess/RoomGame";
+import { BotPicker, ChessLobby } from "./chess/ChessScreens";
 import { styles } from "./styles";
 
-export const CHESS_FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
-export const CHESS_RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
-export const UNICODE_PIECES: Record<string, string> = {
-	wp: "♙", wn: "♘", wb: "♗", wr: "♖", wq: "♕", wk: "♔",
-	bp: "♟", bn: "♞", bb: "♝", br: "♜", bq: "♛", bk: "♚",
-};
-
-export function getChessBoardColors(board: ExtraGameCosmetics["chessBoard"], dark: boolean) {
-	const colors = CHESS_BOARD_COLORS[board] ?? CHESS_BOARD_COLORS.slate;
-	return dark ? colors.dark : colors.light;
-}
+export { CHESS_FILES, CHESS_RANKS, UNICODE_PIECES, getChessBoardColors } from "./chess/ChessParts";
 
 export function restoreChessGame(fen: string, history: string[]): Chess {
 	const replay = new Chess();
@@ -37,367 +24,91 @@ export function restoreChessGame(fen: string, history: string[]): Chess {
 	return new Chess(fen);
 }
 
+type Screen = "lobby" | "bots" | "bot" | "friend";
+
+/**
+ * Chess in More Games: a lobby with a rating per time class, bots with a fixed Elo, and games against a friend in a
+ * room. The game logic lives in constants/chess; this component only moves between the screens.
+ */
 export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
-	const { currentTheme } = useTheme();
-	const { t } = useLanguage();
-	const [fen, setFen] = useState(new Chess().fen());
-	const [history, setHistory] = useState<string[]>([]);
-	const [selected, setSelected] = useState<string | null>(null);
-	const [opponentReady, setOpponentReady] = useState(false);
-	const [opponentName, setOpponentName] = useState("Opponent");
-	const [remoteResult, setRemoteResult] = useState<string | null>(null);
-	const [showColorChoice, setShowColorChoice] = useState(false);
-	const ratingSubmittedRef = useRef<string | null>(null);
-	const { difficulty, setDifficulty, vsBot, setVsBot } = useBotSettings("chess");
+	const [screen, setScreen] = useState<Screen>("lobby");
+	const [control, setControl] = useState<TimeControl>(DEFAULT_TIME_CONTROL);
+	const [ratings, setRatings] = useState<ChessRatings>(NO_RATINGS);
+	const [progress, setProgress] = useState<ChessProgress>({ beatenBots: [], form: [], lastTimeControl: null });
+	const [pick, setPick] = useState<{ bot: ChessBotProfile; color: Color; beatenBefore: boolean } | null>(null);
 
-	const handleEvent = useCallback((event: string, payload: any, senderRole?: OnlineRole) => {
-		if (event === "system_joined" && senderRole) {
-			setOpponentReady(true);
-			setOpponentName(normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)));
-			roomRef.current?.send("sync", { fen, history });
-			return;
-		}
-		if (event === "system_left" && senderRole && roomRef.current.role) {
-			setOpponentName(normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)));
-			setRemoteResult(t("moregames.leftYouWin", { name: roleLabel(senderRole) }));
-			return;
-		}
-		if (event === "sync" && payload.fen) {
-			LayoutAnimation.configureNext({ duration: 350, update: { type: 'easeInEaseOut' } });
-			setFen(payload.fen);
-			setHistory(payload.history || []);
-			setOpponentReady(true);
-			setSelected(null);
-			setRemoteResult(null);
-			setShowColorChoice(false);
-			return;
-		}
-		if (event === "move" && payload.fen) {
-			LayoutAnimation.configureNext({ duration: 350, update: { type: 'easeInEaseOut' } });
-			setFen(payload.fen);
-			setHistory(payload.history || []);
-			setSelected(null);
-			setRemoteResult(null);
-		}
-		if (event === "playAgain") {
-			setShowColorChoice(true);
-		}
-		if (event === "gameEndLeave") {
-			// Оппонент вышел после завершения игры - отключаем и себя
-			roomRef.current?.send("leave", {});
-		}
-	}, [fen, history, t]);
-
-	const room = useMiniGameRoom("chess", handleEvent, playerName);
-	const roomRef = useRef({ role: room.role, send: room.send });
-	useEffect(() => {
-		roomRef.current = { role: room.role, send: room.send };
-	}, [room.role, room.send]);
-
-	const game = useMemo(() => restoreChessGame(fen, history), [fen, history]);
-	const turnRole: DuelRole = game.turn() === "w" ? "player1" : "player2";
-	const botActive = vsBot && !room.role;
-	const botThinking = botActive && game.turn() === "b" && !game.isGameOver();
-	const status = remoteResult || (game.isCheckmate()
-		? t("moregames.checkmate", { color: t(turnRole === "player1" ? "moregames.black" : "moregames.white") })
-		: game.isDraw()
-			? t("moregames.draw")
-			: botThinking ? t("bot.thinking") : t("moregames.turn", { name: t(game.turn() === "w" ? "moregames.white" : "moregames.black") }));
-	// Against the computer the player has the white pieces and the computer answers as black after a short pause.
-	useEffect(() => {
-		if (!botThinking) return;
-		const timer = setTimeout(() => {
-			const reply = chooseChessMove(fen, difficulty);
-			if (!reply) return;
-			const nextGame = restoreChessGame(fen, history);
-			const move = nextGame.move(reply as any);
-			LayoutAnimation.configureNext({ duration: 350, update: { type: "easeInEaseOut" } });
-			setFen(nextGame.fen());
-			setHistory([...history, move.san]);
-			setSelected(null);
-		}, 500);
-		return () => clearTimeout(timer);
-	}, [botThinking, fen, history, difficulty]);
-
-	// Count the win for achievements once per finished game.
-	const winRecordedRef = useRef<string | null>(null);
-	useEffect(() => {
-		const online = room.isConnected && isDuelRole(room.role);
-		const myColor = room.role === "player2" ? "b" : "w";
-		const mated = game.isCheckmate() && game.turn() !== myColor;
-		const iWon = (online && (Boolean(remoteResult) || mated)) || (botActive && mated);
-		const iLost = !iWon && game.isCheckmate() && (online || botActive);
-		const drawn = !iWon && !iLost && game.isDraw() && (online || botActive);
-		if (!iWon && !iLost && !drawn) {
-			if (!game.isGameOver() && !remoteResult) winRecordedRef.current = null;
-			return;
-		}
-		const key = `${room.roomCode}:${fen}:${remoteResult ?? ""}`;
-		if (winRecordedRef.current === key) return;
-		winRecordedRef.current = key;
-		if (iWon) recordMoreGameWin("chess", { vsBot: botActive, difficulty });
-		else recordGameOutcome("chess", iLost ? "loss" : "draw", { vsBot: botActive });
-	}, [botActive, difficulty, fen, game, remoteResult, room.isConnected, room.role, room.roomCode]);
-
-	// A paid hint marks the best move for the player; it goes away as soon as the position changes.
-	const [hint, setHint] = useState<{ from: string; to: string } | null>(null);
-	useEffect(() => setHint(null), [fen]);
-	const showHint = () => {
-		const move = chooseChessMove(fen, "hard", Math.random, { timeBudgetMs: 1200 });
-		if (move) setHint({ from: move.from, to: move.to });
-	};
-
-	const legalTargets = selected ? game.moves({ square: selected as any, verbose: true }).map((move: any) => move.to) : [];
-	const displayRanks = room.role === "player2" ? [...CHESS_RANKS].reverse() : CHESS_RANKS;
-	const displayFiles = room.role === "player2" ? [...CHESS_FILES].reverse() : CHESS_FILES;
-
-	const pressSquare = (square: string) => {
-		if (game.isGameOver() || remoteResult || (room.role && !room.isConnected)) return;
-		const myColor = room.role === "player2" ? "b" : "w";
-		if (isDuelRole(room.role) && (room.role !== turnRole || !opponentReady || remoteResult || game.turn() !== myColor)) return;
-		if (!room.role && game.isGameOver()) return;
-		if (botActive && game.turn() !== "w") return;
-		const piece = game.get(square as any);
-
-		if (!selected || piece?.color === game.turn()) {
-			if (piece?.color === game.turn()) setSelected(selected === square ? null : square);
-			return;
-		}
-
-		try {
-			const nextGame = restoreChessGame(fen, history);
-			const move = nextGame.move({ from: selected, to: square, promotion: "q" } as any);
-			if (move) {
-				const nextFen = nextGame.fen();
-				const nextHistory = [...history, move.san];
-				LayoutAnimation.configureNext({ duration: 350, update: { type: 'easeInEaseOut' } });
-				setFen(nextFen);
-				setHistory(nextHistory);
-				room.send("move", { fen: nextFen, move: `${selected}-${square}`, history: nextHistory });
-			}
-		} catch {}
-		setSelected(null);
-	};
-
-	const reset = () => {
-		const nextFen = new Chess().fen();
-		setFen(nextFen);
-		setHistory([]);
-		setSelected(null);
-		setRemoteResult(null);
-		ratingSubmittedRef.current = null;
-		room.send("sync", { fen: nextFen, history: [] });
-	};
-
-	const handleDisconnect = () => {
-		const isGameOver = game.isCheckmate() || game.isDraw() || remoteResult;
-		if (isGameOver && isDuelRole(room.role)) {
-			// При завершенной игре отправляем событие оппоненту
-			room.send("gameEndLeave", {});
-		}
-		room.disconnect();
-	};
-
-	const handleColorChoice = (chooseWhite: boolean) => {
-		setShowColorChoice(false);
-		const nextFen = new Chess().fen();
-		setFen(nextFen);
-		setHistory([]);
-		setSelected(null);
-		setRemoteResult(null);
-		ratingSubmittedRef.current = null;
-
-		// Если выбрали белых - становимся player1, иначе player2
-		const newRole: DuelRole = chooseWhite ? "player1" : "player2";
-		const opponentRole: DuelRole = chooseWhite ? "player2" : "player1";
-
-		room.send("sync", { fen: nextFen, history: [], swapRoles: true, newRole, opponentRole });
-	};
+	const refreshRatings = useCallback(() => {
+		void fetchMyChessRatings().then(setRatings);
+		onRatingChange();
+	}, [onRatingChange]);
+	const refreshProgress = useCallback(() => {
+		void loadChessProgress().then(setProgress);
+	}, []);
 
 	useEffect(() => {
-		if (!room.isConnected || !isDuelRole(room.role)) return;
-		if (!game.isCheckmate() && !game.isDraw() && !remoteResult) return;
-
-		const result: "player1" | "player2" | "draw" = remoteResult
-			? room.role
-			: game.isDraw()
-				? "draw"
-				: turnRole === "player1" ? "player2" : "player1";
-		const resultKey = `${room.roomCode}:${result}:${fen}:${remoteResult || ""}`;
-		if (ratingSubmittedRef.current === resultKey) return;
-		const shouldSubmit = room.role === "player1" || Boolean(remoteResult);
-		if (!shouldSubmit) return;
-
-		ratingSubmittedRef.current = resultKey;
-		void submitMoreGameMatchResult({
-			gameId: "chess",
-			player1Name: room.role === "player1" ? playerName : opponentName,
-			player2Name: room.role === "player2" ? playerName : opponentName,
-			result,
-			roomCode: room.roomCode,
-			metadata: { fen, source: remoteResult ? "forfeit" : "normal" },
-		}).then(() => onRatingChange());
-	}, [fen, game, onRatingChange, opponentName, playerName, remoteResult, room.isConnected, room.role, room.roomCode, turnRole]);
-
-	if (room.role && !opponentReady) {
-		return (
-			<View style={[styles.onlineGame, { minHeight: 400, justifyContent: 'center' }]}>
-				<OnlineRoomControls
-					roomCode={room.roomCode}
-					setRoomCode={room.setRoomCode}
-					role={room.role}
-					status={room.status}
-					opponentReady={opponentReady}
-					onHost={() => { reset(); setOpponentReady(false); room.connect("player1"); }}
-					onJoin={() => { reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
-					onDisconnect={room.disconnect}
-				/>
-			</View>
-		);
-	}
-
-	const pieceCounts: Record<string, number> = {};
-	const animatedPieces = game.board().flatMap((row, r) => row.map((piece, f) => {
-		if (!piece) return null;
-		const keyPrefix = `${piece.color}${piece.type}`;
-		pieceCounts[keyPrefix] = (pieceCounts[keyPrefix] || 0) + 1;
-		const rank = CHESS_RANKS[r];
-		const file = CHESS_FILES[f];
-		const displayR = displayRanks.indexOf(rank);
-		const displayF = displayFiles.indexOf(file);
-		return {
-			...piece,
-			id: `${keyPrefix}-${pieceCounts[keyPrefix]}`,
-			label: UNICODE_PIECES[`${piece.color}${piece.type}`],
-			top: `${displayR * 12.5}%`,
-			left: `${displayF * 12.5}%`
+		let active = true;
+		void fetchMyChessRatings().then((next) => active && setRatings(next));
+		void loadChessProgress().then((next) => {
+			if (!active) return;
+			setProgress(next);
+			const remembered = parseTimeControl(next.lastTimeControl);
+			if (remembered) setControl(remembered);
+		});
+		return () => {
+			active = false;
 		};
-	})).filter(Boolean);
+	}, []);
+
+	// Echo plays at the player's level: the best rating they have, or the starting one.
+	const playerRating = useMemo(() => {
+		const known = [ratings.bullet, ratings.blitz, ratings.rapid].filter((entry): entry is { rating: number; games: number } => entry !== null);
+		return known.length ? Math.max(...known.map((entry) => entry.rating)) : START_RATING;
+	}, [ratings]);
 
 	return (
-		<View style={styles.onlineGame}>
-
-			<Text style={[styles.gameStatus, { color: game.isCheckmate() || remoteResult ? currentTheme.accent : currentTheme.textPrimary }]}>{room.role && !opponentReady ? t("moregames.waitingOpponent") : status}</Text>
-			<View style={styles.chessBoard}>
-				{displayRanks.map((rank) => displayFiles.map((file) => {
-					const square = `${file}${rank}`;
-					const dark = (CHESS_FILES.indexOf(file) + Number(rank)) % 2 === 0;
-					const legal = legalTargets.includes(square);
-					const boardColor = getChessBoardColors(cosmetics.chessBoard, dark);
-
-					return (
-						<Pressable
-							key={square}
-							testID={`chess-sq-${square}`}
-							onPress={() => pressSquare(square)}
-							style={[
-								styles.chessCell,
-								{ backgroundColor: selected === square ? "#FACC15" : hint?.from === square ? "#38BDF8" : hint?.to === square ? "#4ADE80" : boardColor },
-							]}
-						>
-							{legal && <View style={styles.legalDot} />}
-						</Pressable>
-					);
-				}))}
-
-				{animatedPieces.map((p) => (
-					<View 
-						key={p!.id} 
-						pointerEvents="none"
-						style={{
-							position: 'absolute',
-							width: '12.5%',
-							height: '12.5%',
-							top: p!.top as any,
-							left: p!.left as any,
-							alignItems: 'center',
-							justifyContent: 'center',
-						}}
-					>
-						<Text
-							style={[
-								styles.chessPiece,
-								CHESS_PIECE_COLORS[cosmetics.chessPieces].heavy && styles.chessPieceClub,
-								{ color: p!.color === "b" ? CHESS_PIECE_COLORS[cosmetics.chessPieces].black : CHESS_PIECE_COLORS[cosmetics.chessPieces].white },
-							]}
-						>
-							{p!.label}
-						</Text>
-					</View>
-				))}
-			</View>
-			
-			{history.length > 0 && (
-				<View style={{ width: "100%", maxWidth: 400, marginTop: 12, paddingHorizontal: 8, alignItems: 'center' }}>
-					{(() => {
-						const lastMoveIndex = history.length - 1;
-						const isWhiteMove = lastMoveIndex % 2 === 0;
-						const lastMove = history[lastMoveIndex];
-						const colorText = isWhiteMove ? "White" : "Black";
-						return (
-							<View style={{ flexDirection: 'row' }}>
-								<Text style={{ fontFamily: 'Silkscreen', fontSize: 10, color: currentTheme.textSecondary, marginRight: 4 }}>
-									{colorText}
-								</Text>
-								<Text style={{ fontFamily: 'SilkscreenBold', fontSize: 12, color: currentTheme.textPrimary }}>{lastMove}</Text>
-							</View>
-						);
-					})()}
-				</View>
-			)}
-
-			{(() => {
-				const isGameOver = game.isCheckmate() || game.isDraw() || remoteResult;
-
-				if (showColorChoice) {
-					return (
-						<View style={{ marginTop: 20, alignItems: "center", gap: 10 }}>
-							<Text style={{ fontFamily: 'Silkscreen', fontSize: 12, color: currentTheme.textPrimary, marginBottom: 8 }}>
-								{t("moregames.chooseColor")}
-							</Text>
-							<View style={{ flexDirection: 'row', gap: 12 }}>
-								<StylizedButton
-									text={t("moregames.playAsWhite")}
-									onClick={() => handleColorChoice(true)}
-									backgroundColor={currentTheme.buttonPrimary}
-									style={styles.resetButton}
-									textStyle={styles.smallButtonText}
-								/>
-								<StylizedButton
-									text={t("moregames.playAsBlack")}
-									onClick={() => handleColorChoice(false)}
-									backgroundColor={currentTheme.buttonPrimary}
-									style={styles.resetButton}
-									textStyle={styles.smallButtonText}
-								/>
-							</View>
-						</View>
-					);
-				}
-
-				return null;
-			})()}
-
-			{!room.role && (
-				<>
-					{botActive && <HintButton disabled={game.isGameOver() || botThinking} onHint={showHint} />}
-					<BotPanel vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); reset(); }} difficulty={difficulty} onDifficultyChange={(next) => { setDifficulty(next); reset(); }} />
-				</>
-			)}
-			<View style={{ marginTop: 20, alignItems: "center", width: "100%" }}>
-				<Collapsible visible={!vsBot || Boolean(room.role)}>
-				<OnlineRoomControls
-					roomCode={room.roomCode}
-					setRoomCode={room.setRoomCode}
-					role={room.role}
-					status={room.status}
-					opponentReady={opponentReady}
-					onHost={() => { setVsBot(false); reset(); setOpponentReady(false); room.connect("player1"); }}
-					onJoin={() => { setVsBot(false); reset(); setOpponentReady(false); room.connect("player2", room.roomCode); }}
-					onDisconnect={handleDisconnect}
+		<View style={[styles.onlineGame, { alignItems: "center" }]}>
+			{screen === "lobby" && (
+				<ChessLobby
+					ratings={ratings}
+					selected={control}
+					onSelect={(next) => { setControl(next); void rememberTimeControl(next.id); }}
+					onPlayFriend={() => setScreen("friend")}
+					onPlayBots={() => { refreshProgress(); setScreen("bots"); }}
 				/>
-				</Collapsible>
-			</View>
+			)}
+			{screen === "bots" && (
+				<BotPicker
+					progress={progress}
+					playerRating={playerRating}
+					onBack={() => setScreen("lobby")}
+					onPick={(bot, choice) => {
+						const color: Color = choice === "random" ? (Math.random() < 0.5 ? "w" : "b") : choice;
+						setPick({ bot, color, beatenBefore: progress.beatenBots.includes(bot.id) });
+						setScreen("bot");
+					}}
+				/>
+			)}
+			{screen === "bot" && pick && (
+				<BotGame
+					key={`${pick.bot.id}-${pick.bot.elo}-${pick.color}`}
+					bot={pick.bot}
+					color={pick.color}
+					playerName={playerName}
+					cosmetics={cosmetics}
+					beatenBefore={pick.beatenBefore}
+					onExit={() => { refreshProgress(); setScreen("bots"); }}
+					onProgress={refreshProgress}
+				/>
+			)}
+			{screen === "friend" && (
+				<RoomGame
+					control={control}
+					playerName={playerName}
+					cosmetics={cosmetics}
+					onRatingsChanged={refreshRatings}
+					onExit={() => setScreen("lobby")}
+				/>
+			)}
 		</View>
 	);
 }

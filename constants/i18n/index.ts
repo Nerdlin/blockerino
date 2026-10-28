@@ -17,6 +17,7 @@ import { daily } from "./daily";
 import { firstrun } from "./firstrun";
 import { notifications } from "./notifications";
 import { playerprofile } from "./playerprofile";
+import { chess } from "./chess";
 
 export type ScreenDictionary = { en: Record<string, string>; ru: Record<string, string> };
 
@@ -37,6 +38,7 @@ const modules: ScreenDictionary[] = [
 	firstrun,
 	notifications,
 	playerprofile,
+	chess,
 ];
 
 export const moduleTranslations: Record<Language, Record<string, string>> = {

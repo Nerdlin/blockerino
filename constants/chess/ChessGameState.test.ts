@@ -6,6 +6,7 @@ import {
 	answerDraw,
 	boardOf,
 	canAbort,
+	fenAfter,
 	ChessGameState,
 	hasMatingMaterial,
 	isPromotionMove,
@@ -144,6 +145,18 @@ describe("resign, draw, abort", () => {
 		expect(whiteScore({ winner: "draw", reason: "agreement" })).toBe(0.5);
 		expect(whiteScore({ winner: null, reason: "abort" })).toBeNull();
 		expect(whiteScore(null)).toBeNull();
+	});
+});
+
+describe("stepping through a game", () => {
+	it("gives the position after any number of half-moves", () => {
+		const state = play(newGame(null, 0), ["e4", "e5", "Nf3"]);
+		expect(fenAfter(state, 0)).toBe(new Chess().fen());
+		const afterE4 = new Chess();
+		afterE4.move("e4");
+		expect(fenAfter(state, 1)).toBe(afterE4.fen());
+		expect(fenAfter(state, 99)).toBe(state.fen);
+		expect(fenAfter(state, -3)).toBe(new Chess().fen());
 	});
 });
 

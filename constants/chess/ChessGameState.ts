@@ -74,6 +74,14 @@ export function boardOf(state: ChessGameState): Chess {
 	return new Chess(state.fen);
 }
 
+/** The position after `ply` half-moves (0 is the start), for stepping back through a game. */
+export function fenAfter(state: Pick<ChessGameState, "history">, ply: number): string {
+	const chess = new Chess();
+	const upTo = Math.max(0, Math.min(ply, state.history.length));
+	for (let i = 0; i < upTo; i++) chess.move(state.history[i]);
+	return chess.fen();
+}
+
 /** True when moving `from` to `to` is a pawn reaching the last rank, so the player must pick a piece. */
 export function isPromotionMove(state: ChessGameState, from: string, to: string): boolean {
 	const legal = boardOf(state).moves({ square: from as never, verbose: true }) as unknown as { to: string; promotion?: string }[];
