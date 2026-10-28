@@ -73,6 +73,30 @@ check("another player cannot delete the file", stillThere.status === 200 && (str
 const ownRemove = await tester.client.storage.from("avatars").remove([mine]);
 check("the owner can delete the file", !ownRemove.error && (ownRemove.data ?? []).length === 1);
 
+// The same listing and clean-up the app does (constants/AvatarUpload.ts removeAvatarFiles): replacing keeps only the new file,
+// removing the photo leaves the folder empty.
+async function cleanFolder(client, userId, keep) {
+	const { data } = await client.storage.from("avatars").list(userId, { limit: 100 });
+	const stale = (data ?? []).map((file) => `${userId}/${file.name}`).filter((p) => p !== keep);
+	if (stale.length > 0) await client.storage.from("avatars").remove(stale);
+}
+async function files(client, userId) {
+	const { data } = await client.storage.from("avatars").list(userId, { limit: 100 });
+	return (data ?? []).map((file) => file.name);
+}
+const oldPath = `${tester.id}/avatar-1.jpg`;
+const newPath = `${tester.id}/avatar-2.jpg`;
+await tester.client.storage.from("avatars").upload(oldPath, jpeg, { contentType: "image/jpeg", upsert: true });
+await tester.client.storage.from("avatars").upload(newPath, jpeg, { contentType: "image/jpeg", upsert: true });
+const before = await files(tester.client, tester.id);
+check("both files are visible to the owner before the clean-up", before.length === 2, JSON.stringify(before));
+await cleanFolder(tester.client, tester.id, newPath);
+const afterReplace = await files(tester.client, tester.id);
+check("replacing a photo leaves only the new file", afterReplace.length === 1 && afterReplace[0] === "avatar-2.jpg", JSON.stringify(afterReplace));
+await cleanFolder(tester.client, tester.id, undefined);
+check("removing the photo (or the account) empties the folder", (await files(tester.client, tester.id)).length === 0);
+check("another player sees no files in that folder", (await files(nina.client, tester.id)).length === 0);
+
 const first = await nina.client.rpc("report_avatar", { p_target: tester.id, p_reason: "inappropriate" });
 check("a report is accepted", first.data?.status === "ok", JSON.stringify(first));
 const self = await nina.client.rpc("report_avatar", { p_target: nina.id, p_reason: "other" });
