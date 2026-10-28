@@ -57,7 +57,7 @@ export function RoomGame({
 	playerName: string;
 	cosmetics: ExtraGameCosmetics;
 	/** A game the server paired: the room code and color are given, nobody types a code. White hosts, Black joins. */
-	autoMatch?: { code: string; color: Color; opponent: string; waitMs?: number };
+	autoMatch?: { code: string; color: Color; opponent: string; waitMs?: number; challenge?: boolean };
 	onRatingsChanged: () => void;
 	onExit: () => void;
 }) {
@@ -103,7 +103,7 @@ export function RoomGame({
 			// the host starts the first game as soon as the guest is in
 			if (room.role === "player1") {
 				startGame(control, "player1", 1);
-				room.send("start", { control: control.id, white: "player1", number: 1 });
+				room.send("start", { control: control.id, white: "player1", number: 1, name: playerName });
 			}
 			return;
 		}
@@ -119,16 +119,19 @@ export function RoomGame({
 		if (event === "hello" && room.role === "player1") {
 			setOpponentReady(true);
 			const current = stateRef.current;
-			if (current) room.send("start", { control: activeControlRef.current.id, white: whiteRoleRef.current, number: gameNoRef.current });
+			if (current) room.send("start", { control: activeControlRef.current.id, white: whiteRoleRef.current, number: gameNoRef.current, name: playerName });
 			else {
 				startGame(control, "player1", 1);
-				room.send("start", { control: control.id, white: "player1", number: 1 });
+				room.send("start", { control: control.id, white: "player1", number: 1, name: playerName });
 			}
 			return;
 		}
 		if (event === "start") {
 			const parsed = parseTimeControl(payload?.control);
 			if (!parsed) return;
+			// the host was in the room before the guest came, so the guest never saw its join: a start is proof it is there
+			setOpponentReady(true);
+			if (typeof payload?.name === "string" && payload.name.trim()) setOpponentName(normalizeStoredPlayerName(payload.name));
 			const number = Number(payload?.number) || 1;
 			// the host repeats its start for a guest that asked twice: the same game is not started again
 			if (stateRef.current && number === gameNoRef.current) return;
@@ -214,7 +217,7 @@ export function RoomGame({
 		if (!rematch.me || !rematch.them || room.role !== "player1") return;
 		const next = whiteRole === "player1" ? "player2" : "player1";
 		startGame(activeControl, next, gameNo + 1);
-		room.send("start", { control: activeControl.id, white: next, number: gameNo + 1 });
+		room.send("start", { control: activeControl.id, white: next, number: gameNo + 1, name: playerName });
 	}, [rematch, room, whiteRole, activeControl, gameNo, startGame]);
 
 	// Achievements and the rating report happen once per finished game.
@@ -272,7 +275,7 @@ export function RoomGame({
 	if (autoMatch && (!room.role || !opponentReady || !state)) {
 		return (
 			<View style={{ width: "100%", alignItems: "center", minHeight: 240, justifyContent: "center", gap: 12 }}>
-				<Text style={{ fontFamily: "SilkscreenBold", fontSize: 13, color: currentTheme.textPrimary, textAlign: "center" }}>{t("chess.matchFound", { name: autoMatch.opponent })}</Text>
+				<Text style={{ fontFamily: "SilkscreenBold", fontSize: 13, color: currentTheme.textPrimary, textAlign: "center" }}>{autoMatch.challenge && !opponentReady ? t("chess.waitingFriend", { name: autoMatch.opponent }) : t("chess.matchFound", { name: autoMatch.opponent })}</Text>
 				<Text style={{ fontFamily: "Silkscreen", fontSize: 10, color: currentTheme.textSecondary }}>{t("chess.connecting")}</Text>
 				<StylizedButton text={t("chess.cancel")} onClick={() => { roomRef.current.send("leave", {}); room.disconnect(); onExit(); }} backgroundColor={currentTheme.buttonSecondary} style={{ minWidth: 110, height: 36, minHeight: 36, margin: 0 }} textStyle={{ fontSize: 11 }} />
 			</View>

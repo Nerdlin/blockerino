@@ -43,7 +43,7 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 	const [ratings, setRatings] = useState<ChessRatings>(NO_RATINGS);
 	const [progress, setProgress] = useState<ChessProgress>({ beatenBots: [], form: [], lastTimeControl: null });
 	const [pick, setPick] = useState<{ bot: ChessBotProfile; color: Color; beatenBefore: boolean } | null>(null);
-	const [found, setFound] = useState<(FoundMatch & { waitMs?: number }) | null>(null);
+	const [found, setFound] = useState<(FoundMatch & { waitMs?: number; challenge?: boolean }) | null>(null);
 	const { t } = useLanguage();
 	const [invite, setInvite] = useAtom(chessInviteAtom);
 
@@ -64,7 +64,7 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 			Alert.alert(t("chess.challengeFailed"));
 			return;
 		}
-		setFound({ code, color: "w", opponent: friend.name, control, waitMs: 60000 });
+		setFound({ code, color: "w", opponent: friend.name, control, waitMs: 60000, challenge: true });
 		setScreen("match");
 	}, [control, playerName, t]);
 
@@ -160,7 +160,7 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 					control={found.control}
 					playerName={playerName}
 					cosmetics={cosmetics}
-					autoMatch={{ code: found.code, color: found.color, opponent: found.opponent, waitMs: found.waitMs }}
+					autoMatch={{ code: found.code, color: found.color, opponent: found.opponent, waitMs: found.waitMs, challenge: found.challenge }}
 					onRatingsChanged={refreshRatings}
 					onExit={() => setScreen("lobby")}
 				/>
