@@ -48,7 +48,18 @@ describe("picking quests", () => {
 	it("changes from day to day", () => {
 		const seen = new Set<string>();
 		for (let d = 1; d <= 28; d++) seen.add(pickDailyQuests(`2026-11-${String(d).padStart(2, "0")}`).map((quest) => quest.id).join());
-		expect(seen.size).toBeGreaterThan(5);
+		expect(seen.size).toBeGreaterThan(20);
+	});
+
+	it("keeps duels rare and never repeats a kind in one day", () => {
+		let versusDays = 0;
+		for (let d = 0; d < 300; d++) {
+			const day = new Date(2027, 0, 1 + d);
+			const quests = pickDailyQuests(questDayKey(day));
+			if (quests.some((quest) => quest.kind === "versus")) versusDays++;
+			expect(new Set(quests.map((quest) => quest.kind)).size).toBe(3);
+		}
+		expect(versusDays).toBeLessThan(75);
 	});
 
 	it("formats the local day", () => {
@@ -58,8 +69,12 @@ describe("picking quests", () => {
 
 describe("database rewards", () => {
 	it("match the pool and the bonus", () => {
-		const sql = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", "20261021120000_daily_quests.sql"), "utf8");
-		const body = sql.slice(sql.indexOf("FUNCTION public.daily_quest_reward"), sql.indexOf("FUNCTION public.claim_daily_quests"));
+		// the newest migration that defines the reward table wins (the pool grows by replacing the function)
+		const dir = path.join(__dirname, "..", "supabase", "migrations");
+		const file = fs.readdirSync(dir).filter((name) => fs.readFileSync(path.join(dir, name), "utf8").includes("FUNCTION public.daily_quest_reward")).sort().pop()!;
+		const sql = fs.readFileSync(path.join(dir, file), "utf8");
+		const from = sql.indexOf("FUNCTION public.daily_quest_reward");
+		const body = sql.slice(from, sql.indexOf("FUNCTION public.claim_daily_quests", from) > 0 ? sql.indexOf("FUNCTION public.claim_daily_quests", from) : undefined);
 		const rewards = new Map([...body.matchAll(/WHEN '([A-Za-z_0-9]+)' THEN (\d+)/g)].map((match) => [match[1], Number(match[2])]));
 		expect(rewards.size).toBe(QUEST_POOL.length + 1);
 		for (const quest of QUEST_POOL) expect(rewards.get(quest.id)).toBe(quest.reward);

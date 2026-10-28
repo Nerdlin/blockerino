@@ -378,6 +378,12 @@ export default function OptionsMenu() {
 						backgroundColor={currentTheme.buttonSecondary}
 						style={isMobile ? { minWidth: 200, margin: 4 } : { minWidth: 240, margin: 4 }}
 					/>
+					<StylizedButton
+						text={t("settings.github")}
+						onClick={() => void Linking.openURL("https://github.com/Nerdlin/blockerino")}
+						backgroundColor={currentTheme.buttonSecondary}
+						style={isMobile ? { minWidth: 200, margin: 4 } : { minWidth: 240, margin: 4 }}
+					/>
 				</View>
 
 				<View style={styles.settingSection}>

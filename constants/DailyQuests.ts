@@ -5,7 +5,7 @@ import { supabase } from "./Supabase";
 // progress locally and asks the server to pay: the reward table lives in the daily_quests migration, so the
 // client only sends ids. Signed-in players only, like achievement rewards.
 
-export type QuestKind = "lines" | "games" | "pieces" | "botWin" | "versus" | "moreWin";
+export type QuestKind = "lines" | "games" | "pieces" | "botWin" | "versus" | "moreWin" | "chessWin" | "durakWin" | "seaWin" | "puzzle" | "rescue" | "combo";
 
 export interface QuestDefinition {
 	id: string;
@@ -31,9 +31,27 @@ export const QUEST_POOL: QuestDefinition[] = [
 	{ id: "versus_1", kind: "versus", target: 1, reward: 40 },
 	{ id: "moreWin_1", kind: "moreWin", target: 1, reward: 30 },
 	{ id: "moreWin_2", kind: "moreWin", target: 2, reward: 50 },
+	{ id: "lines_25", kind: "lines", target: 25, reward: 30 },
+	{ id: "lines_70", kind: "lines", target: 70, reward: 50 },
+	{ id: "games_1", kind: "games", target: 1, reward: 10 },
+	{ id: "games_3", kind: "games", target: 3, reward: 30 },
+	{ id: "pieces_70", kind: "pieces", target: 70, reward: 30 },
+	{ id: "pieces_150", kind: "pieces", target: 150, reward: 50 },
+	{ id: "chessWin_1", kind: "chessWin", target: 1, reward: 30 },
+	{ id: "chessWin_2", kind: "chessWin", target: 2, reward: 50 },
+	{ id: "durakWin_1", kind: "durakWin", target: 1, reward: 30 },
+	{ id: "seaWin_1", kind: "seaWin", target: 1, reward: 30 },
+	{ id: "puzzle_1", kind: "puzzle", target: 1, reward: 30 },
+	{ id: "puzzle_2", kind: "puzzle", target: 2, reward: 50 },
+	{ id: "rescue_1", kind: "rescue", target: 1, reward: 30 },
+	{ id: "rescue_2", kind: "rescue", target: 2, reward: 50 },
+	{ id: "combo_1", kind: "combo", target: 1, reward: 30 },
+	{ id: "combo_2", kind: "combo", target: 2, reward: 50 },
 ];
 
-const QUEST_KINDS: QuestKind[] = ["lines", "games", "pieces", "botWin", "versus", "moreWin"];
+const QUEST_KINDS: QuestKind[] = ["lines", "games", "pieces", "botWin", "versus", "moreWin", "chessWin", "durakWin", "seaWin", "puzzle", "rescue", "combo"];
+// How likely a kind is to be picked. Duels need a human opponent online, so they are rare while the player base is small.
+const KIND_WEIGHT: Partial<Record<QuestKind, number>> = { versus: 0.25, durakWin: 0.6, seaWin: 0.6, chessWin: 0.8 };
 // Quests anyone can finish alone and offline; every day has at least one of them.
 const SOLO_KINDS: QuestKind[] = ["lines", "games", "pieces"];
 
@@ -68,12 +86,12 @@ function seededRandom(seed: string): () => number {
 /** The same day gives the same three quests on every device. */
 export function pickDailyQuests(day: string): QuestDefinition[] {
 	const random = seededRandom(`blockerino-quests-${day}`);
-	const kinds = [...QUEST_KINDS];
-	for (let i = kinds.length - 1; i > 0; i--) {
-		const j = Math.floor(random() * (i + 1));
-		[kinds[i], kinds[j]] = [kinds[j], kinds[i]];
-	}
-	const chosen = kinds.slice(0, QUESTS_PER_DAY);
+	// weighted draw without repeats: each kind gets a key random()^(1/weight) and the three largest win
+	const chosen = QUEST_KINDS
+		.map((kind) => ({ kind, key: Math.pow(random(), 1 / (KIND_WEIGHT[kind] ?? 1)) }))
+		.sort((a, b) => b.key - a.key)
+		.slice(0, QUESTS_PER_DAY)
+		.map((entry) => entry.kind);
 	if (!chosen.some((kind) => SOLO_KINDS.includes(kind))) {
 		chosen[QUESTS_PER_DAY - 1] = SOLO_KINDS[Math.floor(random() * SOLO_KINDS.length)];
 	}

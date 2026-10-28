@@ -45,11 +45,11 @@ export const MORE_GAME_CARDS: MoreGameCard[] = [
 		tags: ["skins", "boards", "style"],
 	},
 	{
-		id: "battleship",
-		title: "Sea Battle",
-		color: "#38BDF8",
-		description: "10x10 duel with movable multi-cell ships, ready checks, hits and sunk fleet wins.",
-		tags: ["online", "bot", "10x10"],
+		id: "chess",
+		title: "Chess",
+		color: "#E5E7EB",
+		description: "Legal moves, board rotation, checkmate/draw states and skinable boards.",
+		tags: ["online", "bot", "rules"],
 	},
 	{
 		id: "durak",
@@ -59,18 +59,11 @@ export const MORE_GAME_CARDS: MoreGameCard[] = [
 		tags: ["online", "bot", "cards"],
 	},
 	{
-		id: "chess",
-		title: "Chess",
-		color: "#E5E7EB",
-		description: "Legal moves, board rotation, checkmate/draw states and skinable boards.",
-		tags: ["online", "bot", "rules"],
-	},
-	{
-		id: "sudoku",
-		title: "Sudoku",
-		color: "#A3E635",
-		description: "Polished logic board with highlighting, mistakes, notes and a calmer tile UI.",
-		tags: ["solo", "logic", "notes"],
+		id: "battleship",
+		title: "Sea Battle",
+		color: "#38BDF8",
+		description: "10x10 duel with movable multi-cell ships, ready checks, hits and sunk fleet wins.",
+		tags: ["online", "bot", "10x10"],
 	},
 	{
 		id: "tictactoe",
@@ -78,6 +71,13 @@ export const MORE_GAME_CARDS: MoreGameCard[] = [
 		color: "#F472B6",
 		description: "Quick local or realtime room-code duel with win and draw sync.",
 		tags: ["online", "bot", "quick"],
+	},
+	{
+		id: "sudoku",
+		title: "Sudoku",
+		color: "#A3E635",
+		description: "Polished logic board with highlighting, mistakes, notes and a calmer tile UI.",
+		tags: ["solo", "logic", "notes"],
 	},
 	{
 		id: "mahjong",
@@ -88,7 +88,7 @@ export const MORE_GAME_CARDS: MoreGameCard[] = [
 	},
 ];
 
-export const RATED_MORE_GAME_IDS: RatedMoreGameId[] = ["battleship", "durak", "chess", "tictactoe", "sudoku", "mahjong"];
+export const RATED_MORE_GAME_IDS: RatedMoreGameId[] = ["chess", "durak", "battleship", "tictactoe", "sudoku", "mahjong"];
 export const RATED_MORE_GAME_CARDS = MORE_GAME_CARDS.filter((card): card is MoreGameCard & { id: RatedMoreGameId } => card.id !== "shop");
 export function normalizeStoredPlayerName(value: string | null | undefined) {
 	const name = (value || "").trim().slice(0, 24);

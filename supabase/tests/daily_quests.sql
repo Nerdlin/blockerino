@@ -46,6 +46,10 @@ begin
   -- another day pays again
   r := claim_daily_quests(current_date + 1, array['lines_40']);
   assert (r->>'coins')::int = 160, 'next day pays';
+
+  -- ids added by 20261028100000_daily_quest_pool.sql pay too
+  r := claim_daily_quests(current_date + 1, array['chessWin_1']);
+  assert (r->>'coins')::int = 190, 'pool v2 quest pays 30';
 end $$;
 
 -- a client cannot touch the claims table

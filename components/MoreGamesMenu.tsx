@@ -76,7 +76,7 @@ export default function MoreGamesMenu() {
 
 	const [playerName, setPlayerName] = useState(DEFAULT_MORE_GAME_PLAYER_NAME);
 	const [draftPlayerName, setDraftPlayerName] = useState(DEFAULT_MORE_GAME_PLAYER_NAME);
-	const [ratingGame, setRatingGame] = useState<RatedMoreGameId>("durak");
+	const [ratingGame, setRatingGame] = useState<RatedMoreGameId>("chess");
 	const [leaderboard, setLeaderboard] = useState<MoreGameRating[]>([]);
 	const [myRating, setMyRating] = useState<MoreGameRating | null>(null);
 	const [ratingsLoading, setRatingsLoading] = useState(false);

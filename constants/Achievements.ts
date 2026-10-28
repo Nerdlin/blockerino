@@ -1117,6 +1117,10 @@ function feedDailyQuests(progress: Partial<AchievementStats>): void {
 	recordQuestProgress("versus", progress.versusPlayed ?? 0);
 	const moreWins = (progress.chessWins ?? 0) + (progress.seaWins ?? 0) + (progress.durakWins ?? 0) + (progress.tictactoeWins ?? 0) + (progress.sudokuSolved ?? 0) + (progress.mahjongCleared ?? 0);
 	recordQuestProgress("moreWin", moreWins);
+	recordQuestProgress("chessWin", progress.chessWins ?? 0);
+	recordQuestProgress("durakWin", progress.durakWins ?? 0);
+	recordQuestProgress("seaWin", progress.seaWins ?? 0);
+	recordQuestProgress("puzzle", (progress.sudokuSolved ?? 0) + (progress.mahjongCleared ?? 0));
 }
 
 type WinStatField = "chessWins" | "seaWins" | "durakWins" | "tictactoeWins" | "sudokuSolved" | "mahjongCleared";

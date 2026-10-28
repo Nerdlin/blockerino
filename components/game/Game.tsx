@@ -24,6 +24,7 @@ import SecondChanceModal from '../SecondChanceModal';
 import { applySecondChancePenalty, canUseSecondChance, getSecondChanceCost, SECOND_CHANCE_COSTS } from '@/constants/SecondChance';
 import { getRandomPieceColor } from '@/constants/Piece';
 import { recordAchievementProgress } from '@/constants/Achievements';
+import { recordQuestProgress } from '@/constants/DailyQuests';
 import { consumeMoveLimitMove, GameOverReason, getGameModeConfig, getInitialMovesRemaining, getInitialTimeRemaining, isMoveLimitComplete } from '@/constants/GameModes';
 
 
@@ -223,6 +224,8 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		setGameOverReason(reason ?? null);
 		setIsGameOver(true);
 		recordAchievementProgress({ soloGamesFinished: 1 });
+		if (gameMode === GameModeType.Rescue) recordQuestProgress('rescue');
+		if (gameMode === GameModeType.ComboTrial) recordQuestProgress('combo');
 		if (scoreStorageId.value) {
 			updateHighScore(scoreStorageId.value, {
 				score: score.value,
