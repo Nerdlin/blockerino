@@ -9,6 +9,10 @@ export const profile: ScreenDictionary = {
 		"perk.board.elo": "Versus",
 		"profile.avatarTitle": "Choose avatar",
 		"profile.avatarUrlLabel": "Or custom image URL",
+		"profile.chooseFile": "Upload a photo",
+		"profile.uploading": "Uploading...",
+		"profile.uploadFailed": "Could not upload the photo. Try another one.",
+		"profile.avatarNotice": "Your photo is shown to other players. Pick a picture you are happy to share. Others can report pictures that break the rules.",
 		"profile.title": "Profile",
 
 		// Tabs
@@ -68,6 +72,10 @@ export const profile: ScreenDictionary = {
 		"perk.board.elo": "Versus",
 		"profile.avatarTitle": "Выберите аватар",
 		"profile.avatarUrlLabel": "Или ссылка на изображение",
+		"profile.chooseFile": "Загрузить фото",
+		"profile.uploading": "Загрузка...",
+		"profile.uploadFailed": "Не удалось загрузить фото. Попробуйте другое.",
+		"profile.avatarNotice": "Фото видят другие игроки. Выберите картинку, которой не стесняетесь поделиться. На картинки, нарушающие правила, можно пожаловаться.",
 		"profile.title": "Профиль",
 
 		// Tabs

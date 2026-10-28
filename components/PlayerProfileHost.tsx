@@ -17,6 +17,7 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { useLeaderboardPerk } from "@/constants/LeaderboardPerks";
 import { nameFontFamily } from "@/constants/NameFont";
+import { reportAvatar, type AvatarReportReason } from "@/constants/AvatarUpload";
 import {
 	acceptFriendRequest,
 	deleteFriendRow,
@@ -139,6 +140,9 @@ function PlayerProfileView({ name, onClose }: { name: string; onClose: () => voi
 						onDelete={() => profile.friendRowId && act(() => deleteFriendRow(profile.friendRowId as string))}
 					/>
 					{failed && <Text style={[styles.note, { color: "#F87171" }]}>{t("pp.friendFailed")}</Text>}
+					{signedIn && profile.userId && profile.relation !== "self" && profile.avatarUrl?.startsWith("http") ? (
+						<ReportAvatar userId={profile.userId} />
+					) : null}
 
 					{profile.status === "hidden" ? (
 						<Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("pp.hiddenNobody")}</Text>
@@ -170,6 +174,35 @@ function Header({ profile, nameColor }: { profile: PublicProfile; nameColor: str
 			<Text style={[styles.name, { color: nameColor, fontFamily: nameFontFamily(profile.name) }]} numberOfLines={1} adjustsFontSizeToFit>
 				{profile.name}
 			</Text>
+		</View>
+	);
+}
+
+// A complaint about another player's picture (Google Play requires a way to report user-made content).
+function ReportAvatar({ userId }: { userId: string }) {
+	const { currentTheme } = useTheme();
+	const { t } = useLanguage();
+	const [step, setStep] = useState<"idle" | "choose" | "sent" | "failed">("idle");
+	const send = async (reason: AvatarReportReason) => {
+		setStep((await reportAvatar(userId, reason)) ? "sent" : "failed");
+	};
+	if (step === "sent") return <Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("pp.reportSent")}</Text>;
+	if (step === "idle" || step === "failed") {
+		return (
+			<>
+				{step === "failed" && <Text style={[styles.note, { color: "#F87171" }]}>{t("pp.reportFailed")}</Text>}
+				<Pressable accessibilityRole="button" onPress={() => setStep("choose")}>
+					<Text style={[styles.note, { color: currentTheme.textSecondary, textDecorationLine: "underline" }]}>{t("pp.reportAvatar")}</Text>
+				</Pressable>
+			</>
+		);
+	}
+	return (
+		<View style={styles.column}>
+			<Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("pp.reportTitle")}</Text>
+			<StylizedButton text={t("pp.reportInappropriate")} onClick={() => void send("inappropriate")} backgroundColor="rgb(200,50,50)" style={styles.action} />
+			<StylizedButton text={t("pp.reportPersonal")} onClick={() => void send("personal")} backgroundColor="rgb(200,50,50)" style={styles.action} />
+			<StylizedButton text={t("pp.reportOther")} onClick={() => void send("other")} backgroundColor="rgb(150,150,150)" style={styles.action} />
 		</View>
 	);
 }

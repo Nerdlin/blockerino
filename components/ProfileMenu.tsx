@@ -24,6 +24,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { loadShopState, syncShopStateWithProfile, useShopState } from "@/constants/Shop";
 import { PlayerProfile, getPlayerElo, getPlayerGlobalHighScore, upsertAuthenticatedProfile, updateProfileAvatar } from "@/constants/Supabase";
 import { getHighScores, createHighScore } from "@/constants/Storage";
+import { pickAndUploadAvatar } from "@/constants/AvatarUpload";
 import { consumeProfileAuthIntent } from "@/constants/ProfileIntent";
 import MatchHistoryList from "./MatchHistoryList";
 import FriendsList from "./FriendsList";
@@ -136,6 +137,8 @@ export default function ProfileMenu() {
 	const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 	const [showAvatarPopup, setShowAvatarPopup] = useState(false);
 	const [customAvatarInput, setCustomAvatarInput] = useState("");
+	const [avatarUploading, setAvatarUploading] = useState(false);
+	const [avatarUploadFailed, setAvatarUploadFailed] = useState(false);
 	const [playerElo, setPlayerElo] = useState<number | null>(null);
 	const [classicScore, setClassicScore] = useState<number>(0);
 	const [chaosScore, setChaosScore] = useState<number>(0);
@@ -654,7 +657,29 @@ export default function ProfileMenu() {
 						))}
 					</View>
 					
-					<Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginTop: 30, textAlign: "center" }]}>{t("profile.avatarUrlLabel")}</Text>
+					<StylizedButton
+						onClick={async () => {
+							if (!session?.user || avatarUploading) return;
+							setAvatarUploading(true);
+							setAvatarUploadFailed(false);
+							const result = await pickAndUploadAvatar(session.user.id);
+							setAvatarUploading(false);
+							if (result.status === "ok") {
+								setAvatarUrl(result.url);
+								setShowAvatarPopup(false);
+							} else if (result.status === "failed") {
+								setAvatarUploadFailed(true);
+							}
+						}}
+						text={avatarUploading ? t("profile.uploading") : t("profile.chooseFile")}
+						disabled={avatarUploading}
+						backgroundColor={currentTheme.buttonPrimary}
+						style={{ marginTop: 24 }}
+					/>
+					{avatarUploadFailed && <Text style={[styles.inputLabel, { color: "#F87171", marginTop: 8, textAlign: "center" }]}>{t("profile.uploadFailed")}</Text>}
+					<Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginTop: 8, textAlign: "center", fontSize: 11 }]}>{t("profile.avatarNotice")}</Text>
+
+					<Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginTop: 20, textAlign: "center" }]}>{t("profile.avatarUrlLabel")}</Text>
 					<TextInput 
 						style={[styles.input, { borderColor: currentTheme.gridBorder, color: currentTheme.textPrimary, backgroundColor: 'rgba(0,0,0,0.2)' }]}
 						placeholder="https://..."

@@ -67,6 +67,14 @@
           ]
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Blockerino lets you choose a photo as your avatar.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
       "expo-audio",
       "expo-web-browser",
       [

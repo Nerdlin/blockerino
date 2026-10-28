@@ -1,3 +1,4 @@
+import { removeAvatarFiles } from "@/constants/AvatarUpload";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { atom, useAtom } from "jotai";
@@ -47,6 +48,7 @@ export default function AccountDeleteHost() {
 		try {
 			const { data: { session } } = await supabase.auth.getSession();
 			if (session) {
+				await removeAvatarFiles(session.user.id);
 				const { data, error } = await supabase.rpc("delete_my_account");
 				if (error || !data || (data as { status?: unknown }).status !== "ok") throw error ?? new Error("not deleted");
 				track("account_deleted");
