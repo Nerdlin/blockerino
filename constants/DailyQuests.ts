@@ -185,7 +185,8 @@ export function buildQuestView(state: StoredState): DailyQuestsView {
 		return { ...quest, current, complete: current >= quest.target, claimed: state.claimed.includes(quest.id) };
 	});
 	const bonusReady = quests.every((quest) => quest.complete);
-	const bonusClaimed = state.claimed.includes(BONUS_QUEST_ID);
+	// a stale server claim from another set of quests (the day changed its picks) must not mark an unfinished bonus as taken
+	const bonusClaimed = bonusReady && state.claimed.includes(BONUS_QUEST_ID);
 	const claimableIds = quests.filter((quest) => quest.complete && !quest.claimed).map((quest) => quest.id);
 	// The bonus is only paid once every quest of the day was claimed, so it joins the list in the same call.
 	const bonusJoins = bonusReady && !bonusClaimed;
