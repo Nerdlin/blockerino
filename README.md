@@ -8,7 +8,7 @@
 
 <br />
 
-[![Release](https://img.shields.io/badge/Release-v2.0.2-22c55e?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.2)
+[![Release](https://img.shields.io/badge/Release-v2.0.3-22c55e?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.3)
 [![Platforms](https://img.shields.io/badge/Web_·_Android_·_iOS-1f2937?style=for-the-badge&logo=googlechrome&logoColor=white)](https://blockerino.aionerdlin.me)
 [![Discord](https://img.shields.io/badge/Discord_Activity-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/discovery/applications/1529076492775194836)
 
@@ -19,7 +19,7 @@
 
 <br />
 
-**[▶ Играть в браузере](https://blockerino.aionerdlin.me)** &nbsp;·&nbsp; **[📥 Скачать APK](https://github.com/Nerdlin/blockerino/releases/download/v2.0.2/blockerino-2.0.2.apk)** &nbsp;·&nbsp; **[📖 Что нового](./docs/release-2.0.2.md)**
+**[▶ Играть в браузере](https://blockerino.aionerdlin.me)** &nbsp;·&nbsp; **[📥 Скачать APK](https://github.com/Nerdlin/blockerino/releases/download/v2.0.3/blockerino-2.0.3.apk)** &nbsp;·&nbsp; **[📖 Что нового](./docs/release-2.0.3.md)**
 
 <br />
 
@@ -49,9 +49,11 @@
 - 📷 **Фото в аватарке** (2.0.2): загрузка с устройства, жалобы на фото
 - 🤝 **Приглашение друзей** в Durak, Sea Battle и Tic-Tac-Toe (2.0.2): создайте комнату и позовите друга онлайн одним нажатием
 - 📅 ежедневные задания из 28 видов, меняются каждый день
+- 🃏 **Анимации карт в Дураке** (2.0.3): раздача, «бито», подбор карт
+- 🀄 **Новый Маджонг** (2.0.3): 62 плитки, подсказка, читаемые заблокированные плитки
 - 🔄 обновления «по воздуху» и сборка для Google Play
 
-Полный список: [2.0.2](./docs/release-2.0.2.md) · [2.0.1](./docs/release-2.0.1.md) · [2.0.0](./docs/release-2.0.0.md).
+Полный список: [2.0.3](./docs/release-2.0.3.md) · [2.0.2](./docs/release-2.0.2.md) · [2.0.1](./docs/release-2.0.1.md) · [2.0.0](./docs/release-2.0.0.md).
 
 </details>
 
@@ -61,15 +63,15 @@
 
 ## 📲 Скачать (Android)
 
-> **Последний релиз: [v2.0.2](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.2)**, сборка 14.
-> Фото в аватарке и жалобы на фото, приглашения друзей в Durak, Sea Battle и Tic-Tac-Toe, исправление шахматных вызовов, шахматы с часами, Elo и ботами (2.0.1), исправления удаления аккаунта и заданий дня.
+> **Последний релиз: [v2.0.3](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.3)**, сборка 15.
+> Анимации карт в Дураке, переделанный Маджонг, звуки шахмат громче, рекорды в челленджах (2.0.3). Раньше: фото в аватарке и жалобы на фото, приглашения друзей в Durak, Sea Battle и Tic-Tac-Toe, исправление шахматных вызовов, шахматы с часами, Elo и ботами (2.0.1), исправления удаления аккаунта и заданий дня.
 
 | Файл | Размер | Для чего |
 | --- | --- | --- |
-| 📥 [**blockerino-2.0.2.apk**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.2/blockerino-2.0.2.apk) | 51,5 МиБ | Установка на телефон |
-| 📦 [**blockerino-2.0.2.aab**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.2/blockerino-2.0.2.aab) | 69,9 МиБ | Google Play Console |
+| 📥 [**blockerino-2.0.3.apk**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.3/blockerino-2.0.3.apk) | 51,5 МиБ | Установка на телефон |
+| 📦 [**blockerino-2.0.3.aab**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.3/blockerino-2.0.3.aab) | 69,9 МиБ | Google Play Console |
 
-Подробности и история: [описание 2.0.2](./docs/release-2.0.2.md) · [все релизы](./docs)
+Подробности и история: [описание 2.0.3](./docs/release-2.0.3.md) · [все релизы](./docs)
 
 > 💡 **Веб-версию** можно установить как приложение: в Chrome выберите «Установить» или «Добавить на главный экран».
 

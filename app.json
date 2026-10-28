@@ -2,7 +2,7 @@
   "expo": {
     "name": "Blockerino",
     "slug": "blockerino",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "com.nerdlin.blockerino",
-      "versionCode": 14,
+      "versionCode": 15,
       "blockedPermissions": [
         "android.permission.CAMERA",
         "android.permission.MODIFY_AUDIO_SETTINGS",
