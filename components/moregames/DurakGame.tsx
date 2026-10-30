@@ -232,6 +232,30 @@ export function drawDurakCards(state: DurakState, startRole: OnlineRole) {
 	return next;
 }
 
+// The table message travels in the shared game state in English, so every client translates it on display.
+const DURAK_MESSAGES: [RegExp, string][] = [
+	[/^Attack with any card\.$/, "durak.msg.attackAny"],
+	[/^Draw\.$/, "durak.msg.draw"],
+	[/^(.+) left\. Game cancelled; bets refunded\.$/, "durak.msg.left"],
+	[/^(.+) busted!$/, "durak.msg.busted"],
+	[/^(.+) transferred to (.+)\.$/, "durak.msg.transferred"],
+	[/^Defended\. Attacker may throw more or pass\.$/, "durak.msg.defended"],
+	[/^Defend the next card\.$/, "durak.msg.defendNext"],
+	[/^(.+) defends\.$/, "durak.msg.defends"],
+	[/^(.+) attacks\.$/, "durak.msg.attacks"],
+	[/^(.+) took (\d+) card\(s\)\.$/, "durak.msg.took"],
+];
+
+export function localizeDurakMessage(message: string, t: (key: string, vars?: Record<string, string | number>) => string): string {
+	for (const [pattern, key] of DURAK_MESSAGES) {
+		const match = message.match(pattern);
+		if (!match) continue;
+		if (key === "durak.msg.took") return t(key, { name: match[1], count: match[2] });
+		return t(key, { name: match[1] ?? "", other: match[2] ?? "" });
+	}
+	return message;
+}
+
 export function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
 	const { currentTheme } = useTheme();
 	const tableHeight = Math.max(440, Math.min(600, useWindowDimensions().height - 220));
@@ -858,12 +882,12 @@ const { t } = useLanguage();
 		for (const role of roles) {
 			const label = roleLabel(role as OnlineRole);
 			if (msg.includes(label)) {
-				const name = role === seat ? `${playerName} (you)` : (playerNames[role as OnlineRole] || label);
+				const name = role === seat ? `${playerName} ${t("durak.you")}` : (playerNames[role as OnlineRole] || label);
 				msg = msg.replace(new RegExp(`\\b${label}\\b`, 'g'), name);
 			}
 		}
-		return msg;
-	}, [state?.message, playerNames, playerName, seat]);
+		return localizeDurakMessage(msg, t);
+	}, [state?.message, playerNames, playerName, seat, t]);
 
 	if (room.role && !opponentReady) {
 		return (
@@ -1053,7 +1077,7 @@ const { t } = useLanguage();
 													</View>
 												)}
 											</View>
-											<Text style={[styles.durakAvatarName, isMe && { color: '#86EFAC' }]} numberOfLines={1}>{name}{isMe ? ' (you)' : ''}</Text>
+											<Text style={[styles.durakAvatarName, isMe && { color: '#86EFAC' }]} numberOfLines={1}>{name}{isMe ? ` ${t("durak.you")}` : ''}</Text>
 										</View>
 									</View>
 								);
@@ -1231,6 +1255,7 @@ export function DraggableHandCard({
 	onDragMove?: (x: number, y: number) => void;
 	onDragEnd?: (x: number, y: number, movedUp: boolean) => number | null; // Returns target index if valid drop
 }) {
+	const { t } = useLanguage();
 	const dragX = useRef(new Animated.Value(0)).current;
 	const dragY = useRef(new Animated.Value(0)).current;
 	const [dragging, setDragging] = useState(false);
@@ -1363,7 +1388,7 @@ export function DraggableHandCard({
 			)}
 			{willPlay && (
 				<View style={{ position: 'absolute', top: -24, left: 0, right: 0, alignItems: 'center' }}>
-					<Text style={{ color: '#22C55E', fontSize: 11, fontFamily: 'Silkscreen' }}>PLAY!</Text>
+					<Text style={{ color: '#22C55E', fontSize: 11, fontFamily: 'Silkscreen' }}>{t("durak.play")}</Text>
 				</View>
 			)}
 		</Animated.View>
@@ -1374,6 +1399,7 @@ export function DraggableHandCard({
 export type DurakBoutProps = { rotate: string; attack: string; defense: string | null; trump: string; cosmetics: ExtraGameCosmetics; selected?: boolean; isHoverTarget?: boolean; onAttackPress?: () => void; onDefensePress?: () => void };
 export const DurakBoutAnimated = forwardRef<View, DurakBoutProps>(
 	({ rotate, attack, defense, trump, cosmetics, selected = false, isHoverTarget = false, onAttackPress, onDefensePress }: DurakBoutProps, ref) => {
+	const { t } = useLanguage();
 	const attackAnim = useRef(new Animated.Value(80)).current;
 	const attackOpacity = useRef(new Animated.Value(0)).current;
 	const defenseAnim = useRef(new Animated.Value(40)).current;
@@ -1398,7 +1424,7 @@ export const DurakBoutAnimated = forwardRef<View, DurakBoutProps>(
 		<View ref={ref} style={[styles.durakBout, { transform: [{ rotate }] }]}>
 			{isHoverTarget && (
 				<View style={{ position: 'absolute', top: -5, left: -5, right: -5, bottom: -5, borderRadius: 8, borderWidth: 3, borderColor: '#4ADE80', backgroundColor: 'rgba(74, 222, 128, 0.2)', zIndex: 10, pointerEvents: 'none' }}>
-					<Text style={{ position: 'absolute', top: -15, alignSelf: 'center', color: '#4ADE80', fontSize: 10, fontFamily: 'SilkscreenBold', backgroundColor: '#111827', paddingHorizontal: 4, borderRadius: 4 }}>TARGET</Text>
+					<Text style={{ position: 'absolute', top: -15, alignSelf: 'center', color: '#4ADE80', fontSize: 10, fontFamily: 'SilkscreenBold', backgroundColor: '#111827', paddingHorizontal: 4, borderRadius: 4 }}>{t("durak.target")}</Text>
 				</View>
 			)}
 			<Animated.View style={{ position: 'absolute', top: 0, left: 0, opacity: attackOpacity, transform: [{ translateY: attackAnim }] }}>

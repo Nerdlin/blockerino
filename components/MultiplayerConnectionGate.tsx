@@ -4,6 +4,7 @@ import PixelLoader from "@/components/PixelLoader";
 import { checkSupabaseConnectionDetails } from "@/constants/Connectivity";
 import type { SupabaseConnectionResult } from "@/constants/Connectivity";
 import { useTheme } from "@/constants/Theme";
+import { useLanguage } from "@/constants/Localization";
 import { cssColors } from "@/constants/Color";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -16,6 +17,7 @@ export default function MultiplayerConnectionGate({
 	onBack: () => void;
 }) {
 	const { currentTheme } = useTheme();
+	const { t } = useLanguage();
 	const mountedRef = useRef(true);
 	const [checking, setChecking] = useState(true);
 	const [lastChecked, setLastChecked] = useState<number | null>(null);
@@ -46,7 +48,7 @@ export default function MultiplayerConnectionGate({
 
 	return (
 		<SimplePopupView style={[styles.popup, { backgroundColor: currentTheme.menuBackground }]}>
-			<Text style={[styles.title, { color: currentTheme.textPrimary }]}>Online Required</Text>
+			<Text style={[styles.title, { color: currentTheme.textPrimary }]}>{t("online.required")}</Text>
 			<Text style={[styles.message, { color: currentTheme.textSecondary }]}>
 				Multiplayer, rooms, ELO rating, and ELO leaderboard need an internet connection.
 			</Text>
@@ -54,7 +56,7 @@ export default function MultiplayerConnectionGate({
 			{checking && (
 				<View style={styles.checkingContainer}>
 					<PixelLoader size="large" color={currentTheme.accent} />
-					<Text style={[styles.status, { color: currentTheme.textSecondary }]}>Checking connection...</Text>
+					<Text style={[styles.status, { color: currentTheme.textSecondary }]}>{t("online.checking")}</Text>
 				</View>
 			)}
 
@@ -73,7 +75,7 @@ export default function MultiplayerConnectionGate({
 
 			<View style={styles.buttonRow}>
 				<StylizedButton
-					text="Check Connection"
+					text={t("online.check")}
 					onClick={checkConnection}
 					backgroundColor={currentTheme.buttonPrimary}
 					disabled={checking}
@@ -81,7 +83,7 @@ export default function MultiplayerConnectionGate({
 					textStyle={styles.buttonText}
 				/>
 				<StylizedButton
-					text="Back"
+					text={t("common.back")}
 					onClick={onBack}
 					backgroundColor={cssColors.spaceGray}
 					style={styles.button}

@@ -19,11 +19,28 @@ export function normalizeLanguage(value: string | null | undefined): Language {
 	return value === "ru" ? "ru" : "en";
 }
 
-// Reads the saved language synchronously-ish at startup so font loading can pick a
-// Cyrillic-capable face. Returns DEFAULT_LANGUAGE when nothing is stored yet.
+/** The phone or browser language, when it is one we support; English otherwise. */
+export function detectDeviceLanguage(): Language {
+	try {
+		const locale = Intl.DateTimeFormat().resolvedOptions().locale || "";
+		const browser = typeof navigator !== "undefined" ? navigator.language || "" : "";
+		const russian = /^(ru|be|uk|kk)([-_]|$)/i;
+		return russian.test(locale) || russian.test(browser) ? "ru" : DEFAULT_LANGUAGE;
+	} catch {
+		return DEFAULT_LANGUAGE;
+	}
+}
+
+// Reads the saved language at startup so font loading can pick a Cyrillic-capable face. With nothing saved yet
+// (first launch) the device language is used and saved: switching later reloads the app for the font, which would
+// throw a new player out of their first game.
 export async function loadStoredLanguage(): Promise<Language> {
 	try {
-		return normalizeLanguage(await AsyncStorage.getItem(LANGUAGE_KEY));
+		const stored = await AsyncStorage.getItem(LANGUAGE_KEY);
+		if (stored) return normalizeLanguage(stored);
+		const detected = detectDeviceLanguage();
+		await AsyncStorage.setItem(LANGUAGE_KEY, detected);
+		return detected;
 	} catch {
 		return DEFAULT_LANGUAGE;
 	}
@@ -60,6 +77,19 @@ const en: Dictionary = {
 	"settings.checkUpdates": "Check for Updates",
 	"settings.checkingUpdates": "Checking...",
 	"settings.version": "Version",
+	"settings.restart": "Restart",
+	"settings.endGame": "End Game",
+	"settings.music": "Music",
+	"settings.musicDesc": "Background game music",
+	"settings.sfx": "Sound Effects",
+	"settings.sfxDesc": "Game action sounds",
+	"settings.customMusic": "Custom Music Link",
+	"settings.customSfx": "Custom SFX Link",
+	"settings.customPlaceholder": "YouTube, Spotify, Yandex, or direct .mp3",
+	"settings.open": "Open",
+	"online.required": "Online Required",
+	"online.checking": "Checking connection...",
+	"online.check": "Check Connection",
 
 	// Sudoku
 	"sudoku.solved": "Solved",
@@ -134,6 +164,19 @@ const ru: Dictionary = {
 	"settings.checkUpdates": "Проверить обновления",
 	"settings.checkingUpdates": "Проверка...",
 	"settings.version": "Версия",
+	"settings.restart": "Заново",
+	"settings.endGame": "Завершить игру",
+	"settings.music": "Музыка",
+	"settings.musicDesc": "Фоновая музыка в игре",
+	"settings.sfx": "Звуковые эффекты",
+	"settings.sfxDesc": "Звуки действий в игре",
+	"settings.customMusic": "Своя музыка (ссылка)",
+	"settings.customSfx": "Свои звуки (ссылка)",
+	"settings.customPlaceholder": "YouTube, Spotify, Яндекс или прямая ссылка на .mp3",
+	"settings.open": "Открыть",
+	"online.required": "Нужен интернет",
+	"online.checking": "Проверяем соединение...",
+	"online.check": "Проверить соединение",
 
 	// Sudoku
 	"sudoku.solved": "Решено",

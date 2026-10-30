@@ -1,4 +1,5 @@
-import { Platform, UIManager, useWindowDimensions, ScrollView, View, Text, TextInput } from "react-native";
+import { Platform, Pressable, UIManager, useWindowDimensions, ScrollView, View, Text, TextInput } from "react-native";
+import PixelIcon from "@/components/PixelIcon";
 import FadeInView from "./FadeInView";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
@@ -181,7 +182,18 @@ export default function MoreGamesMenu() {
 				<Text style={[styles.header, { color: currentTheme.textPrimary, flex: 1, fontSize: 16 }]} numberOfLines={2}>
 					{activeCard ? t(`moregames.card.${activeCard.id}.title`) : (ratingPanel === "leaderboard" ? t("moregames.leaderboardTitle") : t("moregames.title"))}
 				</Text>
-				<View style={styles.topBackButton} />
+				{/* Settings (sound, language) without leaving the game; the options screen opens on top */}
+				<View style={[styles.topBackButton, { alignItems: "flex-end", justifyContent: "center", paddingHorizontal: 0 }]}>
+					<Pressable
+						testID="moregames-settings"
+						accessibilityRole="button"
+						accessibilityLabel={t("settings.title")}
+						onPress={() => { void playSfx("menuClick"); appendAppState(MenuStateType.OPTIONS); }}
+						style={({ pressed }) => ({ width: 40, height: 38, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.08)" })}
+					>
+						<PixelIcon name="gear" size={22} color="#D7D7D7" secondaryColor="#FFFFFF" />
+					</Pressable>
+				</View>
 			</View>
 			<Text style={[styles.subHeader, { color: currentTheme.textSecondary, marginBottom: 12 }]}>
 				{activeCard ? t(`moregames.help.${activeCard.id}`) : ratingPanel !== "list" ? t("moregames.subtitleRatings", { game: t(`moregames.label.${ratingGame}`) }) : t("moregames.subtitleList")}

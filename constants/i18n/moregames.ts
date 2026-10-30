@@ -170,6 +170,19 @@ export const moregames: ScreenDictionary = {
 		"durak.tableInfo": "Table bet: {bet} coins · {players} players",
 		"durak.hostDeals": "Host deals the deck",
 		"durak.wins": "{seat} wins!",
+		"durak.you": "(you)",
+		"durak.play": "PLAY!",
+		"durak.target": "TARGET",
+		"durak.msg.attackAny": "Attack with any card.",
+		"durak.msg.draw": "Draw.",
+		"durak.msg.left": "{name} left. Game cancelled; bets refunded.",
+		"durak.msg.busted": "{name} busted!",
+		"durak.msg.defends": "{name} defends.",
+		"durak.msg.transferred": "{name} transferred to {other}.",
+		"durak.msg.defended": "Defended. Attacker may throw more or pass.",
+		"durak.msg.defendNext": "Defend the next card.",
+		"durak.msg.attacks": "{name} attacks.",
+		"durak.msg.took": "{name} took {count} card(s).",
 		"durak.trump": "Trump",
 		"durak.youWon": "You won {amount} coins",
 		"durak.coinsUnit": "coins",
@@ -203,6 +216,7 @@ export const moregames: ScreenDictionary = {
 
 		// Battleship strings
 		"battleship.timer": "{time}s",
+		"battleship.placeAllFirst": "Place all ships first!",
 	},
 	ru: {
 		// Игра против компьютера
@@ -373,6 +387,19 @@ export const moregames: ScreenDictionary = {
 		"durak.tableInfo": "Ставка стола: {bet} монет · игроков: {players}",
 		"durak.hostDeals": "Хост сдает колоду",
 		"durak.wins": "{seat} победил!",
+		"durak.you": "(вы)",
+		"durak.play": "ХОД!",
+		"durak.target": "СЮДА",
+		"durak.msg.attackAny": "Ходите любой картой.",
+		"durak.msg.draw": "Ничья.",
+		"durak.msg.left": "{name} вышел. Игра отменена, ставки возвращены.",
+		"durak.msg.busted": "{name} пойман на жульничестве!",
+		"durak.msg.defends": "{name} отбивается.",
+		"durak.msg.transferred": "{name} перевёл на {other}.",
+		"durak.msg.defended": "Отбито. Атакующий может подкинуть или сказать «Бито».",
+		"durak.msg.defendNext": "Отбейте следующую карту.",
+		"durak.msg.attacks": "{name} ходит.",
+		"durak.msg.took": "{name} взял карт: {count}.",
 		"durak.trump": "Козырь",
 		"durak.youWon": "Вы выиграли {amount} монет",
 		"durak.coinsUnit": "монет",
@@ -406,5 +433,6 @@ export const moregames: ScreenDictionary = {
 
 		// Battleship strings
 		"battleship.timer": "{time}с",
+		"battleship.placeAllFirst": "Сначала расставьте все корабли!",
 	},
 };

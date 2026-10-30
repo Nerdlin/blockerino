@@ -69,7 +69,11 @@ export default function OptionsMenu() {
 	const handleLanguageChange = (next: Language) => {
 		if (next === language) return;
 		playSfx('menuClick');
-		void changeLanguage(next);
+		// The pixel font for the language is picked at launch, so a switch normally reloads the app. In the middle of a
+		// game (or a More Games table) that would throw the player out, so the text switches now and the font follows
+		// on the next launch.
+		const inGame = !!appState.containsGameMode() || appState.containsState(MenuStateType.MULTIPLAYER_GAME) || appState.containsState(MenuStateType.MORE_GAMES);
+		void changeLanguage(next, { reload: !inGame });
 	};
 
 	const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
@@ -177,7 +181,7 @@ export default function OptionsMenu() {
 		<View style={styles.buttonsContainer}>
 			<StylizedButton
 				onClick={handleButtonPress}
-				text="Back"
+				text={t("common.back")}
 				backgroundColor={currentTheme.buttonSecondary}
 				style={isMobile && styles.mobileBottomButton}
 				textStyle={isMobile && styles.mobileBottomButtonText}
@@ -188,7 +192,7 @@ export default function OptionsMenu() {
 					{(appState.containsGameMode() && !appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
 						<StylizedButton
 							onClick={handleRestartPress}
-							text="Restart"
+							text={t("settings.restart")}
 							backgroundColor={currentTheme.buttonPrimary}
 							style={isMobile && styles.mobileBottomButton}
 							textStyle={isMobile && styles.mobileBottomButtonText}
@@ -196,7 +200,7 @@ export default function OptionsMenu() {
 					)}
 					<StylizedButton
 						onClick={handleQuitPress}
-						text="End Game"
+						text={t("settings.endGame")}
 						backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(204, 51, 0)' : currentTheme.buttonPrimary}
 						style={isMobile && styles.mobileBottomButton}
 						textStyle={isMobile && styles.mobileBottomButtonText}
@@ -223,8 +227,8 @@ export default function OptionsMenu() {
 					<Text style={[styles.sectionLabel, { color: currentTheme.accent }]}>{t("settings.sound")}</Text>
 
 					<SettingLabel
-						title="Music"
-						description="Background game music"
+						title={t("settings.music")}
+						description={t("settings.musicDesc")}
 						labelStyle={{ color: currentTheme.textPrimary }}
 						descStyle={{ color: currentTheme.textSecondary }}
 					>
@@ -254,8 +258,8 @@ export default function OptionsMenu() {
 					)}
 
 					<SettingLabel
-						title="Sound Effects"
-						description="Game action sounds"
+						title={t("settings.sfx")}
+						description={t("settings.sfxDesc")}
 						labelStyle={{ color: currentTheme.textPrimary }}
 						descStyle={{ color: currentTheme.textSecondary }}
 					>
@@ -286,7 +290,7 @@ export default function OptionsMenu() {
 
 					{shopState.equipped.music === "music_custom" && (
 						<CustomAudioInput
-							title="Custom Music Link"
+							title={t("settings.customMusic")}
 							value={customMusicUrl}
 							onChangeText={setCustomMusicUrl}
 							onSave={handleCustomMusicUrlBlur}
@@ -297,7 +301,7 @@ export default function OptionsMenu() {
 
 					{shopState.equipped.sfx === "sfx_custom" && (
 						<CustomAudioInput
-							title="Custom SFX Link"
+							title={t("settings.customSfx")}
 							value={customSfxUrl}
 							onChangeText={setCustomSfxUrl}
 							onSave={handleCustomSfxUrlBlur}
@@ -420,6 +424,7 @@ function CustomAudioInput({
 	currentTheme: Theme;
 	isMobile: boolean;
 }) {
+	const { t } = useLanguage();
 	const sourceInfo = useMemo(() => getCustomAudioSourceInfo(value), [value]);
 	const canOpenExternal = sourceInfo.kind !== "empty" && !sourceInfo.canPlayInApp && sourceInfo.url.startsWith("http");
 
@@ -443,7 +448,7 @@ function CustomAudioInput({
 				onChangeText={onChangeText}
 				onBlur={onSave}
 				onSubmitEditing={onSave}
-				placeholder="YouTube, Spotify, Yandex, or direct .mp3"
+				placeholder={t("settings.customPlaceholder")}
 				placeholderTextColor={currentTheme.textSecondary}
 				autoCapitalize="none"
 				autoCorrect={false}
@@ -454,7 +459,7 @@ function CustomAudioInput({
 				</Text>
 				{canOpenExternal && (
 					<StylizedButton
-						text="Open"
+						text={t("settings.open")}
 						onClick={openExternal}
 						backgroundColor={currentTheme.buttonSecondary}
 						style={styles.openLinkButton}

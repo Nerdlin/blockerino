@@ -631,10 +631,11 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 							<BattleGrid testPrefix="sea-mine" title={t("moregames.myFleet")} cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
 						</View>
 						<View style={styles.battleLobbyButtons}>
-							<BotPanel vsBot={vsBot} onVsBotChange={setVsBot} difficulty={difficulty} onDifficultyChange={setDifficulty} friendLabel={t("bot.online")} />
+							{/* Right under the board: on a phone the opponent panel below pushed it off screen */}
 							<Collapsible visible={vsBot}>
-								<StylizedButton text={t("bot.play")} onClick={startBotGame} backgroundColor={allShipsPlaced ? currentTheme.buttonPrimary : "#555"} style={{ marginTop: 10 }} disabled={!allShipsPlaced} />
+								<StylizedButton text={t("bot.play")} onClick={startBotGame} backgroundColor={allShipsPlaced ? currentTheme.buttonPrimary : "#555"} style={{ marginBottom: 10 }} disabled={!allShipsPlaced} />
 							</Collapsible>
+							<BotPanel vsBot={vsBot} onVsBotChange={setVsBot} difficulty={difficulty} onDifficultyChange={setDifficulty} friendLabel={t("bot.online")} />
 							<Collapsible visible={!vsBot}>
 <OnlineRoomControls inviteGame="battleship" inviteHostName={playerName}
 								roomCode={room.roomCode}
@@ -649,7 +650,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 							</Collapsible>
 							{!allShipsPlaced && (
 								<Text style={{ color: '#F87171', fontFamily: 'Silkscreen', fontSize: 9, textAlign: 'center', marginTop: 6 }}>
-									Place all ships first!
+									{t("battleship.placeAllFirst")}
 								</Text>
 							)}
 						</View>

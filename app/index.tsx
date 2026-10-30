@@ -260,11 +260,9 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 
 			{ isMainMenuVisible && <MainMenu></MainMenu> }
 			{ gameMode && <Game gameMode={gameMode} initialState={savedGameForCurrentMode || undefined}></Game> }
-			{ appState.containsState(MenuStateType.OPTIONS) && !appState.containsState(MenuStateType.PROFILE) && <OptionsMenu></OptionsMenu> }
 			{ appState.containsState(MenuStateType.HIGH_SCORES) && <HighScores></HighScores>}
 			{ appState.containsState(MenuStateType.ACHIEVEMENTS) && <AchievementsMenu />}
 			{ appState.containsState(MenuStateType.SHOP) && <ShopMenu />}
-			{ appState.containsState(MenuStateType.PROFILE) && <ProfileMenu />}
 			{ appState.containsState(MenuStateType.SEASON_RESULTS) && <SeasonResultsMenu />}
 			
 			{ isMultiplayerMenuVisible && (
@@ -295,6 +293,11 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 					initialPlayerElo={multiplayerPlayerElo}
 				/>
 			)}
+
+			{/* Options and the profile are drawn after every screen that can open them (game, More Games, Challenges,
+			    Versus), or they open hidden behind it. */}
+			{ appState.containsState(MenuStateType.OPTIONS) && !appState.containsState(MenuStateType.PROFILE) && <OptionsMenu></OptionsMenu> }
+			{ appState.containsState(MenuStateType.PROFILE) && <ProfileMenu />}
 
 			{ showContinueModal && savedGame && (
 				<ContinueGameModal
