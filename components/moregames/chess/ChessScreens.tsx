@@ -13,6 +13,7 @@ import StylizedButton from "../../StylizedButton";
 import Animated, { FadeIn, ZoomIn } from "react-native-reanimated";
 import { BotAvatar } from "./BotAvatar";
 import { PixelIcon } from "./PixelIcon";
+import { ChessComLink } from "@/constants/chess/ChessCom";
 
 export function ChessLobby({
 	ratings,
@@ -21,6 +22,8 @@ export function ChessLobby({
 	onStart,
 	onPlayFriend,
 	onPlayBots,
+	chessCom,
+	onChessCom,
 }: {
 	ratings: ChessRatings;
 	selected: TimeControl;
@@ -28,6 +31,8 @@ export function ChessLobby({
 	onStart: () => void;
 	onPlayFriend: () => void;
 	onPlayBots: () => void;
+	chessCom?: ChessComLink | null;
+	onChessCom?: () => void;
 }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
@@ -70,6 +75,22 @@ export function ChessLobby({
 				<Text style={[local.menuTitle, { color: currentTheme.textPrimary, flex: 1 }]}>{t("chess.playBots")}</Text>
 				<Text style={[local.chevron, { color: currentTheme.textSecondary }]}>{">"}</Text>
 			</Pressable>
+			{onChessCom && (
+				<Pressable testID="chess-chesscom" accessibilityRole="button" accessibilityLabel="chess.com" onPress={onChessCom} style={[local.menuRow, { borderColor: "rgba(255,255,255,0.18)" }]}>
+					<View style={{ width: 26, height: 26, borderRadius: 4, backgroundColor: "#81B64C", alignItems: "center", justifyContent: "center" }}>
+						<Text style={{ fontFamily: "SilkscreenBold", fontSize: 13, color: "#FFFFFF" }}>C</Text>
+					</View>
+					<View style={{ flex: 1 }}>
+						<Text style={[local.menuTitle, { color: currentTheme.textPrimary }]}>chess.com</Text>
+						<Text style={[local.tiny, { color: currentTheme.textSecondary }]} numberOfLines={1}>
+							{chessCom
+								? `${chessCom.username}${chessCom.ratings[selected.timeClass] ? ` · ${t(`chess.${selected.timeClass}`)} ${chessCom.ratings[selected.timeClass]}` : ""}`
+								: t("chesscom.notLinked")}
+						</Text>
+					</View>
+					<Text style={[local.chevron, { color: currentTheme.textSecondary }]}>{">"}</Text>
+				</Pressable>
+			)}
 		</View>
 	);
 }

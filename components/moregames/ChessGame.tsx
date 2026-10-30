@@ -14,6 +14,8 @@ import { RoomGame } from "./chess/RoomGame";
 import { BotPicker, ChessLobby } from "./chess/ChessScreens";
 import { ChessFriend, ChessFriends } from "./chess/ChessFriends";
 import { ChessTimePicker } from "./chess/ChessTimePicker";
+import { ChessComLinkScreen } from "./chess/ChessComLink";
+import { ChessComLink, loadChessComLink } from "@/constants/chess/ChessCom";
 import { chessInviteAtom, makeInviteCode, sendChessInvite } from "@/constants/chess/ChessInvite";
 import { useLanguage } from "@/constants/Localization";
 import { Alert } from "react-native";
@@ -31,7 +33,7 @@ export function restoreChessGame(fen: string, history: string[]): Chess {
 	return new Chess(fen);
 }
 
-type Screen = "lobby" | "time" | "friends" | "bots" | "bot" | "friend" | "search" | "match";
+type Screen = "lobby" | "time" | "friends" | "bots" | "bot" | "friend" | "search" | "match" | "chesscom";
 
 /**
  * Chess in More Games: a lobby with a rating per time class, bots with a fixed Elo, and games against a friend in a
@@ -46,6 +48,8 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 	const [found, setFound] = useState<(FoundMatch & { waitMs?: number; challenge?: boolean }) | null>(null);
 	const { t } = useLanguage();
 	const [invite, setInvite] = useAtom(chessInviteAtom);
+	const [chessCom, setChessCom] = useState<ChessComLink | null>(null);
+	useEffect(() => { void loadChessComLink().then(setChessCom); }, []);
 
 	// An accepted challenge from a friend: join their room as Black right away.
 	useEffect(() => {
@@ -106,7 +110,12 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 					onStart={() => setScreen("search")}
 					onPlayFriend={() => setScreen("friends")}
 					onPlayBots={() => { refreshProgress(); setScreen("bots"); }}
+					chessCom={chessCom}
+					onChessCom={() => setScreen("chesscom")}
 				/>
+			)}
+			{screen === "chesscom" && (
+				<ChessComLinkScreen link={chessCom} onChange={setChessCom} onBack={() => setScreen("lobby")} />
 			)}
 			{screen === "time" && (
 				<ChessTimePicker
