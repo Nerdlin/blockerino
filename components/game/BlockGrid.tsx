@@ -15,7 +15,7 @@ import { shopStateAtom } from "@/constants/Shop";
 import { Theme, useTheme } from "@/constants/Theme";
 import { useDroppable } from "@mgcrea/react-native-dnd";
 import { useAtomValue } from "jotai";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, Platform, View } from "react-native";
 import Animated, {
 	SharedValue,
@@ -111,14 +111,21 @@ interface GridBlockProps {
 }
 
 function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceSkinId }: GridBlockProps) {
+	// The board has 64-100 cells and every hook here is paid once per cell when a game opens (it took seconds on a
+	// phone), so a cell keeps as few shared values and animated styles as it can: the break direction is fixed per
+	// cell, the white flash is drawn by the static style, and the spark progress exists only where sparks are drawn.
 	const loadBlockFlash = useSharedValue(0);
 	const placedBlockFall = useSharedValue(0);
-	const placedBlockDirectionX = useSharedValue(0);
-	const placedBlockDirectionY = useSharedValue(0);
-	const placedBlockRotation = useSharedValue(0);
 	const waveEffect = useSharedValue(0);
 	const flashOpacity = useSharedValue(0);
-	const sparkProgress = useSharedValue(0);
+	// eslint-disable-next-line react-hooks/rules-of-hooks -- PARTICLE_CONFIGS is fixed per platform, so the hook count never changes
+	const sparkProgress = PARTICLE_CONFIGS.length > 0 ? useSharedValue(0) : null;
+	const cellSeed = (x * 7919 + y * 104729 + 31) % 100003;
+	const fallAngle = ((cellSeed % 628) / 100);
+	const fallDistance = 50 + (cellSeed % 100);
+	const fallDirectionX = Math.cos(fallAngle) * fallDistance;
+	const fallDirectionY = Math.sin(fallAngle) * fallDistance;
+	const fallRotation = ((cellSeed * 7) % 720) - 360;
 
 	// Реакция на изменение состояния блока
 	useAnimatedReaction(() => {
@@ -131,24 +138,21 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceS
 				withTiming(0, { duration: 250 })
 			);
 
-			const angle = Math.random() * Math.PI * 2;
-			const distance = 50 + Math.random() * 100;
-			placedBlockDirectionX.value = Math.cos(angle) * distance;
-			placedBlockDirectionY.value = Math.sin(angle) * distance;
-			placedBlockRotation.value = (Math.random() - 0.5) * 720;
 
 			placedBlockFall.value = withSequence(
 				withTiming(1, { duration: 600 }),
 				withTiming(0, { duration: 0 })
 			);
 
-			sparkProgress.value = 0;
-			sparkProgress.value = withTiming(1, { duration: 550 });
+			if (sparkProgress) {
+				sparkProgress.value = 0;
+				sparkProgress.value = withTiming(1, { duration: 550 });
+			}
 		}
 		// Сброс анимации при размещении нового блока
 		else if (cur === BoardBlockType.FILLED && prev === BoardBlockType.EMPTY) {
 			placedBlockFall.value = 0;
-			sparkProgress.value = 0;
+			if (sparkProgress) sparkProgress.value = 0;
 		}
 		// Анимация волны для блоков, которые будут разрушены
 		else if ((cur === BoardBlockType.HOVERED_BREAK_FILLED || cur === BoardBlockType.HOVERED_BREAK_EMPTY) &&
@@ -188,11 +192,12 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceS
 		const block = board.value[y][x];
 
 		if (block.blockType === BoardBlockType.EMPTY) {
-			const flashVal = loadBlockFlash.value;
-			if (flashVal > 0.05) {
+			// the load sweep is a faint glow, the flash of a cleared block is near white
+			const flashVal = Math.max(loadBlockFlash.value * 0.15, flashOpacity.value * 0.9);
+			if (flashVal > 0.0075) {
 				return {
 					...createEmptyBlockStyle(currentTheme.emptyBlockBorder),
-					backgroundColor: `rgba(255, 255, 255, ${flashVal * 0.15})`,
+					backgroundColor: `rgba(255, 255, 255, ${flashVal})`,
 				};
 			}
 			return createEmptyBlockStyle(currentTheme.emptyBlockBorder);
@@ -241,9 +246,9 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceS
 				opacity: 1 - progress,
 				transform: [
 					{ scale: 1 - progress * 0.5 },
-					{ translateX: placedBlockDirectionX.value * progress },
-					{ translateY: placedBlockDirectionY.value * progress },
-					{ rotate: `${placedBlockRotation.value * progress}deg` }
+					{ translateX: fallDirectionX * progress },
+					{ translateY: fallDirectionY * progress },
+					{ rotate: `${fallRotation * progress}deg` }
 				],
 				position: 'absolute',
 				top: 0,
@@ -256,28 +261,14 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceS
 		return { opacity: 0, width: 0, height: 0, position: 'absolute' };
 	});
 
-	const flashStyle = useAnimatedStyle(() => {
-		return {
-			opacity: flashOpacity.value,
-			backgroundColor: 'white',
-			position: 'absolute',
-			top: 0,
-			left: 0,
-			width: gridBlockSize,
-			height: gridBlockSize,
-			borderRadius: 4,
-		};
-	});
-
 	return (
 		<>
 			<Animated.View style={[staticStyle, { width: gridBlockSize, height: gridBlockSize, justifyContent: 'center', alignItems: 'center' }]} />
 			<Animated.View style={fallingStyle} />
-			<Animated.View style={[styles.pointerEventsNone, flashStyle]} />
 			{PARTICLE_CONFIGS.map((_, i) => (
 				<SparkParticle
 					key={`spark-${i}`}
-					sparkProgress={sparkProgress}
+					sparkProgress={sparkProgress!}
 					index={i}
 					x={x}
 					y={y}
@@ -295,6 +286,15 @@ export default function BlockGrid({
 	draggingPiece,
 	hand
 }: BlockGridProps) {
+	// Opening a game used to block for a second or more while every cell set up its animations. The grid now shows
+	// plain cells at once and swaps in the animated ones a couple of rows per frame, under the opening light sweep.
+	const [liveRows, setLiveRows] = useState(0);
+	useEffect(() => {
+		const rowsTotal = board.value.length;
+		if (liveRows >= rowsTotal) return;
+		const frame = requestAnimationFrame(() => setLiveRows((rows) => Math.min(rowsTotal, rows + 2)));
+		return () => cancelAnimationFrame(frame);
+	}, [liveRows, board]);
 	const blockElements: any[] = [];
 	const boardLength = board.value.length;
 	const { currentTheme } = useTheme();
@@ -310,9 +310,12 @@ export default function BlockGrid({
 			height: GRID_BLOCK_SIZE,
 		};
 
+		const live = y < liveRows;
+		const block = board.value[y][x];
+		const plainStyle = live ? null : (block.blockType === BoardBlockType.EMPTY ? createEmptyBlockStyle(currentTheme.emptyBlockBorder) : createFilledBlockStyle(block.color, 7, pieceSkinId));
 		blockElements.push(
 			<Animated.View key={`${x},${y}`} style={blockPositionStyle}>
-				<GridBlock
+				{!live ? <View style={[plainStyle, { width: GRID_BLOCK_SIZE, height: GRID_BLOCK_SIZE }]} /> : <GridBlock
 					x={x}
 					y={y}
 					board={board}
@@ -320,7 +323,7 @@ export default function BlockGrid({
 					gridBlockSize={GRID_BLOCK_SIZE}
 					currentTheme={currentTheme}
 					pieceSkinId={pieceSkinId}
-				/>
+				/>}
 				<BlockDroppable
 					x={x}
 					y={y}

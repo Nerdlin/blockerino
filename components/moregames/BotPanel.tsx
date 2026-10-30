@@ -70,6 +70,7 @@ export function BotPanel({
 	difficulty,
 	onDifficultyChange,
 	friendLabel,
+	compact = false,
 }: {
 	vsBot: boolean;
 	onVsBotChange: (next: boolean) => void;
@@ -77,13 +78,15 @@ export function BotPanel({
 	onDifficultyChange: (next: BotDifficulty) => void;
 	/** What the non-bot option is called: "Friend" for local two-player games, "Online" where the other side is a room. */
 	friendLabel?: string;
+	/** No section titles and no rewards note, for screens that must fit without scrolling. */
+	compact?: boolean;
 }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
 
 	return (
-		<View style={styles.botPanel}>
-			<Text style={[styles.botPanelTitle, { color: currentTheme.textSecondary }]}>{t("bot.opponent")}</Text>
+		<View style={[styles.botPanel, compact && { paddingVertical: 8, gap: 4 }]}>
+			{!compact && <Text style={[styles.botPanelTitle, { color: currentTheme.textSecondary }]}>{t("bot.opponent")}</Text>}
 			<SegmentedControl
 				small
 				value={vsBot ? "bot" : "friend"}
@@ -95,7 +98,7 @@ export function BotPanel({
 			/>
 			<Collapsible visible={vsBot}>
 				<View style={{ gap: 6, alignItems: "center", paddingTop: 6 }}>
-					<Text style={[styles.botPanelTitle, { color: currentTheme.textSecondary }]}>{t("bot.difficulty")}</Text>
+					{!compact && <Text style={[styles.botPanelTitle, { color: currentTheme.textSecondary }]}>{t("bot.difficulty")}</Text>}
 					<SegmentedControl
 						small
 						value={difficulty}
@@ -106,7 +109,7 @@ export function BotPanel({
 							{ key: "hard", label: t("bot.hard"), color: "#EF4444" },
 						]}
 					/>
-					<Text style={[styles.botPanelHint, { color: currentTheme.textSecondary }]}>{t("bot.noRewards")}</Text>
+					{!compact && <Text style={[styles.botPanelHint, { color: currentTheme.textSecondary }]}>{t("bot.noRewards")}</Text>}
 				</View>
 			</Collapsible>
 		</View>

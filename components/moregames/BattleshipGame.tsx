@@ -590,19 +590,21 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 	if (!room.role && !botMode) {
 		// Pre-lobby: place ships first, then host or join
 		return (
-			<View style={styles.onlineGame}>
-				<Text style={[styles.gameStatus, { color: currentTheme.textPrimary }]}>{t("moregames.placeShips")}</Text>
-				<View style={styles.battlePlayArea}>
+			<View style={[styles.onlineGame, { gap: 6, paddingVertical: 0 }]}>
+				<View style={[styles.battlePlayArea, { gap: 6 }]}>
 					<View style={[styles.battleLeftPanel, { width: leftPanelWidth }, compactFleet && { width: "100%" }, { zIndex: 200, elevation: 200 }]}>
-						<View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
-							<Pressable onPress={rotateSelectedShip} style={styles.battleRotateButton}>
-								<Text style={{ fontSize: 22, color: '#FFF', lineHeight: 26 }}>↻</Text>
+						<View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+							<Pressable onPress={rotateSelectedShip} style={[styles.battleRotateButton, { width: 38, height: 38 }]}>
+								<Text style={{ fontSize: 20, color: '#FFF', lineHeight: 24 }}>↻</Text>
 							</Pressable>
-							<Pressable onPress={randomizeFleet} style={styles.battleRotateButton}>
-								<UiIcon name="dice" size={18} />
+							<Text style={{ color: allShipsPlaced ? '#22C55E' : '#FACC15', fontFamily: 'Silkscreen', fontSize: 10, minWidth: 40, textAlign: 'center' }}>
+								{`${fleet.filter(s => s.x >= 0).length}/${fleet.length}`}
+							</Text>
+							<Pressable onPress={randomizeFleet} style={[styles.battleRotateButton, { width: 38, height: 38 }]}>
+								<UiIcon name="dice" size={16} />
 							</Pressable>
 						</View>
-						<View style={[styles.fleetVerticalList, compactFleet && { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }, { overflow: 'visible' }]}>
+						<View style={[styles.fleetVerticalList, compactFleet && { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', paddingVertical: 4 }, { overflow: 'visible' }]}>
 							{fleet.map((ship) => (
 								<ShipDragItem
 									key={ship.id}
@@ -616,26 +618,21 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 								/>
 							))}
 						</View>
-						{!allShipsPlaced && (
-							<Text style={{ color: '#FACC15', fontFamily: 'Silkscreen', fontSize: 8, textAlign: 'center', marginTop: 4 }}>
-								{`${fleet.filter(s => s.x >= 0).length}/${fleet.length}`}
-							</Text>
-						)}
 					</View>
-					<View style={[styles.battleBoardsVertical, { zIndex: 1 }]}>
+					<View style={[styles.battleBoardsVertical, { zIndex: 1, gap: 8 }]}>
 						<View ref={boardRef} onLayout={() => {
 							measureScreenRect(boardRef.current, (pageX, pageY, w, h) => {
 								setBoardLayout({ x: pageX, y: pageY, w, h });
 							});
 						}}>
-							<BattleGrid testPrefix="sea-mine" title={t("moregames.myFleet")} cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
+							<BattleGrid testPrefix="sea-mine" cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
 						</View>
-						<View style={styles.battleLobbyButtons}>
+						<View style={[styles.battleLobbyButtons, { marginTop: 0 }]}>
 							{/* Right under the board: on a phone the opponent panel below pushed it off screen */}
 							<Collapsible visible={vsBot}>
 								<StylizedButton text={t("bot.play")} onClick={startBotGame} backgroundColor={allShipsPlaced ? currentTheme.buttonPrimary : "#555"} style={{ marginBottom: 10 }} disabled={!allShipsPlaced} />
 							</Collapsible>
-							<BotPanel vsBot={vsBot} onVsBotChange={setVsBot} difficulty={difficulty} onDifficultyChange={setDifficulty} friendLabel={t("bot.online")} />
+							<BotPanel compact vsBot={vsBot} onVsBotChange={setVsBot} difficulty={difficulty} onDifficultyChange={setDifficulty} friendLabel={t("bot.online")} />
 							<Collapsible visible={!vsBot}>
 <OnlineRoomControls inviteGame="battleship" inviteHostName={playerName}
 								roomCode={room.roomCode}
@@ -734,7 +731,8 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 				)}
 				<View style={[styles.battleBoardsVertical, { zIndex: 1 }]}>
 					{ready ? <BattleGrid testPrefix="sea-target" title={t("moregames.target")} cells={targetShots} crossed={targetCrossed} onPress={fire} cosmetics={cosmetics} /> : null}
-					<View ref={boardRef} onLayout={() => {
+					{/* In battle your own fleet is only watched, so it is drawn smaller and both boards fit a phone screen */}
+					<View ref={boardRef} style={ready ? { transform: [{ scale: 0.72 }], marginVertical: -34 } : undefined} onLayout={() => {
 						measureScreenRect(boardRef.current, (pageX, pageY, w, h) => {
 							setBoardLayout({ x: pageX, y: pageY, w, h });
 						});
@@ -840,7 +838,7 @@ export function BattleGrid({
 	dragPreview,
 	testPrefix,
 }: {
-	title: string;
+	title?: string;
 	testPrefix?: string;
 	cells: Record<string, string>;
 	crossed?: Set<string>;
@@ -873,7 +871,7 @@ export function BattleGrid({
 
 	return (
 		<View style={styles.battleGridWrap}>
-			<Text style={[styles.gridLabel, { color: currentTheme.textSecondary }]}>{title}</Text>
+			{title ? <Text style={[styles.gridLabel, { color: currentTheme.textSecondary }]}>{title}</Text> : null}
 			<View style={[styles.battleGrid, { width: gridSize, height: gridSize }, { backgroundColor: sea.gridBg, borderColor: sea.gridBorder }]}>
 				{Array.from({ length: BATTLE_BOARD_SIZE }).map((_, rowIndex) => (
 					<View key={`row-${rowIndex}`} style={styles.battleRow}>
