@@ -15,6 +15,8 @@ import { BotPicker, ChessLobby } from "./chess/ChessScreens";
 import { ChessFriend, ChessFriends } from "./chess/ChessFriends";
 import { ChessTimePicker } from "./chess/ChessTimePicker";
 import { ChessComLinkScreen } from "./chess/ChessComLink";
+import { PuzzleScreen } from "./chess/PuzzleScreen";
+import { EngineHost } from "./chess/EngineHost";
 import { ChessComLink, loadChessComLink } from "@/constants/chess/ChessCom";
 import { chessInviteAtom, makeInviteCode, sendChessInvite } from "@/constants/chess/ChessInvite";
 import { useLanguage } from "@/constants/Localization";
@@ -33,7 +35,7 @@ export function restoreChessGame(fen: string, history: string[]): Chess {
 	return new Chess(fen);
 }
 
-type Screen = "lobby" | "time" | "friends" | "bots" | "bot" | "friend" | "search" | "match" | "chesscom";
+type Screen = "lobby" | "time" | "friends" | "bots" | "bot" | "friend" | "search" | "match" | "chesscom" | "puzzles";
 
 /**
  * Chess in More Games: a lobby with a rating per time class, bots with a fixed Elo, and games against a friend in a
@@ -101,6 +103,7 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 	}, [ratings]);
 
 	return (
+		<EngineHost>
 		<View style={[styles.onlineGame, { alignItems: "center" }]}>
 			{screen === "lobby" && (
 				<ChessLobby
@@ -112,8 +115,10 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 					onPlayBots={() => { refreshProgress(); setScreen("bots"); }}
 					chessCom={chessCom}
 					onChessCom={() => setScreen("chesscom")}
+					onPuzzles={() => setScreen("puzzles")}
 				/>
 			)}
+			{screen === "puzzles" && <PuzzleScreen cosmetics={cosmetics} onBack={() => setScreen("lobby")} />}
 			{screen === "chesscom" && (
 				<ChessComLinkScreen link={chessCom} onChange={setChessCom} onBack={() => setScreen("lobby")} />
 			)}
@@ -184,5 +189,6 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 				/>
 			)}
 		</View>
+		</EngineHost>
 	);
 }

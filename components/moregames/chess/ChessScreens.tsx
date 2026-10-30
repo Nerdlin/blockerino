@@ -24,6 +24,7 @@ export function ChessLobby({
 	onPlayBots,
 	chessCom,
 	onChessCom,
+	onPuzzles,
 }: {
 	ratings: ChessRatings;
 	selected: TimeControl;
@@ -33,6 +34,7 @@ export function ChessLobby({
 	onPlayBots: () => void;
 	chessCom?: ChessComLink | null;
 	onChessCom?: () => void;
+	onPuzzles?: () => void;
 }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
@@ -75,6 +77,13 @@ export function ChessLobby({
 				<Text style={[local.menuTitle, { color: currentTheme.textPrimary, flex: 1 }]}>{t("chess.playBots")}</Text>
 				<Text style={[local.chevron, { color: currentTheme.textSecondary }]}>{">"}</Text>
 			</Pressable>
+			{onPuzzles && (
+				<Pressable testID="chess-puzzles" accessibilityRole="button" accessibilityLabel={t("puzzles.title")} onPress={onPuzzles} style={[local.menuRow, { borderColor: "rgba(255,255,255,0.18)" }]}>
+					<PixelIcon name="pawn" size={26} />
+					<Text style={[local.menuTitle, { color: currentTheme.textPrimary, flex: 1 }]}>{t("puzzles.title")}</Text>
+					<Text style={[local.chevron, { color: currentTheme.textSecondary }]}>{">"}</Text>
+				</Pressable>
+			)}
 			{onChessCom && (
 				<Pressable testID="chess-chesscom" accessibilityRole="button" accessibilityLabel="chess.com" onPress={onChessCom} style={[local.menuRow, { borderColor: "rgba(255,255,255,0.18)" }]}>
 					<View style={{ width: 26, height: 26, borderRadius: 4, backgroundColor: "#81B64C", alignItems: "center", justifyContent: "center" }}>
@@ -95,7 +104,7 @@ export function ChessLobby({
 	);
 }
 
-const TIER_ORDER: BotTier[] = ["new", "beginner", "intermediate", "strong"];
+const TIER_ORDER: BotTier[] = ["new", "beginner", "intermediate", "strong", "master"];
 
 export function BotPicker({
 	progress,
@@ -196,6 +205,7 @@ export function ChessResultCard({
 	onCopyPgn,
 	newGameLabel,
 	onClose,
+	onReview,
 }: {
 	result: GameResult;
 	myColor: Color;
@@ -209,6 +219,8 @@ export function ChessResultCard({
 	newGameLabel?: string;
 	/** Shows a close button; the card is then an overlay on the board. */
 	onClose?: () => void;
+	/** Opens the engine's review of the game. */
+	onReview?: () => void;
 }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
@@ -235,6 +247,7 @@ export function ChessResultCard({
 				{onRematch ? <StylizedButton text={t("chess.rematch")} onClick={onRematch} backgroundColor="#2E9E4F" style={local.button} textStyle={local.buttonText} /> : null}
 				<StylizedButton text={newGameLabel ?? t("chess.newGame")} onClick={onNewGame} backgroundColor="#1E88E5" style={local.button} textStyle={local.buttonText} />
 				<StylizedButton text={t("chess.pgn")} onClick={onCopyPgn} backgroundColor={currentTheme.buttonSecondary} style={local.button} textStyle={local.buttonText} />
+				{onReview ? <StylizedButton text={t("review.open")} onClick={onReview} backgroundColor="#7C3AED" style={local.button} textStyle={local.buttonText} /> : null}
 			</View>
 		</Animated.View>
 	);

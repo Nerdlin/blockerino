@@ -4,6 +4,7 @@ import { Clipboard, View } from "react-native";
 import { useLanguage } from "@/constants/Localization";
 import { useTheme } from "@/constants/Theme";
 import { chooseChessMoveByElo } from "@/constants/bots/ChessBot";
+import { useChessEngine } from "./EngineHost";
 import { recordMoreGameWin } from "@/constants/Achievements";
 import { recordGameOutcome } from "@/constants/GameStats";
 import { ADAPTIVE_BOT_ID, CHESS_BOTS, ChessBotProfile, botQuip, QuipKind } from "@/constants/chess/BotRoster";
@@ -16,6 +17,7 @@ import { ExtraGameCosmetics } from "../cosmetics";
 import { HintButton } from "../HintButton";
 import { ChessGameView } from "./ChessGameView";
 import { useChessSounds } from "./useChessSounds";
+import { GameReview } from "./GameReview";
 import { ResultLayer } from "./ChessScreens";
 
 /**
@@ -53,7 +55,9 @@ export function BotGame({
 	const savedRef = useRef<string | null>(null);
 	const startedRef = useRef(Date.now());
 
+	const [reviewing, setReviewing] = useState(false);
 	useChessSounds(state, color, 0);
+	const engine = useChessEngine();
 
 	const say = useCallback((kind: QuipKind) => setBubble(botQuip(bot, kind, lang)), [bot, lang]);
 
@@ -61,8 +65,15 @@ export function BotGame({
 	const botToMove = !state.result && turnOf(state) === botColor;
 	useEffect(() => {
 		if (!botToMove) return;
-		const timer = setTimeout(() => {
-			const reply = chooseChessMoveByElo(state.fen, bot.elo);
+		let cancelled = false;
+		const timer = setTimeout(async () => {
+			let reply: { from: string; to: string; promotion?: string } | null = null;
+			if (bot.engine && engine) {
+				const found = await engine.search(state.fen, bot.engine);
+				if (found.bestMove) reply = { from: found.bestMove.slice(0, 2), to: found.bestMove.slice(2, 4), promotion: found.bestMove[4] };
+			}
+			if (cancelled) return;
+			if (!reply) reply = chooseChessMoveByElo(state.fen, Math.min(bot.elo, 1500));
 			if (!reply) return;
 			const outcome = playMove(state, reply, Date.now());
 			if (!outcome.ok) return;
@@ -72,8 +83,8 @@ export function BotGame({
 			if (last.san.includes("+")) say("check");
 			else if (last.san.includes("x") && Math.random() < 0.6) say("capture");
 		}, 600);
-		return () => clearTimeout(timer);
-	}, [botToMove, state, bot.elo, say]);
+		return () => { cancelled = true; clearTimeout(timer); };
+	}, [botToMove, state, bot.elo, bot.engine, engine, say]);
 
 	const onMove = (from: string, to: string, promotion?: string) => {
 		const outcome = playMove(state, { from, to, promotion }, Date.now());
@@ -148,6 +159,10 @@ export function BotGame({
 		setState(newGame(null, Date.now()));
 	};
 
+	if (reviewing && state.result) {
+		return <GameReview history={state.history} myColor={color} cosmetics={cosmetics} onClose={() => setReviewing(false)} />;
+	}
+
 	return (
 		<View style={{ width: "100%", alignItems: "center", position: "relative" }}>
 			<ChessGameView
@@ -187,6 +202,7 @@ export function BotGame({
 					onNewGame={onExit}
 					newGameLabel={t("chess.backToBots")}
 					onCopyPgn={copyPgn}
+					onReview={state.history.length > 1 ? () => setReviewing(true) : undefined}
 				/>
 			) : null}
 		</View>

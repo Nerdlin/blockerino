@@ -3,7 +3,7 @@ import type { BotLook } from "./BotSprites";
 // The chess bots: named characters with a fixed Elo (like chess.com's "Martinfoot 250"), unlocked one after another
 // by beating the previous one. Echo is the adaptive bot: its Elo follows the player's rating instead of being fixed.
 
-export type BotTier = "new" | "beginner" | "intermediate" | "strong";
+export type BotTier = "new" | "beginner" | "intermediate" | "strong" | "master";
 export type BotVoice = "shy" | "cheerful" | "sly" | "calm";
 export type Lang = "en" | "ru";
 export type Localized = Record<Lang, string>;
@@ -18,6 +18,8 @@ export interface ChessBotProfile {
 	color: string;
 	voice: BotVoice;
 	greeting: Localized;
+	/** Bots above 1500 play with Stockfish held back by its skill level and search depth. */
+	engine?: { skill: number; depth: number; movetimeMs: number };
 }
 
 export const ADAPTIVE_BOT_ID = "echo";
@@ -33,6 +35,12 @@ export const CHESS_BOTS: ChessBotProfile[] = [
 	{ id: "quill", name: "Quill", elo: 1300, tier: "intermediate", color: "#C77DFF", look: { skin: "#F2C9A0", hair: "long", hairColor: "#C77DFF", shirt: "#C77DFF", accessory: "glasses", accent: "#6B3FA0", mouth: "flat" }, voice: "calm", greeting: { en: "I see two moves ahead. Do you?", ru: "Я вижу на два хода вперёд. А ты?" } },
 	{ id: "knox", name: "Knox", elo: 1400, tier: "intermediate", color: "#9AA3B5", look: { skin: "#C98D63", hair: "short", hairColor: "#2B2B3C", shirt: "#9AA3B5", accessory: "helm", accent: "#9AA3B5", mouth: "flat" }, voice: "calm", greeting: { en: "Solid and steady.", ru: "Надёжно и спокойно." } },
 	{ id: "vex", name: "Vex", elo: 1500, tier: "strong", color: "#FF3335", look: { skin: "#E0A98A", hair: "spiky", hairColor: "#101018", shirt: "#FF3335", accessory: "horns", accent: "#FF3335", mouth: "smile" }, voice: "sly", greeting: { en: "Your king looks nervous already.", ru: "Твой король уже нервничает." } },
+	{ id: "sage", name: "Sage", elo: 1600, tier: "master", color: "#14B8A6", look: { skin: "#E8B98F", hair: "long", hairColor: "#E5E7EB", shirt: "#14B8A6", accessory: "glasses", accent: "#14B8A6", mouth: "flat" }, voice: "calm", greeting: { en: "Every move has a reason.", ru: "У каждого хода есть причина." }, engine: { skill: 3, depth: 6, movetimeMs: 600 } },
+	{ id: "nova", name: "Nova", elo: 1800, tier: "master", color: "#F472B6", look: { skin: "#F2C9A0", hair: "ponytail", hairColor: "#F472B6", shirt: "#F472B6", accessory: "headband", accent: "#BE185D", mouth: "smile" }, voice: "cheerful", greeting: { en: "Let's make it sharp!", ru: "Давай поострее!" }, engine: { skill: 6, depth: 8, movetimeMs: 800 } },
+	{ id: "titan", name: "Titan", elo: 2000, tier: "master", color: "#F59E0B", look: { skin: "#C98D63", hair: "bald", hairColor: "#2B2B3C", shirt: "#F59E0B", accessory: "helm", accent: "#B45309", mouth: "flat" }, voice: "calm", greeting: { en: "I do not hurry. I do not miss.", ru: "Я не спешу. Я не промахиваюсь." }, engine: { skill: 9, depth: 10, movetimeMs: 1000 } },
+	{ id: "raven", name: "Raven", elo: 2200, tier: "master", color: "#6366F1", look: { skin: "#D9A57A", hair: "spiky", hairColor: "#101018", shirt: "#6366F1", accessory: "scarf", accent: "#312E81", mouth: "smile" }, voice: "sly", greeting: { en: "I already saw your next move.", ru: "Я уже видел твой следующий ход." }, engine: { skill: 12, depth: 12, movetimeMs: 1200 } },
+	{ id: "zero", name: "Zero", elo: 2500, tier: "master", color: "#22D3EE", look: { skin: "#9AD0C2", hair: "short", hairColor: "#22D3EE", shirt: "#0E7490", accessory: "antenna", accent: "#22D3EE", mouth: "flat" }, voice: "calm", greeting: { en: "Calculating.", ru: "Вычисляю." }, engine: { skill: 16, depth: 14, movetimeMs: 1500 } },
+	{ id: "omega", name: "Omega", elo: 2800, tier: "master", color: "#EF4444", look: { skin: "#E0A98A", hair: "bald", hairColor: "#101018", shirt: "#101018", accessory: "crown", accent: "#EF4444", mouth: "flat" }, voice: "sly", greeting: { en: "Good luck. You will need it.", ru: "Удачи. Она тебе понадобится." }, engine: { skill: 20, depth: 16, movetimeMs: 2000 } },
 ];
 
 export const ADAPTIVE_BOT: Omit<ChessBotProfile, "elo"> = {

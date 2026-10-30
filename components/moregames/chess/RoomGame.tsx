@@ -26,6 +26,7 @@ import { OnlineRole } from "../types";
 import { ExtraGameCosmetics } from "../cosmetics";
 import { ChessGameView } from "./ChessGameView";
 import { useChessSounds } from "./useChessSounds";
+import { GameReview } from "./GameReview";
 import { ResultLayer } from "./ChessScreens";
 
 /** Ticks while a clock runs, so the clocks on screen move; idle otherwise. */
@@ -203,6 +204,7 @@ export function RoomGame({
 	const myColor: Color = room.role === whiteRole ? "w" : "b";
 	const clockRunning = Boolean(state?.clock && !state.result);
 	const now = useNow(clockRunning);
+	const [reviewing, setReviewing] = useState(false);
 	useChessSounds(state, myColor, now);
 
 	// Flags and the auto-abort are settled on both sides by the same rule.
@@ -319,6 +321,10 @@ export function RoomGame({
 				? `${t(`chess.${activeControl.timeClass}`)}: ...`
 				: t("chess.unrated");
 
+	if (reviewing && state.result) {
+		return <GameReview history={state.history} myColor={myColor} cosmetics={cosmetics} onClose={() => setReviewing(false)} />;
+	}
+
 	return (
 		<View style={{ width: "100%", alignItems: "center", position: "relative" }}>
 			<ChessGameView
@@ -349,6 +355,7 @@ export function RoomGame({
 					onNewGame={leave}
 					newGameLabel={t("chess.back")}
 					onCopyPgn={copyPgn}
+					onReview={state.history.length > 1 ? () => setReviewing(true) : undefined}
 				/>
 			) : null}
 		</View>
