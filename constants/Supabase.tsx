@@ -215,6 +215,26 @@ export async function upsertAuthenticatedProfile(user: User, preferredName?: str
     return (resultData as PlayerProfile) || null;
 }
 
+export type RenameStatus = "ok" | "taken" | "invalid" | "cooldown" | "unauthorized" | "no_profile" | "failed";
+export interface RenameResult {
+	status: RenameStatus;
+	name?: string;
+	/** For "cooldown": when the next rename is allowed. */
+	nextAt?: string;
+}
+
+/** Changes a signed-in player's nickname through the server (form, uniqueness and the 30-day limit are checked there). */
+export async function renamePlayer(newName: string): Promise<RenameResult> {
+	try {
+		const { data, error } = await supabase.rpc("rename_player", { p_new_name: newName });
+		if (error || !data) return { status: "failed" };
+		const row = data as { status?: string; name?: string; next_at?: string };
+		return { status: (row.status as RenameStatus) ?? "failed", name: row.name, nextAt: row.next_at };
+	} catch {
+		return { status: "failed" };
+	}
+}
+
 export async function updateProfileAvatar(userId: string, avatarUrl: string | null): Promise<boolean> {
     try {
         const { error } = await supabase

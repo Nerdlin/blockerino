@@ -17,7 +17,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSoundSettings } from "@/constants/Sound";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
-import { supabase } from "@/constants/Supabase";
+import { supabase, renamePlayer } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import PixelIcon from "@/components/PixelIcon";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
@@ -133,13 +133,31 @@ export default function ProfileMenu() {
 	// A guest's name is changed here and nowhere else (More Games, high scores and Versus only show it).
 	const [editingName, setEditingName] = useState(false);
 	const [nameDraft, setNameDraft] = useState("");
-	const saveGuestName = useCallback(() => {
+	const [nameError, setNameError] = useState<string | null>(null);
+	const saveName = useCallback(async () => {
 		setEditingName(false);
 		const next = nameDraft.trim().slice(0, 20);
 		if (!next || next === playerName) return;
-		setPlayerName(next);
-		void AsyncStorage.setItem(PLAYER_NAME_KEY, next);
-	}, [nameDraft, playerName]);
+		if (!session) {
+			// a guest's name lives on this device only
+			setPlayerName(next);
+			void AsyncStorage.setItem(PLAYER_NAME_KEY, next);
+			return;
+		}
+		// an account's name is changed by the server: it checks the form, that the name is free and the 30-day limit
+		const result = await renamePlayer(next);
+		if (result.status === "ok" && result.name) {
+			setNameError(null);
+			setPlayerName(result.name);
+			void AsyncStorage.setItem(PLAYER_NAME_KEY, result.name);
+		} else if (result.status === "cooldown") {
+			setNameError(t("profile.rename.cooldown", { date: result.nextAt ? new Date(result.nextAt).toLocaleDateString() : "" }));
+		} else if (result.status === "taken" || result.status === "invalid") {
+			setNameError(t(`profile.rename.${result.status}`));
+		} else {
+			setNameError(t("profile.rename.failed"));
+		}
+	}, [nameDraft, playerName, session, t]);
 	// What is typed into the registration form. It must not be playerName itself: a non-empty playerName switches the
 	// screen from the form to the profile view, which made the form vanish on the first typed letter.
 	const [registerName, setRegisterName] = useState("");
@@ -497,14 +515,14 @@ export default function ProfileMenu() {
 							<View style={styles.editAvatarBadge}><PixelIcon name="pencil" size={14} color="#F0AF0C" secondaryColor="#F472B6" /></View>
 						</Pressable>
 						</FadeInView>
-						{!session && editingName ? (
+						{editingName ? (
 							<TextInput
 								testID="profile-name-input"
 								autoFocus
 								value={nameDraft}
 								onChangeText={setNameDraft}
-								onBlur={saveGuestName}
-								onSubmitEditing={saveGuestName}
+								onBlur={() => void saveName()}
+								onSubmitEditing={() => void saveName()}
 								maxLength={20}
 								placeholder={t("profile.playerNamePlaceholder")}
 								placeholderTextColor={currentTheme.textSecondary}
@@ -513,16 +531,16 @@ export default function ProfileMenu() {
 						) : (
 							<Pressable
 								testID="profile-name"
-								disabled={Boolean(session)}
-								onPress={() => { setNameDraft(playerName); setEditingName(true); }}
+								onPress={() => { setNameDraft(playerName); setNameError(null); setEditingName(true); }}
 								style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
 							>
 								<Text style={[styles.welcomeText, { color: perk?.tier.color ?? currentTheme.textPrimary }]}>
 									{playerName || session?.user.email}
 								</Text>
-								{!session && <PixelIcon name="pencil" size={16} color="#F0AF0C" secondaryColor="#F472B6" />}
+								<PixelIcon name="pencil" size={16} color="#F0AF0C" secondaryColor="#F472B6" />
 							</Pressable>
 						)}
+						{nameError ? <Text style={[styles.errorText, { textAlign: "center" }]}>{nameError}</Text> : (editingName && session ? <Text style={{ color: currentTheme.textSecondary, fontSize: 11, textAlign: "center" }}>{t("profile.rename.hint")}</Text> : null)}
 						{perk && <PerkBadge perk={perk} />}
 						<SeasonTitleBadges titles={seasonTitles} />
 

@@ -2,6 +2,7 @@ package com.nerdlin.blockerino
 import com.facebook.react.common.assets.ReactFontManager
 
 import android.app.Application
+import android.content.Context
 import android.content.res.Configuration
 
 import com.facebook.react.PackageList
@@ -38,6 +39,10 @@ class MainApplication : Application(), ReactApplication {
 
   override val reactHost: ReactHost
     get() = ReactNativeHostWrapper.createReactHost(applicationContext, reactNativeHost)
+
+  override fun attachBaseContext(base: Context) {
+    super.attachBaseContext(FixedFontScale.wrap(base))
+  }
 
   override fun onCreate() {
     super.onCreate()

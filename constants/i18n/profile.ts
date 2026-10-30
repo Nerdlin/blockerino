@@ -50,6 +50,11 @@ export const profile: ScreenDictionary = {
 
 		// Placeholders
 		"profile.playerNamePlaceholder": "Player Name",
+		"profile.rename.taken": "This name is taken",
+		"profile.rename.invalid": "3-20 letters, digits, space, _ . -",
+		"profile.rename.cooldown": "You can change the name again on {date}",
+		"profile.rename.failed": "Could not change the name. Check the connection",
+		"profile.rename.hint": "The name can be changed once every 30 days",
 		"profile.emailPlaceholder": "Email",
 		"profile.passwordPlaceholder": "Password",
 
@@ -114,6 +119,11 @@ export const profile: ScreenDictionary = {
 
 		// Placeholders
 		"profile.playerNamePlaceholder": "Имя игрока",
+		"profile.rename.taken": "Это имя занято",
+		"profile.rename.invalid": "3-20 букв, цифр, пробел, _ . -",
+		"profile.rename.cooldown": "Снова сменить имя можно {date}",
+		"profile.rename.failed": "Не удалось сменить имя. Проверьте связь",
+		"profile.rename.hint": "Имя можно менять раз в 30 дней",
 		"profile.emailPlaceholder": "Почта",
 		"profile.passwordPlaceholder": "Пароль",
 

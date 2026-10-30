@@ -1,6 +1,7 @@
 package com.nerdlin.blockerino
 import expo.modules.splashscreen.SplashScreenManager
 
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 
@@ -16,6 +17,10 @@ import com.facebook.react.defaults.DefaultReactActivityDelegate
 import expo.modules.ReactActivityDelegateWrapper
 
 class MainActivity : ReactActivity() {
+  override fun attachBaseContext(newBase: Context) {
+    super.attachBaseContext(FixedFontScale.wrap(newBase))
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     // Set the theme to AppTheme BEFORE onCreate to support
     // coloring the background, status bar, and navigation bar.
