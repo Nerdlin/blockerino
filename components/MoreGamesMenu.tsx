@@ -58,7 +58,9 @@ export default function MoreGamesMenu() {
 			void Haptics.notificationAsync(outcome === "win" ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning).catch(() => undefined);
 		}
 	}), [playSfx]);
-	const [, , appendAppState, popAppState] = useAppState();
+	const [appState, , appendAppState, popAppState] = useAppState();
+	// Back on this screen (the profile, where the name is changed, sits on top of it): read the name again.
+	const onThisScreen = appState.current === MenuStateType.MORE_GAMES;
 	const { checked: authChecked, signedIn, name: accountName } = useAccountIdentity();
 	const openAccountScreen = (intent: "login" | "register") => {
 		setProfileAuthIntent(intent);
@@ -99,7 +101,7 @@ export default function MoreGamesMenu() {
 			setPlayerName(nextName);
 			setDraftPlayerName(nextName);
 		});
-	}, []);
+	}, [onThisScreen]);
 
 	// A signed-in player's nickname comes from the account and is edited in the profile only.
 	useEffect(() => {
@@ -179,7 +181,7 @@ export default function MoreGamesMenu() {
 		>
 			<View style={styles.moreHeaderRow}>
 				<StylizedButton text={t("common.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.topBackButton} textStyle={styles.smallButtonText} />
-				<Text style={[styles.header, { color: currentTheme.textPrimary, flex: 1, fontSize: 16 }]} numberOfLines={2}>
+				<Text style={[styles.header, { color: currentTheme.textPrimary, flex: 1, fontSize: 16 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
 					{activeCard ? t(`moregames.card.${activeCard.id}.title`) : (ratingPanel === "leaderboard" ? t("moregames.leaderboardTitle") : t("moregames.title"))}
 				</Text>
 				{/* Settings (sound, language) without leaving the game; the options screen opens on top */}
@@ -218,16 +220,10 @@ export default function MoreGamesMenu() {
 								<Text style={[styles.guestAvatarText, { color: currentTheme.textPrimary }]}>{(draftPlayerName.trim()[0] || "?").toUpperCase()}</Text>
 							</View>
 							<View style={{ flex: 1, minWidth: 0 }}>
-								<TextInput
-									value={draftPlayerName}
-									onChangeText={setDraftPlayerName}
-									onBlur={savePlayerName}
-									onSubmitEditing={savePlayerName}
-									placeholder={t("moregames.playerNamePlaceholder")}
-									placeholderTextColor={currentTheme.textSecondary}
-									maxLength={24}
-									style={[styles.guestNameInput, { color: currentTheme.textPrimary }]}
-								/>
+								{/* The name is changed in the profile only; tapping it opens the profile */}
+								<Pressable onPress={() => appendAppState(MenuStateType.PROFILE)} accessibilityRole="button">
+									<Text style={[styles.guestNameInput, { color: currentTheme.textPrimary }]} numberOfLines={1}>{draftPlayerName || t("moregames.playerNamePlaceholder")}</Text>
+								</Pressable>
 								<Text style={[styles.guestHint, { color: currentTheme.textSecondary }]} numberOfLines={1}>{t("moregames.guestHint")}</Text>
 							</View>
 							<StylizedButton text={t("moregames.signIn")} onClick={() => openAccountScreen("login")} backgroundColor={currentTheme.accent} style={styles.guestSignIn} textStyle={styles.tinyButtonText} />

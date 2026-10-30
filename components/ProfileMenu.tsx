@@ -19,6 +19,7 @@ import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { supabase } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import PixelIcon from "@/components/PixelIcon";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { Session, User } from "@supabase/supabase-js";
 import { loadShopState, syncShopStateWithProfile, useShopState } from "@/constants/Shop";
@@ -129,6 +130,16 @@ export default function ProfileMenu() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [playerName, setPlayerName] = useState("");
+	// A guest's name is changed here and nowhere else (More Games, high scores and Versus only show it).
+	const [editingName, setEditingName] = useState(false);
+	const [nameDraft, setNameDraft] = useState("");
+	const saveGuestName = useCallback(() => {
+		setEditingName(false);
+		const next = nameDraft.trim().slice(0, 20);
+		if (!next || next === playerName) return;
+		setPlayerName(next);
+		void AsyncStorage.setItem(PLAYER_NAME_KEY, next);
+	}, [nameDraft, playerName]);
 	// What is typed into the registration form. It must not be playerName itself: a non-empty playerName switches the
 	// screen from the form to the profile view, which made the form vanish on the first typed letter.
 	const [registerName, setRegisterName] = useState("");
@@ -483,12 +494,35 @@ export default function ProfileMenu() {
 									<Text style={styles.avatarText}>{avatarUrl || (playerName ? playerName.charAt(0).toUpperCase() : '?')}</Text>
 								</View>
 							)}
-							<View style={styles.editAvatarBadge}><Text style={{ fontSize: 10 }}>✏️</Text></View>
+							<View style={styles.editAvatarBadge}><PixelIcon name="pencil" size={14} color="#F0AF0C" secondaryColor="#F472B6" /></View>
 						</Pressable>
 						</FadeInView>
-						<Text style={[styles.welcomeText, { color: perk?.tier.color ?? currentTheme.textPrimary }]}>
-							{playerName || session?.user.email}
-						</Text>
+						{!session && editingName ? (
+							<TextInput
+								testID="profile-name-input"
+								autoFocus
+								value={nameDraft}
+								onChangeText={setNameDraft}
+								onBlur={saveGuestName}
+								onSubmitEditing={saveGuestName}
+								maxLength={20}
+								placeholder={t("profile.playerNamePlaceholder")}
+								placeholderTextColor={currentTheme.textSecondary}
+								style={[styles.input, { color: currentTheme.textPrimary, borderColor: currentTheme.gridBorder, textAlign: "center", maxWidth: 260 }]}
+							/>
+						) : (
+							<Pressable
+								testID="profile-name"
+								disabled={Boolean(session)}
+								onPress={() => { setNameDraft(playerName); setEditingName(true); }}
+								style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+							>
+								<Text style={[styles.welcomeText, { color: perk?.tier.color ?? currentTheme.textPrimary }]}>
+									{playerName || session?.user.email}
+								</Text>
+								{!session && <PixelIcon name="pencil" size={16} color="#F0AF0C" secondaryColor="#F472B6" />}
+							</Pressable>
+						)}
 						{perk && <PerkBadge perk={perk} />}
 						<SeasonTitleBadges titles={seasonTitles} />
 
@@ -826,10 +860,12 @@ const styles = StyleSheet.create({
 		position: 'absolute',
 		bottom: 16,
 		right: 0,
-		width: 24,
-		height: 24,
-		borderRadius: 12,
-		backgroundColor: '#FFF',
+		width: 28,
+		height: 28,
+		borderRadius: 6,
+		backgroundColor: '#111827',
+		borderWidth: 2,
+		borderColor: '#F0AF0C',
 		alignItems: 'center',
 		justifyContent: 'center',
 		shadowColor: "#000",

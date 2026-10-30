@@ -267,20 +267,16 @@ export default function HighScores() {
         {authChecked && !signedIn && (
             <View style={styles.guestNickname}>
                 <Text style={[styles.guestNicknameLabel, { color: currentTheme.textSecondary }]}>{t("hs.yourNickname")}</Text>
-                <TextInput
+                {/* Shown only; the name is changed in the profile */}
+                <Text
                     style={[styles.guestNicknameInput, {
                         color: currentTheme.textPrimary,
                         borderColor: currentTheme.textSecondary,
-                        backgroundColor: 'rgba(0, 0, 0, 0.4)'
+                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                        textAlignVertical: 'center',
                     }]}
-                    value={playerName}
-                    onChangeText={handlePlayerNameChange}
-                    onBlur={handlePlayerNameBlur}
-                    onSubmitEditing={handlePlayerNameBlur}
-                    placeholder={t("hs.enterNickname")}
-                    placeholderTextColor={currentTheme.textSecondary}
-                    maxLength={20}
-                />
+                    numberOfLines={1}
+                >{playerName || t("hs.enterNickname")}</Text>
                 {syncing && (
                     <Text style={{ fontFamily: 'Silkscreen', fontSize: 11, color: currentTheme.textSecondary }}>
                         {t("hs.syncingBest")}

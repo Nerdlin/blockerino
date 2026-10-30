@@ -1,8 +1,18 @@
 import { StyleSheet, View } from "react-native";
 
-type PixelIconName = "medal" | "gear" | "crown" | "skull" | "heart" | "coin" | "face-happy" | "face-sad" | "fire" | "star" | "bomb" | "shield" | "sword" | "diamond" | "ghost" | "alien";
+type PixelIconName = "medal" | "gear" | "crown" | "skull" | "heart" | "coin" | "face-happy" | "face-sad" | "fire" | "star" | "bomb" | "shield" | "sword" | "diamond" | "ghost" | "alien" | "pencil";
 
 const ICONS: Record<PixelIconName, string[]> = {
+	// body in the main colour, eraser in the second one
+	pencil: [
+		"0000022",
+		"0000222",
+		"0001120",
+		"0011100",
+		"0111000",
+		"0110000",
+		"1000000",
+	],
 	medal: [
 		"0220220",
 		"0022200",

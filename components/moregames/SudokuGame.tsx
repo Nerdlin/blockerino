@@ -183,7 +183,7 @@ export function SudokuGame({ cosmetics, playerName, onRatingChange }: { cosmetic
 	};
 
 	return (
-		<View style={[styles.centerGame, sudoku.surface && styles.woodGameSurface, sudoku.surface && { backgroundColor: sudoku.surface.bg, borderColor: sudoku.surface.border }]}>
+		<View style={[styles.centerGame, { flex: 0, gap: 10, paddingHorizontal: 10 }, sudoku.surface && styles.woodGameSurface, sudoku.surface && { backgroundColor: sudoku.surface.bg, borderColor: sudoku.surface.border }]}>
 			<View style={styles.sudokuTopBar}>
 				<Text style={[styles.gameStatus, { color: complete ? "#7C2D12" : lost ? "#DC2626" : sudoku.status ?? currentTheme.textPrimary }]}>
 					{complete ? t("sudoku.solved") : lost ? t("sudoku.gameOver") : selected ? `${t("sudoku.mistakes")} ${mistakes}/${SUDOKU_MAX_MISTAKES}` : t("sudoku.selectCell")}

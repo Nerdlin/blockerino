@@ -925,7 +925,7 @@ const { t } = useLanguage();
 						</View>
 					</View>
 
-						<BotPanel vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); if (next) setActiveVariants((prev) => (prev.includes("cheat") ? [...prev.filter((variant) => variant !== "cheat"), "fair"] : prev)); }} difficulty={botDifficulty} onDifficultyChange={setBotDifficulty} friendLabel={t("bot.online")} />
+						<BotPanel compact vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); if (next) setActiveVariants((prev) => (prev.includes("cheat") ? [...prev.filter((variant) => variant !== "cheat"), "fair"] : prev)); }} difficulty={botDifficulty} onDifficultyChange={setBotDifficulty} friendLabel={t("bot.online")} />
 
 					<Collapsible visible={!vsBot}>
 <Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary }]}>{t("durak.yourBet")}</Text>

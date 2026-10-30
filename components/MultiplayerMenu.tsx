@@ -70,6 +70,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const isMobile = width < 600;
     
     const [playerName, setPlayerName] = useState("");
+    // A guest who already has a saved name sees it as text (it is changed in the profile)
+    const [hasSavedName, setHasSavedName] = useState(false);
     const [playerId, setPlayerId] = useState("");
     const [playerElo, setPlayerElo] = useState<number>(0);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -227,6 +229,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         AsyncStorage.getItem('PLAYER_NAME').then((val) => {
             if (val && isMounted.current) {
                 setPlayerName(val);
+                setHasSavedName(Boolean(val.trim()));
             }
         });
 
@@ -734,7 +737,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                     )}
                                 </View>
                                 <View style={{ flex: 1, minWidth: 0 }}>
-                                    {signedIn ? (
+                                    {/* A set name is only shown here; it is changed in the profile. The field stays for a guest without a name. */}
+                                    {signedIn || hasSavedName ? (
                                         <Text style={[styles.playerCardName, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(playerName, "SilkscreenBold") }]} numberOfLines={1}>{playerName}</Text>
                                     ) : (
                                         <TextInput

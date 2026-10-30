@@ -186,8 +186,9 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 
 	return (
 		<View style={styles.onlineGame}>
-			<Text style={[styles.gameStatus, { color: winner || remoteResult ? currentTheme.accent : currentTheme.textPrimary, marginTop: 10 }]}>{status}</Text>
-			<View style={styles.ticBoard}>
+			<Text style={[styles.gameStatus, { color: winner || remoteResult ? currentTheme.accent : currentTheme.textPrimary }]}>{status}</Text>
+			{/* Sized to leave room for the opponent panel below on a phone */}
+			<View style={[styles.ticBoard, { width: 216, height: 216, maxWidth: 216 }]}>
 				{board.map((value, index) => (
 					<Pressable
 						key={index}
@@ -199,14 +200,16 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 					</Pressable>
 				))}
 			</View>
-			<StylizedButton text={gameFinished ? t(room.role ? "moregames.rematch" : "bot.newGame") : t("moregames.reset")} onClick={reset} backgroundColor={gameFinished ? "#16A34A" : currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
+			<View style={{ flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
+				<StylizedButton text={gameFinished ? t(room.role ? "moregames.rematch" : "bot.newGame") : t("moregames.reset")} onClick={reset} backgroundColor={gameFinished ? "#16A34A" : currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
+				{!room.role && botActive && <HintButton disabled={gameFinished || turn !== "X"} onHint={showHint} />}
+			</View>
 			{!room.role && (
 				<>
-					{botActive && <HintButton disabled={gameFinished || turn !== "X"} onHint={showHint} />}
-					<BotPanel vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); reset(); }} difficulty={difficulty} onDifficultyChange={(next) => { setDifficulty(next); reset(); }} />
+					<BotPanel compact vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); reset(); }} difficulty={difficulty} onDifficultyChange={(next) => { setDifficulty(next); reset(); }} />
 				</>
 			)}
-			<View style={{ marginTop: 20, alignItems: "center", width: "100%" }}>
+			<View style={{ alignItems: "center", width: "100%" }}>
 				<Collapsible visible={!vsBot || Boolean(room.role)}>
 <OnlineRoomControls inviteGame="tictactoe" inviteHostName={playerName}
 					roomCode={room.roomCode}
