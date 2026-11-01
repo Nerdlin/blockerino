@@ -22,6 +22,7 @@ jest.mock("@/constants/Sound", () => ({ useSoundSettings: () => ({ playSfx: jest
 jest.mock("expo-haptics", () => ({ notificationAsync: jest.fn(() => Promise.resolve()), NotificationFeedbackType: { Success: "success", Warning: "warning" } }));
 jest.mock("./StylizedButton", () => () => null);
 jest.mock("./SimplePopupView", () => ({ children }: any) => children);
+jest.mock("react-native-webview", () => ({ WebView: () => null }));
 
 // eslint-disable-next-line import/first -- jest.mock calls are hoisted and must precede the import
 import {

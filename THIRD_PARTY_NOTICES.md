@@ -46,10 +46,13 @@ their own licenses (almost all MIT, ISC, BSD or Apache-2.0); the full list can b
 | expo-crypto | 15.0.9 | MIT | https://docs.expo.dev/versions/latest/sdk/crypto/ |
 | expo-font | 14.0.12 | MIT | https://docs.expo.dev/versions/latest/sdk/font/ |
 | expo-haptics | 15.0.8 | MIT | https://docs.expo.dev/versions/latest/sdk/haptics/ |
+| expo-image-manipulator | 14.0.8 | MIT | https://docs.expo.dev/versions/latest/sdk/imagemanipulator/ |
+| expo-image-picker | 17.0.11 | MIT | https://docs.expo.dev/versions/latest/sdk/imagepicker/ |
 | expo-linear-gradient | 15.0.8 | MIT | https://docs.expo.dev/versions/latest/sdk/linear-gradient/ |
 | expo-linking | 8.0.12 | MIT | https://docs.expo.dev/versions/latest/sdk/linking |
 | expo-notifications | 0.32.17 | MIT | https://docs.expo.dev/versions/latest/sdk/notifications/ |
 | expo-router | 6.0.24 | MIT | https://docs.expo.dev/routing/introduction/ |
+| expo-sharing | 14.0.8 | MIT | https://docs.expo.dev/versions/latest/sdk/sharing/ |
 | expo-splash-screen | 31.0.13 | MIT | https://docs.expo.dev/versions/latest/sdk/splash-screen/ |
 | expo-status-bar | 3.0.9 | MIT | https://docs.expo.dev/versions/latest/sdk/status-bar/ |
 | expo-symbols | 1.0.8 | MIT | https://docs.expo.dev/versions/latest/sdk/symbols/ |
@@ -69,10 +72,12 @@ their own licenses (almost all MIT, ISC, BSD or Apache-2.0); the full list can b
 | react-native-screens | 4.16.0 | MIT | https://github.com/software-mansion/react-native-screens#readme |
 | react-native-svg | 15.12.1 | MIT | https://github.com/react-native-community/react-native-svg |
 | react-native-url-polyfill | 3.0.0 | MIT | https://github.com/charpeni/react-native-url-polyfill |
+| react-native-view-shot | 4.0.3 | MIT | https://github.com/gre/react-native-view-shot |
 | react-native-web | 0.21.2 | MIT | https://github.com/necolas/react-native-web |
 | react-native-webview | 13.15.0 | MIT | https://github.com/react-native-webview/react-native-webview#readme |
 | react-native-worklets | 0.5.1 | MIT | https://docs.swmansion.com/react-native-worklets |
 | react-native-worklets-core | 1.6.3 | MIT | https://github.com/margelo/react-native-worklets-core#readme |
+| stockfish | 10.0.2 | GPL | https://github.com/nmrugg/stockfish.js |
 
 ## License texts that must be reproduced
 

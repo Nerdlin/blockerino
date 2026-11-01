@@ -37,6 +37,21 @@ Redistribution and use in source and binary forms, with or without modification,
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.`}
 			</LegalMono>
 
+			<LegalHeading>Stockfish</LegalHeading>
+			<LegalParagraph>
+				The master chess bots and the game review use Stockfish 10 (stockfish.js 10.0.2), copyright the Stockfish
+				authors, licensed under the GNU General Public License version 3. It runs unmodified as a separate program
+				that Blockerino talks to over the UCI protocol. The full license text ships with the app
+				(assets/licenses/stockfish-COPYING.txt) and is at gnu.org/licenses/gpl-3.0. Source code:
+				github.com/nmrugg/stockfish.js (tag v10.0.2) and github.com/official-stockfish/Stockfish (sf_10).
+			</LegalParagraph>
+
+			<LegalHeading>Chess puzzles</LegalHeading>
+			<LegalParagraph>
+				Puzzles are taken from the Lichess puzzle database (database.lichess.org), released into the public domain
+				under CC0.
+			</LegalParagraph>
+
 			<LegalHeading>Music and sound effects</LegalHeading>
 			<LegalParagraph>
 				The music and sound effects of Blockerino were produced with AI tools. No recordings from third-party sound
@@ -46,7 +61,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 			<LegalHeading>Services</LegalHeading>
 			<LegalParagraph>
 				Accounts and data run on Supabase. Sign-in uses Discord and Google. Builds, updates and push delivery use Expo
-				and Firebase Cloud Messaging. These are independent services; Blockerino is not affiliated with or endorsed
+				and Firebase Cloud Messaging. Linked chess.com ratings come from the public chess.com API. These are independent services; Blockerino is not affiliated with or endorsed
 				by them.
 			</LegalParagraph>
 		</LegalPage>

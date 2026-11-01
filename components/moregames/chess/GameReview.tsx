@@ -12,7 +12,8 @@ import { useChessEngine } from "./EngineHost";
 
 const GRADE_COLORS: Record<MoveGrade, string> = { best: "#4ADE80", good: "#A3A3A3", inaccuracy: "#FACC15", mistake: "#FB923C", blunder: "#EF4444" };
 const GRADE_MARKS: Record<MoveGrade, string> = { best: "!", good: "", inaccuracy: "?!", mistake: "?", blunder: "??" };
-const DEPTH = 10;
+// a fixed depth, not a time limit: a search cut off mid-iteration gives scores that swing from move to move
+const DEPTH = 15;
 
 /** Review of a finished game: Stockfish grades every move and shows what it would have played instead. */
 export function GameReview({ history, myColor, cosmetics, onClose }: { history: readonly string[]; myColor: Color; cosmetics: ExtraGameCosmetics; onClose: () => void }) {
@@ -47,7 +48,7 @@ export function GameReview({ history, myColor, cosmetics, onClose }: { history: 
 					// the side to move is mated, or it is a draw
 					if (chess.isCheckmate()) cp = side === "w" ? -1000 : 1000;
 				} else {
-					const result = await engine.search(fen, { depth: DEPTH, movetimeMs: 1500 });
+					const result = await engine.search(fen, { depth: DEPTH });
 					cp = toWhiteCp(result, side);
 					bestMove = result.bestMove;
 				}
@@ -66,6 +67,14 @@ export function GameReview({ history, myColor, cosmetics, onClose }: { history: 
 	const better = selectedMove?.better;
 	const hint = better ? { from: better.slice(0, 2), to: better.slice(2, 4) } : null;
 	const shownEval = evals[ply]?.cp;
+	const betterSan = useMemo(() => {
+		if (!better) return null;
+		try {
+			return new Chess(positions.fens[ply - 1]).move({ from: better.slice(0, 2), to: better.slice(2, 4), promotion: better[4] }).san;
+		} catch {
+			return better;
+		}
+	}, [better, positions.fens, ply]);
 
 	if (!engine) {
 		return (
@@ -114,7 +123,7 @@ export function GameReview({ history, myColor, cosmetics, onClose }: { history: 
 			</View>
 			<Text style={[local.small, { color: currentTheme.textPrimary }]}>
 				{shownEval !== undefined ? `${shownEval >= 0 ? "+" : ""}${(shownEval / 100).toFixed(1)}` : "…"}
-				{selectedMove && better ? `  ·  ${t("review.better", { move: better })}` : ""}
+				{selectedMove && better ? `  ·  ${t("review.better", { move: betterSan ?? better })}` : ""}
 			</Text>
 			<ScrollView horizontal style={{ maxHeight: 44, width: "100%" }} contentContainerStyle={{ gap: 6, paddingHorizontal: 4, alignItems: "center" }}>
 				{history.map((san, index) => {

@@ -87,6 +87,7 @@ export function adaptiveBotElo(playerRating: number, recent: readonly ("W" | "L"
 	return Math.max(ADAPTIVE_MIN, Math.min(ADAPTIVE_MAX, Math.round(nudged / 10) * 10));
 }
 
+/** "capture" and "check" are the bot's own captures and checks. */
 export type QuipKind = "greeting" | "playerMove" | "capture" | "check" | "botWins" | "botLoses" | "draw";
 
 type VoiceLines = Record<Exclude<QuipKind, "greeting">, Localized[]>;
@@ -97,8 +98,8 @@ const VOICES: Record<BotVoice, VoiceLines> = {
 			{ en: "Hmm, that looks smart...", ru: "Хм, выглядит умно..." },
 			{ en: "Oh no, what are you planning?", ru: "Ой, что ты задумал?" },
 		],
-		capture: [{ en: "Oops, I think I lost something.", ru: "Ой, кажется, я что-то потерял." }],
-		check: [{ en: "Eek! My king!", ru: "Ай! Мой король!" }],
+		capture: [{ en: "Oh, I took one! Is that allowed?", ru: "Ой, я забрал фигуру! Так можно?" }],
+		check: [{ en: "Um... check? Did I do that right?", ru: "Э-э... шах? Я правильно сделал?" }],
 		botWins: [{ en: "I won? Really? Thanks for playing!", ru: "Я выиграл? Правда? Спасибо за игру!" }],
 		botLoses: [{ en: "Well played! I'll practice more.", ru: "Отлично сыграно! Буду тренироваться." }],
 		draw: [{ en: "A draw! That's not bad for me.", ru: "Ничья! Для меня это неплохо." }],

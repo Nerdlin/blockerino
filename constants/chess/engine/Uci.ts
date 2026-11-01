@@ -32,7 +32,8 @@ export function parseInfoLine(line: string): Omit<EngineEval, "bestMove"> | null
 	const kind = tokens[scoreAt + 1];
 	const value = Number(tokens[scoreAt + 2]);
 	const pvAt = at("pv");
-	const pv = pvAt >= 0 ? tokens.slice(pvAt + 1) : [];
+	// stockfish.js prints extra fields such as "bmc 0.33" after the moves
+	const pv = pvAt >= 0 ? tokens.slice(pvAt + 1).filter((token) => /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(token)) : [];
 	if (kind === "cp") return { cp: value, depth, pv };
 	if (kind === "mate") return { mate: value, depth, pv };
 	return null;
@@ -42,6 +43,8 @@ interface Job {
 	commands: string[];
 	resolve: (result: EngineEval) => void;
 	last: Omit<EngineEval, "bestMove"> | null;
+	/** Whether `last` is only a bound from a failed aspiration window, not an exact score. */
+	lastIsBound: boolean;
 }
 
 export class UciEngine {
@@ -64,8 +67,15 @@ export class UciEngine {
 		const job = this.current;
 		if (!job) return;
 		const info = parseInfoLine(text);
-		// the multipv 1 line is the main one; with a single pv every line is
-		if (info && (!text.includes(" multipv ") || text.includes(" multipv 1 "))) job.last = info;
+		// the multipv 1 line is the main one; with a single pv every line is. A bound (the engine re-searching with a
+		// wider window) is only kept until an exact score arrives, as it can be far off the real one.
+		if (info && (!text.includes(" multipv ") || text.includes(" multipv 1 "))) {
+			const bound = / (lower|upper)bound( |$)/.test(text);
+			if (!bound || !job.last || job.lastIsBound) {
+				job.last = info;
+				job.lastIsBound = bound;
+			}
+		}
 		if (text.startsWith("bestmove")) {
 			const move = text.split(/\s+/)[1];
 			const result: EngineEval = {
@@ -80,6 +90,8 @@ export class UciEngine {
 
 	start(): void {
 		this.transport.send("uci");
+		// Stockfish 10 adds a contempt bonus for the side to move, which skews a review by about half a pawn a move
+		this.transport.send("setoption name Contempt value 0");
 		this.transport.send("isready");
 	}
 
@@ -91,7 +103,7 @@ export class UciEngine {
 			options.movetimeMs && !options.depth ? `go movetime ${options.movetimeMs}` : `go depth ${options.depth ?? 12}${options.movetimeMs ? ` movetime ${options.movetimeMs}` : ""}`,
 		];
 		return new Promise((resolve) => {
-			this.queue.push({ commands, resolve, last: null });
+			this.queue.push({ commands, resolve, last: null, lastIsBound: false });
 			this.pump();
 		});
 	}

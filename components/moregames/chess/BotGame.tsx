@@ -92,7 +92,7 @@ export function BotGame({
 		setHint(null);
 		setState(outcome.state);
 		const last = outcome.state.moves[outcome.state.moves.length - 1];
-		if (!outcome.state.result && Math.random() < 0.3) say(last.san.includes("x") ? "capture" : "playerMove");
+		if (!outcome.state.result && Math.random() < 0.3) say("playerMove");
 	};
 
 	// Save the result once: achievements, the beaten-bots list and the adaptive bot's form.
