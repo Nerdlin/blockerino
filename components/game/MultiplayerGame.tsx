@@ -27,7 +27,7 @@ import { recordLocalMatchHistory } from '@/constants/MatchHistory';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScorePopup } from './ScorePopup';
 import { useSoundSettings } from '@/constants/Sound';
-import { useAtom } from 'jotai';
+import { useAtom, useSetAtom } from 'jotai';
 import { getEloBadge } from '@/components/MultiplayerMenu';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getGameModeConfig } from '@/constants/GameModes';
@@ -202,7 +202,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     };
 
     const { playSfx, playComboSound } = useSoundSettings();
-    const [, setActiveCombo] = useAtom(activeComboAtom);
+    const setActiveCombo = useSetAtom(activeComboAtom);
     const updateActiveCombo = (val: number) => {
         setActiveCombo(val);
     };

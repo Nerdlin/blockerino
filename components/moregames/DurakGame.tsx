@@ -690,7 +690,7 @@ const { t } = useLanguage();
 		setBetError(null);
 		setCoinResult(null);
 		setBotMode(true);
-		setPlayerNames(Object.fromEntries(roles.map((role, index) => [role, index === 0 ? playerName : count > 2 ? `Bot ${index}` : "Bot"])));
+		setPlayerNames(Object.fromEntries(roles.map((role, index) => [role, index === 0 ? playerName : count > 2 ? t("bot.nameN", { n: index }) : t("bot.name")])));
 		setPlayerAvatars(Object.fromEntries(roles.map((role) => [role, ""])));
 		setOpponentReady(true);
 		setState(createDurakState(count, variants, deckSize, 0));

@@ -1,3 +1,4 @@
+import React from "react";
 import {
 	Board,
 	BoardBlockType,
@@ -5,7 +6,7 @@ import {
 	PossibleBoardSpots,
 	useGameSizes
 } from "@/constants/Board";
-import { colorToHex } from "@/constants/Color";
+import { Color, colorToHex } from "@/constants/Color";
 import { Hand } from "@/constants/Hand";
 import {
 	createEmptyBlockStyle,
@@ -108,9 +109,15 @@ interface GridBlockProps {
 	gridBlockSize: number;
 	currentTheme: Theme;
 	pieceSkinId: string;
+	/** Whether the cell was empty when it went live (it then joins the opening light sweep). */
+	startsEmpty: boolean;
+	/** The colour of the block it held when it went live. */
+	startColor: Color;
 }
 
-function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceSkinId }: GridBlockProps) {
+// Memoised like BlockDroppable below: while the board goes live row by row, a re-render of the grid must not set up
+// every cell that is already live again.
+const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceSkinId, startsEmpty, startColor }: GridBlockProps) {
 	// The board has 64-100 cells and every hook here is paid once per cell when a game opens (it took seconds on a
 	// phone), so a cell keeps as few shared values and animated styles as it can: the break direction is fixed per
 	// cell, the white flash is drawn by the static style, and the spark progress exists only where sparks are drawn.
@@ -172,7 +179,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceS
 
 	// Анимация загрузки блоков при первом рендере
 	useEffect(() => {
-		if (board.value[y][x].blockType !== BoardBlockType.EMPTY)
+		if (!startsEmpty)
 			return;
 		const step = 70;
 		const upwardDelay = (boardSize - 1 - y) * step;
@@ -189,6 +196,11 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceS
 	}, []);
 
 	const staticStyle = useAnimatedStyle(() => {
+		// Reanimated runs a style once on the JS thread (runtime kind 1) for the first frame; reading the board there would copy it
+		// across runtimes for every cell, so that run draws the cell from its props and the UI thread takes over.
+		if ((globalThis as { __RUNTIME_KIND?: number }).__RUNTIME_KIND === 1) {
+			return startsEmpty ? createEmptyBlockStyle(currentTheme.emptyBlockBorder) : { ...createFilledBlockStyle(startColor, 7, pieceSkinId), opacity: 1, transform: [] };
+		}
 		const block = board.value[y][x];
 
 		if (block.blockType === BoardBlockType.EMPTY) {
@@ -237,8 +249,8 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceS
 	});
 
 	const fallingStyle = useAnimatedStyle(() => {
-		const block = board.value[y][x];
 		if (placedBlockFall.value > 0) {
+			const block = board.value[y][x];
 			let progress = placedBlockFall.value;
 			progress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress); // easeOutCirc
 			return {
@@ -278,9 +290,9 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceS
 			))}
 		</>
 	);
-}
+});
 
-export default function BlockGrid({
+function BlockGridView({
 	board,
 	possibleBoardDropSpots,
 	draggingPiece,
@@ -288,20 +300,24 @@ export default function BlockGrid({
 }: BlockGridProps) {
 	// Opening a game used to block for a second or more while every cell set up its animations. The grid now shows
 	// plain cells at once and swaps in the animated ones a couple of rows per frame, under the opening light sweep.
+	// Reading a shared value on the JS thread is a synchronous trip to the UI runtime that copies the whole board, so
+	// a render reads it once; reading it once per cell took about half a second per render on a phone.
+	const snapshot = board.value;
+	const boardLength = snapshot.length;
 	const [liveRows, setLiveRows] = useState(0);
 	useEffect(() => {
-		const rowsTotal = board.value.length;
+		const rowsTotal = boardLength;
 		if (liveRows >= rowsTotal) return;
 		const frame = requestAnimationFrame(() => setLiveRows((rows) => Math.min(rowsTotal, rows + 2)));
 		return () => cancelAnimationFrame(frame);
-	}, [liveRows, board]);
+	}, [liveRows, boardLength]);
 	const blockElements: any[] = [];
-	const boardLength = board.value.length;
+
 	const { currentTheme } = useTheme();
 	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
 	const { GRID_BLOCK_SIZE, HITBOX_SIZE } = useGameSizes(boardLength);
 
-	forEachBoardBlock(board.value, (_block, x, y) => {
+	forEachBoardBlock(snapshot, (block, x, y) => {
 		const blockPositionStyle = {
 			position: "absolute" as const,
 			top: y * GRID_BLOCK_SIZE,
@@ -311,7 +327,6 @@ export default function BlockGrid({
 		};
 
 		const live = y < liveRows;
-		const block = board.value[y][x];
 		const plainStyle = live ? null : (block.blockType === BoardBlockType.EMPTY ? createEmptyBlockStyle(currentTheme.emptyBlockBorder) : createFilledBlockStyle(block.color, 7, pieceSkinId));
 		blockElements.push(
 			<Animated.View key={`${x},${y}`} style={blockPositionStyle}>
@@ -323,6 +338,8 @@ export default function BlockGrid({
 					gridBlockSize={GRID_BLOCK_SIZE}
 					currentTheme={currentTheme}
 					pieceSkinId={pieceSkinId}
+					startsEmpty={block.blockType === BoardBlockType.EMPTY}
+					startColor={block.color}
 				/>}
 				<BlockDroppable
 					x={x}
@@ -376,7 +393,7 @@ interface BlockDroppableProps {
 	gridBlockSize: number;
 }
 
-function BlockDroppable({
+const BlockDroppable = React.memo(function BlockDroppable({
 	children,
 	x,
 	y,
@@ -410,6 +427,8 @@ function BlockDroppable({
 	});
 
 	const animatedStyle = useAnimatedStyle(() => {
+		// nothing can be dropped before a drag starts, so the first (JS thread) run needs no trip for the drop spots
+		if ((globalThis as { __RUNTIME_KIND?: number }).__RUNTIME_KIND === 1) return { width: 0, height: 0 };
 		const row = possibleBoardDropSpots.value[y];
 		const active = row ? row[x] === 1 : false;
 		if (active) {
@@ -437,7 +456,7 @@ function BlockDroppable({
 			{children}
 		</Animated.View>
 	);
-}
+});
 
 const styles = StyleSheet.create({
 	grid: {
@@ -557,3 +576,8 @@ export function ReadOnlyBlockGrid({ board, gridBlockSize, hoverIndex, hoverX, ho
 		</View>
 	);
 }
+
+// Memoised: its props are shared values that never change identity, and a re-render of every cell (or hand block)
+// cost the JS thread up to a second each time the game re-rendered for a score popup.
+const BlockGrid = React.memo(BlockGridView);
+export default BlockGrid;

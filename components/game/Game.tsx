@@ -16,7 +16,7 @@ import { createHighScore, HighScoreId, updateHighScore, SavedGameState, saveActi
 import { useSoundSettings } from '@/constants/Sound';
 import GameOverModal from '../GameOverModal';
 import { ScorePopup } from './ScorePopup';
-import { useAtom } from 'jotai';
+import { useAtom, useSetAtom } from 'jotai';
 import FirstRunCoach from './FirstRunCoach';
 import { firstRunCoachAtom, markFirstRunDone } from '@/constants/FirstRun';
 import { track } from '@/constants/Analytics';
@@ -130,7 +130,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const scoreStorageId = useSharedValue<HighScoreId | undefined>(validInitialState ? validInitialState.scoreStorageId : undefined);
 	const { playSfx, playComboSound, initialize } = useSoundSettings();
 
-	const [, setActiveCombo] = useAtom(activeComboAtom);
+	const setActiveCombo = useSetAtom(activeComboAtom);
 	// First launch only: the hint stays until the first block is placed (or the game is left).
 	const [coachActive, setCoachActive] = useAtom(firstRunCoachAtom);
 	const coachActiveRef = useRef(coachActive);

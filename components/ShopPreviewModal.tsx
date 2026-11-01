@@ -5,6 +5,7 @@ import { cssColors } from "@/constants/Color";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import type { ShopItem } from "@/constants/Shop";
+import { shopItemText } from "@/constants/i18n/shopItems";
 
 // Window that opens when a shop card is tapped: a bigger look at the item and the buy / equip action, so nobody
 // has to spend coins to see what something looks like.
@@ -24,7 +25,7 @@ export default function ShopPreviewModal({
 	onClose: () => void;
 }) {
 	const { currentTheme } = useTheme();
-	const { t } = useLanguage();
+	const { t, language } = useLanguage();
 	if (!item) return null;
 
 	const free = item.price === 0;
@@ -35,11 +36,11 @@ export default function ShopPreviewModal({
 		<Modal transparent animationType="fade" visible onRequestClose={onClose}>
 			<Pressable style={styles.backdrop} onPress={onClose}>
 				<Pressable style={[styles.card, { borderColor: item.accent, backgroundColor: currentTheme.menuBackground }]} onPress={() => undefined}>
-					<Text style={[styles.title, { color: currentTheme.textPrimary }]} numberOfLines={2}>{item.title}</Text>
+					<Text style={[styles.title, { color: currentTheme.textPrimary }]} numberOfLines={2}>{shopItemText(item, language).title}</Text>
 					<View style={styles.preview}>
 						<CosmeticPreview item={item} large />
 					</View>
-					<Text style={[styles.description, { color: currentTheme.textSecondary }]}>{item.description}</Text>
+					<Text style={[styles.description, { color: currentTheme.textSecondary }]}>{shopItemText(item, language).description}</Text>
 					<Text style={[styles.status, { color: owned ? item.accent : currentTheme.accent }]}>
 						{owned ? t("shop.owned") : free ? t("shop.price", { price: 0 }) : t("shop.price", { price: item.price })}
 					</Text>

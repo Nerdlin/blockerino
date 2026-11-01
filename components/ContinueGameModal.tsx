@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -21,6 +21,19 @@ export default function ContinueGameModal({
     const { currentTheme } = useTheme();
     const { t } = useLanguage();
     const modeTitle = t(`mode.${gameMode}`);
+    // The window pops up over the main menu when the app starts, often under a finger already on its way to a menu
+    // button: it takes no taps for a moment, and throwing the saved game away needs a second tap.
+    const [armed, setArmed] = useState(false);
+    const [confirmStartOver, setConfirmStartOver] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setArmed(true), 700);
+        return () => clearTimeout(timer);
+    }, []);
+    useEffect(() => {
+        if (!confirmStartOver) return;
+        const timer = setTimeout(() => setConfirmStartOver(false), 4000);
+        return () => clearTimeout(timer);
+    }, [confirmStartOver]);
 
     return (
         <SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
@@ -57,14 +70,18 @@ export default function ContinueGameModal({
             <View style={styles.buttonContainer}>
                 <StylizedButton
                     text={t("over.continue")}
-                    onClick={onContinue}
+                    onClick={() => { if (armed) onContinue(); }}
                     backgroundColor={currentTheme.buttonPrimary}
                 />
 
                 <StylizedButton
-                    text={t("over.startOver")}
-                    onClick={onStartOver}
-                    backgroundColor={currentTheme.buttonSecondary}
+                    text={confirmStartOver ? t("over.startOverConfirm") : t("over.startOver")}
+                    onClick={() => {
+                        if (!armed) return;
+                        if (confirmStartOver) onStartOver();
+                        else setConfirmStartOver(true);
+                    }}
+                    backgroundColor={confirmStartOver ? "#B91C1C" : currentTheme.buttonSecondary}
                 />
             </View>
         </SimplePopupView>

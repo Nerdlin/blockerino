@@ -42,6 +42,7 @@ export const gameover: ScreenDictionary = {
 		"over.score": "Score:",
 		"over.continue": "Continue",
 		"over.startOver": "Start Over",
+		"over.startOverConfirm": "Tap again: the saved game is lost",
 
 		// SecondChanceModal
 		"over.extraChance": "Extra Chance?",
@@ -100,6 +101,7 @@ export const gameover: ScreenDictionary = {
 		"over.score": "Очки:",
 		"over.continue": "Продолжить",
 		"over.startOver": "Начать заново",
+		"over.startOverConfirm": "Нажмите ещё раз: игра пропадёт",
 
 		// SecondChanceModal
 		"over.extraChance": "Ещё попытка?",

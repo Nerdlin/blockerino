@@ -1,3 +1,4 @@
+import React from "react";
 import { useGameSizes } from "@/constants/Board";
 import { Hand } from "@/constants/Hand";
 import { createFilledBlockStyle } from "@/constants/Piece";
@@ -71,7 +72,7 @@ function HandBlock({
 	);
 }
 
-export default function HandPieces({ hand, boardSize, onHandChange }: HandProps) {
+function HandPiecesView({ hand, boardSize }: HandProps) {
 	const { GRID_BLOCK_SIZE, HAND_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardSize);
 	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
 	const handSize = hand.value.length;
@@ -339,3 +340,8 @@ const styles = StyleSheet.create({
 		alignItems: 'center'
 	}
 });
+
+// Memoised: its props are shared values that never change identity, and a re-render of every cell (or hand block)
+// cost the JS thread up to a second each time the game re-rendered for a score popup.
+const HandPieces = React.memo(HandPiecesView, (prev, next) => prev.hand === next.hand && prev.boardSize === next.boardSize);
+export default HandPieces;

@@ -382,7 +382,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 		setTargetSunk([]);
 		setWinner(null);
 		setWinnerSource(null);
-		setOpponentName("Bot");
+		setOpponentName(t("bot.name"));
 		setOpponentPresent(true);
 		setOpponentReady(true);
 		setReady(true);

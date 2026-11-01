@@ -19,6 +19,7 @@ import {
 import { useSoundSettings } from "@/constants/Sound";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useLanguage } from "@/constants/Localization";
+import { shopItemText } from "@/constants/i18n/shopItems";
 
 const CATEGORIES: { id: ShopCategory; labelKey: string }[] = [
 	{ id: "piece_skin", labelKey: "shop.category.pieces" },
@@ -32,7 +33,7 @@ export default function ShopMenu() {
 	const { currentTheme } = useTheme();
 	const { state, equip, purchaseAndEquip } = useShopState();
 	const { playSfx } = useSoundSettings();
-	const { t } = useLanguage();
+	const { t, language } = useLanguage();
 	const { width } = useWindowDimensions();
 	const isMobile = width < 620;
 	const [activeCategory, setActiveCategory] = useState<ShopCategory>("piece_skin");
@@ -69,7 +70,7 @@ export default function ShopMenu() {
 
 		if (result.ok) {
 			playSfx("menuClick");
-			setMessage(isOwned ? t("shop.equippedMsg", { name: item.title }) : t("shop.boughtMsg", { name: item.title }));
+			setMessage(isOwned ? t("shop.equippedMsg", { name: shopItemText(item, language).title }) : t("shop.boughtMsg", { name: shopItemText(item, language).title }));
 		} else {
 			playSfx("invalidPlacement");
 			setMessage(result.error ?? t("shop.couldNotBuy"));
@@ -108,7 +109,7 @@ export default function ShopMenu() {
 			<View style={styles.equippedRow}>
 				<Text style={[styles.equippedLabel, { color: currentTheme.textSecondary }]}>{t("shop.equipped")}</Text>
 				<Text style={[styles.equippedValue, { color: currentTheme.textPrimary }]} numberOfLines={1}>
-					{equippedItem.title}
+					{shopItemText(equippedItem, language).title}
 				</Text>
 			</View>
 
@@ -160,7 +161,7 @@ function ShopItemCard({
 	onPreview: () => void;
 }) {
 	const { currentTheme } = useTheme();
-	const { t } = useLanguage();
+	const { t, language } = useLanguage();
 	const buttonText = isEquipped
 		? t("shop.equipped")
 		: isOwned || item.price === 0
@@ -176,14 +177,14 @@ function ShopItemCard({
 				backgroundColor: "rgba(0, 0, 0, 0.38)",
 			},
 		]}>
-			<Pressable onPress={onPreview} accessibilityLabel={item.title} style={styles.previewTap}>
+			<Pressable onPress={onPreview} accessibilityLabel={shopItemText(item, language).title} style={styles.previewTap}>
 				<CosmeticPreview item={item} />
 			</Pressable>
-			<Text style={[styles.itemTitle, { color: currentTheme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
-				{item.title}
+			<Text style={[styles.itemTitle, { color: currentTheme.textPrimary }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>
+				{shopItemText(item, language).title}
 			</Text>
 			<Text style={[styles.itemDescription, { color: currentTheme.textSecondary }]} numberOfLines={2}>
-				{item.description}
+				{shopItemText(item, language).description}
 			</Text>
 			<Text style={[styles.itemStatus, { color: isOwned ? item.accent : currentTheme.textSecondary }]}>
 				{isOwned ? t("shop.owned") : t("shop.price", { price: item.price })}
@@ -368,7 +369,10 @@ const styles = StyleSheet.create({
 		fontFamily: "Silkscreen",
 		fontSize: 13,
 		textAlign: "center",
+		textAlignVertical: "center",
 		marginTop: 8,
+		// room for a name on two lines, so the cards of a row stay the same height
+		minHeight: 36,
 	},
 	itemDescription: {
 		fontFamily: "Silkscreen",
