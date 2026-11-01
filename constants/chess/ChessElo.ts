@@ -1,7 +1,7 @@
 // Elo for chess, one rating per time class. The server applies the same formula (see the chess_ratings migration);
 // this copy drives the preview on the result screen and the tests.
 
-export const START_RATING = 1000;
+export const START_RATING = 400;
 export const MIN_RATING = 100;
 /** A rating is shown as "?" until this many games were played in the class. */
 export const PROVISIONAL_GAMES = 5;
