@@ -8,7 +8,7 @@
 
 <br />
 
-[![Release](https://img.shields.io/badge/Release-v2.0.4-22c55e?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.4)
+[![Release](https://img.shields.io/badge/Release-v2.0.5-22c55e?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.5)
 [![Platforms](https://img.shields.io/badge/Web_·_Android_·_iOS-1f2937?style=for-the-badge&logo=googlechrome&logoColor=white)](https://blockerino.aionerdlin.me)
 [![Discord](https://img.shields.io/badge/Discord_Activity-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/discovery/applications/1529076492775194836)
 
@@ -19,7 +19,7 @@
 
 <br />
 
-**[▶ Играть в браузере](https://blockerino.aionerdlin.me)** &nbsp;·&nbsp; **[📥 Скачать APK](https://github.com/Nerdlin/blockerino/releases/download/v2.0.4/blockerino-2.0.4.apk)** &nbsp;·&nbsp; **[📖 Что нового](./docs/release-2.0.4.md)**
+**[▶ Играть в браузере](https://blockerino.aionerdlin.me)** &nbsp;·&nbsp; **[📥 Скачать APK](https://github.com/Nerdlin/blockerino/releases/download/v2.0.5/blockerino-2.0.5.apk)** &nbsp;·&nbsp; **[📖 Что нового](./docs/release-2.0.5.md)**
 
 <br />
 
@@ -53,9 +53,11 @@
 - 🀄 **Новый Маджонг** (2.0.3): 62 плитки, подсказка, читаемые заблокированные плитки
 - 🧠 **Stockfish в шахматах** (2.0.4): боты-мастера до 2800 Elo, разбор партий, 600 задач Lichess, привязка chess.com
 - 👻 **Тень фигуры** (2.0.4): видно, куда встанет блок и какие линии сгорят; обучение в первой игре
+- ⚫ **Шашки** (2.0.5): русские правила, бот трёх уровней, игра с другом онлайн и свой рейтинг
+- 🏆 **Google Play Игры** (2.0.5): 20 достижений и рекорды Классики и Хаоса в версии из Google Play
 - 🔄 обновления «по воздуху» и сборка для Google Play
 
-Полный список: [2.0.4](./docs/release-2.0.4.md) · [2.0.3](./docs/release-2.0.3.md) · [2.0.2](./docs/release-2.0.2.md) · [2.0.1](./docs/release-2.0.1.md) · [2.0.0](./docs/release-2.0.0.md).
+Полный список: [2.0.5](./docs/release-2.0.5.md) · [2.0.4](./docs/release-2.0.4.md) · [2.0.3](./docs/release-2.0.3.md) · [2.0.2](./docs/release-2.0.2.md) · [2.0.1](./docs/release-2.0.1.md) · [2.0.0](./docs/release-2.0.0.md).
 
 </details>
 
@@ -65,15 +67,15 @@
 
 ## 📲 Скачать (Android)
 
-> **Последний релиз: [v2.0.4](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.4)**, сборка 16.
-> Партия без фризов, тень фигуры, обучение, Stockfish, задачи и разбор партий в шахматах, смена имени в профиле (2.0.4). Раньше: анимации карт в Дураке и новый Маджонг (2.0.3), фото в аватарке и жалобы на фото, приглашения друзей в Durak, Sea Battle и Tic-Tac-Toe, исправление шахматных вызовов, шахматы с часами, Elo и ботами (2.0.1), исправления удаления аккаунта и заданий дня.
+> **Последний релиз: [v2.0.5](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.5)**, сборка 17.
+> Шашки, новая таблица лидеров «Ещё игр», Google Play Игры, перенос рейтинга с chess.com, исправленная веб-версия (2.0.5). Раньше: партия без фризов, тень фигуры, Stockfish, задачи и разбор партий (2.0.4), анимации карт в Дураке и новый Маджонг (2.0.3), фото в аватарке и жалобы на фото, приглашения друзей в Durak, Sea Battle и Tic-Tac-Toe, исправление шахматных вызовов, шахматы с часами, Elo и ботами (2.0.1), исправления удаления аккаунта и заданий дня.
 
 | Файл | Размер | Для чего |
 | --- | --- | --- |
-| 📥 [**blockerino-2.0.4.apk**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.4/blockerino-2.0.4.apk) | 52,5 МиБ | Установка на телефон |
-| 📦 [**blockerino-2.0.4.aab**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.4/blockerino-2.0.4.aab) | 70,1 МиБ | Google Play Console |
+| 📥 [**blockerino-2.0.5.apk**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.5/blockerino-2.0.5.apk) | 52,7 МиБ | Установка на телефон |
+| 📦 [**blockerino-2.0.5.aab**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.5/blockerino-2.0.5.aab) | 70,1 МиБ | Google Play Console |
 
-Подробности и история: [описание 2.0.4](./docs/release-2.0.4.md) · [все релизы](./docs)
+Подробности и история: [описание 2.0.5](./docs/release-2.0.5.md) · [все релизы](./docs)
 
 > 💡 **Веб-версию** можно установить как приложение: в Chrome выберите «Установить» или «Добавить на главный экран».
 
