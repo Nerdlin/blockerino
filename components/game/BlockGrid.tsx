@@ -31,6 +31,14 @@ import Animated, {
 	withTiming,
 } from "react-native-reanimated";
 
+// On native, Reanimated runs each animated style once on the JS thread (runtime kind 1) before the UI thread takes over.
+// On web there is no UI thread: every run is on the JS thread, so this must stay false there or styles never update.
+const SKIPS_JS_FIRST_RUN = Platform.OS !== "web";
+function isJsFirstRun() {
+	"worklet";
+	return SKIPS_JS_FIRST_RUN && (globalThis as { __RUNTIME_KIND?: number }).__RUNTIME_KIND === 1;
+}
+
 interface BlockGridProps {
 	board: SharedValue<Board>;
 	possibleBoardDropSpots: SharedValue<PossibleBoardSpots>;
@@ -198,7 +206,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 	const staticStyle = useAnimatedStyle(() => {
 		// Reanimated runs a style once on the JS thread (runtime kind 1) for the first frame; reading the board there would copy it
 		// across runtimes for every cell, so that run draws the cell from its props and the UI thread takes over.
-		if ((globalThis as { __RUNTIME_KIND?: number }).__RUNTIME_KIND === 1) {
+		if (isJsFirstRun()) {
 			return startsEmpty ? createEmptyBlockStyle(currentTheme.emptyBlockBorder) : { ...createFilledBlockStyle(startColor, 7, pieceSkinId), opacity: 1, transform: [] };
 		}
 		const block = board.value[y][x];
@@ -428,7 +436,7 @@ const BlockDroppable = React.memo(function BlockDroppable({
 
 	const animatedStyle = useAnimatedStyle(() => {
 		// nothing can be dropped before a drag starts, so the first (JS thread) run needs no trip for the drop spots
-		if ((globalThis as { __RUNTIME_KIND?: number }).__RUNTIME_KIND === 1) return { width: 0, height: 0 };
+		if (isJsFirstRun()) return { width: 0, height: 0 };
 		const row = possibleBoardDropSpots.value[y];
 		const active = row ? row[x] === 1 : false;
 		if (active) {
