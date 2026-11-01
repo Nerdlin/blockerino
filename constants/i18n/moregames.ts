@@ -79,6 +79,12 @@ export const moregames: ScreenDictionary = {
 
 		// Leaderboard panel
 		"moregames.top100": "Top 100 players",
+		"moregames.statW": "{n} W",
+		"moregames.statL": "{n} L",
+		"moregames.statD": "{n} D",
+		"moregames.winRateShort": "{rate}% won",
+		"moregames.podiumWins": "{wins} wins · {rate}%",
+		"moregames.rowMeta": "{games} games · {rate}%",
 		"moregames.colPlayer": "Player",
 		"moregames.colTier": "Tier",
 		"moregames.colWins": "Wins",
@@ -298,6 +304,12 @@ export const moregames: ScreenDictionary = {
 
 		// Leaderboard panel
 		"moregames.top100": "Топ-100 игроков",
+		"moregames.statW": "{n} побед",
+		"moregames.statL": "{n} пораж.",
+		"moregames.statD": "{n} ничьих",
+		"moregames.winRateShort": "{rate}% побед",
+		"moregames.podiumWins": "{wins} побед · {rate}%",
+		"moregames.rowMeta": "{games} игр · {rate}%",
 		"moregames.colPlayer": "Игрок",
 		"moregames.colTier": "Лига",
 		"moregames.colWins": "Победы",
