@@ -14,23 +14,24 @@ import { styles } from "./styles";
 export const MAHJONG_SYMBOLS = ["四", "五", "六", "竹", "花", "中", "發", "東", "南", "北", "白", "九", "萬", "風", "春", "月", "山", "水"];
 export const MAHJONG_LAYOUT: [number, number, number][] = buildMahjongLayout();
 
-// A pyramid of three layers: a 7-wide base (38 tiles), a 5x4 middle (20) and a 2x2 top (4), 62 tiles in all. Each
+// A pyramid of three layers: a 7-tall base (38 tiles), a 4x5 middle (20) and a 2x2 top (4), 62 tiles in all. Each
 // x/y is one tile cell; the upper layers sit exactly over lower tiles so the covering test stays column-exact.
+// The pyramid stands upright (6 wide, 7 tall): a phone screen is narrow and tall, so the tiles come out larger.
 function buildMahjongLayout(): [number, number, number][] {
 	const cells: [number, number, number][] = [];
 	for (let y = 0; y <= 5; y += 1) {
 		const edge = y === 0 || y === 5;
-		for (let x = edge ? 1 : 0; x <= (edge ? 5 : 6); x += 1) cells.push([x, y, 0]);
+		for (let x = edge ? 1 : 0; x <= (edge ? 5 : 6); x += 1) cells.push([y, x, 0]);
 	}
-	for (let y = 1; y <= 4; y += 1) for (let x = 1; x <= 5; x += 1) cells.push([x, y, 1]);
+	for (let y = 1; y <= 4; y += 1) for (let x = 1; x <= 5; x += 1) cells.push([y, x, 1]);
 	for (const [x, y] of [[2, 2], [3, 2], [2, 3], [3, 3]]) cells.push([x, y, 2]);
 	return cells;
 }
 
 export const MAHJONG_TILE_W = 46;
 export const MAHJONG_TILE_H = 58;
-export const MAHJONG_BOARD_W = 380;
-export const MAHJONG_BOARD_H = 392;
+export const MAHJONG_BOARD_W = 314;
+export const MAHJONG_BOARD_H = 442;
 
 // A tile is free when nothing sits on top of it (same column, higher layer) and at
 // least one of its left/right neighbours on the same layer is missing. The covering
@@ -228,7 +229,7 @@ export function MahjongGame({ cosmetics, playerName, onRatingChange }: { cosmeti
 				{remaining === 0 ? t("mahjong.boardCleared") : noMoves ? t("mahjong.noMoves") : t("mahjong.tilesLeft", { count: remaining })}
 			</Text>
 			<View onLayout={(event) => setBoardWidth(event.nativeEvent.layout.width)} style={{ width: '100%', height: MAHJONG_BOARD_H * boardScale, alignItems: 'center' }}>
-			<View style={[styles.mahjongLayerBoard, { backgroundColor: mahjong.board, borderColor: mahjong.boardBorder }, { position: 'absolute', left: Math.max(0, (boardWidth - MAHJONG_BOARD_W) / 2), transformOrigin: 'top left', transform: [{ scale: boardScale }] }]}>
+			<View style={[styles.mahjongLayerBoard, { width: MAHJONG_BOARD_W, height: MAHJONG_BOARD_H, backgroundColor: mahjong.board, borderColor: mahjong.boardBorder }, { position: 'absolute', left: Math.max(0, (boardWidth - MAHJONG_BOARD_W) / 2), transformOrigin: 'top left', transform: [{ scale: boardScale }] }]}>
 				{tiles.map((tile) => {
 					if (tile.removed) return null;
 					const free = isMahjongTileFree(tile, tiles);

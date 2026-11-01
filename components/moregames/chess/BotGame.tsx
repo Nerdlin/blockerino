@@ -182,7 +182,7 @@ export function BotGame({
 				onOfferDraw={() => {}}
 				onAnswerDraw={() => {}}
 				onCopyPgn={copyPgn}
-				onNewGame={onExit}
+				onNewGame={rematch}
 			/>
 			{!state.result ? (
 				<View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>

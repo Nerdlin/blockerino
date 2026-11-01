@@ -19,7 +19,7 @@ import { syncLocalHighScores } from "@/constants/LocalScoreSync";
 import GlobalScoreRow from "./GlobalScoreRow";
 import SegmentedControl, { type SegmentItem } from "./SegmentedControl";
 import UiIcon from "./UiIcon";
-import { getFriendsSeasonLeaderboard, getSeasonBoard, getSeasonEndsAt, getSeasonLeaderboard } from "@/constants/SeasonScores";
+import { getFriendsAllTimeLeaderboard, getSeasonBoard, getSeasonEndsAt, getSeasonLeaderboard } from "@/constants/SeasonScores";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 
 const LEADERBOARD_LIMIT = 100;
@@ -104,7 +104,7 @@ export default function HighScores() {
             const [localScores, remoteScores] = await Promise.all([
                 getHighScores(gameMode, true, true, LEADERBOARD_LIMIT),
                 showFriends && seasonBoard
-                    ? getFriendsSeasonLeaderboard(seasonBoard)
+                    ? getFriendsAllTimeLeaderboard(seasonBoard)
                     : showSeason && seasonBoard
                         ? getSeasonLeaderboard(seasonBoard, LEADERBOARD_LIMIT)
                         : getGlobalHighScores(gameMode, LEADERBOARD_LIMIT)
@@ -223,7 +223,7 @@ export default function HighScores() {
 
         <View style={styles.infoRow}>
             <Text style={[styles.seasonEndsText, { color: currentTheme.textSecondary }]}>
-                {showSeason || showFriends
+                {showSeason
                     ? (seasonDaysLeft <= 1 ? t("hs.seasonEndsToday") : t("hs.seasonEndsIn", { days: seasonDaysLeft }))
                     : ""}
             </Text>
@@ -256,7 +256,7 @@ export default function HighScores() {
         { !hasScores && !loading &&
             <>
                 <Text style={[styles.noScoresText, { color: currentTheme.textPrimary }, isMobile && { fontSize: 20 }]}>
-                    {showFriends ? t("hs.noFriendsScores") : t("hs.noGlobalScores")}
+                    {showFriends ? t("hs.noFriendsScores") : showSeason ? t("hs.noSeasonScores") : t("hs.noGlobalScores")}
                 </Text>
                 <StylizedButton text={t("hs.play", { mode: currentModeConfig.shortTitle })} onClick={() => {
                     setAppState(gameMode)

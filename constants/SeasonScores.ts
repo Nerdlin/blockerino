@@ -185,10 +185,19 @@ export async function flushPendingSeasonScoresForSession(): Promise<void> {
 }
 
 /** Top players of the running season for one board, best first. */
+/** All-time bests of the player and their accepted friends, best first. Empty for guests. */
+export async function getFriendsAllTimeLeaderboard(board: SeasonBoard): Promise<GlobalHighScore[]> {
+	return getFriendsLeaderboard("get_friends_alltime_leaderboard", board);
+}
+
 /** The current season's ranking among the player and their accepted friends. Empty for guests. */
 export async function getFriendsSeasonLeaderboard(board: SeasonBoard): Promise<GlobalHighScore[]> {
+	return getFriendsLeaderboard("get_friends_season_leaderboard", board);
+}
+
+async function getFriendsLeaderboard(rpc: string, board: SeasonBoard): Promise<GlobalHighScore[]> {
 	try {
-		const { data, error } = await supabase.rpc("get_friends_season_leaderboard", { p_board: board });
+		const { data, error } = await supabase.rpc(rpc, { p_board: board });
 		if (error || !Array.isArray(data)) return [];
 
 		return data.map((row: { player_name?: string; avatar_url?: string | null; score?: number }) => ({

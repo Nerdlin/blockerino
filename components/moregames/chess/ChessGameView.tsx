@@ -123,7 +123,9 @@ export function ChessGameView({
 	const running = state.clock?.running ? state.clock.turn : null;
 
 	const menuItems: MenuItem[] = [
-		{ key: "new", label: t("chess.newGame"), icon: "newgame", onPress: onNewGame },
+		// only once the game is over: mid-game it silently resigned an online game or dropped a bot game (resign and
+		// abort have their own buttons)
+		...(state.result ? [{ key: "new", label: t("chess.newGame"), icon: "newgame" as const, onPress: onNewGame }] : []),
 		...(friendGame && !state.result && !state.drawOfferFrom && !canAbort(state) ? [{ key: "draw", label: t("chess.offerDraw"), icon: "draw" as const, onPress: onOfferDraw }] : []),
 		{ key: "flip", label: t("chess.flip"), icon: "flip", onPress: () => setFlipped((value) => !value) },
 		{ key: "pgn", label: t("chess.pgn"), icon: "pgn", onPress: onCopyPgn },

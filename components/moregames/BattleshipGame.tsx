@@ -730,14 +730,14 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 					</View>
 				)}
 				<View style={[styles.battleBoardsVertical, { zIndex: 1 }]}>
-					{ready ? <BattleGrid testPrefix="sea-target" title={t("moregames.target")} cells={targetShots} crossed={targetCrossed} onPress={fire} cosmetics={cosmetics} /> : null}
-					{/* In battle your own fleet is only watched, so it is drawn smaller and both boards fit a phone screen */}
-					<View ref={boardRef} style={ready ? { transform: [{ scale: 0.72 }], marginVertical: -34 } : undefined} onLayout={() => {
+					{ready ? <BattleGrid testPrefix="sea-target" title={t("moregames.target")} cells={targetShots} crossed={targetCrossed} onPress={fire} cosmetics={cosmetics} size={IN_BATTLE_GRID_SIZE} /> : null}
+					<View ref={boardRef} onLayout={() => {
 						measureScreenRect(boardRef.current, (pageX, pageY, w, h) => {
 							setBoardLayout({ x: pageX, y: pageY, w, h });
 						});
 					}}>
-						<BattleGrid testPrefix="sea-mine" title={t("moregames.myFleet")} cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
+						{/* once the battle starts the fleet is fixed, so no ship stays highlighted as selected */}
+						<BattleGrid testPrefix="sea-mine" title={t("moregames.myFleet")} cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={ready ? undefined : selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} size={ready ? IN_BATTLE_GRID_SIZE : undefined} />
 					</View>
 				</View>
 			</View>
@@ -806,6 +806,9 @@ export function ShipDragItem({ ship, onDrop, selected, onSelect, paper, onDragMo
 	);
 }
 
+// In battle both boards are on screen at once: the same size for both, small enough to fit a phone screen.
+const IN_BATTLE_GRID_SIZE = 190;
+
 // Sea Battle board edge in px. The popup card itself is scaled up on big screens.
 export function getBattleGridSize(_width: number, _height: number) {
 	return 220;
@@ -837,6 +840,7 @@ export function BattleGrid({
 	cosmetics,
 	dragPreview,
 	testPrefix,
+	size,
 }: {
 	title?: string;
 	testPrefix?: string;
@@ -847,6 +851,7 @@ export function BattleGrid({
 	onPress?: (cell: string) => void;
 	cosmetics: ExtraGameCosmetics;
 	dragPreview?: { shipId: string; x: number; y: number; valid: boolean } | null;
+	size?: number;
 }) {
 	const { currentTheme } = useTheme();
 	// Only show ships that are placed on the board (x >= 0)
@@ -865,7 +870,8 @@ export function BattleGrid({
 		}
 	}
 
-	const gridSize = useBattleGridSize();
+	const defaultGridSize = useBattleGridSize();
+	const gridSize = size ?? defaultGridSize;
 	const markSize = Math.max(18, Math.round((gridSize / 10) * 0.8 / 9) * 9);
 	const waterColor = sea.water;
 

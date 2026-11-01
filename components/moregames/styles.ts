@@ -619,7 +619,7 @@ export const styles = StyleSheet.create({
 		position: "relative",
 		width: "100%",
 		height: undefined,
-		maxWidth: 333,
+		maxWidth: 420,
 		aspectRatio: 1,
 	},
 	sudokuBoard: {
