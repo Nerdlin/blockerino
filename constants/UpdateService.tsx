@@ -2,6 +2,7 @@ import { Alert, Linking, Platform } from 'react-native';
 import * as Application from 'expo-application';
 import { supabase } from './Supabase';
 import { loadStoredLanguage, translate, type Language } from './Localization';
+import { getInstallerPackageName, GOOGLE_PLAY_INSTALLER } from '@/modules/install-source';
 
 export interface AppVersionConfig {
     latestVersion: string;
@@ -25,6 +26,13 @@ class UpdateService {
     async checkForUpdates(force: boolean = false): Promise<void> {
         // Проверка только для Android
         if (Platform.OS !== 'android') {
+            return;
+        }
+
+        // Google Play updates its installs itself, and an app from Play may not offer another way to update it: only
+        // the GitHub APK gets the update dialog. A manual check opens the game in the Play Store instead.
+        if (getInstallerPackageName() === GOOGLE_PLAY_INSTALLER) {
+            if (force) await this.openPlayListing();
             return;
         }
 
@@ -157,6 +165,15 @@ class UpdateService {
         } catch (error) {
             console.error('Error opening download URL:', error);
             Alert.alert(translate(language, 'update.openFailedTitle'), translate(language, 'update.openFailed'));
+        }
+    }
+
+    private async openPlayListing(): Promise<void> {
+        const id = Application.applicationId || 'com.nerdlin.blockerino';
+        try {
+            await Linking.openURL(`market://details?id=${id}`);
+        } catch {
+            await Linking.openURL(`https://play.google.com/store/apps/details?id=${id}`).catch(() => undefined);
         }
     }
 
