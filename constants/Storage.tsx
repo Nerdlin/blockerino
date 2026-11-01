@@ -4,6 +4,7 @@ import * as Crypto from 'expo-crypto';
 import { Board } from './Board';
 import { getDailyPuzzleKey, Hand } from './Hand';
 import { supabase } from './Supabase';
+import { reportPlayGamesScore } from './PlayGamesSync';
 
 const highScoresKey = "HIGH_SCORES";
 const HIGH_SCORE_UPDATE_DEBOUNCE_MS = 250;
@@ -55,6 +56,7 @@ export async function getHighScores(gameMode: GameModeType, filterZeroes: boolea
 }
 
 async function persistHighScoreUpdate(key: HighScoreId, score: HighScore): Promise<void> {
+    reportPlayGamesScore(score.type, score.score);
     highScoreUpdateQueue = highScoreUpdateQueue.catch(() => undefined).then(async () => {
         const previous = await AsyncStorage.getItem(key);
         const ownerUserId = previous ? (JSON.parse(previous) as HighScore).ownerUserId : score.ownerUserId;

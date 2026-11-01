@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application>
+    <!-- The Play Games Services project of the game (Play Console, Play Games Services, Configuration) -->
+    <meta-data android:name="com.google.android.gms.games.APP_ID" android:value="@string/play_games_app_id" />
+  </application>
+</manifest>

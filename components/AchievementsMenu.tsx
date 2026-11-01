@@ -7,6 +7,7 @@ import SimplePopupView from "./SimplePopupView";
 import AchievementIcon from "./AchievementIcon";
 import SegmentedControl from "./SegmentedControl";
 import StylizedButton from "./StylizedButton";
+import { isPlayGamesAvailable, isPlayGamesSignedIn, showPlayGamesAchievements, signInToPlayGames } from "@/modules/play-games";
 import DailyQuestsCard from "./DailyQuestsCard";
 import UiIcon from "./UiIcon";
 import { useTheme } from "@/constants/Theme";
@@ -209,6 +210,18 @@ export default function AchievementsMenu() {
 						/>
 					)}
 				</View>
+			)}
+			{!loading && isPlayGamesAvailable() && (
+				<Pressable
+					onPress={() => void (async () => {
+						// the first tap may need the Play Games sign-in sheet
+						if (!(await isPlayGamesSignedIn()) && !(await signInToPlayGames())) return;
+						await showPlayGamesAchievements();
+					})()}
+					style={[styles.playGamesButton, { borderColor: "#34A853" }]}
+				>
+					<Text style={[styles.playGamesText, { color: "#34A853" }]}>{t("ach.playGames")}</Text>
+				</Pressable>
 			)}
 			{!loading && <DailyQuestsCard />}
 			{!loading && pendingCoins > 0 && !signedIn && (
@@ -432,6 +445,18 @@ const styles = StyleSheet.create({
 		width: "100%",
 		alignItems: "center",
 		marginBottom: 10,
+	},
+	playGamesButton: {
+		alignSelf: "center",
+		borderWidth: 2,
+		borderRadius: 8,
+		paddingHorizontal: 14,
+		paddingVertical: 7,
+		marginBottom: 8,
+	},
+	playGamesText: {
+		fontFamily: "Silkscreen",
+		fontSize: 11,
 	},
 	titleLine: {
 		flexDirection: "row",

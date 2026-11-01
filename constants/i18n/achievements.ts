@@ -149,6 +149,7 @@ export const achievements: ScreenDictionary = {
 		"ach.tab.economy": "Coins",
 
 		// first_steps
+		"ach.playGames": "Achievements in Google Play",
 		"ach.first_steps.title": "First Steps",
 		"ach.first_steps.unlock": "Finish any solo game.",
 		// regular_player
@@ -420,6 +421,7 @@ export const achievements: ScreenDictionary = {
 		"ach.tab.economy": "Монеты",
 
 		// first_steps
+		"ach.playGames": "Достижения в Google Play",
 		"ach.first_steps.title": "Первые шаги",
 		"ach.first_steps.unlock": "Завершите любую соло-игру.",
 		// regular_player

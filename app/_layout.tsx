@@ -10,6 +10,7 @@ import { useDiscordSDK } from "@/hooks/useDiscordSDK";
 import { syncLocalHighScores } from "@/constants/LocalScoreSync";
 import { startAnalytics } from "@/constants/Analytics";
 import { startCrashReporting } from "@/constants/CrashReports";
+import { startPlayGamesSync } from "@/constants/PlayGamesSync";
 import { setupNotifications } from "@/constants/Notifications";
 
 // Suppress warnings from third-party libraries
@@ -56,6 +57,7 @@ export default function RootLayout() {
 		// Check for updates on startup, whenever the app comes back to the foreground,
 		// and every 30 minutes while it stays open, so a new release is announced.
 		updateService.checkForUpdates();
+		const stopPlayGamesSync = startPlayGamesSync();
 		const updateAppStateSub = AppState.addEventListener('change', (nextState) => {
 			if (nextState === 'active') updateService.checkForUpdates();
 		});
@@ -104,6 +106,7 @@ export default function RootLayout() {
 
 		return () => {
 			updateAppStateSub.remove();
+			stopPlayGamesSync();
 			stopAnalytics();
 			stopCrashReporting();
 			clearInterval(updateTimer);
