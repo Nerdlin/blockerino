@@ -5,7 +5,6 @@ import StylizedButton from "./StylizedButton";
 import {useTheme, opaqueColor } from "@/constants/Theme";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { GameModeType } from "@/hooks/useAppState";
-import { getGameModeConfig } from "@/constants/GameModes";
 import { useLanguage } from "@/constants/Localization";
 
 export default function ContinueGameModal({
@@ -21,7 +20,7 @@ export default function ContinueGameModal({
 }) {
     const { currentTheme } = useTheme();
     const { t } = useLanguage();
-    const modeTitle = getGameModeConfig(gameMode).title;
+    const modeTitle = t(`mode.${gameMode}`);
 
     return (
         <SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>

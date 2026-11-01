@@ -2,7 +2,7 @@ import type { ScreenDictionary } from "./index";
 
 export const chess: ScreenDictionary = {
 	en: {
-		"chess.ratings": "Ratings",
+		"chess.ratings": "Your ratings",
 		"chess.bullet": "Bullet",
 		"chess.blitz": "Blitz",
 		"chess.rapid": "Rapid",
@@ -142,7 +142,7 @@ export const chess: ScreenDictionary = {
 		"chess.searchUnavailable": "Search is not available right now. Try again later.",
 	},
 	ru: {
-		"chess.ratings": "Рейтинги",
+		"chess.ratings": "Ваши рейтинги",
 		"chess.bullet": "Пуля",
 		"chess.blitz": "Блиц",
 		"chess.rapid": "Рапид",

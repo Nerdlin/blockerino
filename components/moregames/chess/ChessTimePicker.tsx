@@ -134,7 +134,6 @@ export function ChessTimePicker({ selected, onPick, onBack }: { selected: TimeCo
 				</View>
 			</Accordion>
 
-			<StylizedButton text={t("chess.back")} onClick={onBack} backgroundColor={currentTheme.buttonSecondary} style={local.button} textStyle={{ fontSize: 12 }} />
 		</View>
 	);
 }

@@ -181,7 +181,7 @@ export default function OptionsMenu() {
 		<View style={styles.buttonsContainer}>
 			<StylizedButton
 				onClick={handleButtonPress}
-				text={t("common.back")}
+				text={appState.containsGameMode() || appState.containsState(MenuStateType.MULTIPLAYER_GAME) ? t("settings.resume") : t("common.back")}
 				backgroundColor={currentTheme.buttonSecondary}
 				style={isMobile && styles.mobileBottomButton}
 				textStyle={isMobile && styles.mobileBottomButtonText}

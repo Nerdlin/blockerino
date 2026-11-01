@@ -76,7 +76,6 @@ export function ChessComLinkScreen({ link, onChange, onBack }: { link: ChessComL
 				</>
 			)}
 			{message ? <Text style={local.error}>{message}</Text> : null}
-			<StylizedButton text={t("common.back")} onClick={onBack} backgroundColor="#555" style={local.button} textStyle={{ fontSize: 11 }} />
 		</View>
 	);
 }

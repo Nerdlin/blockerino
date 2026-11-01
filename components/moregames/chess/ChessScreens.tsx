@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
+import { IS_TEST_BUILD } from "@/constants/TestBuild";
 import { ADAPTIVE_BOT, ADAPTIVE_BOT_ID, BotTier, CHESS_BOTS, ChessBotProfile, adaptiveBotElo, isBotUnlocked, nextBotToUnlock } from "@/constants/chess/BotRoster";
 import { ChessProgress } from "@/constants/chess/ChessProgress";
 import { ChessRatings } from "@/constants/chess/ChessRatingsApi";
@@ -40,16 +41,16 @@ export function ChessLobby({
 	const { t } = useLanguage();
 	return (
 		<View style={local.screen}>
-			<Text style={[local.label, { color: currentTheme.textSecondary }]}>{t("chess.ratings")}</Text>
+			<Text style={[local.sectionTitle, { color: currentTheme.textPrimary }]}>{t("chess.ratings")}</Text>
 			<View style={local.row}>
 				{TIME_CLASSES.map((timeClass) => {
 					const entry = ratings[timeClass];
 					const games = entry?.games ?? 0;
 					return (
-						<View key={timeClass} testID={`chess-rating-${timeClass}`} style={[local.card, { borderColor: selected.timeClass === timeClass ? currentTheme.accent : "rgba(255,255,255,0.18)" }]}>
+						<View key={timeClass} testID={`chess-rating-${timeClass}`} style={local.card}>
 							<PixelIcon name={timeClass === "bullet" ? "bullet" : timeClass === "blitz" ? "blitz" : "rapid"} size={26} />
 							<Text style={[local.small, { color: currentTheme.textSecondary }]}>{t(`chess.${timeClass}`)}</Text>
-							<Text style={[local.big, { color: currentTheme.textPrimary }]}>{entry?.rating ?? START_RATING}</Text>
+							<Text style={[local.big, { color: selected.timeClass === timeClass ? currentTheme.accent : currentTheme.textPrimary }]}>{entry?.rating ?? START_RATING}</Text>
 							<Text style={[local.tiny, { color: currentTheme.textSecondary }]}>{t("chess.games", { n: games })}</Text>
 						</View>
 					);
@@ -160,7 +161,7 @@ export function BotPicker({
 				<View key={tier} style={{ width: "100%" }}>
 					<Text style={[local.label, { color: currentTheme.textSecondary }]}>{t(`chess.tier.${tier}`)}</Text>
 					{CHESS_BOTS.filter((bot) => bot.tier === tier).map((bot) => {
-						const open = isBotUnlocked(bot.id, progress.beatenBots);
+						const open = IS_TEST_BUILD || isBotUnlocked(bot.id, progress.beatenBots);
 						return (
 							<Pressable
 								key={bot.id}
@@ -189,7 +190,6 @@ export function BotPicker({
 				{next ? t("chess.unlockHint", { name: next.mustBeat.name }) : t("chess.allUnlocked")}
 			</Text>
 			<Text style={[local.tiny, { color: currentTheme.textSecondary, textAlign: "center", marginTop: 4 }]}>{t("chess.botsUnrated")}</Text>
-			<StylizedButton text={t("chess.back")} onClick={onBack} backgroundColor={currentTheme.buttonSecondary} style={local.button} textStyle={local.buttonText} />
 		</View>
 	);
 }
@@ -296,7 +296,8 @@ const local = StyleSheet.create({
 	screen: { width: "100%", maxWidth: 360, alignItems: "stretch", gap: 6 },
 	label: { fontFamily: "Silkscreen", fontSize: 10, marginTop: 8, marginBottom: 2 },
 	row: { flexDirection: "row", gap: 6, justifyContent: "center", flexWrap: "wrap" },
-	card: { flex: 1, borderWidth: 2, borderRadius: 8, padding: 8, backgroundColor: "rgba(255,255,255,0.04)", alignItems: "center", gap: 2 },
+	card: { flex: 1, borderRadius: 8, padding: 8, backgroundColor: "rgba(255,255,255,0.05)", alignItems: "center", gap: 2 },
+	sectionTitle: { fontFamily: "SilkscreenBold", fontSize: 16, alignSelf: "flex-start", marginTop: 6, marginBottom: 6 },
 	small: { fontFamily: "Silkscreen", fontSize: 10, textAlign: "center" },
 	big: { fontFamily: "SilkscreenBold", fontSize: 16, textAlign: "center" },
 	tiny: { fontFamily: "Silkscreen", fontSize: 9 },

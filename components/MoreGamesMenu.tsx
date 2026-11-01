@@ -33,6 +33,7 @@ import { MahjongGame } from "./moregames/MahjongGame";
 import { BattleshipGame } from "./moregames/BattleshipGame";
 import { ChessOnlineGame } from "./moregames/ChessGame";
 import { DurakOnlineGame } from "./moregames/DurakGame";
+import { MoreGamesBackProvider, runClaimedBack } from "./moregames/MoreGamesBack";
 export { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, MAHJONG_THEMES, CARD_SKINS, SEA_SKINS, SUDOKU_THEMES, pickCosmetic } from "./moregames/cosmetics";
 export { getDurakPayout, getDurakNetPrize, useMiniGameRoom } from "./moregames/shared";
 export { getTicTacToeWinner } from "./moregames/TicTacToeGame";
@@ -155,6 +156,7 @@ export default function MoreGamesMenu() {
 		void loadRatings(game, playerName);
 	}, [loadRatings, playerName]);
 
+	const backStack = useRef<{ handler: { current: () => void } }[]>([]);
 	const handleBack = useCallback(() => {
 		if (activeGame) {
 			setActiveGame(null);
@@ -180,7 +182,7 @@ export default function MoreGamesMenu() {
 			]}
 		>
 			<View style={styles.moreHeaderRow}>
-				<StylizedButton text={t("common.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.topBackButton} textStyle={styles.smallButtonText} />
+				<StylizedButton text={t("common.back")} onClick={() => { if (!runClaimedBack(backStack)) handleBack(); }} backgroundColor={cssColors.spaceGray} style={styles.topBackButton} textStyle={styles.smallButtonText} />
 				<Text style={[styles.header, { color: currentTheme.textPrimary, flex: 1, fontSize: 16 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
 					{activeCard ? t(`moregames.card.${activeCard.id}.title`) : (ratingPanel === "leaderboard" ? t("moregames.leaderboardTitle") : t("moregames.title"))}
 				</Text>
@@ -281,7 +283,7 @@ export default function MoreGamesMenu() {
 					{activeGame === "sudoku" && <SudokuGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("sudoku")} />}
 					{activeGame === "mahjong" && <MahjongGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("mahjong")} />}
 					{activeGame === "battleship" && <BattleshipGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("battleship")} />}
-					{activeGame === "chess" && <ChessOnlineGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("chess")} />}
+					{activeGame === "chess" && <MoreGamesBackProvider stack={backStack}><ChessOnlineGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("chess")} /></MoreGamesBackProvider>}
 					{activeGame === "durak" && <DurakOnlineGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("durak")} />}
 				</View>
 			)}

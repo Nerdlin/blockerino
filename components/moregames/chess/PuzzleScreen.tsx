@@ -141,7 +141,6 @@ export function PuzzleScreen({ cosmetics, onBack }: { cosmetics: ExtraGameCosmet
 		return (
 			<View style={local.screen}>
 				<Text style={[local.status, { color: currentTheme.textSecondary }]}>{t("puzzles.empty")}</Text>
-				<StylizedButton text={t("common.back")} onClick={onBack} backgroundColor="#555" style={local.button} textStyle={{ fontSize: 11 }} />
 			</View>
 		);
 	}
@@ -183,7 +182,6 @@ export function PuzzleScreen({ cosmetics, onBack }: { cosmetics: ExtraGameCosmet
 				{(status === "play" || status === "wrong") && <StylizedButton text={t("puzzles.solution")} onClick={showSolution} backgroundColor="#555" style={local.button} textStyle={{ fontSize: 11 }} />}
 				{(status === "solved" || status === "shown") && <StylizedButton text={t("puzzles.next")} onClick={next} backgroundColor="#2E9E4F" style={local.button} textStyle={{ fontSize: 11 }} />}
 			</View>
-			<StylizedButton text={t("common.back")} onClick={onBack} backgroundColor="#555" style={local.button} textStyle={{ fontSize: 11 }} />
 			<Text style={[local.tiny, { color: currentTheme.textSecondary }]}>{t("puzzles.source")}</Text>
 		</View>
 	);

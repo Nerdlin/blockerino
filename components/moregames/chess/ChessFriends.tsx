@@ -104,7 +104,6 @@ export function ChessFriends({
 				})
 			)}
 			<StylizedButton text={t("chess.playWithCode")} onClick={onPlayWithCode} backgroundColor="#1E88E5" style={local.button} textStyle={{ fontSize: 12 }} />
-			<StylizedButton text={t("chess.back")} onClick={onBack} backgroundColor={currentTheme.buttonSecondary} style={local.button} textStyle={{ fontSize: 12 }} />
 		</View>
 	);
 }

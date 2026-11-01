@@ -5,7 +5,6 @@ import { useTheme } from "@/constants/Theme";
 import { cssColors } from "@/constants/Color";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
-import { getGameModeConfig } from "@/constants/GameModes";
 import { useLanguage } from "@/constants/Localization";
 
 export default function OfflinePlayPrompt({
@@ -24,7 +23,7 @@ export default function OfflinePlayPrompt({
 		<SimplePopupView style={[styles.popup, { backgroundColor: currentTheme.menuBackground }]}>
 			<Text style={[styles.title, { color: currentTheme.textPrimary }]}>{t("over.noInternet")}</Text>
 			<Text style={[styles.message, { color: currentTheme.textSecondary }]}>
-				{t("over.offlineMessage", { mode: getGameModeConfig(gameMode).title })}
+				{t("over.offlineMessage", { mode: t(`mode.${gameMode}`) })}
 			</Text>
 			<View style={styles.buttonRow}>
 				<StylizedButton

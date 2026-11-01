@@ -23,6 +23,7 @@ import { useLanguage } from "@/constants/Localization";
 import { Alert } from "react-native";
 import { ChessSearch, FoundMatch } from "./chess/ChessSearch";
 import { styles } from "./styles";
+import { useMoreGamesBack } from "./MoreGamesBack";
 
 export { CHESS_FILES, CHESS_RANKS, UNICODE_PIECES, getChessBoardColors } from "./chess/ChessParts";
 
@@ -43,6 +44,8 @@ type Screen = "lobby" | "time" | "friends" | "bots" | "bot" | "friend" | "search
  */
 export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
 	const [screen, setScreen] = useState<Screen>("lobby");
+	// the header's Back steps out of a chess screen to the lobby (from a bot game, to the bot list) before it leaves chess
+	useMoreGamesBack(() => setScreen(screen === "bot" ? "bots" : "lobby"), ["puzzles", "chesscom", "time", "friends", "bots", "bot", "search"].includes(screen));
 	const [control, setControl] = useState<TimeControl>(DEFAULT_TIME_CONTROL);
 	const [ratings, setRatings] = useState<ChessRatings>(NO_RATINGS);
 	const [progress, setProgress] = useState<ChessProgress>({ beatenBots: [], form: [], lastTimeControl: null });

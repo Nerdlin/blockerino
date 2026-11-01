@@ -9,6 +9,7 @@ import { ExtraGameCosmetics } from "../cosmetics";
 import StylizedButton from "../../StylizedButton";
 import { ChessBoard } from "./ChessParts";
 import { useChessEngine } from "./EngineHost";
+import { useMoreGamesBack } from "../MoreGamesBack";
 
 const GRADE_COLORS: Record<MoveGrade, string> = { best: "#4ADE80", good: "#A3A3A3", inaccuracy: "#FACC15", mistake: "#FB923C", blunder: "#EF4444" };
 const GRADE_MARKS: Record<MoveGrade, string> = { best: "!", good: "", inaccuracy: "?!", mistake: "?", blunder: "??" };
@@ -20,6 +21,7 @@ export function GameReview({ history, myColor, cosmetics, onClose }: { history: 
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
 	const engine = useChessEngine();
+	useMoreGamesBack(onClose);
 	const positions = useMemo(() => {
 		const chess = new Chess();
 		const fens = [chess.fen()];
@@ -81,7 +83,6 @@ export function GameReview({ history, myColor, cosmetics, onClose }: { history: 
 			<View style={local.screen}>
 				<Text style={[local.title, { color: currentTheme.textPrimary }]}>{t("review.title")}</Text>
 				<Text style={[local.small, { color: currentTheme.textSecondary }]}>{t("review.noEngine")}</Text>
-				<StylizedButton text={t("common.back")} onClick={onClose} backgroundColor="#555" style={local.button} textStyle={{ fontSize: 11 }} />
 			</View>
 		);
 	}
@@ -142,7 +143,6 @@ export function GameReview({ history, myColor, cosmetics, onClose }: { history: 
 				<StylizedButton text="<" onClick={() => setPly((value) => Math.max(1, value - 1))} backgroundColor="#374151" style={local.navButton} textStyle={{ fontSize: 14 }} />
 				<StylizedButton text=">" onClick={() => setPly((value) => Math.min(history.length, value + 1))} backgroundColor="#374151" style={local.navButton} textStyle={{ fontSize: 14 }} />
 			</View>
-			<StylizedButton text={t("common.back")} onClick={onClose} backgroundColor="#555" style={local.button} textStyle={{ fontSize: 11 }} />
 		</View>
 	);
 }

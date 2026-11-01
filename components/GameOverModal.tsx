@@ -19,7 +19,6 @@ import { GameOverReason, getGameOverMessage } from "@/constants/GameModes";
 import { useLanguage } from "@/constants/Localization";
 import { track } from "@/constants/Analytics";
 import { getHighScores } from "@/constants/Storage";
-import { getGameModeConfig } from "@/constants/GameModes";
 import ShareCard, { SHARE_CARD_WIDTH } from "./ShareCard";
 import { buildShareText, shareScoreCard } from "@/constants/ShareScore";
 
@@ -181,7 +180,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
         setAppState(MenuStateType.MENU);
     };
 
-    const modeTitle = getGameModeConfig(gameMode).title;
+    const modeTitle = t(`mode.${gameMode}`);
     const isRecord = bestScore !== null && score > 0 && score >= bestScore;
     const handleShare = async () => {
         if (sharing) return;
