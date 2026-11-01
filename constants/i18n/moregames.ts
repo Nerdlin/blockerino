@@ -408,7 +408,7 @@ export const moregames: ScreenDictionary = {
 		"durak.betMax": "Ва-банк",
 		"durak.youLost": "Вы проиграли {amount} монет",
 		"durak.deckLabel": "Колода {deck} | Бита {discard}",
-		"durak.pass": "Пас",
+		"durak.pass": "Бито",
 		"durak.take": "Беру",
 
 		// Sudoku strings
