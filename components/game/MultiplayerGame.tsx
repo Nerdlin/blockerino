@@ -535,7 +535,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                                 type: 'broadcast',
                                 event: 'game_state',
                                 payload: {
-                                    board: board.value,
+                                    board: clearHoverBlocks(cloneBoard(board.value)),
                                     hand: hand.value,
                                     score: score.value,
                                     isGameOver: false,
@@ -587,7 +587,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 type: 'broadcast',
                 event: 'game_state',
                 payload: {
-                    board: currentBoard,
+                    // the shadow of a piece being dragged stays on this screen
+                    board: clearHoverBlocks(cloneBoard(currentBoard)),
                     hand: currentHand,
                     score: currentScore,
                     isGameOver: currentIsGameOver,

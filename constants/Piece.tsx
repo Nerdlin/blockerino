@@ -643,14 +643,195 @@ function getPieceSkinFamily(pieceSkinId: string): string {
 function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 	"worklet";
 	switch (pieceSkinId) {
+		// the variants of the four skin families keep the family's block shape but have their own colors
+		case "piece_minecraft_moss":
+			return [
+				{ r: 77, g: 139, b: 49 },
+				{ r: 107, g: 191, b: 69 },
+				{ r: 167, g: 201, b: 87 },
+				{ r: 148, g: 185, b: 131 },
+				{ r: 166, g: 217, b: 143 },
+				{ r: 202, g: 223, b: 154 },
+			];
+		case "piece_minecraft_deepslate":
+			return [
+				{ r: 104, g: 111, b: 116 },
+				{ r: 123, g: 132, b: 142 },
+				{ r: 44, g: 206, b: 210 },
+				{ r: 130, g: 133, b: 135 },
+				{ r: 146, g: 150, b: 154 },
+				{ r: 128, g: 226, b: 228 },
+			];
+		case "piece_minecraft_gold":
+			return [
+				{ r: 212, g: 160, b: 23 },
+				{ r: 176, g: 137, b: 104 },
+				{ r: 107, g: 191, b: 69 },
+				{ r: 229, g: 198, b: 116 },
+				{ r: 208, g: 184, b: 164 },
+				{ r: 166, g: 217, b: 143 },
+			];
+		case "piece_minecraft_nether":
+			return [
+				{ r: 163, g: 71, b: 49 },
+				{ r: 226, g: 67, b: 23 },
+				{ r: 255, g: 77, b: 0 },
+				{ r: 137, g: 109, b: 102 },
+				{ r: 185, g: 120, b: 102 },
+				{ r: 255, g: 148, b: 102 },
+			];
+		case "piece_minecraft_prismarine":
+			return [
+				{ r: 0, g: 109, b: 119 },
+				{ r: 72, g: 202, b: 228 },
+				{ r: 144, g: 190, b: 109 },
+				{ r: 102, g: 167, b: 173 },
+				{ r: 145, g: 223, b: 239 },
+				{ r: 188, g: 216, b: 167 },
+			];
+		case "piece_crystal_aqua":
+			return [
+				{ r: 125, g: 235, b: 255 },
+				{ r: 162, g: 210, b: 255 },
+				{ r: 189, g: 224, b: 254 },
+				{ r: 90, g: 169, b: 184 },
+				{ r: 117, g: 151, b: 184 },
+				{ r: 136, g: 161, b: 183 },
+			];
+		case "piece_crystal_amethyst":
+			return [
+				{ r: 163, g: 63, b: 255 },
+				{ r: 157, g: 78, b: 221 },
+				{ r: 224, g: 170, b: 255 },
+				{ r: 156, g: 116, b: 194 },
+				{ r: 196, g: 149, b: 235 },
+				{ r: 236, g: 204, b: 255 },
+			];
+		case "piece_crystal_rose":
+			return [
+				{ r: 255, g: 125, b: 221 },
+				{ r: 255, g: 200, b: 221 },
+				{ r: 255, g: 255, b: 255 },
+				{ r: 255, g: 177, b: 235 },
+				{ r: 184, g: 144, b: 159 },
+				{ r: 184, g: 184, b: 184 },
+			];
+		case "piece_crystal_emerald":
+			return [
+				{ r: 0, g: 255, b: 157 },
+				{ r: 141, g: 255, b: 178 },
+				{ r: 213, g: 255, b: 63 },
+				{ r: 0, g: 184, b: 113 },
+				{ r: 102, g: 184, b: 128 },
+				{ r: 153, g: 184, b: 45 },
+			];
+		case "piece_crystal_sun":
+			return [
+				{ r: 255, g: 245, b: 153 },
+				{ r: 255, g: 209, b: 102 },
+				{ r: 255, g: 255, b: 255 },
+				{ r: 184, g: 176, b: 110 },
+				{ r: 184, g: 150, b: 73 },
+				{ r: 184, g: 184, b: 184 },
+			];
+		case "piece_lava_obsidian":
+			return [
+				{ r: 129, g: 80, b: 69 },
+				{ r: 226, g: 67, b: 23 },
+				{ r: 255, g: 77, b: 0 },
+				{ r: 118, g: 105, b: 102 },
+				{ r: 185, g: 120, b: 102 },
+				{ r: 255, g: 148, b: 102 },
+			];
+		case "piece_lava_solar":
+			return [
+				{ r: 255, g: 176, b: 0 },
+				{ r: 255, g: 107, b: 26 },
+				{ r: 255, g: 213, b: 74 },
+				{ r: 255, g: 208, b: 102 },
+				{ r: 255, g: 166, b: 118 },
+				{ r: 184, g: 153, b: 53 },
+			];
+		case "piece_lava_ember":
+			return [
+				{ r: 163, g: 71, b: 49 },
+				{ r: 184, g: 50, b: 12 },
+				{ r: 255, g: 107, b: 26 },
+				{ r: 137, g: 109, b: 102 },
+				{ r: 212, g: 132, b: 109 },
+				{ r: 255, g: 166, b: 118 },
+			];
+		case "piece_lava_basalt":
+			return [
+				{ r: 105, g: 114, b: 123 },
+				{ r: 226, g: 67, b: 23 },
+				{ r: 173, g: 181, b: 189 },
+				{ r: 133, g: 137, b: 140 },
+				{ r: 185, g: 120, b: 102 },
+				{ r: 206, g: 211, b: 215 },
+			];
+		case "piece_lava_magma":
+			return [
+				{ r: 255, g: 149, b: 0 },
+				{ r: 255, g: 77, b: 0 },
+				{ r: 255, g: 213, b: 74 },
+				{ r: 255, g: 191, b: 102 },
+				{ r: 255, g: 148, b: 102 },
+				{ r: 184, g: 153, b: 53 },
+			];
+		case "piece_circuit_matrix":
+			return [
+				{ r: 29, g: 122, b: 104 },
+				{ r: 0, g: 255, b: 157 },
+				{ r: 213, g: 255, b: 63 },
+				{ r: 102, g: 137, b: 130 },
+				{ r: 0, g: 184, b: 113 },
+				{ r: 153, g: 184, b: 45 },
+			];
+		case "piece_circuit_neon":
+			return [
+				{ r: 0, g: 212, b: 255 },
+				{ r: 255, g: 43, b: 214 },
+				{ r: 77, g: 91, b: 255 },
+				{ r: 102, g: 229, b: 255 },
+				{ r: 255, g: 128, b: 230 },
+				{ r: 148, g: 157, b: 255 },
+			];
+		case "piece_circuit_plasma":
+			return [
+				{ r: 77, g: 91, b: 255 },
+				{ r: 0, g: 212, b: 255 },
+				{ r: 213, g: 255, b: 63 },
+				{ r: 148, g: 157, b: 255 },
+				{ r: 102, g: 229, b: 255 },
+				{ r: 153, g: 184, b: 45 },
+			];
+		case "piece_circuit_terminal":
+			return [
+				{ r: 65, g: 104, b: 90 },
+				{ r: 6, g: 214, b: 160 },
+				{ r: 0, g: 255, b: 157 },
+				{ r: 107, g: 119, b: 115 },
+				{ r: 106, g: 230, b: 198 },
+				{ r: 0, g: 184, b: 113 },
+			];
+		case "piece_circuit_candy":
+			return [
+				{ r: 255, g: 200, b: 221 },
+				{ r: 162, g: 210, b: 255 },
+				{ r: 255, g: 43, b: 214 },
+				{ r: 184, g: 144, b: 159 },
+				{ r: 117, g: 151, b: 184 },
+				{ r: 255, g: 128, b: 230 },
+			];
 		case "piece_paper_cut":
 			return [
 				{ r: 253, g: 230, b: 138 },
 				{ r: 255, g: 255, b: 255 },
-				{ r: 17, g: 24, b: 39 },
+				{ r: 82, g: 96, b: 125 },
 				{ r: 251, g: 191, b: 36 },
 				{ r: 229, g: 231, b: 235 },
-				{ r: 55, g: 65, b: 81 },
+				{ r: 103, g: 118, b: 141 },
 			];
 		case "piece_ocean_shell":
 			return [
@@ -658,15 +839,15 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 				{ r: 45, g: 212, b: 191 },
 				{ r: 251, g: 113, b: 133 },
 				{ r: 14, g: 165, b: 233 },
-				{ r: 6, g: 95, b: 70 },
+				{ r: 27, g: 149, b: 115 },
 				{ r: 253, g: 164, b: 175 },
 			];
 		case "piece_monochrome":
 			return [
-				{ r: 17, g: 24, b: 39 },
+				{ r: 82, g: 96, b: 125 },
 				{ r: 107, g: 114, b: 128 },
 				{ r: 248, g: 250, b: 252 },
-				{ r: 31, g: 41, b: 55 },
+				{ r: 89, g: 106, b: 130 },
 				{ r: 156, g: 163, b: 175 },
 				{ r: 229, g: 231, b: 235 },
 			];
@@ -681,21 +862,21 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 			];
 		case "piece_shadow_gold":
 			return [
-				{ r: 2, g: 6, b: 23 },
+				{ r: 81, g: 91, b: 133 },
 				{ r: 133, g: 77, b: 14 },
 				{ r: 250, g: 204, b: 21 },
-				{ r: 17, g: 24, b: 39 },
+				{ r: 82, g: 96, b: 125 },
 				{ r: 161, g: 98, b: 7 },
 				{ r: 254, g: 240, b: 138 },
 			];
 		case "piece_forest_mushroom":
 			return [
-				{ r: 54, g: 83, b: 20 },
+				{ r: 99, g: 140, b: 50 },
 				{ r: 163, g: 230, b: 53 },
 				{ r: 220, g: 38, b: 38 },
-				{ r: 22, g: 101, b: 52 },
+				{ r: 49, g: 158, b: 90 },
 				{ r: 132, g: 204, b: 22 },
-				{ r: 127, g: 29, b: 29 },
+				{ r: 213, g: 68, b: 68 },
 			];
 		case "piece_aurora_glass":
 			return [
@@ -717,25 +898,25 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 			];
 		case "piece_ink_stamp":
 			return [
-				{ r: 17, g: 24, b: 39 },
+				{ r: 82, g: 96, b: 125 },
 				{ r: 229, g: 231, b: 235 },
 				{ r: 239, g: 68, b: 68 },
-				{ r: 55, g: 65, b: 81 },
+				{ r: 103, g: 118, b: 141 },
 				{ r: 248, g: 250, b: 252 },
 				{ r: 185, g: 28, b: 28 },
 			];
 		case "piece_cosmic_ore":
 			return [
-				{ r: 15, g: 23, b: 42 },
+				{ r: 81, g: 97, b: 135 },
 				{ r: 147, g: 197, b: 253 },
 				{ r: 196, g: 181, b: 253 },
-				{ r: 30, g: 41, b: 59 },
+				{ r: 85, g: 103, b: 133 },
 				{ r: 125, g: 211, b: 252 },
 				{ r: 216, g: 180, b: 254 },
 			];
 		case "piece_moonstone":
 			return [
-				{ r: 17, g: 24, b: 39 },
+				{ r: 82, g: 96, b: 125 },
 				{ r: 196, g: 181, b: 253 },
 				{ r: 224, g: 242, b: 254 },
 				{ r: 99, g: 102, b: 241 },
@@ -744,7 +925,7 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 			];
 		case "piece_jade_tile":
 			return [
-				{ r: 6, g: 78, b: 59 },
+				{ r: 32, g: 137, b: 109 },
 				{ r: 52, g: 211, b: 153 },
 				{ r: 167, g: 243, b: 208 },
 				{ r: 21, g: 128, b: 61 },
@@ -753,25 +934,25 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 			];
 		case "piece_ruby_cut":
 			return [
-				{ r: 69, g: 10, b: 10 },
+				{ r: 171, g: 62, b: 62 },
 				{ r: 220, g: 38, b: 38 },
 				{ r: 251, g: 113, b: 133 },
-				{ r: 153, g: 27, b: 27 },
+				{ r: 240, g: 60, b: 60 },
 				{ r: 248, g: 113, b: 113 },
 				{ r: 253, g: 164, b: 175 },
 			];
 		case "piece_sapphire_cut":
 			return [
-				{ r: 15, g: 23, b: 42 },
+				{ r: 81, g: 97, b: 135 },
 				{ r: 37, g: 99, b: 235 },
 				{ r: 147, g: 197, b: 253 },
-				{ r: 30, g: 64, b: 175 },
+				{ r: 72, g: 116, b: 255 },
 				{ r: 96, g: 165, b: 250 },
 				{ r: 186, g: 230, b: 253 },
 			];
 		case "piece_topaz_tile":
 			return [
-				{ r: 69, g: 26, b: 3 },
+				{ r: 158, g: 83, b: 43 },
 				{ r: 217, g: 119, b: 6 },
 				{ r: 251, g: 191, b: 36 },
 				{ r: 180, g: 83, b: 9 },
@@ -780,16 +961,16 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 			];
 		case "piece_ghost_ink":
 			return [
-				{ r: 17, g: 24, b: 39 },
+				{ r: 82, g: 96, b: 125 },
 				{ r: 100, g: 116, b: 139 },
 				{ r: 229, g: 231, b: 235 },
-				{ r: 30, g: 41, b: 59 },
+				{ r: 85, g: 103, b: 133 },
 				{ r: 148, g: 163, b: 184 },
 				{ r: 221, g: 214, b: 254 },
 			];
 		case "piece_radioactive":
 			return [
-				{ r: 26, g: 46, b: 5 },
+				{ r: 80, g: 115, b: 45 },
 				{ r: 101, g: 163, b: 13 },
 				{ r: 217, g: 249, b: 157 },
 				{ r: 77, g: 124, b: 15 },
@@ -798,16 +979,16 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 			];
 		case "piece_storm_cloud":
 			return [
-				{ r: 15, g: 23, b: 42 },
-				{ r: 71, g: 85, b: 105 },
+				{ r: 81, g: 97, b: 135 },
+				{ r: 116, g: 136, b: 163 },
 				{ r: 186, g: 230, b: 253 },
-				{ r: 30, g: 41, b: 59 },
+				{ r: 85, g: 103, b: 133 },
 				{ r: 148, g: 163, b: 184 },
 				{ r: 147, g: 197, b: 253 },
 			];
 		case "piece_pearl_shell":
 			return [
-				{ r: 131, g: 24, b: 67 },
+				{ r: 219, g: 60, b: 124 },
 				{ r: 251, g: 207, b: 232 },
 				{ r: 224, g: 242, b: 254 },
 				{ r: 253, g: 164, b: 175 },
@@ -816,7 +997,7 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 			];
 		case "piece_arcade_gum":
 			return [
-				{ r: 131, g: 24, b: 67 },
+				{ r: 219, g: 60, b: 124 },
 				{ r: 244, g: 114, b: 182 },
 				{ r: 34, g: 211, b: 238 },
 				{ r: 250, g: 204, b: 21 },
@@ -825,25 +1006,25 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 			];
 		case "piece_desert_clay":
 			return [
-				{ r: 67, g: 20, b: 7 },
+				{ r: 159, g: 75, b: 52 },
 				{ r: 180, g: 83, b: 9 },
 				{ r: 253, g: 186, b: 116 },
-				{ r: 124, g: 45, b: 18 },
+				{ r: 204, g: 89, b: 50 },
 				{ r: 234, g: 88, b: 12 },
 				{ r: 253, g: 230, b: 138 },
 			];
 		case "piece_night_market":
 			return [
-				{ r: 17, g: 24, b: 39 },
+				{ r: 82, g: 96, b: 125 },
 				{ r: 190, g: 18, b: 60 },
 				{ r: 250, g: 204, b: 21 },
-				{ r: 88, g: 28, b: 135 },
+				{ r: 160, g: 69, b: 231 },
 				{ r: 34, g: 211, b: 238 },
 				{ r: 251, g: 113, b: 133 },
 			];
 		case "piece_laser_grid":
 			return [
-				{ r: 2, g: 6, b: 23 },
+				{ r: 81, g: 91, b: 133 },
 				{ r: 34, g: 211, b: 238 },
 				{ r: 239, g: 68, b: 68 },
 				{ r: 99, g: 102, b: 241 },
@@ -852,7 +1033,7 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 			];
 		case "piece_snow_mint":
 			return [
-				{ r: 6, g: 78, b: 59 },
+				{ r: 32, g: 137, b: 109 },
 				{ r: 167, g: 243, b: 208 },
 				{ r: 255, g: 255, b: 255 },
 				{ r: 94, g: 234, b: 212 },
@@ -861,25 +1042,25 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 			];
 		case "piece_copper_wire":
 			return [
-				{ r: 28, g: 10, b: 0 },
+				{ r: 123, g: 84, b: 62 },
 				{ r: 249, g: 115, b: 22 },
 				{ r: 20, g: 184, b: 166 },
-				{ r: 146, g: 64, b: 14 },
+				{ r: 219, g: 107, b: 38 },
 				{ r: 253, g: 186, b: 116 },
 				{ r: 45, g: 212, b: 191 },
 			];
 		case "piece_royal_velvet":
 			return [
-				{ r: 46, g: 16, b: 101 },
+				{ r: 121, g: 68, b: 219 },
 				{ r: 126, g: 34, b: 206 },
 				{ r: 253, g: 224, b: 71 },
-				{ r: 88, g: 28, b: 135 },
+				{ r: 160, g: 69, b: 231 },
 				{ r: 192, g: 132, b: 252 },
 				{ r: 251, g: 207, b: 232 },
 			];
 		case "piece_magma_ice":
 			return [
-				{ r: 127, g: 29, b: 29 },
+				{ r: 213, g: 68, b: 68 },
 				{ r: 249, g: 115, b: 22 },
 				{ r: 56, g: 189, b: 248 },
 				{ r: 186, g: 230, b: 253 },
@@ -888,16 +1069,16 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 			];
 		case "piece_lime_shadow":
 			return [
-				{ r: 2, g: 6, b: 23 },
-				{ r: 63, g: 98, b: 18 },
+				{ r: 81, g: 91, b: 133 },
+				{ r: 105, g: 154, b: 44 },
 				{ r: 190, g: 242, b: 100 },
-				{ r: 26, g: 46, b: 5 },
+				{ r: 80, g: 115, b: 45 },
 				{ r: 163, g: 230, b: 53 },
 				{ r: 229, g: 231, b: 235 },
 			];
 		case "piece_peach_soda":
 			return [
-				{ r: 124, g: 45, b: 18 },
+				{ r: 204, g: 89, b: 50 },
 				{ r: 253, g: 186, b: 116 },
 				{ r: 249, g: 168, b: 212 },
 				{ r: 251, g: 113, b: 133 },
@@ -906,10 +1087,10 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 			];
 		case "piece_void_pearl":
 			return [
-				{ r: 3, g: 0, b: 20 },
-				{ r: 109, g: 40, b: 217 },
+				{ r: 91, g: 84, b: 136 },
+				{ r: 165, g: 106, b: 255 },
 				{ r: 221, g: 214, b: 254 },
-				{ r: 49, g: 46, b: 129 },
+				{ r: 101, g: 96, b: 222 },
 				{ r: 196, g: 181, b: 253 },
 				{ r: 224, g: 242, b: 254 },
 			];
@@ -952,8 +1133,8 @@ function getPieceSkinColor(color: Color, pieceSkinId: string = "piece_classic"):
 		piece_lava: [
 			{ r: 255, g: 176, b: 0 },
 			{ r: 255, g: 77, b: 0 },
-			{ r: 139, g: 30, b: 0 },
-			{ r: 58, g: 11, b: 0 },
+			{ r: 226, g: 67, b: 23 },
+			{ r: 163, g: 71, b: 49 },
 			{ r: 255, g: 213, b: 74 },
 			{ r: 178, g: 48, b: 12 },
 		],

@@ -201,7 +201,8 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		if (isGameOverRef.current) return;
 		saveActiveGame({
 			gameMode,
-			board: nextBoard,
+			// a save made mid-drag must not keep the dragged piece's shadow
+			board: clearHoverBlocks(cloneBoard(nextBoard)),
 			hand: nextHand,
 			score: score.value,
 			combo: combo.value,

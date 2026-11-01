@@ -298,6 +298,9 @@ export function updateHoveredBreaks(
     }
   }
 
+  // the piece's own cells show where it will land, a shadow of it on the board
+  placePieceOntoBoard(board, piece, dropX, dropY, BoardBlockType.HOVERED);
+
   const count = rowsToClear.size + colsToClear.size;
 
   if (count > 0) {

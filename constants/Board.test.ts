@@ -30,7 +30,7 @@ describe("board helpers", () => {
 		expect(board[0][0].color.r).not.toBe(123);
 	});
 
-	it("does not leak hover placement into the real board when no line clears", () => {
+	it("shows a shadow of the piece where it would land, and clearing it leaves the board empty", () => {
 		const board = newEmptyBoard(4);
 		const oneBlock: PieceData = {
 			matrix: [[1]],
@@ -40,6 +40,9 @@ describe("board helpers", () => {
 
 		updateHoveredBreaks(board, oneBlock, 0, 0);
 
+		expect(board[0][0].blockType).toBe(BoardBlockType.HOVERED);
+		expect(board[0][1].blockType).toBe(BoardBlockType.EMPTY);
+		clearHoverBlocks(board);
 		expect(board[0][0].blockType).toBe(BoardBlockType.EMPTY);
 	});
 

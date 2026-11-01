@@ -207,7 +207,7 @@ function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceS
 		if (block.blockType === BoardBlockType.FILLED || block.blockType === BoardBlockType.HOVERED) {
 			style = {
 				...createFilledBlockStyle(block.color, 7, pieceSkinId),
-				opacity: block.blockType === BoardBlockType.HOVERED ? 0.3 : 1,
+				opacity: block.blockType === BoardBlockType.HOVERED ? 0.45 : 1,
 				transform: []
 			};
 		}
