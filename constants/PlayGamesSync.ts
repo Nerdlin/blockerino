@@ -8,10 +8,34 @@ import { subscribeToAchievementUnlocks } from "./Achievements";
 // Play signs the player in by itself at start; when it did not, nothing is sent.
 
 /** Our achievement id -> the Play Games achievement id ("CgkI..."), from Play Console once they are created. */
-export const PLAY_GAMES_ACHIEVEMENTS: Record<string, string> = {};
+export const PLAY_GAMES_ACHIEVEMENTS: Record<string, string> = {
+	first_steps: "CgkI_-O2-tADEAIQCg",
+	line_breaker: "CgkI_-O2-tADEAIQFg",
+	piece_architect: "CgkI_-O2-tADEAIQEw",
+	score_hunter: "CgkI_-O2-tADEAIQEQ",
+	score_legend: "CgkI_-O2-tADEAIQEA",
+	classic_riser: "CgkI_-O2-tADEAIQDQ",
+	chaos_tamer: "CgkI_-O2-tADEAIQFA",
+	first_duel: "CgkI_-O2-tADEAIQBw",
+	duelist: "CgkI_-O2-tADEAIQAw",
+	pawn_pusher: "CgkI_-O2-tADEAIQDg",
+	chess_master: "CgkI_-O2-tADEAIQFQ",
+	card_rookie: "CgkI_-O2-tADEAIQCQ",
+	deckhand: "CgkI_-O2-tADEAIQDw",
+	sudoku_sage: "CgkI_-O2-tADEAIQEg",
+	mahjong_sage: "CgkI_-O2-tADEAIQBQ",
+	bot_basher: "CgkI_-O2-tADEAIQDA",
+	terminator: "CgkI_-O2-tADEAIQCw",
+	all_rounder: "CgkI_-O2-tADEAIQBA",
+	week_warrior: "CgkI_-O2-tADEAIQBg",
+	centurion: "CgkI_-O2-tADEAIQCA",
+};
 
 /** Game mode -> Play Games leaderboard id. */
-export const PLAY_GAMES_LEADERBOARDS: Record<string, string> = {};
+export const PLAY_GAMES_LEADERBOARDS: Record<string, string> = {
+	classic: "CgkI_-O2-tADEAIQAQ",
+	chaos: "CgkI_-O2-tADEAIQAg",
+};
 
 const ACHIEVEMENT_UNLOCKED_KEY = "ACHIEVEMENTS_UNLOCKED";
 
