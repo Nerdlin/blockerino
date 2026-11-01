@@ -1,6 +1,6 @@
 import { Color } from "./Color";
 import { getRandomPieceColor, PieceData } from "./Piece";
-import { useWindowDimensions } from 'react-native';
+import { Platform, useWindowDimensions } from 'react-native';
 import { useAppStateValue, MenuStateType } from "@/hooks/useAppState";
 import { Hand, makeSeededPrng } from "./Hand";
 
@@ -10,6 +10,11 @@ export interface GameSizeInput {
   boardLength: number;
   isMultiplayer?: boolean;
 }
+
+// A dragged piece floats above the finger so the finger does not hide it. A mouse pointer hides nothing, and a piece
+// floating a hand-width above the cursor looks as if it was grabbed off-centre, so with a mouse it stays under the cursor.
+const HAS_FINE_POINTER = Platform.OS === "web" && typeof window !== "undefined" && typeof window.matchMedia === "function"
+  && window.matchMedia("(pointer: fine)").matches;
 
 export function calculateGameSizes({
   width,
@@ -43,7 +48,7 @@ export function calculateGameSizes({
     GRID_BLOCK_SIZE: gridBlockSize,
     HAND_BLOCK_SIZE: 22 * scaleRatio * handScale,
     HITBOX_SIZE: Math.max(6, 12 * scaleRatio),
-    DRAG_JUMP_LENGTH: 116 * scaleRatio
+    DRAG_JUMP_LENGTH: HAS_FINE_POINTER ? 0 : 116 * scaleRatio
   };
 }
 
