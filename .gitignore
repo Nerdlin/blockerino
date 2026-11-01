@@ -61,3 +61,6 @@ google-services.json
 
 # Two-player test (scripts/e2e): browser profiles
 dist-e2e-profiles/
+
+# local Expo modules build output
+modules/*/android/build/
