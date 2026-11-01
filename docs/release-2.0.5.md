@@ -7,7 +7,7 @@
 Артефакты (версия `2.0.5`, сборка `17`), выкладываются в GitHub Releases как `v2.0.5`:
 
 - **[Скачать Blockerino 2.0.5 для Android (APK)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.5/blockerino-2.0.5.apk)** · APK · 52,7 МиБ · сборка 17
-- **[Скачать Blockerino 2.0.5 Android App Bundle (AAB)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.5/blockerino-2.0.5.aab)** · AAB · сборка 17 (для Google Play Console)
+- **[Скачать Blockerino 2.0.5 Android App Bundle (AAB)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.5/blockerino-2.0.5.aab)** · AAB · 70,3 МиБ · сборка 17 (для Google Play Console)
 
 ## 🎮 Что нового
 
@@ -58,6 +58,6 @@ Edge function: `supabase/functions/chess-com-import` (verify_jwt включён)
 | Файл | Размер, байт | SHA-256 |
 |---|---|---|
 | blockerino-2.0.5.apk | 55219905 | 5a58a7bf4484747598f6f0c2a8424cd879bd811763900deb65f554b24f60daae |
-| blockerino-2.0.5.aab | — | — |
+| blockerino-2.0.5.aab | 73678608 | c50f1bb389193c64e5c1fb297ee9536ba885bf134b981a58781657832602233c |
 
 AAB подписан ключом загрузки, APK подписан отладочным ключом.
