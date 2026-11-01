@@ -123,7 +123,7 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 			)}
 			{screen === "puzzles" && <PuzzleScreen cosmetics={cosmetics} onBack={() => setScreen("lobby")} />}
 			{screen === "chesscom" && (
-				<ChessComLinkScreen link={chessCom} onChange={setChessCom} onBack={() => setScreen("lobby")} />
+				<ChessComLinkScreen link={chessCom} onChange={setChessCom} onBack={() => setScreen("lobby")} onImported={refreshRatings} />
 			)}
 			{screen === "time" && (
 				<ChessTimePicker
