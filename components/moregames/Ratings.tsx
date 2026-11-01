@@ -46,7 +46,7 @@ export function MoreGameTabs({ selected, onChange }: { selected: RatedMoreGameId
 						style={[local.tab, { borderColor: active ? color : "rgba(255,255,255,0.12)", backgroundColor: active ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.25)" }]}
 					>
 						<PixelGlyphView glyph={GAME_GLYPHS[gameId]} size={18} dimmed={!active} />
-						<Text style={[local.tabText, { color: active ? color : "#9CA3AF" }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+						<Text style={[local.tabText, { color: active ? color : "#9CA3AF" }]} numberOfLines={2}>
 							{t(`moregames.label.${gameId}`)}
 						</Text>
 					</Pressable>
@@ -81,7 +81,16 @@ function Podium({ top, playerName, onOpen }: { top: MoreGameRating[]; playerName
 		<View style={local.podium}>
 			{PODIUM.map(({ place, medal, color, height }) => {
 				const entry = top[place - 1];
-				if (!entry) return <View key={place} style={local.podiumColumn} />;
+				// a free place still gets its step, so the podium keeps its shape with one or two players
+				if (!entry) {
+					return (
+						<View key={place} style={local.podiumColumn}>
+							<View style={[local.podiumStep, local.podiumStepEmpty, { height }]}>
+								<Text style={[local.podiumPlace, { color: "rgba(255,255,255,0.25)" }]}>{place}</Text>
+							</View>
+						</View>
+					);
+				}
 				const isMe = entry.player_name.toLowerCase() === playerName.toLowerCase();
 				return (
 					<Pressable key={place} onPress={() => onOpen(entry.player_name)} style={local.podiumColumn}>
@@ -94,6 +103,7 @@ function Podium({ top, playerName, onOpen }: { top: MoreGameRating[]; playerName
 						<Text style={local.podiumMeta} numberOfLines={1}>{t("moregames.podiumWins", { wins: entry.wins, rate: winRate(entry) })}</Text>
 						<View style={[local.podiumStep, { height, borderColor: color }]}>
 							<UiIcon name={medal} size={place === 1 ? 27 : 18} />
+							<Text style={[local.podiumPlace, { color }]}>{place}</Text>
 						</View>
 					</Pressable>
 				);
@@ -201,7 +211,7 @@ export function MoreGameLeaderboardPanel({
 const local = StyleSheet.create({
 	tabs: { width: "100%", flexDirection: "row", flexWrap: "wrap", gap: 6 },
 	tab: { flexBasis: "30%", flexGrow: 1, minHeight: 40, borderWidth: 2, borderRadius: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 6 },
-	tabText: { fontFamily: "Silkscreen", fontSize: 10, flexShrink: 1 },
+	tabText: { fontFamily: "Silkscreen", fontSize: 10, flexShrink: 1, textAlign: "center" },
 	meCard: { width: "100%", borderWidth: 2, borderRadius: 10, padding: 10, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "rgba(255,255,255,0.04)" },
 	meName: { fontSize: 14 },
 	meStats: { flexDirection: "row", gap: 10 },
@@ -212,12 +222,14 @@ const local = StyleSheet.create({
 	rateTrack: { height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.1)", overflow: "hidden" },
 	rateTrackThin: { height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.08)", overflow: "hidden" },
 	rateFill: { height: "100%", borderRadius: 3 },
-	podium: { flexDirection: "row", alignItems: "flex-end", gap: 6, marginBottom: 10, paddingTop: 4 },
+	podium: { flexDirection: "row", alignItems: "flex-end", gap: 6, marginBottom: 12, paddingTop: 4, borderBottomWidth: 2, borderColor: "rgba(255,255,255,0.18)" },
 	podiumColumn: { flex: 1, alignItems: "center", gap: 3 },
 	podiumAvatar: { borderWidth: 2, borderRadius: 999, padding: 2 },
 	podiumName: { fontSize: 11, maxWidth: "100%" },
 	podiumMeta: { fontFamily: "Silkscreen", fontSize: 8, color: "#9CA3AF" },
-	podiumStep: { width: "100%", borderWidth: 2, borderRadius: 6, backgroundColor: "rgba(255,255,255,0.05)", alignItems: "center", justifyContent: "center" },
+	podiumStep: { width: "100%", borderWidth: 2, borderBottomWidth: 0, borderTopLeftRadius: 6, borderTopRightRadius: 6, gap: 2, backgroundColor: "rgba(255,255,255,0.05)", alignItems: "center", justifyContent: "center" },
+	podiumStepEmpty: { borderColor: "rgba(255,255,255,0.12)", borderStyle: "dashed", backgroundColor: "rgba(255,255,255,0.02)" },
+	podiumPlace: { fontFamily: "SilkscreenBold", fontSize: 12 },
 	row: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 7, paddingHorizontal: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)", borderRadius: 8, marginBottom: 5, backgroundColor: "rgba(0,0,0,0.2)" },
 	rowRank: { fontFamily: "SilkscreenBold", fontSize: 11, width: 24, textAlign: "center" },
 	rowName: { fontSize: 12 },
