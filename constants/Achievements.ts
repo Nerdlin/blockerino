@@ -1136,9 +1136,9 @@ const WIN_STAT_BY_GAME: Record<string, WinStatField> = {
 /** A finished win in one of the More Games. `vsBot` wins also count towards the "beat the computer" chains. */
 export function recordMoreGameWin(gameId: string, options: { vsBot?: boolean; difficulty?: string } = {}): void {
 	const field = WIN_STAT_BY_GAME[gameId];
-	if (!field) return;
 	recordGameOutcome(gameId, "win", { vsBot: options.vsBot });
-	const progress: Partial<AchievementStats> = { [field]: 1 };
+	// a game without its own win counter (checkers) still counts towards the "beat the computer" chains
+	const progress: Partial<AchievementStats> = field ? { [field]: 1 } : {};
 	if (options.vsBot) {
 		progress.botWins = 1;
 		if (options.difficulty === "hard") progress.botHardWins = 1;

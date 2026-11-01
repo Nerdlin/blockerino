@@ -28,6 +28,7 @@ import { styles } from "./moregames/styles";
 import { MoreGameLeaderboardPanel } from "./moregames/Ratings";
 import { ExtraGameShop } from "./moregames/ExtraGameShop";
 import { TicTacToeGame } from "./moregames/TicTacToeGame";
+import { CheckersGame } from "./moregames/CheckersGame";
 import { SudokuGame } from "./moregames/SudokuGame";
 import { MahjongGame } from "./moregames/MahjongGame";
 import { BattleshipGame } from "./moregames/BattleshipGame";
@@ -212,6 +213,7 @@ export default function MoreGamesMenu() {
 					loading={ratingsLoading}
 					playerName={playerName}
 					onRefresh={() => loadRatings()}
+					onPlay={(game) => { setRatingPanel("list"); setActiveGame(game); }}
 				/>
 			) : !activeGame ? (
 				<ScrollView style={styles.moreList} contentContainerStyle={styles.moreListContent}>
@@ -279,6 +281,7 @@ export default function MoreGamesMenu() {
 			) : (
 				<View style={styles.gameSurface}>
 					{activeGame === "shop" && <ExtraGameShop />}
+					{activeGame === "checkers" && <CheckersGame playerName={playerName} onRatingChange={() => loadRatings("checkers")} />}
 					{activeGame === "tictactoe" && <TicTacToeGame playerName={playerName} onRatingChange={() => loadRatings("tictactoe")} />}
 					{activeGame === "sudoku" && <SudokuGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("sudoku")} />}
 					{activeGame === "mahjong" && <MahjongGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("mahjong")} />}

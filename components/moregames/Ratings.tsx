@@ -22,6 +22,7 @@ const GAME_GLYPHS = {
 	chess: ACHIEVEMENT_GLYPHS.pawn,
 	durak: ACHIEVEMENT_GLYPHS.cards,
 	battleship: UI_GLYPHS.wave,
+	checkers: ACHIEVEMENT_GLYPHS.stack,
 	tictactoe: ACHIEVEMENT_GLYPHS.target,
 	sudoku: ACHIEVEMENT_GLYPHS.puzzle,
 	mahjong: ACHIEVEMENT_GLYPHS.bricks,
@@ -29,7 +30,7 @@ const GAME_GLYPHS = {
 
 const gameColor = (gameId: RatedMoreGameId) => MORE_GAME_CARDS.find((item) => item.id === gameId)?.color ?? "#FFFFFF";
 
-/** The game picker: three tiles a row, each with the game's icon and colour. */
+/** The game picker: four tiles a row, each with the game's icon over its name, in the game's colour. */
 export function MoreGameTabs({ selected, onChange }: { selected: RatedMoreGameId; onChange: (game: RatedMoreGameId) => void }) {
 	const { t } = useLanguage();
 	return (
@@ -120,6 +121,7 @@ export function MoreGameLeaderboardPanel({
 	loading,
 	playerName,
 	onRefresh,
+	onPlay,
 }: {
 	gameId: RatedMoreGameId;
 	onGameChange: (game: RatedMoreGameId) => void;
@@ -128,6 +130,7 @@ export function MoreGameLeaderboardPanel({
 	loading: boolean;
 	playerName: string;
 	onRefresh: () => void;
+	onPlay: (game: RatedMoreGameId) => void;
 }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
@@ -136,6 +139,23 @@ export function MoreGameLeaderboardPanel({
 	const myIndex = leaderboard.findIndex((entry) => entry.player_name.toLowerCase() === playerName.toLowerCase());
 	const myAvatar = myIndex >= 0 ? leaderboard[myIndex].avatar_url : null;
 	const myRate = winRate(myRating);
+	// under the table (or in place of an empty one): where the player stands and a way straight into the game
+	const cta = (
+		<View style={[local.cta, { borderColor: color }]}>
+			<PixelGlyphView glyph={GAME_GLYPHS[gameId]} size={36} />
+			<View style={{ flex: 1, gap: 4 }}>
+				<Text style={[local.ctaTitle, { color }]}>
+					{myIndex === 0 ? t("moregames.ctaTopTitle") : myIndex > 0 ? t("moregames.ctaPlaceTitle", { place: myIndex + 1 }) : leaderboard.length === 0 ? t("moregames.ctaFirstTitle") : t("moregames.ctaJoinTitle")}
+				</Text>
+				<Text style={[local.ctaText, { color: currentTheme.textSecondary }]}>
+					{myIndex === 0 ? t("moregames.ctaTopText") : myIndex > 0 ? t("moregames.ctaPlaceText") : leaderboard.length === 0 ? t("moregames.ctaFirstText") : t("moregames.ctaJoinText")}
+				</Text>
+			</View>
+			<Pressable onPress={() => onPlay(gameId)} style={[local.ctaButton, { backgroundColor: color }]}>
+				<Text style={local.ctaButtonText}>{t("moregames.ctaPlay")}</Text>
+			</Pressable>
+		</View>
+	);
 
 	return (
 		<View style={styles.ratingScreen}>
@@ -169,9 +189,7 @@ export function MoreGameLeaderboardPanel({
 
 			<ScrollView style={styles.leaderboardList} contentContainerStyle={styles.leaderboardListContent}>
 				{leaderboard.length === 0 ? (
-					<Text style={[styles.emptyLeaderboardText, { color: currentTheme.textSecondary }]}>
-						{loading ? t("moregames.loadingRatings") : t("moregames.noRatings")}
-					</Text>
+					loading ? <Text style={[styles.emptyLeaderboardText, { color: currentTheme.textSecondary }]}>{t("moregames.loadingRatings")}</Text> : cta
 				) : (
 					<>
 						<Podium top={leaderboard.slice(0, 3)} playerName={playerName} onOpen={openProfile} />
@@ -201,6 +219,7 @@ export function MoreGameLeaderboardPanel({
 								</Pressable>
 							);
 						})}
+						{cta}
 					</>
 				)}
 			</ScrollView>
@@ -210,8 +229,8 @@ export function MoreGameLeaderboardPanel({
 
 const local = StyleSheet.create({
 	tabs: { width: "100%", flexDirection: "row", flexWrap: "wrap", gap: 6 },
-	tab: { flexBasis: "30%", flexGrow: 1, minHeight: 40, borderWidth: 2, borderRadius: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 6 },
-	tabText: { fontFamily: "Silkscreen", fontSize: 10, flexShrink: 1, textAlign: "center" },
+	tab: { flexBasis: "23%", flexGrow: 1, minHeight: 52, borderWidth: 2, borderRadius: 8, alignItems: "center", justifyContent: "center", gap: 3, paddingHorizontal: 3, paddingVertical: 5 },
+	tabText: { fontFamily: "Silkscreen", fontSize: 9, textAlign: "center" },
 	meCard: { width: "100%", borderWidth: 2, borderRadius: 10, padding: 10, flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "rgba(255,255,255,0.04)" },
 	meName: { fontSize: 14 },
 	meStats: { flexDirection: "row", gap: 10 },
@@ -230,6 +249,11 @@ const local = StyleSheet.create({
 	podiumStep: { width: "100%", borderWidth: 2, borderBottomWidth: 0, borderTopLeftRadius: 6, borderTopRightRadius: 6, gap: 2, backgroundColor: "rgba(255,255,255,0.05)", alignItems: "center", justifyContent: "center" },
 	podiumStepEmpty: { borderColor: "rgba(255,255,255,0.12)", borderStyle: "dashed", backgroundColor: "rgba(255,255,255,0.02)" },
 	podiumPlace: { fontFamily: "SilkscreenBold", fontSize: 12 },
+	cta: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 2, borderStyle: "dashed", borderRadius: 10, padding: 12, marginBottom: 10, backgroundColor: "rgba(255,255,255,0.03)" },
+	ctaTitle: { fontFamily: "SilkscreenBold", fontSize: 12 },
+	ctaText: { fontFamily: "Silkscreen", fontSize: 9, lineHeight: 13 },
+	ctaButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 8 },
+	ctaButtonText: { fontFamily: "SilkscreenBold", fontSize: 11, color: "#111111" },
 	row: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 7, paddingHorizontal: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)", borderRadius: 8, marginBottom: 5, backgroundColor: "rgba(0,0,0,0.2)" },
 	rowRank: { fontFamily: "SilkscreenBold", fontSize: 11, width: 24, textAlign: "center" },
 	rowName: { fontSize: 12 },

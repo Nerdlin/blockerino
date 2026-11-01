@@ -18,7 +18,7 @@ export interface GameRecord {
 export type GameRecords = Record<string, GameRecord>;
 
 /** Games the profile lists, in this order; "versus" is the Block duel. */
-export const RECORDED_GAME_IDS = ["versus", "chess", "battleship", "durak", "tictactoe", "sudoku", "mahjong"] as const;
+export const RECORDED_GAME_IDS = ["versus", "chess", "battleship", "durak", "tictactoe", "sudoku", "mahjong", "checkers"] as const;
 
 const KEY = "GAME_RECORDS_V1";
 const FIELDS: (keyof GameRecord)[] = ["wins", "losses", "draws", "botWins", "botLosses", "botDraws"];

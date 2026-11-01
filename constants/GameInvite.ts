@@ -2,13 +2,13 @@ import { atom, useAtom } from "jotai";
 import { useEffect } from "react";
 import { supabase } from "@/constants/Supabase";
 
-// An invitation to a room game in More Games (Durak, Sea Battle, Tic-Tac-Toe): the host opens a room as usual, picks a
+// An invitation to a room game in More Games (Durak, Sea Battle, Tic-Tac-Toe, Checkers): the host opens a room as usual, picks a
 // friend who is online and the room code goes over the friend's invite channel (the one the 1v1 and chess invites
 // use). The friend gets the usual invite popup; on accept the game opens and joins that room by itself. Live only: a
 // friend whose app is closed gets no push for it.
 
-export type InviteGame = "durak" | "battleship" | "tictactoe";
-export const INVITE_GAMES: InviteGame[] = ["durak", "battleship", "tictactoe"];
+export type InviteGame = "durak" | "battleship" | "tictactoe" | "checkers";
+export const INVITE_GAMES: InviteGame[] = ["durak", "battleship", "tictactoe", "checkers"];
 
 export interface GameInvite {
 	game: InviteGame;

@@ -1,6 +1,6 @@
 
 
-export type MoreGameId = "shop" | "battleship" | "durak" | "chess" | "sudoku" | "tictactoe" | "mahjong";
+export type MoreGameId = "shop" | "battleship" | "durak" | "chess" | "sudoku" | "tictactoe" | "mahjong" | "checkers";
 export type OnlineRole = "player1" | "player2" | "player3" | "player4" | "player5" | "player6";
 export type DuelRole = "player1" | "player2";
 export type RoomStatus = "offline" | "connecting" | "connected" | "error";
