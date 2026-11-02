@@ -7,7 +7,7 @@
 Артефакты (версия `2.0.6`, сборка `18`), выкладываются в GitHub Releases как `v2.0.6`:
 
 - **[Скачать Blockerino 2.0.6 для Android (APK)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.6/blockerino-2.0.6.apk)** · APK · 52,7 МиБ · сборка 18
-- **[Скачать Blockerino 2.0.6 Android App Bundle (AAB)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.6/blockerino-2.0.6.aab)** · AAB · AAB_SIZE · сборка 18 (для Google Play Console)
+- AAB для Google Play будет добавлен позже, после подписи ключом загрузки.
 
 ## 🎮 Что нового
 
@@ -43,6 +43,5 @@
 | Файл | Размер, байт | SHA-256 |
 |---|---|---|
 | blockerino-2.0.6.apk | 55305293 | f2296944bca3e0f6b6d1bcd212d422114935753c312ebbfe7970ea7285a22ed0 |
-| blockerino-2.0.6.aab | AAB_BYTES | AAB_SHA |
 
-AAB подписан ключом загрузки, APK подписан отладочным ключом.
+APK подписан отладочным ключом.

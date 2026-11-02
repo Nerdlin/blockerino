@@ -74,7 +74,6 @@
 | Файл | Размер | Для чего |
 | --- | --- | --- |
 | 📥 [**blockerino-2.0.6.apk**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.6/blockerino-2.0.6.apk) | 52,7 МиБ | Установка на телефон |
-| 📦 [**blockerino-2.0.6.aab**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.6/blockerino-2.0.6.aab) | 70,3 МиБ | Google Play Console |
 
 Подробности и история: [описание 2.0.6](./docs/release-2.0.6.md) · [все релизы](./docs)
 
