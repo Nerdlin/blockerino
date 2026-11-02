@@ -73,9 +73,9 @@ export const profile: ScreenDictionary = {
 	ru: {
 		"perk.champion": "Чемпион",
 		"perk.top": "Топ {rank}",
-		"perk.board.classic": "Classic",
-		"perk.board.chaos": "Chaos",
-		"perk.board.elo": "Versus",
+		"perk.board.classic": "Классика",
+		"perk.board.chaos": "Хаос",
+		"perk.board.elo": "Дуэли",
 		"profile.avatarTitle": "Выберите аватар",
 		"profile.avatarUrlLabel": "Или ссылка на изображение",
 		"profile.chooseFile": "Загрузить фото",

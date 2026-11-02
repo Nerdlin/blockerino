@@ -18,6 +18,8 @@ import { ExtraGameCosmetics, SEA_SKINS } from "./cosmetics";
 import { OnlineRoomControls, SHOT_RESEND_LIMIT, SHOT_RESEND_MS, getDuelOpponent, isDuelRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
 import { styles } from "./styles";
 import { useIncomingGameInvite } from "@/constants/GameInvite";
+import { useBattleFeedback } from "./battleFeedback";
+import { useOutcomeSound } from "./feedback";
 
 export const BATTLE_BOARD_SIZE = 10;
 
@@ -471,7 +473,11 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 	};
 
 	const targetCrossed = getCrossedCells(targetSunk);
-	const ownCrossed = getCrossedCells(fleet.filter((ship) => ship.x >= 0 && getShipCells(ship).every((cell) => incomingShots[cell] === "hit")).map(getShipCells));
+	const ownSunkShips = fleet.filter((ship) => ship.x >= 0 && getShipCells(ship).every((cell) => incomingShots[cell] === "hit"));
+	const ownCrossed = getCrossedCells(ownSunkShips.map(getShipCells));
+	useBattleFeedback({ targetShots, incomingShots, targetSunk: targetSunk.length, ownSunk: ownSunkShips.length });
+	const myRole: DuelRole | null = botMode ? "player1" : isDuelRole(room.role) && room.isConnected ? room.role : null;
+	useOutcomeSound(winner && myRole ? (winner === myRole ? "win" : "loss") : null, `${room.roomCode}:${botMode}`);
 
 	useEffect(() => {
 		if (!botMode || turn !== "player2" || winner) return;

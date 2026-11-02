@@ -183,7 +183,7 @@ export default function ProfileMenu() {
 			return;
 		}
 		let cancelled = false;
-		getMySeasonTitles().then((titles) => {
+		getMySeasonTitles(6).then((titles) => {
 			if (!cancelled) setSeasonTitles(titles);
 		});
 		return () => {

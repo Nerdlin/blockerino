@@ -1,8 +1,8 @@
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { submitMoreGameMatchResult } from "@/constants/Supabase";
-import { View, Text, Pressable } from "react-native";
+import { Animated, Easing, View, Text, Pressable } from "react-native";
 import StylizedButton from "../StylizedButton";
 import Collapsible from "../Collapsible";
 import { recordMoreGameWin } from "@/constants/Achievements";
@@ -14,6 +14,33 @@ import { OnlineRole, TicMark } from "./types";
 import { OnlineRoomControls, isDuelRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
 import { styles } from "./styles";
 import { useIncomingGameInvite } from "@/constants/GameInvite";
+import { buzz, useGameSfx, useOutcomeSound } from "./feedback";
+
+/** A mark pops in when it is placed; the marks of the winning line pulse. */
+function TicMarkView({ value, winning }: { value: TicMark; winning: boolean }) {
+	const pop = useRef(new Animated.Value(0)).current;
+	const pulse = useRef(new Animated.Value(1)).current;
+	useEffect(() => {
+		Animated.spring(pop, { toValue: 1, friction: 4, tension: 160, useNativeDriver: true }).start();
+	}, [pop]);
+	useEffect(() => {
+		if (!winning) return;
+		const loop = Animated.loop(Animated.sequence([
+			Animated.timing(pulse, { toValue: 1.18, duration: 380, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+			Animated.timing(pulse, { toValue: 1, duration: 380, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+		]));
+		loop.start();
+		return () => {
+			loop.stop();
+			pulse.setValue(1);
+		};
+	}, [winning, pulse]);
+	return (
+		<Animated.Text style={[styles.ticText, { color: value === "X" ? "#38BDF8" : "#F472B6", transform: [{ scale: Animated.multiply(pop, pulse) }] }]}>
+			{value}
+		</Animated.Text>
+	);
+}
 
 export function TicTacToeGame({ playerName, onRatingChange }: { playerName: string; onRatingChange: () => void }) {
 	const { currentTheme } = useTheme();
@@ -114,6 +141,24 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 		if (index >= 0) setHintCell(index);
 	};
 
+	// a sound for every new mark, whoever placed it
+	const sfx = useGameSfx();
+	const shownBoard = useRef(board);
+	useEffect(() => {
+		const before = shownBoard.current;
+		shownBoard.current = board;
+		const placed = board.findIndex((value, index) => value && !before[index]);
+		if (placed < 0 || board.filter(Boolean).length !== before.filter(Boolean).length + 1) return;
+		sfx(board[placed] === "X" ? "ticX" : "ticO");
+		buzz("light");
+	}, [board, sfx]);
+	const winningLine = useMemo(() => new Set(getTicTacToeWinningLine(board) ?? []), [board]);
+	const myMark: TicMark | null = room.isConnected && isDuelRole(room.role) ? (room.role === "player2" ? "O" : "X") : botActive ? "X" : null;
+	useOutcomeSound(
+		remoteResult ? "win" : winner ? (myMark && winner !== myMark ? "loss" : "win") : isDraw ? "draw" : null,
+		`${room.roomCode}:${board.join(",")}`,
+	);
+
 	const reset = () => {
 		const nextBoard = Array(9).fill(null);
 		setBoard(nextBoard);
@@ -196,7 +241,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 						onPress={() => play(index)}
 						style={[styles.ticCell, { borderColor: currentTheme.gridBorder, backgroundColor: hintCell === index ? "rgba(74, 222, 128, 0.35)" : currentTheme.emptyBlockBorder }]}
 					>
-						<Text style={[styles.ticText, { color: value === "X" ? "#38BDF8" : "#F472B6" }]}>{value}</Text>
+						{value ? <TicMarkView value={value} winning={winningLine.has(index)} /> : null}
 					</Pressable>
 				))}
 			</View>
@@ -225,6 +270,16 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 			</View>
 		</View>
 	);
+}
+
+/** The three cells of the completed line, or null. */
+export function getTicTacToeWinningLine(board: (TicMark | null)[]): number[] | null {
+	const lines = [
+		[0, 1, 2], [3, 4, 5], [6, 7, 8],
+		[0, 3, 6], [1, 4, 7], [2, 5, 8],
+		[0, 4, 8], [2, 4, 6],
+	];
+	return lines.find(([a, b, c]) => board[a] && board[a] === board[b] && board[a] === board[c]) ?? null;
 }
 
 export function getTicTacToeWinner(board: (TicMark | null)[]) {

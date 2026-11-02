@@ -1,21 +1,22 @@
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from "react";
 import { submitMoreGameMatchResult } from "@/constants/Supabase";
-import { View, Text, Pressable, StyleSheet, useWindowDimensions } from "react-native";
+import { Animated, Easing, View, Text, Pressable, StyleSheet, useWindowDimensions } from "react-native";
 import StylizedButton from "../StylizedButton";
 import Collapsible from "../Collapsible";
 import UiIcon from "../UiIcon";
 import { recordMoreGameWin } from "@/constants/Achievements";
 import { recordGameOutcome } from "@/constants/GameStats";
 import { chooseCheckersMove } from "@/constants/bots/CheckersBot";
-import { applyMove, CheckersMove, CheckersState, gameResult, initialState, isDarkSquare, isKing, isValidState, legalMoves, Side, sideOf } from "@/constants/checkers/Rules";
+import { applyMove, CheckersBoard, CheckersMove, CheckersState, gameResult, initialState, isDarkSquare, isKing, isValidState, legalMoves, Piece, Side, sideOf } from "@/constants/checkers/Rules";
 import { BotPanel, useBotSettings } from "./BotPanel";
 import { HintButton } from "./HintButton";
 import { OnlineRole } from "./types";
 import { OnlineRoomControls, isDuelRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
 import { styles } from "./styles";
 import { useIncomingGameInvite } from "@/constants/GameInvite";
+import { buzz, useGameSfx, useOutcomeSound } from "./feedback";
 
 const LIGHT_SQUARE = "#E8D2A6";
 const DARK_SQUARE = "#8B5A2B";
@@ -24,6 +25,88 @@ const BLACK_PIECE = { fill: "#2B2B2E", rim: "#0E0E10" };
 
 // The host (player1) plays white and moves first; against the computer the player is white.
 const sideOfRole = (role: OnlineRole | null): Side => (role === "player2" ? "b" : "w");
+
+/** Time for the moving piece to cross one leg of its path (a step, or a jump over a piece). */
+const LEG_MS = 170;
+
+/** A move being shown: the piece slides along its path and the pieces it took fade as it passes them. */
+interface MoveAnimation {
+	id: number;
+	move: CheckersMove;
+	piece: Piece;
+	crowned: boolean;
+	taken: { square: number; piece: Piece }[];
+}
+
+function PieceView({ piece, cell, borderColor, borderWidth = 2 }: { piece: Piece; cell: number; borderColor?: string; borderWidth?: number }) {
+	const white = sideOf(piece) === "w";
+	return (
+		<View style={[
+			local.piece,
+			{
+				width: cell * 0.78,
+				height: cell * 0.78,
+				borderRadius: cell * 0.39,
+				backgroundColor: white ? WHITE_PIECE.fill : BLACK_PIECE.fill,
+				borderColor: borderColor ?? (white ? WHITE_PIECE.rim : BLACK_PIECE.rim),
+				borderWidth,
+			},
+		]}>
+			<View style={[local.pieceInner, { width: cell * 0.5, height: cell * 0.5, borderRadius: cell * 0.25, borderColor: white ? WHITE_PIECE.rim : "#3F3F46" }]}>
+				{isKing(piece) ? <UiIcon name="crown" size={Math.max(9, Math.floor(cell * 0.4 / 9) * 9)} /> : null}
+			</View>
+		</View>
+	);
+}
+
+/** The moving piece and the taken ones, drawn over the board while a move is shown. */
+function MoveOverlay({ animation, cell, flipped, onLeg, onDone }: { animation: MoveAnimation; cell: number; flipped: boolean; onLeg: (leg: number) => void; onDone: () => void }) {
+	const at = (square: number) => {
+		const index = flipped ? 63 - square : square;
+		return { x: (index % 8) * cell, y: Math.floor(index / 8) * cell };
+	};
+	const { path } = animation.move;
+	const position = useRef(new Animated.ValueXY(at(path[0]))).current;
+	const fades = useRef(animation.taken.map(() => new Animated.Value(1))).current;
+	useEffect(() => {
+		let leg = 0;
+		let stopped = false;
+		const runLeg = () => {
+			if (stopped) return;
+			if (leg >= path.length - 1) {
+				onDone();
+				return;
+			}
+			Animated.timing(position, { toValue: at(path[leg + 1]), duration: LEG_MS, easing: Easing.inOut(Easing.quad), useNativeDriver: false }).start(({ finished }) => {
+				if (!finished || stopped) return;
+				onLeg(leg);
+				if (fades[leg]) Animated.timing(fades[leg], { toValue: 0, duration: 160, useNativeDriver: false }).start();
+				leg += 1;
+				runLeg();
+			});
+		};
+		runLeg();
+		return () => {
+			stopped = true;
+			position.stopAnimation();
+		};
+		// one run per move (the overlay is keyed by the animation id)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+	const box = { position: "absolute" as const, width: cell, height: cell, alignItems: "center" as const, justifyContent: "center" as const };
+	return (
+		<>
+			{animation.taken.map(({ square, piece }, index) => (
+				<Animated.View key={square} pointerEvents="none" style={[box, { left: at(square).x, top: at(square).y, opacity: fades[index] }]}>
+					<PieceView piece={piece} cell={cell} />
+				</Animated.View>
+			))}
+			<Animated.View pointerEvents="none" style={[box, { left: position.x, top: position.y, zIndex: 5 }]}>
+				<PieceView piece={animation.piece} cell={cell} />
+			</Animated.View>
+		</>
+	);
+}
 
 export function CheckersGame({ playerName, onRatingChange }: { playerName: string; onRatingChange: () => void }) {
 	const { currentTheme } = useTheme();
@@ -53,6 +136,48 @@ export function CheckersGame({ playerName, onRatingChange }: { playerName: strin
 	useEffect(() => {
 		stateRef.current = state;
 	}, [state]);
+
+	// Every new move (ours, the computer's or the opponent's) is shown sliding; a synced position just appears.
+	const sfx = useGameSfx();
+	const [animation, setAnimation] = useState<MoveAnimation | null>(null);
+	const animationRef = useRef(animation);
+	animationRef.current = animation;
+	const shownBoard = useRef<CheckersBoard>(state.board);
+	const animationId = useRef(0);
+	useLayoutEffect(() => {
+		const before = shownBoard.current;
+		shownBoard.current = state.board;
+		const last = lastMove?.path[lastMove.path.length - 1];
+		const moved = last === undefined ? null : state.board[last];
+		const started = lastMove ? before[lastMove.path[0]] : null;
+		if (!lastMove || !moved || !started) {
+			setAnimation(null);
+			return;
+		}
+		setAnimation({
+			id: ++animationId.current,
+			move: lastMove,
+			piece: started,
+			crowned: !isKing(started) && isKing(moved),
+			taken: lastMove.captures.flatMap((square) => {
+				const piece = before[square];
+				return piece ? [{ square, piece }] : [];
+			}),
+		});
+		// the board and the move arrive together
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [lastMove]);
+	const onLeg = useCallback((leg: number) => {
+		const current = animationRef.current;
+		if (!current) return;
+		const captured = leg < current.move.captures.length;
+		sfx(captured ? "chessCapture" : "chessMove");
+		if (captured) buzz("light");
+	}, [sfx]);
+	const onAnimationDone = useCallback(() => {
+		if (animationRef.current?.crowned) sfx("chessPromote");
+		setAnimation(null);
+	}, [sfx]);
 
 	const handleEvent = useCallback((event: string, payload: any, senderRole?: OnlineRole) => {
 		if (event === "system_joined" && senderRole) {
@@ -150,6 +275,7 @@ export function CheckersGame({ playerName, onRatingChange }: { playerName: strin
 		const piece = state.board[square];
 		// picking (or switching to) one of the pieces that can move
 		if (piece && sideOf(piece) === state.turn && movable.has(square) && (path.length <= 1 || !targets.has(square))) {
+			if (path[0] !== square) sfx("chessSelect");
 			setPath(path[0] === square ? [] : [square]);
 			return;
 		}
@@ -205,6 +331,9 @@ export function CheckersGame({ playerName, onRatingChange }: { playerName: strin
 		}).then(() => onRatingChange());
 	}, [onRatingChange, online, opponentName, playerName, remoteResult, result, room.role, room.roomCode]);
 
+	const outcome = remoteResult ? "win" : result === "draw" ? "draw" : result ? ((online || botActive) && result !== mySide ? "loss" : "win") : null;
+	useOutcomeSound(outcome, `${room.roomCode}:${state.board.join("")}`);
+
 	const mustCapture = !gameFinished && myTurn && moves.length > 0 && moves[0].captures.length > 0;
 	const status = remoteResult
 		|| (result === "draw" ? t("moregames.draw")
@@ -239,12 +368,14 @@ export function CheckersGame({ playerName, onRatingChange }: { playerName: strin
 	return (
 		<View style={styles.onlineGame}>
 			<Text style={[styles.gameStatus, { color: gameFinished ? currentTheme.accent : currentTheme.textPrimary }]}>{status}</Text>
-			{mustCapture ? <Text style={local.mustCapture}>{t("checkers.mustCapture")}</Text> : null}
+			{/* always takes its line, so the board does not jump when it shows */}
+			<Text style={[local.mustCapture, !mustCapture && { opacity: 0 }]}>{t("checkers.mustCapture")}</Text>
 			<View style={[local.board, { width: cell * 8 + BOARD_BORDER * 2, height: cell * 8 + BOARD_BORDER * 2, borderWidth: BOARD_BORDER }]}>
 				{Array.from({ length: 64 }, (_, index) => {
 					const square = flipped ? 63 - index : index;
 					const dark = isDarkSquare(square);
-					const piece = state.board[square];
+					const hidden = animation !== null && square === animation.move.path[animation.move.path.length - 1];
+					const piece = hidden ? null : state.board[square];
 					const selected = path.includes(square);
 					const target = targets.has(square);
 					const canMove = !gameFinished && myTurn && path.length === 0 && movable.has(square);
@@ -262,21 +393,7 @@ export function CheckersGame({ playerName, onRatingChange }: { playerName: strin
 							]}
 						>
 							{piece ? (
-								<View style={[
-									local.piece,
-									{
-										width: cell * 0.78,
-										height: cell * 0.78,
-										borderRadius: cell * 0.39,
-										backgroundColor: sideOf(piece) === "w" ? WHITE_PIECE.fill : BLACK_PIECE.fill,
-										borderColor: selected ? "#FACC15" : canMove ? "#4ADE80" : sideOf(piece) === "w" ? WHITE_PIECE.rim : BLACK_PIECE.rim,
-										borderWidth: selected || canMove ? 3 : 2,
-									},
-								]}>
-									<View style={[local.pieceInner, { width: cell * 0.5, height: cell * 0.5, borderRadius: cell * 0.25, borderColor: sideOf(piece) === "w" ? WHITE_PIECE.rim : "#3F3F46" }]}>
-										{isKing(piece) ? <UiIcon name="crown" size={Math.max(9, Math.floor(cell * 0.4 / 9) * 9)} /> : null}
-									</View>
-								</View>
+								<PieceView piece={piece} cell={cell} borderColor={selected ? "#FACC15" : canMove ? "#4ADE80" : undefined} borderWidth={selected || canMove ? 3 : 2} />
 							) : selected ? (
 								<View style={[local.trail, { width: cell * 0.3, height: cell * 0.3, borderRadius: cell * 0.15 }]} />
 							) : null}
@@ -284,6 +401,7 @@ export function CheckersGame({ playerName, onRatingChange }: { playerName: strin
 						</Pressable>
 					);
 				})}
+				{animation ? <MoveOverlay key={animation.id} animation={animation} cell={cell} flipped={flipped} onLeg={onLeg} onDone={onAnimationDone} /> : null}
 			</View>
 			<View style={{ flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
 				<StylizedButton text={gameFinished ? t(room.role ? "moregames.rematch" : "bot.newGame") : t("moregames.reset")} onClick={reset} backgroundColor={gameFinished ? "#16A34A" : currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />

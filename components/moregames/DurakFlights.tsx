@@ -26,7 +26,7 @@ export interface DurakFlightLayerHandle {
 
 const CARD_W = 54;
 const CARD_H = 76;
-const FLIGHT_MS = 380;
+export const DURAK_FLIGHT_MS = 380;
 const MAX_IN_AIR = 16;
 
 /** A card back without the suit icon: a dozen SVG icons moving at once is what made the deal janky on phones. */
@@ -38,7 +38,7 @@ function FlightBack({ cosmetics }: { cosmetics: ExtraGameCosmetics }) {
 const Flight = memo(function Flight({ flight, trump, cosmetics, onDone }: { flight: DurakFlight; trump: string; cosmetics: ExtraGameCosmetics; onDone: (id: number) => void }) {
 	const progress = useRef(new Animated.Value(0)).current;
 	useEffect(() => {
-		const animation = Animated.timing(progress, { toValue: 1, duration: FLIGHT_MS, delay: flight.delay, easing: Easing.out(Easing.cubic), useNativeDriver: true });
+		const animation = Animated.timing(progress, { toValue: 1, duration: DURAK_FLIGHT_MS, delay: flight.delay, easing: Easing.out(Easing.cubic), useNativeDriver: true });
 		animation.start(() => onDone(flight.id));
 		return () => animation.stop();
 		// eslint-disable-next-line react-hooks/exhaustive-deps

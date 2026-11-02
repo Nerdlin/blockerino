@@ -1,9 +1,10 @@
 import { SHOP_ITEMS } from "./Shop";
-import { getAudioModeOptions, getCustomAudioSourceInfo, getMusicTrackKey, hasMusicTrackForPack, hasSfxAssetsForPack, mapSfxForPack, shouldPauseMusicForAppState } from "./Sound";
+import { createAudioPlayer } from "expo-audio";
+import { getAudioModeOptions, getCustomAudioSourceInfo, getMusicTrackKey, hasMusicTrackForPack, hasSfxAssetsForPack, mapSfxForPack, shouldPauseMusicForAppState, soundManager } from "./Sound";
 
 jest.mock("expo-audio", () => ({
 	createAudioPlayer: jest.fn(),
-	setAudioModeAsync: jest.fn(),
+	setAudioModeAsync: jest.fn(() => Promise.resolve()),
 }));
 
 jest.mock("@react-native-async-storage/async-storage", () => ({
@@ -15,6 +16,8 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
 describe("sound settings", () => {
 	it("does not keep music playing after the app is backgrounded", () => {
 		expect(getAudioModeOptions().shouldPlayInBackground).toBe(false);
+		// no audio focus: notifications and other apps do not stop the game's sounds
+		expect(getAudioModeOptions().interruptionMode).toBe("mixWithOthers");
 		expect(shouldPauseMusicForAppState("background")).toBe(true);
 		expect(shouldPauseMusicForAppState("inactive")).toBe(true);
 		expect(shouldPauseMusicForAppState("active")).toBe(false);
@@ -56,6 +59,37 @@ describe("sound settings", () => {
 
 		expect(musicIds.filter((id) => !hasMusicTrackForPack(id))).toEqual([]);
 		expect(sfxIds.filter((id) => !hasSfxAssetsForPack(id))).toEqual([]);
+	});
+
+	it("reuses sound effect players and releases the least recently used ones", async () => {
+		const players: { release: jest.Mock; play: jest.Mock }[] = [];
+		(createAudioPlayer as jest.Mock).mockImplementation(() => {
+			const player = { volume: 1, playing: false, isBuffering: false, seekTo: jest.fn(() => Promise.resolve()), play: jest.fn(), pause: jest.fn(), remove: jest.fn(), release: jest.fn() };
+			players.push(player);
+			return player;
+		});
+		let now = 1_000_000;
+		const clock = jest.spyOn(Date, "now").mockImplementation(() => now);
+		try {
+			for (let i = 0; i < 5; i++) {
+				await soundManager.playSfx("placeBlock");
+				now += 500;
+			}
+			// one player, started five times
+			expect(players).toHaveLength(1);
+			expect(players[0].play).toHaveBeenCalledTimes(5);
+
+			const keys = ["breakLine", "comboX2", "comboX3", "comboX4", "comboX5", "gameOver", "menuClick", "invalidPlacement", "buttonHover", "achievement", "chessMove", "chessCapture", "chessCheck", "chessCastle", "chessPromote", "chessStart", "chessWin", "chessLose"] as const;
+			for (const key of keys) {
+				await soundManager.playSfx(key);
+				now += 500;
+			}
+			// never more than 16 players are kept: the oldest ones were released
+			expect(players.filter((player) => player.release.mock.calls.length === 0)).toHaveLength(16);
+			expect(players[0].release).toHaveBeenCalled();
+		} finally {
+			clock.mockRestore();
+		}
 	});
 
 	it("accepts external music providers without treating them as in-game streams", () => {

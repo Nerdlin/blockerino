@@ -4,7 +4,7 @@ import { useWindowDimensions, View, Animated, LayoutAnimation, Text, ScrollView,
 import { useLanguage } from "@/constants/Localization";
 import { useShopState, loadShopState } from "@/constants/Shop";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
-import { useRef, useState, useCallback, useEffect, useMemo, forwardRef } from "react";
+import { useRef, useState, useCallback, useEffect, useLayoutEffect, useMemo, forwardRef } from "react";
 import { durakReport, durakPayAnte, getPlayerProfileData, submitMoreGameMatchResult } from "@/constants/Supabase";
 import UiIcon from "@/components/UiIcon";
 import PixelIcon from "@/components/PixelIcon";
@@ -23,7 +23,107 @@ import { CARD_SKINS, ExtraGameCosmetics } from "./cosmetics";
 import { styles } from "./styles";
 import { measureScreenRect } from "./BattleshipGame";
 import { useIncomingGameInvite } from "@/constants/GameInvite";
-import { DurakFlight, DurakFlightLayer, DurakFlightLayerHandle } from "./DurakFlights";
+import { DURAK_FLIGHT_MS, DurakFlight, DurakFlightLayer, DurakFlightLayerHandle } from "./DurakFlights";
+import { useGameSfx, useOutcomeSound } from "./feedback";
+import type { SoundType } from "@/constants/Sound";
+
+/** What one change of the table shows: the cards in the air, when each lands, and the sounds to go with it. */
+interface DurakFlightPlan {
+	id: number;
+	flights: Omit<DurakFlight, "id">[];
+	/** The player's own new cards and when (ms from now) each lands in the hand. */
+	myArrivals: Record<string, number>;
+	/** For every seat, when (ms from now) each card bound for it lands. */
+	roleArrivals: Partial<Record<OnlineRole, number[]>>;
+	sounds: { sound: SoundType; delay: number }[];
+}
+
+const EMPTY_FLIGHT_PLAN: DurakFlightPlan = { id: 0, flights: [], myArrivals: {}, roleArrivals: {}, sounds: [] };
+
+/**
+ * Plans the card flights for a change of state: the deal from the deck, the sweep to the discard pile and the pick-up
+ * by the defender. It is derived from how the state changed, so it plays the same for the bot, the host and the guest.
+ */
+export function planDurakFlights(prev: DurakState | null, state: DurakState | null, seat: OnlineRole | null, size: { width: number; height: number }, id: number): DurakFlightPlan {
+	const plan: DurakFlightPlan = { id, flights: [], myArrivals: {}, roleArrivals: {}, sounds: [] };
+	if (!state || state.cancelled) return plan;
+	const { width, height } = size;
+	const roles = getActiveDurakRoles(state.playerCount);
+	const deckAt = { x: 44, y: 226 };
+	const centerAt = { x: width / 2, y: height * 0.45 };
+	const anchor = (role: OnlineRole) => {
+		if (role === seat) return { x: width / 2, y: height - 34 - 56 };
+		const i = Math.max(0, roles.indexOf(role));
+		return { x: width / 2 + (i - (roles.length - 1) / 2) * Math.min(110, width / roles.length), y: height * 0.19 };
+	};
+	const land = (role: OnlineRole, delay: number, card?: string) => {
+		(plan.roleArrivals[role] ??= []).push(delay + DURAK_FLIGHT_MS);
+		if (card && role === seat) plan.myArrivals[card] = delay + DURAK_FLIGHT_MS;
+	};
+	const add = (card: string, from: { x: number; y: number }, to: { x: number; y: number }, delay: number, fade = false, spin = 0) => {
+		if (plan.flights.length < 24) plan.flights.push({ card, from, to, delay, fade, spin });
+	};
+	const fresh = !prev || prev.tableId !== state.tableId || (!!prev.winner && !state.winner);
+	if (fresh) {
+		// the opening deal, round by round
+		let n = 0;
+		for (let round = 0; round < 6; round++) {
+			for (const role of roles) {
+				const card = state.hands[role][round];
+				if (!card) continue;
+				const delay = n++ * 70;
+				add("back", deckAt, anchor(role), delay);
+				land(role, delay, card);
+				plan.sounds.push({ sound: "cardDeal", delay });
+			}
+		}
+		return plan;
+	}
+	const prevTable = getTableCards(prev.table);
+	const nowTable = getTableCards(state.table);
+	const tableCleared = prev.table.length > 0 && state.table.length === 0;
+	const tookCards = tableCleared && state.discardCount === prev.discardCount;
+	if (nowTable.length > prevTable.length) plan.sounds.push({ sound: "cardPlay", delay: 0 });
+	if (tableCleared && !tookCards) {
+		prevTable.forEach((card, i) => add(card, centerAt, { x: width + 50, y: centerAt.y - 40 }, i * 60, true, 25 + i * 8));
+		plan.sounds.push({ sound: "cardSweep", delay: 0 });
+	} else if (tookCards) {
+		const to = anchor(prev.defender);
+		prevTable.forEach((card, i) => {
+			add(prev.defender === seat ? card : "back", centerAt, to, i * 60, true, -10 + i * 6);
+			land(prev.defender, i * 60, card);
+		});
+		plan.sounds.push({ sound: "cardTake", delay: 0 });
+	}
+	let n = tableCleared ? prevTable.length : 0;
+	for (const role of roles) {
+		const taken = tookCards && role === prev.defender ? prevTable : [];
+		const drawn = state.hands[role].filter((card) => !prev.hands[role].includes(card) && !taken.includes(card));
+		if (drawn.length > 0 && state.deck.length < prev.deck.length) {
+			for (const card of drawn) {
+				const delay = 250 + n++ * 80;
+				add("back", deckAt, anchor(role), delay);
+				land(role, delay, card);
+				plan.sounds.push({ sound: "cardDeal", delay });
+			}
+		}
+	}
+	return plan;
+}
+
+/** A seat's card count that goes up as the dealt cards land, without re-rendering the table for every card. */
+function DealtCount({ count, landings, planId, style }: { count: number; landings?: number[]; planId: number; style: object }) {
+	const [pending, setPending] = useState(0);
+	useLayoutEffect(() => {
+		const times = landings ?? [];
+		setPending(times.length);
+		const timers = times.map((ms) => setTimeout(() => setPending((current) => Math.max(0, current - 1)), ms));
+		return () => timers.forEach(clearTimeout);
+		// one countdown per plan
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [planId]);
+	return <Text style={style}>{Math.max(0, count - pending)}</Text>;
+}
 
 // Full rank ordering so cardRankValue stays correct for every deck size.
 export const DURAK_RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
@@ -258,7 +358,8 @@ export function localizeDurakMessage(message: string, t: (key: string, vars?: Re
 
 export function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
 	const { currentTheme } = useTheme();
-	const tableHeight = Math.max(440, Math.min(600, useWindowDimensions().height - 220));
+	const windowSize = useWindowDimensions();
+	const tableHeight = Math.max(440, Math.min(600, windowSize.height - 220));
 const { t } = useLanguage();
 	const { state: shopState, commit } = useShopState();
 	const { signedIn: durakSignedIn } = useAccountIdentity();
@@ -588,11 +689,12 @@ const { t } = useLanguage();
 		}
 	};
 
-	const playCard = (card: string, targetIndexOverride?: number, actor: OnlineRole | null = seat) => {
-		if (!state || !actor || state.winner || state.cancelled) return;
-		if (!online || !state.hands[actor].includes(card)) return;
+	/** Puts a card on the table; false when it may not go there now (the card then goes back to the hand). */
+	const playCard = (card: string, targetIndexOverride?: number, actor: OnlineRole | null = seat): boolean => {
+		if (!state || !actor || state.winner || state.cancelled) return false;
+		if (!online || !state.hands[actor].includes(card)) return false;
 		if (actor === state.attacker && (state.phase === "attack" || state.phase === "throw" || state.phase === "defend")) {
-			if (!canThrowDurakCard(state, card, actor) || state.table.length >= Math.min(6, state.hands[state.defender].length + state.table.filter((bout) => bout.defense).length)) return;
+			if (!canThrowDurakCard(state, card, actor) || state.table.length >= Math.min(6, state.hands[state.defender].length + state.table.filter((bout) => bout.defense).length)) return false;
 			const next: DurakState = {
 				...state,
 				hands: { ...state.hands, [actor]: removeCard(state.hands[actor], card) },
@@ -601,17 +703,17 @@ const { t } = useLanguage();
 				message: `${roleLabel(state.defender)} defends.`,
 			};
 			syncState(next);
-			return;
+			return true;
 		}
 
 		if (actor === state.defender && state.phase === "defend") {
 			const canCheat = state.variants.includes("cheat") && !state.bustedCheaters?.includes(actor);
 			const target = resolveDurakCardTarget(state.table, card, state.trump, state.variants, targetIndexOverride, canCheat);
-			if (!target) return;
+			if (!target) return false;
 
 			if (target.action === "transfer") {
 				const nextDefender = getNextDurakRole(state.defender, state.playerCount, state.hands, true);
-				if (state.table.length + 1 > Math.min(6, state.hands[nextDefender].length)) return;
+				if (state.table.length + 1 > Math.min(6, state.hands[nextDefender].length)) return false;
 				const next: DurakState = {
 					...state,
 					hands: { ...state.hands, [actor]: removeCard(state.hands[actor], card) },
@@ -621,7 +723,7 @@ const { t } = useLanguage();
 					message: `${roleLabel(state.defender)} transferred to ${roleLabel(nextDefender)}.`,
 				};
 				syncState(next);
-				return;
+				return true;
 			}
 
 			const nextTable = state.table.map((bout, index) => index === target.index ? { ...bout, defense: card } : bout);
@@ -634,7 +736,9 @@ const { t } = useLanguage();
 				message: defended ? "Defended. Attacker may throw more or pass." : "Defend the next card.",
 			};
 			syncState(next);
+			return true;
 		}
+		return false;
 	};
 
 	const passRound = (actor: OnlineRole | null = seat) => {
@@ -816,61 +920,36 @@ const { t } = useLanguage();
 		})).then(() => onRatingChange());
 	}, [onRatingChange, playerName, playerNames, reportDurakResult, room.isConnected, room.role, room.roomCode, state]);
 
-	// Card flights: the deal from the deck, the sweep to the discard pile and the pick-up by the defender. They are derived
-	// from how the state changed, so they play the same for the bot, the host and the guest.
+	// Card flights and the sounds of the table (see planDurakFlights). The plan is made while rendering so the hand and
+	// the card counts can hold back the cards still in the air; the effect launches it.
 	const flightLayer = useRef<DurakFlightLayerHandle>(null);
 	const [tableWidth, setTableWidth] = useState(0);
 	const flightId = useRef(0);
+	const planId = useRef(0);
 	const prevFlightState = useRef<DurakState | null>(null);
-	useEffect(() => {
-		if (tableWidth === 0) return;
-		const prev = prevFlightState.current;
-		prevFlightState.current = state;
-		if (!state || state.cancelled) return;
-		const roles = getActiveDurakRoles(state.playerCount);
-		const deckAt = { x: 44, y: 226 };
-		const centerAt = { x: tableWidth / 2, y: tableHeight * 0.45 };
-		const anchor = (role: OnlineRole) => {
-			if (role === seat) return { x: tableWidth / 2, y: tableHeight - 34 - 56 };
-			const i = Math.max(0, roles.indexOf(role));
-			return { x: tableWidth / 2 + (i - (roles.length - 1) / 2) * Math.min(110, tableWidth / roles.length), y: tableHeight * 0.19 };
-		};
-		const next: DurakFlight[] = [];
-		const add = (card: string, from: { x: number; y: number }, to: { x: number; y: number }, delay: number, fade = false, spin = 0) => {
-			if (next.length < 24) next.push({ id: ++flightId.current, card, from, to, delay, fade, spin });
-		};
-		const fresh = !prev || prev.tableId !== state.tableId || (!!prev.winner && !state.winner);
-		if (fresh) {
-			// the opening deal, round by round
-			let n = 0;
-			for (let round = 0; round < 6; round++) {
-				for (const role of roles) {
-					if (state.hands[role].length > round) add("back", deckAt, anchor(role), n++ * 70);
-				}
-			}
-		} else if (prev) {
-			const prevTable = getTableCards(prev.table);
-			const tableCleared = prev.table.length > 0 && state.table.length === 0;
-			const tookCards = tableCleared && state.discardCount === prev.discardCount;
-			if (tableCleared && !tookCards) {
-				prevTable.forEach((card, i) => add(card, centerAt, { x: tableWidth + 50, y: centerAt.y - 40 }, i * 60, true, 25 + i * 8));
-			} else if (tookCards) {
-				const to = anchor(prev.defender);
-				prevTable.forEach((card, i) => add(role_isMe(prev.defender) ? card : "back", centerAt, to, i * 60, true, -10 + i * 6));
-			}
-			let n = tableCleared ? prevTable.length : 0;
-			for (const role of roles) {
-				const taken = tookCards && role === prev.defender ? prevTable.length : 0;
-				const drawn = state.hands[role].length - prev.hands[role].length - taken;
-				if (drawn > 0 && state.deck.length < prev.deck.length) {
-					for (let i = 0; i < drawn; i++) add("back", deckAt, anchor(role), 250 + n++ * 80);
-				}
-			}
-		}
-		if (next.length > 0) flightLayer.current?.launch(next);
-		function role_isMe(role: OnlineRole) { return role === seat; }
+	const flightPlan = useMemo(() => {
+		if (prevFlightState.current === state) return EMPTY_FLIGHT_PLAN;
+		// before the table is measured, the window gives its width closely enough
+		const width = tableWidth || Math.min(560, windowSize.width - 48);
+		return planDurakFlights(prevFlightState.current, state, seat, { width, height: tableHeight }, ++planId.current);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [state, tableWidth]);
+	}, [state]);
+	const sfx = useGameSfx();
+	const soundTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+	useEffect(() => () => soundTimers.current.forEach(clearTimeout), []);
+	useEffect(() => {
+		prevFlightState.current = state;
+		if (flightPlan.flights.length > 0) flightLayer.current?.launch(flightPlan.flights.map((flight) => ({ ...flight, id: ++flightId.current })));
+		soundTimers.current = soundTimers.current.slice(-24);
+		for (const { sound, delay } of flightPlan.sounds) {
+			if (delay === 0) sfx(sound);
+			else soundTimers.current.push(setTimeout(() => sfx(sound), delay));
+		}
+	}, [flightPlan, sfx, state]);
+	useOutcomeSound(
+		!state?.winner || state.cancelled || !seat ? null : state.draw ? "draw" : state.winner === seat ? "win" : (state.hands[seat]?.length ?? 0) > 0 ? "loss" : null,
+		state?.tableId ?? "",
+	);
 
 	const pot = bet * Number(playerCount);
 	const prize = getDurakNetPrize(bet, Number(playerCount));
@@ -1069,7 +1148,7 @@ const { t } = useLanguage();
 													</View>
 												)}
 												<View style={styles.durakAvatarBadge}>
-													<Text style={styles.durakAvatarBadgeText}>{handSize}</Text>
+													<DealtCount count={handSize} landings={flightPlan.roleArrivals[role]} planId={flightPlan.id} style={styles.durakAvatarBadgeText} />
 												</View>
 												{isBusted && (
 													<View style={{ position: 'absolute', top: -8, right: -8, zIndex: 10, backgroundColor: '#111827', borderRadius: 12, padding: 2 }}>
@@ -1119,8 +1198,9 @@ const { t } = useLanguage();
 								const baseY = Math.abs(offset) * Math.abs(offset) * 1.5;
 								return (
 									<DraggableHandCard
-										key={card}
+										key={`${state.tableId}:${card}`}
 										card={card}
+										arriveDelay={flightPlan.myArrivals[card]}
 										index={index}
 										total={total}
 										baseY={baseY}
@@ -1246,11 +1326,14 @@ const { t } = useLanguage();
  *  - Release in place → snap back (no action)
  */
 export function DraggableHandCard({
-	card, index, total, baseY, offset, trump, cosmetics, onPlay, onReorder, cardWidth, onDragStart, onDragMove, onDragEnd
+	card, index, total, baseY, offset, trump, cosmetics, onPlay, onReorder, cardWidth, onDragStart, onDragMove, onDragEnd, arriveDelay
 }: {
 	card: string; index: number; total: number; baseY: number; offset: number;
 	trump: string; cosmetics: ExtraGameCosmetics;
-	onPlay: (targetIndexOverride?: number) => void; onReorder: (from: number, to: number) => void; cardWidth: number;
+	/** Returns whether the card went to the table; a refused card springs back into the hand. */
+	onPlay: (targetIndexOverride?: number) => boolean; onReorder: (from: number, to: number) => void; cardWidth: number;
+	/** A dealt card shows up when its flight from the deck lands, this many ms after it was dealt. */
+	arriveDelay?: number;
 	onDragStart?: () => void;
 	onDragMove?: (x: number, y: number) => void;
 	onDragEnd?: (x: number, y: number, movedUp: boolean) => number | null; // Returns target index if valid drop
@@ -1261,6 +1344,22 @@ export function DraggableHandCard({
 	const [dragging, setDragging] = useState(false);
 	const [willPlay, setWillPlay] = useState(false);
 	const [isHovered, setIsHovered] = useState(false);
+
+	const arrival = useRef(new Animated.Value(arriveDelay === undefined ? 1 : 0)).current;
+	useEffect(() => {
+		if (arriveDelay === undefined) return;
+		const animation = Animated.sequence([
+			Animated.delay(Math.max(0, arriveDelay - 60)),
+			Animated.spring(arrival, { toValue: 1, friction: 6, tension: 140, useNativeDriver: true }),
+		]);
+		animation.start();
+		return () => {
+			animation.stop();
+			arrival.setValue(1);
+		};
+		// only when the card is dealt
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	const animOffset = useRef(new Animated.Value(offset)).current;
 	const animBaseY = useRef(new Animated.Value(baseY)).current;
@@ -1311,17 +1410,13 @@ export function DraggableHandCard({
 			const movedHorizontal = Math.abs(gs.dx) > 30 && Math.abs(gs.dy) < 60;
 			const targetIndex = callbacksRef.current.onDragEnd ? callbacksRef.current.onDragEnd(gs.moveX, gs.moveY, movedUp) : null;
 
-			if (movedUp || targetIndex !== null) {
-				// Fly card up and play it
-				Animated.parallel([
-					Animated.timing(dragY, { toValue: -300, duration: 200, useNativeDriver: true }),
-					Animated.timing(dragX, { toValue: gs.dx * 0.5, duration: 200, useNativeDriver: true }),
-				]).start(() => {
-					dragX.setValue(0);
-					dragY.setValue(0);
-					callbacksRef.current.onPlay(targetIndex !== null ? targetIndex : undefined);
-				});
-			} else if (movedHorizontal) {
+			// A played card leaves the hand at once and lands on the table with its own animation. It used to fly off
+			// first and be put back with setValue afterwards, which did not always reach the native view: a refused card
+			// then hung in the air above the hand.
+			if ((movedUp || targetIndex !== null) && callbacksRef.current.onPlay(targetIndex !== null ? targetIndex : undefined)) {
+				return;
+			}
+			if (movedHorizontal) {
 				// Reorder
 				const step = Math.max(cardWidth - 25, 15);
 				const targetIndex = Math.max(0, Math.min(total - 1, Math.round(index + gs.dx / uiScaleRef.current / step)));
@@ -1359,10 +1454,12 @@ export function DraggableHandCard({
 			onMouseLeave={() => setIsHovered(false)}
 			style={{
 				...(Platform.OS === 'web' ? ({ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' } as any) : null),
+				opacity: arrival,
 				transform: [
 					{ translateX: dragX },
 					{ translateY: finalTranslateY },
 					{ rotate },
+					{ scale: arrival.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) },
 				],
 				zIndex: dragging ? 999 : index,
 				elevation: dragging ? 999 : index,

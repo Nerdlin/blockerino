@@ -2,8 +2,8 @@ import { createAudioPlayer, AudioPlayer, setAudioModeAsync } from 'expo-audio';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { atom, useAtom, useAtomValue } from 'jotai';
 import { shopStateAtom } from './Shop';
-import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { AppState, Platform } from 'react-native';
 
 // Ключи для сохранения настроек
 const MUSIC_VOLUME_KEY = 'MUSIC_VOLUME';
@@ -18,6 +18,28 @@ const SOFT_LOOP_FADE_STEPS = 6;
 const SOFT_LOOP_FADE_STEP_MS = 90;
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+/** Players kept for sound effects in all, and for any one sound (so quick repeats can overlap). */
+const SFX_POOL_LIMIT = 16;
+const SFX_PLAYERS_PER_SOUND = 3;
+/** A player started this recently counts as busy even before it reports playing. */
+const SFX_START_GRACE_MS = 120;
+/** Monitor ticks (250 ms each) the music may stay silent while it should play before it is started again. */
+const MUSIC_STALL_CHECKS = 4;
+
+interface PooledSfxPlayer {
+  key: string;
+  player: AudioPlayer;
+  startedAt: number;
+}
+
+function releasePlayer(player: AudioPlayer) {
+  try {
+    player.pause();
+    player.remove();
+    // remove() only forgets the player; release() frees the native one
+    (player as AudioPlayer & { release?: () => void }).release?.();
+  } catch {}
+}
 
 // Атомы для хранения состояния звука
 export const musicVolumeAtom = atom(0.5);
@@ -29,6 +51,9 @@ export function getAudioModeOptions() {
   return {
     playsInSilentMode: true,
     shouldPlayInBackground: false,
+    // No audio focus on Android. With focus every notification or other app paused or ducked the game's players and
+    // they did not always come back; game sounds are fine mixed with whatever else plays.
+    interruptionMode: 'mixWithOthers' as const,
   };
 }
 
@@ -60,7 +85,17 @@ export type SoundType =
   | 'chessLose'
   | 'chessDraw'
   | 'chessLowTime'
-  | 'chessSelect';
+  | 'chessSelect'
+  | 'cardDeal'
+  | 'cardPlay'
+  | 'cardSweep'
+  | 'cardTake'
+  | 'shotFire'
+  | 'shotSplash'
+  | 'shotHit'
+  | 'shipSunk'
+  | 'ticX'
+  | 'ticO';
 
 const MUSIC_TRACK_RESOURCES = {
   backgroundMusic: require('../assets/sounds/background-music.mp3'),
@@ -144,6 +179,16 @@ const SFX_RESOURCES = {
   chessDraw: require('../assets/sounds/chess/chess-draw.mp3'),
   chessLowTime: require('../assets/sounds/chess/chess-lowtime.mp3'),
   chessSelect: require('../assets/sounds/chess/chess-select.mp3'),
+  cardDeal: require('../assets/sounds/minigames/card-deal.mp3'),
+  cardPlay: require('../assets/sounds/minigames/card-play.mp3'),
+  cardSweep: require('../assets/sounds/minigames/card-sweep.mp3'),
+  cardTake: require('../assets/sounds/minigames/card-take.mp3'),
+  shotFire: require('../assets/sounds/minigames/shot-fire.mp3'),
+  shotSplash: require('../assets/sounds/minigames/shot-splash.mp3'),
+  shotHit: require('../assets/sounds/minigames/shot-hit.mp3'),
+  shipSunk: require('../assets/sounds/minigames/ship-sunk.mp3'),
+  ticX: require('../assets/sounds/minigames/tic-x.mp3'),
+  ticO: require('../assets/sounds/minigames/tic-o.mp3'),
   sfxWoodPlace: require('../assets/sounds/generated/sfx-wood-place.mp3'),
   sfxWoodClear: require('../assets/sounds/generated/sfx-wood-clear.mp3'),
   sfxWoodClick: require('../assets/sounds/generated/sfx-wood-click.mp3'),
@@ -655,8 +700,10 @@ const getSoundResource = (type: SoundAssetKey) => {
 
 // Класс для управления звуковыми эффектами
 class SoundManager {
-  private sounds: Map<string, AudioPlayer> = new Map();
-  private activeSfxPlayers: Set<AudioPlayer> = new Set();
+  // Sound effects reuse their players. A new player for every sound, never released (remove() only forgets it),
+  // piled up native players until the music stuttered and dropped out.
+  private sfxPool: PooledSfxPlayer[] = [];
+  private musicStalledChecks = 0;
   private musicTracks: Map<MusicTrackKey, AudioPlayer> = new Map();
   private currentMusicKey: MusicTrackKey = 'backgroundMusic';
   private musicPlaying = false;
@@ -720,26 +767,6 @@ class SoundManager {
     }
   }
 
-  // Safe load of sound file with error handling
-  private async loadSoundSafely(key: SfxAssetKey): Promise<AudioPlayer | null> {
-    try {
-      const soundResource = getSoundResource(key);
-      if (!soundResource) {
-        console.log(`Resource not found for sound "${key}"`);
-        return null;
-      }
-
-      const sound = createAudioPlayer(soundResource);
-      if (sound) {
-        this.sounds.set(key, sound);
-        return sound;
-      }
-    } catch (error) {
-      console.log(`Error loading sound "${key}": ${error}`);
-    }
-    return null;
-  }
-
   private async loadMusicSafely(key: MusicTrackKey): Promise<AudioPlayer | null> {
     try {
       if (key === 'musicCustom') return null;
@@ -762,25 +789,8 @@ class SoundManager {
     return null;
   }
 
-  private async getOrLoadSound(key: SfxAssetKey): Promise<AudioPlayer | null> {
-    return this.sounds.get(key) ?? await this.loadSoundSafely(key);
-  }
-
   private async getOrLoadMusic(key: MusicTrackKey): Promise<AudioPlayer | null> {
     return this.musicTracks.get(key) ?? await this.loadMusicSafely(key);
-  }
-
-  private cleanupSfxPlayer(player: AudioPlayer, delayMs = 1200) {
-    this.activeSfxPlayers.add(player);
-    const cleanupDelayMs = Platform.OS === 'android' ? Math.max(delayMs, 5000) : delayMs;
-    setTimeout(() => {
-      try {
-        player.pause();
-        void player.seekTo(0);
-        player.remove();
-      } catch {}
-      this.activeSfxPlayers.delete(player);
-    }, cleanupDelayMs);
   }
 
   private stopSoftLoopMonitor() {
@@ -800,6 +810,7 @@ class SoundManager {
 
   private async maybeSoftLoopCurrentMusic() {
     if (!this.musicPlaying || this.musicLooping) {
+      this.musicStalledChecks = 0;
       return;
     }
 
@@ -807,6 +818,25 @@ class SoundManager {
     if (!music) {
       return;
     }
+
+    // The track should be playing but is not (a seek that never resumed, the system stopping the player): after
+    // about a second of silence start it again, from the top when it had run out.
+    if (!music.playing && !music.isBuffering) {
+      this.musicStalledChecks += 1;
+      if (this.musicStalledChecks >= MUSIC_STALL_CHECKS) {
+        this.musicStalledChecks = 0;
+        const ended = (Number(music.duration) || 0) - (Number(music.currentTime) || 0) < SOFT_LOOP_WINDOW_SECONDS;
+        try {
+          if (ended) await music.seekTo(0);
+          music.volume = this.currentMusicVolume;
+          music.play();
+        } catch (error) {
+          console.log('Music restart failed:', error);
+        }
+      }
+      return;
+    }
+    this.musicStalledChecks = 0;
 
     const duration = Number(music.duration) || 0;
     const currentTime = Number(music.currentTime) || 0;
@@ -872,16 +902,41 @@ class SoundManager {
     return userActivation?.isActive === true;
   }
 
-  private playOneShot(resource: unknown, volume: number, cleanupDelayMs?: number) {
+  private playOneShot(key: string, resource: unknown, volume: number) {
     if (!this.canPlayOneShotNow()) {
       return;
     }
 
-    const sound = createAudioPlayer(resource as any, { keepAudioSessionActive: true });
-    sound.volume = volume;
-    sound.seekTo(0);
-    sound.play();
-    this.cleanupSfxPlayer(sound, cleanupDelayMs);
+    const now = Date.now();
+    const sameKey = this.sfxPool.filter((entry) => entry.key === key);
+    // a free player of this sound, else a new one while there are few, else the one started longest ago
+    let entry = sameKey.find((candidate) => now - candidate.startedAt > SFX_START_GRACE_MS && !candidate.player.playing);
+    if (!entry && sameKey.length < SFX_PLAYERS_PER_SOUND) {
+      entry = { key, player: createAudioPlayer(resource as any, { keepAudioSessionActive: true }), startedAt: 0 };
+      this.sfxPool.push(entry);
+      this.trimSfxPool(entry);
+    }
+    entry ??= sameKey.reduce((oldest, candidate) => (candidate.startedAt < oldest.startedAt ? candidate : oldest));
+
+    entry.startedAt = now;
+    // most recently used last, so trimming drops the least recently used first
+    const chosen = entry;
+    this.sfxPool = [...this.sfxPool.filter((candidate) => candidate !== chosen), chosen];
+    chosen.player.volume = volume;
+    void chosen.player.seekTo(0);
+    chosen.player.play();
+  }
+
+  /** Keeps at most SFX_POOL_LIMIT players, releasing the least recently used ones (idle ones first). */
+  private trimSfxPool(keep: PooledSfxPlayer) {
+    while (this.sfxPool.length > SFX_POOL_LIMIT) {
+      const now = Date.now();
+      const victim = this.sfxPool.find((candidate) => candidate !== keep && now - candidate.startedAt > SFX_START_GRACE_MS && !candidate.player.playing)
+        ?? this.sfxPool.find((candidate) => candidate !== keep);
+      if (!victim) return;
+      this.sfxPool = this.sfxPool.filter((candidate) => candidate !== victim);
+      releasePlayer(victim.player);
+    }
   }
 
   private pauseMusicTracksExcept(activeKey: MusicTrackKey) {
@@ -958,7 +1013,7 @@ class SoundManager {
         const source = getCustomAudioSourceInfo(customUrl || '');
         if (source.canPlayInApp) {
           try {
-            this.playOneShot(source.url, volume ?? 1, 2200);
+            this.playOneShot(source.url, source.url, volume ?? 1);
             return;
           } catch (error) {
             console.log("Custom SFX could not play, falling back to default:", error);
@@ -968,7 +1023,7 @@ class SoundManager {
 
       const soundResource = getSoundResource(type);
       if (soundResource) {
-        this.playOneShot(soundResource, volume ?? 1);
+        this.playOneShot(type, soundResource, volume ?? 1);
       } else {
         console.log('Sound not found:', type);
       }
@@ -1094,19 +1149,9 @@ class SoundManager {
   }
 
   stopSfx() {
-    this.activeSfxPlayers.forEach((player) => {
+    this.sfxPool.forEach(({ player }) => {
       try {
         player.pause();
-        void player.seekTo(0);
-        player.remove();
-      } catch {}
-    });
-    this.activeSfxPlayers.clear();
-
-    this.sounds.forEach((sound) => {
-      try {
-        sound.pause();
-        void sound.seekTo(0);
       } catch {}
     });
   }
@@ -1213,6 +1258,22 @@ export function useSoundSettings(options: { manageMusicPlayback?: boolean } = {}
       soundManager.stopMusic();
     }
   }, [manageMusicPlayback, musicEnabled, musicPackId, musicVolume]);
+
+  // The music is paused while the app is in the background (see app/index.tsx); start it again on return.
+  const resumeRef = useRef({ musicEnabled, musicVolume, musicPackId });
+  resumeRef.current = { musicEnabled, musicVolume, musicPackId };
+  useEffect(() => {
+    if (!manageMusicPlayback) {
+      return;
+    }
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      const current = resumeRef.current;
+      if (nextAppState === 'active' && current.musicEnabled) {
+        void soundManager.playMusic(current.musicVolume * getMusicVolumeMultiplier(current.musicPackId), current.musicPackId);
+      }
+    });
+    return () => subscription.remove();
+  }, [manageMusicPlayback]);
 
   return {
     musicVolume,
