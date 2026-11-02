@@ -121,6 +121,18 @@ const sounds = {
 		glide(t, 0, 0.13, { from: 520, to: 780, speed: 30, decay: 26, gain: 0.75, attack: 0.004 });
 		return t;
 	},
+	"checkers-capture": () => {
+		// two hard plastic pieces knocking together, then the taken one swept off the board
+		const t = new Track(0.32);
+		const clack = (at, pitch, gain) => {
+			filteredNoise(t, at, 0.03, { highPass: true, cutoff: () => 0.12, envelope: (x) => Math.exp(-x * 220), gain });
+			[1, 1.47, 2.09].forEach((ratio, i) => glide(t, at, 0.08, { from: pitch * ratio, to: pitch * ratio * 0.97, speed: 40, decay: 55 + i * 20, gain: gain * (0.5 - i * 0.12) }));
+		};
+		clack(0, 1650, 1);
+		clack(0.07, 1900, 0.75);
+		filteredNoise(t, 0.12, 0.18, { highPass: true, cutoff: (x, k) => 0.05 + k * 0.2, envelope: (x, k) => Math.sin(Math.PI * k) * 0.5, gain: 0.6 });
+		return t;
+	},
 };
 
 function wavBytes(data) {

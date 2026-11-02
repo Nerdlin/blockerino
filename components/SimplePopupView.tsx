@@ -20,12 +20,15 @@ export default function SimplePopupView({
 	style,
 	scrollRef,
 	footer,
+	contentStyle,
 }: {
 	children: React.ReactNode,
 	style?: any[],
 	scrollRef?: React.RefObject<ScrollView | null>,
 	/** Pinned under the scrolling content, so the main buttons stay in reach on long popups. */
 	footer?: React.ReactNode,
+	/** Extra style for the scrolling content (padding of a full-screen popup). */
+	contentStyle?: object,
 }) {
 	const { width, height } = useWindowDimensions();
 	const scale = getPopupScale(width, height);
@@ -53,7 +56,7 @@ export default function SimplePopupView({
 			<ScrollView
 				ref={scrollRef}
 				style={footer ? styles.scrollViewWithFooter : styles.scrollView}
-				contentContainerStyle={[styles.scrollContent, alignTop && { justifyContent: "flex-start" }]}
+				contentContainerStyle={[styles.scrollContent, alignTop && { justifyContent: "flex-start" }, contentStyle]}
 				showsVerticalScrollIndicator={true}
 				keyboardShouldPersistTaps="handled"
 				nestedScrollEnabled

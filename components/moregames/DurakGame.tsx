@@ -359,7 +359,8 @@ export function localizeDurakMessage(message: string, t: (key: string, vars?: Re
 export function DurakOnlineGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
 	const { currentTheme } = useTheme();
 	const windowSize = useWindowDimensions();
-	const tableHeight = Math.max(440, Math.min(600, windowSize.height - 220));
+	// on a phone the game is full screen: the table takes what is left under the header and the rules
+	const tableHeight = windowSize.width < 600 ? Math.max(440, Math.min(900, windowSize.height - 150)) : Math.max(440, Math.min(600, windowSize.height - 220));
 const { t } = useLanguage();
 	const { state: shopState, commit } = useShopState();
 	const { signedIn: durakSignedIn } = useAccountIdentity();

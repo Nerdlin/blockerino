@@ -10,7 +10,6 @@ import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
 import { setProfileAuthIntent } from "@/constants/ProfileIntent";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { useTheme } from "@/constants/Theme";
-import { getLeaderboardTier } from "@/constants/LeaderboardTiers";
 import { supabase, getTopEloRatings, getPlayerElo, EloRating, cleanupMatchmakingRooms } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { cssColors } from "@/constants/Color";
@@ -21,6 +20,7 @@ import { DEFAULT_ELO, getJoinRoomUpdate, isPlayerNameReady, isVisiblePublicRoom,
 import { useLanguage } from "@/constants/Localization";
 import UiIcon from "@/components/UiIcon";
 import VersusFriendsStrip from "./VersusFriendsStrip";
+import { EloLeaderboardView } from "./EloLeaderboardView";
 import type { UiGlyphName } from "@/constants/UiGlyphs";
 
 interface MultiplayerMenuProps {
@@ -756,7 +756,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                     )}
                                     <View style={styles.playerCardMeta}>
                                         <View style={[styles.tierPill, { backgroundColor: getEloBadge(playerElo).color }]}>
-                                            <Text style={styles.tierPillText}>{getEloBadge(playerElo).tier.toUpperCase()}</Text>
+                                            <Text style={styles.tierPillText}>{t(`mp.tierName.${getEloBadge(playerElo).tier}`).toUpperCase()}</Text>
                                         </View>
                                         <Text style={[styles.playerCardElo, { color: currentTheme.textSecondary }]}>{playerElo}</Text>
                                     </View>
@@ -923,7 +923,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             <UiIcon name={getEloDetails(playerElo).currentTier.icon} size={45} />
                             <View>
                                 <Text style={[styles.eloDetailTier, { color: getEloBadge(playerElo).color }]}>
-                                    {getEloBadge(playerElo).tier}
+                                    {t(`mp.tierName.${getEloBadge(playerElo).tier}`)}
                                 </Text>
                                 <Text style={[styles.eloDetailValue, { color: currentTheme.textPrimary }]}>
                                     {t("mp.eloValue", { elo: playerElo })}
@@ -957,7 +957,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                     <UiIcon name={tierInfo.icon} size={27} />
                                     <View style={{ flex: 1, marginLeft: 10 }}>
                                         <Text style={[styles.eloTierName, { color: isCurrent ? tierInfo.color : currentTheme.textPrimary }]}>
-                                            {tierInfo.tier}{isCurrent ? t("mp.youAreHere") : ''}
+                                            {t(`mp.tierName.${tierInfo.tier}`)}{isCurrent ? t("mp.youAreHere") : ''}
                                         </Text>
                                         <Text style={[styles.eloTierRange, { color: currentTheme.textSecondary }]}>
                                             {t("mp.tierRange", { min: tierInfo.min, max: tierInfo.max === 2000 ? t("mp.maxRange") : tierInfo.max })}
@@ -991,75 +991,11 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             <UiIcon name="refresh" size={18} />
                         </Pressable>
                     </View>
-                    <Text style={[styles.eloLeaderboardSub, { color: currentTheme.textSecondary, marginBottom: 8 }]}>
-                        {t("mp.top100")}
-                    </Text>
-
-                    <View style={styles.eloLeaderboardHeader}>
-                        <Text style={[styles.eloLBHText, { color: currentTheme.textSecondary, flex: 0.4 }]}>#</Text>
-                        <Text style={[styles.eloLBHText, { color: currentTheme.textSecondary, flex: 2 }]}>{t("mp.player")}</Text>
-                        <Text style={[styles.eloLBHText, { color: currentTheme.textSecondary, flex: 0.8, textAlign: 'right' }]}>{t("mp.tier")}</Text>
-                        <Text style={[styles.eloLBHText, { color: currentTheme.textSecondary, flex: 0.8, textAlign: 'right' }]}>{t("mp.elo")}</Text>
-                    </View>
-
                     {loadingLeaderboard ? (
                         <PixelLoader size="large" color={currentTheme.accent} style={{ marginVertical: 40 }} />
                     ) : (
-                        <ScrollView style={[styles.eloLeaderboardList, { maxHeight: Math.max(300, windowHeight - 270) }]} nestedScrollEnabled={true}>
-                            {topEloList.length === 0 ? (
-                                <Text style={[styles.noRoomsText, { color: currentTheme.textSecondary }]}>
-                                    {t("mp.noRatings")}
-                                </Text>
-                            ) : (
-                                topEloList.map((entry, index) => {
-                                    const isMe = entry.player_name === playerName;
-                                    const badge = getEloBadge(entry.elo);
-                                    const tier = getLeaderboardTier(index + 1);
-                                    return (
-                                        <Pressable onPress={() => openProfile(entry.player_name)} key={entry.id || index} style={[
-                                            styles.eloLBRow,
-                                            tier && {
-                                                backgroundColor: tier.background,
-                                                borderColor: tier.color,
-                                                borderWidth: tier.borderWidth,
-                                                ...(tier.id === "gold" && { shadowColor: tier.color, shadowOpacity: 0.6, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } }),
-                                            },
-                                            isMe && { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: badge.color }
-                                        ]}>
-                                            <Text style={[styles.eloLBRank, { color: tier?.color ?? currentTheme.textPrimary, flex: 0.4 }]}>
-                                                {tier?.icon ? <UiIcon name={tier.icon} size={18} /> : index + 1}
-                                            </Text>
-                                             <View style={{ flex: 2, flexDirection: "row", alignItems: "center" }}>
-                                                 {entry.avatar_url && entry.avatar_url.startsWith("http") ? (
-                                                     <Image source={{ uri: entry.avatar_url }} style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6, backgroundColor: "transparent" }} />
-                                                 ) : entry.avatar_url ? (
-                                                     <Text style={{ fontSize: 18, marginRight: 6 }}>{entry.avatar_url}</Text>
-                                                 ) : (
-                                                     <View style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}>
-                                                         <Text style={{ fontSize: 12, color: '#fff' }}>{entry.player_name.charAt(0).toUpperCase()}</Text>
-                                                     </View>
-                                                 )}
-                                                 <Text style={[styles.eloLBName, { 
-                                                     color: currentTheme.textPrimary, 
-                                                     fontFamily: nameFontFamily(entry.player_name, isMe ? 'SilkscreenBold' : 'Silkscreen'),
-                                                     flexShrink: 1
-                                                 }]} numberOfLines={1}>
-                                                    {entry.player_name}{isMe ? t("mp.you") : ''}
-                                                 </Text>
-                                             </View>
-                                            <View style={[styles.eloLBBadge, { backgroundColor: badge.color, flex: 0.8, alignSelf: 'center' }]}>
-                                                <View style={styles.eloLBBadgeContent}>
-                                                    <UiIcon name={badge.icon} size={9} />
-                                                    <Text style={styles.eloLBBadgeText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{badge.tier}</Text>
-                                                </View>
-                                            </View>
-                                            <Text style={[styles.eloLBValue, { color: currentTheme.textPrimary, flex: 0.8, textAlign: 'right' }]}>
-                                                {entry.elo}
-                                            </Text>
-                                        </Pressable>
-                                    );
-                                })
-                            )}
+                        <ScrollView style={[styles.eloLeaderboardList, { maxHeight: Math.max(300, windowHeight - 220) }]} nestedScrollEnabled={true}>
+                            <EloLeaderboardView entries={topEloList} playerName={playerName} playerElo={playerElo} tiers={ELO_TIERS} onOpen={openProfile} />
                         </ScrollView>
                     )}
                 </Animated.View>
@@ -1133,8 +1069,9 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     topBackButton: {
-        width: 72,
-        minWidth: 72,
+        // wide enough for "Назад" on one line
+        width: 88,
+        minWidth: 88,
     },
     iconButton: {
         width: 44,
@@ -1495,12 +1432,6 @@ const styles = StyleSheet.create({
         color: '#FFD700',
         textAlign: 'center',
     },
-    eloLeaderboardSub: {
-        fontSize: 13,
-        fontFamily: 'Silkscreen',
-        flex: 1,
-        marginBottom: 0,
-    },
     eloLeaderboardTopRow: {
         width: '92%',
         flexDirection: 'row',
@@ -1520,65 +1451,9 @@ const styles = StyleSheet.create({
     refreshEloButtonText: {
         fontSize: 10,
     },
-    eloLeaderboardHeader: {
-        flexDirection: 'row',
-        width: '92%',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderBottomWidth: 1,
-        borderBottomColor: '#555',
-    },
-    eloLBHText: {
-        fontSize: 11,
-        fontFamily: 'SilkscreenBold',
-    },
     eloLeaderboardList: {
         width: '95%',
         maxHeight: 300,
         marginBottom: 10,
     },
-    eloLBRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 4,
-    },
-    eloLBRank: {
-        fontSize: 13,
-        fontFamily: 'Silkscreen',
-    },
-    eloLBName: {
-        fontSize: 12,
-        fontFamily: 'Silkscreen',
-    },
-    eloLBBadge: {
-        paddingHorizontal: 5,
-        paddingVertical: 2,
-        borderRadius: 3,
-        alignItems: 'center',
-    },
-    eloLBBadgeContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 3,
-    },
-    eloLBBadgeIcon: {
-        color: '#000',
-        fontSize: 10,
-        fontFamily: Platform.select({ web: "system-ui, Apple Color Emoji, Segoe UI Emoji, sans-serif" }),
-        lineHeight: 12,
-    },
-    eloLBBadgeText: {
-        color: '#000',
-        fontSize: 9,
-        fontFamily: 'SilkscreenBold',
-    },
-    eloLBValue: {
-        fontSize: 13,
-        fontFamily: 'SilkscreenBold',
-    }
 });

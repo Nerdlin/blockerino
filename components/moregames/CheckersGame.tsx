@@ -112,7 +112,7 @@ export function CheckersGame({ playerName, onRatingChange }: { playerName: strin
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
 	const { width } = useWindowDimensions();
-	const boardSize = Math.min(360, Math.max(240, width - 64));
+	const boardSize = Math.min(440, Math.max(240, width - 28));
 	const BOARD_BORDER = 3;
 	// whole pixels per square, so eight of them always fit inside the frame
 	const cell = Math.floor((boardSize - BOARD_BORDER * 2) / 8);
@@ -171,7 +171,7 @@ export function CheckersGame({ playerName, onRatingChange }: { playerName: strin
 		const current = animationRef.current;
 		if (!current) return;
 		const captured = leg < current.move.captures.length;
-		sfx(captured ? "chessCapture" : "chessMove");
+		sfx(captured ? "checkersCapture" : "chessMove");
 		if (captured) buzz("light");
 	}, [sfx]);
 	const onAnimationDone = useCallback(() => {

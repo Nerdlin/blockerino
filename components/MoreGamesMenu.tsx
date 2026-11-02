@@ -6,7 +6,8 @@ import { useLanguage } from "@/constants/Localization";
 import { useAppState, MenuStateType } from "@/hooks/useAppState";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { setProfileAuthIntent } from "@/constants/ProfileIntent";
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback, useContext } from "react";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { useShopState } from "@/constants/Shop";
 import { MoreGameRating, getMoreGameLeaderboard, MoreGameRatingGameId, getPlayerMoreGameRating } from "@/constants/Supabase";
 import { track } from "@/constants/Analytics";
@@ -173,6 +174,11 @@ export default function MoreGamesMenu() {
 	useEscapeKey(handleBack);
 
 	const activeCard = MORE_GAME_CARDS.find((card) => card.id === activeGame);
+	// On a phone a game takes the whole screen, not a window: the boards and the Durak table get the room.
+	const insets = useContext(SafeAreaInsetsContext) ?? { top: 0, bottom: 0, left: 0, right: 0 };
+	const fullScreen = isMobile && activeGame !== null && activeGame !== "shop";
+	const [helpOpen, setHelpOpen] = useState(false);
+	useEffect(() => setHelpOpen(false), [activeGame]);
 
 	return (
 		<SimplePopupView
@@ -180,7 +186,9 @@ export default function MoreGamesMenu() {
 			style={[
 				{ justifyContent: "flex-start", backgroundColor: currentTheme.menuBackground, height: "80%" },
 				isMobile && { width: "94%", height: "92%", paddingHorizontal: 8 },
+				fullScreen && { width: "100%", height: "100%", maxWidth: "100%", maxHeight: "100%", borderRadius: 0, borderWidth: 0, paddingHorizontal: 4, paddingTop: insets.top, paddingBottom: insets.bottom },
 			]}
+			contentStyle={fullScreen ? { paddingTop: 10, paddingHorizontal: 6 } : undefined}
 		>
 			<View style={styles.moreHeaderRow}>
 				<StylizedButton text={t("common.back")} onClick={() => { if (!runClaimedBack(backStack)) handleBack(); }} backgroundColor={cssColors.spaceGray} style={styles.topBackButton} textStyle={styles.smallButtonText} />
@@ -200,7 +208,12 @@ export default function MoreGamesMenu() {
 					</Pressable>
 				</View>
 			</View>
-			<Text style={[styles.subHeader, { color: currentTheme.textSecondary, marginBottom: 12 }]}>
+			{/* a game's rules take two lines; a tap shows all of them */}
+			<Text
+				onPress={activeCard ? () => setHelpOpen((open) => !open) : undefined}
+				numberOfLines={activeCard && !helpOpen ? 2 : undefined}
+				style={[styles.subHeader, { color: currentTheme.textSecondary, marginBottom: fullScreen ? 8 : 12 }]}
+			>
 				{activeCard ? t(`moregames.help.${activeCard.id}`) : ratingPanel !== "list" ? t("moregames.subtitleRatings", { game: t(`moregames.label.${ratingGame}`) }) : t("moregames.subtitleList")}
 			</Text>
 

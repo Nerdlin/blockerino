@@ -1,51 +1,40 @@
-import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
 import { nameFontFamily } from "@/constants/NameFont";
 import { GlobalHighScore } from "@/constants/Supabase";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage, TranslateVars } from "@/constants/Localization";
 import { getLeaderboardTier } from "@/constants/LeaderboardTiers";
+import { LeaderboardAvatar } from "./LeaderboardPodium";
 import UiIcon from "./UiIcon";
 
-export default function GlobalScoreRow({ score, rank, highlightTop, hideTime }: { score: GlobalHighScore; rank: number; highlightTop: boolean; hideTime?: boolean }) {
+/** One row of a score table, in the same card style as the Versus and More Games tables. */
+export default function GlobalScoreRow({ score, rank, highlightTop, hideTime, isMe, accent }: { score: GlobalHighScore; rank: number; highlightTop: boolean; hideTime?: boolean; isMe?: boolean; accent?: string }) {
     const { t } = useLanguage();
     const { currentTheme } = useTheme();
-    const { width, height } = useWindowDimensions();
-    const isMobile = width < 600 || height < 700;
     const tier = highlightTop ? getLeaderboardTier(rank) : undefined;
     const openProfile = useOpenPlayerProfile();
     return (
         <Pressable onPress={() => openProfile(score.player_name)} style={[
-            styles.scoreRow,
-            isMobile && styles.mobileScoreRow,
-            tier && {
-                backgroundColor: tier.background,
-                borderColor: tier.color,
-                borderWidth: tier.borderWidth,
-                ...(tier.id === "gold" && { shadowColor: tier.color, shadowOpacity: 0.6, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } }),
-            },
+            styles.row,
+            tier && tier.borderWidth > 0 && { backgroundColor: tier.background, borderColor: tier.color },
+            isMe && { borderColor: accent ?? currentTheme.accent, backgroundColor: 'rgba(255,255,255,0.08)' },
         ]}>
-            <Text style={[styles.scoreRankText, { color: tier?.color ?? currentTheme.textPrimary }, isMobile && styles.mobileScoreRankText]}>
-                {tier?.icon ? <UiIcon name={tier.icon} size={isMobile ? 18 : 27} /> : `#${rank}`}
-            </Text>
-            <View style={styles.scoreNameColumn}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    {score.avatar_url && score.avatar_url.startsWith("http") ? (
-                        <Image source={{ uri: score.avatar_url }} style={{ width: 18, height: 18, borderRadius: 9, marginRight: 6, backgroundColor: 'transparent' }} />
-                    ) : score.avatar_url ? (
-                        <Text style={{ fontSize: 14, marginRight: 6 }}>{score.avatar_url}</Text>
-                    ) : null}
-                    <Text style={[styles.scoreNameText, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(score.player_name) }, isMobile && styles.mobileScoreNameText]} numberOfLines={1}>
-                        {score.player_name}
-                    </Text>
-                </View>
+            <View style={styles.rank}>
+                {tier?.icon ? <UiIcon name={tier.icon} size={18} /> : <Text style={[styles.rankText, { color: tier?.color ?? currentTheme.textSecondary }]}>{rank}</Text>}
+            </View>
+            <LeaderboardAvatar name={score.player_name} url={score.avatar_url} size={28} />
+            <View style={styles.nameColumn}>
+                <Text style={[styles.name, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(score.player_name, isMe ? 'SilkscreenBold' : 'Silkscreen') }]} numberOfLines={1}>
+                    {score.player_name}
+                </Text>
                 {!hideTime && (
-                    <Text style={[styles.scoreTimeText, { color: currentTheme.textSecondary }, isMobile && { fontSize: 10 }]} numberOfLines={1}>
+                    <Text style={[styles.time, { color: currentTheme.textSecondary }]} numberOfLines={1}>
                         {score.created_at ? createTimeAgoString(new Date(score.created_at).getTime(), t) : t("hs.unknownTime")}
                     </Text>
                 )}
             </View>
-            <Text style={[styles.scoreNumberText, { color: currentTheme.textPrimary }, isMobile && styles.mobileScoreNumberText]} numberOfLines={1} adjustsFontSizeToFit>
+            <Text style={[styles.score, { color: tier?.color && tier.borderWidth > 0 ? tier.color : currentTheme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
                 {score.score}
             </Text>
         </Pressable>
@@ -77,56 +66,43 @@ function createTimeAgoString(date: number, t: (key: string, vars?: TranslateVars
 }
 
 const styles = StyleSheet.create({
-    scoreTimeText: {
-        color: 'rgb(150, 150, 150)',
-        fontSize: 11,
-        fontFamily: 'Silkscreen'
-    },
-    scoreRow: {
-        width: '100%',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
+    row: {
+        width: "100%",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
         paddingVertical: 7,
-        paddingHorizontal: 10,
-        borderRadius: 6,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        minHeight: 48,
+        paddingHorizontal: 8,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.08)",
+        borderRadius: 8,
+        backgroundColor: "rgba(0,0,0,0.2)",
+        minHeight: 46,
     },
-    mobileScoreRow: {
-        gap: 6,
-        paddingHorizontal: 7,
-        minHeight: 44,
+    rank: {
+        width: 26,
+        alignItems: "center",
     },
-    scoreRankText: {
-        width: 52,
-        fontSize: 20,
-        fontFamily: 'Silkscreen',
-        textAlign: 'left',
+    rankText: {
+        fontSize: 12,
+        fontFamily: "SilkscreenBold",
     },
-    mobileScoreRankText: {
-        width: 38,
-        fontSize: 15,
-    },
-    scoreNameColumn: {
+    nameColumn: {
         flex: 1,
         minWidth: 0,
+        gap: 2,
     },
-    scoreNameText: {
-        fontSize: 18,
-        fontFamily: 'Silkscreen',
+    name: {
+        fontSize: 13,
     },
-    mobileScoreNameText: {
+    time: {
+        fontSize: 9,
+        fontFamily: "Silkscreen",
+    },
+    score: {
+        minWidth: 64,
         fontSize: 14,
-    },
-    scoreNumberText: {
-        width: 110,
-        fontSize: 18,
-        fontFamily: 'Silkscreen',
-        textAlign: 'right',
-    },
-    mobileScoreNumberText: {
-        width: 78,
-        fontSize: 14,
+        fontFamily: "SilkscreenBold",
+        textAlign: "right",
     },
 });

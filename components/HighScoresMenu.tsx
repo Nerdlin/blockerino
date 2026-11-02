@@ -21,6 +21,9 @@ import SegmentedControl, { type SegmentItem } from "./SegmentedControl";
 import UiIcon from "./UiIcon";
 import { getFriendsAllTimeLeaderboard, getSeasonBoard, getSeasonEndsAt, getSeasonLeaderboard } from "@/constants/SeasonScores";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
+import { LeaderboardAvatar, LeaderboardPodium } from "./LeaderboardPodium";
+import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
+import { nameFontFamily } from "@/constants/NameFont";
 
 const LEADERBOARD_LIMIT = 100;
 const LEADERBOARD_REFRESH_MS = 30000;
@@ -46,7 +49,8 @@ export default function HighScores() {
     const currentModeConfig = getGameModeConfig(gameMode);
     const localBestScore = highScores[0]?.score ?? 0;
     const [scope, setScope] = useState<"season" | "alltime" | "friends">("season");
-    const { checked: authChecked, signedIn } = useAccountIdentity();
+    const { checked: authChecked, signedIn, name: accountName } = useAccountIdentity();
+    const openProfile = useOpenPlayerProfile();
     const seasonBoard = getSeasonBoard(gameMode);
     const showSeason = scope === "season" && seasonBoard !== null;
     const showFriends = scope === "friends" && seasonBoard !== null && signedIn;
@@ -189,6 +193,10 @@ export default function HighScores() {
     }, [isActive, refreshScores]);
 
     const hasScores = globalHighScores.length > 0;
+    const myName = (signedIn && accountName) || playerName;
+    const isMe = (name: string) => Boolean(myName) && name.toLowerCase() === myName.toLowerCase();
+    const myIndex = globalHighScores.findIndex((score) => isMe(score.player_name));
+    const modeColor = gameMode === GameModeType.Chaos ? "#7C3AED" : currentModeConfig.challenge?.color ?? currentTheme.buttonPrimary;
 
     const modeItems: SegmentItem<GameModeType>[] = MAIN_LEADERBOARD_GAME_MODES.map((mode) => ({
         key: mode,
@@ -236,9 +244,17 @@ export default function HighScores() {
                 {secretMessage}
             </Text>
         )}
-        {localBestScore > 0 && (
-            <View style={[styles.bestCard, { borderColor: currentTheme.accent }]}>
-                <Text style={[styles.bestText, { color: currentTheme.textPrimary }]}>{t("hs.localBest", { score: localBestScore })}</Text>
+        {(localBestScore > 0 || myIndex >= 0) && (
+            <View style={[styles.meCard, { borderColor: modeColor }]}>
+                <LeaderboardAvatar name={myName || "?"} url={myIndex >= 0 ? globalHighScores[myIndex].avatar_url : null} size={40} />
+                <View style={{ flex: 1, gap: 3 }}>
+                    <Text style={[styles.meName, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(myName || "?") }]} numberOfLines={1}>{myName || t("hs.enterNickname")}</Text>
+                    <Text style={[styles.meHint, { color: currentTheme.textSecondary }]} numberOfLines={1}>{t("hs.localBest", { score: localBestScore })}</Text>
+                </View>
+                <View style={styles.mePlace}>
+                    <Text style={[styles.mePlaceNumber, { color: modeColor }]}>{myIndex >= 0 ? `#${myIndex + 1}` : "—"}</Text>
+                    <Text style={[styles.meHint, { color: currentTheme.textSecondary }]}>{myIndex >= 0 ? globalHighScores[myIndex].score : t("hs.notInTop")}</Text>
+                </View>
             </View>
         )}
 
@@ -246,9 +262,20 @@ export default function HighScores() {
 
         {!loading && hasScores && (
             <View style={styles.scoreList}>
-                {globalHighScores.map((score, idx) => {
-                    return <GlobalScoreRow key={score.id || idx} rank={idx + 1} score={score} highlightTop/>
-                })}
+                <LeaderboardPodium
+                    onOpen={openProfile}
+                    metaColor="#E5E7EB"
+                    top={globalHighScores.slice(0, 3).map((score, idx) => ({
+                        key: String(score.id ?? `${idx}-${score.player_name}`),
+                        name: score.player_name,
+                        avatarUrl: score.avatar_url,
+                        meta: String(score.score),
+                        isMe: isMe(score.player_name),
+                    }))}
+                />
+                {globalHighScores.slice(3).map((score, idx) => (
+                    <GlobalScoreRow key={score.id || idx} rank={idx + 4} score={score} highlightTop isMe={isMe(score.player_name)} accent={modeColor} />
+                ))}
             </View>
         )}
 
@@ -326,20 +353,32 @@ const styles = StyleSheet.create({
         fontFamily: 'Silkscreen',
         fontSize: 11,
     },
-    bestCard: {
-        width: '92%',
-        maxWidth: 420,
-        borderWidth: 1.5,
-        borderRadius: 8,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
+    meCard: {
+        width: '94%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        borderWidth: 2,
+        borderRadius: 10,
+        padding: 10,
         marginTop: 4,
-        marginBottom: 6,
+        marginBottom: 10,
+        backgroundColor: 'rgba(255,255,255,0.04)',
     },
-    bestText: {
+    meName: {
+        fontSize: 14,
+    },
+    meHint: {
         fontFamily: 'Silkscreen',
-        fontSize: 12,
-        textAlign: 'center',
+        fontSize: 9,
+    },
+    mePlace: {
+        alignItems: 'center',
+        minWidth: 56,
+    },
+    mePlaceNumber: {
+        fontFamily: 'SilkscreenBold',
+        fontSize: 20,
     },
     guestNickname: {
         width: '92%',

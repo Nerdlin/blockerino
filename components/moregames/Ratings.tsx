@@ -1,7 +1,8 @@
-import { View, Text, Pressable, ScrollView, Image, StyleSheet } from "react-native";
+import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
 import { nameFontFamily } from "@/constants/NameFont";
 import UiIcon from "@/components/UiIcon";
+import { LeaderboardAvatar as Avatar, LeaderboardPodium } from "@/components/LeaderboardPodium";
 import PixelGlyphView from "@/components/PixelGlyphView";
 import { ACHIEVEMENT_GLYPHS } from "@/constants/AchievementIcons";
 import { UI_GLYPHS } from "@/constants/UiGlyphs";
@@ -50,62 +51,6 @@ export function MoreGameTabs({ selected, onChange }: { selected: RatedMoreGameId
 						<Text style={[local.tabText, { color: active ? color : "#9CA3AF" }]} numberOfLines={2}>
 							{t(`moregames.label.${gameId}`)}
 						</Text>
-					</Pressable>
-				);
-			})}
-		</View>
-	);
-}
-
-function Avatar({ name, url, size }: { name: string; url?: string | null; size: number }) {
-	if (url && url.startsWith("http")) {
-		return <Image source={{ uri: url }} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: "rgba(255,255,255,0.08)" }} />;
-	}
-	// an emoji avatar, or the first letter of the name
-	return (
-		<View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}>
-			<Text style={{ fontSize: url ? size * 0.55 : size * 0.42, color: "#FFFFFF", fontFamily: url ? undefined : "SilkscreenBold" }}>{url || name.charAt(0).toUpperCase()}</Text>
-		</View>
-	);
-}
-
-// second place on the left, first in the middle and highest, third on the right
-const PODIUM = [
-	{ place: 2, medal: "medalSilver" as const, color: "#CBD5E1", height: 46 },
-	{ place: 1, medal: "medalGold" as const, color: "#FACC15", height: 64 },
-	{ place: 3, medal: "medalBronze" as const, color: "#D97706", height: 34 },
-];
-
-function Podium({ top, playerName, onOpen }: { top: MoreGameRating[]; playerName: string; onOpen: (name: string) => void }) {
-	const { t } = useLanguage();
-	return (
-		<View style={local.podium}>
-			{PODIUM.map(({ place, medal, color, height }) => {
-				const entry = top[place - 1];
-				// a free place still gets its step, so the podium keeps its shape with one or two players
-				if (!entry) {
-					return (
-						<View key={place} style={local.podiumColumn}>
-							<View style={[local.podiumStep, local.podiumStepEmpty, { height }]}>
-								<Text style={[local.podiumPlace, { color: "rgba(255,255,255,0.25)" }]}>{place}</Text>
-							</View>
-						</View>
-					);
-				}
-				const isMe = entry.player_name.toLowerCase() === playerName.toLowerCase();
-				return (
-					<Pressable key={place} onPress={() => onOpen(entry.player_name)} style={local.podiumColumn}>
-						<View style={[local.podiumAvatar, { borderColor: color }]}>
-							<Avatar name={entry.player_name} url={entry.avatar_url} size={place === 1 ? 46 : 38} />
-						</View>
-						<Text style={[local.podiumName, { color: isMe ? color : "#F3F4F6", fontFamily: nameFontFamily(entry.player_name) }]} numberOfLines={1}>
-							{entry.player_name}
-						</Text>
-						<Text style={local.podiumMeta} numberOfLines={1}>{t("moregames.podiumWins", { wins: entry.wins, rate: winRate(entry) })}</Text>
-						<View style={[local.podiumStep, { height, borderColor: color }]}>
-							<UiIcon name={medal} size={place === 1 ? 27 : 18} />
-							<Text style={[local.podiumPlace, { color }]}>{place}</Text>
-						</View>
 					</Pressable>
 				);
 			})}
@@ -192,7 +137,16 @@ export function MoreGameLeaderboardPanel({
 					loading ? <Text style={[styles.emptyLeaderboardText, { color: currentTheme.textSecondary }]}>{t("moregames.loadingRatings")}</Text> : cta
 				) : (
 					<>
-						<Podium top={leaderboard.slice(0, 3)} playerName={playerName} onOpen={openProfile} />
+						<LeaderboardPodium
+							onOpen={openProfile}
+							top={leaderboard.slice(0, 3).map((entry) => ({
+								key: `${entry.game_id}-${entry.player_key || entry.player_name}`,
+								name: entry.player_name,
+								avatarUrl: entry.avatar_url,
+								meta: t("moregames.podiumWins", { wins: entry.wins, rate: winRate(entry) }),
+								isMe: entry.player_name.toLowerCase() === playerName.toLowerCase(),
+							}))}
+						/>
 						{leaderboard.slice(3).map((entry, index) => {
 							const isMe = entry.player_name.toLowerCase() === playerName.toLowerCase();
 							const rate = winRate(entry);
@@ -241,14 +195,6 @@ const local = StyleSheet.create({
 	rateTrack: { height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.1)", overflow: "hidden" },
 	rateTrackThin: { height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.08)", overflow: "hidden" },
 	rateFill: { height: "100%", borderRadius: 3 },
-	podium: { flexDirection: "row", alignItems: "flex-end", gap: 6, marginBottom: 12, paddingTop: 4, borderBottomWidth: 2, borderColor: "rgba(255,255,255,0.18)" },
-	podiumColumn: { flex: 1, alignItems: "center", gap: 3 },
-	podiumAvatar: { borderWidth: 2, borderRadius: 999, padding: 2 },
-	podiumName: { fontSize: 11, maxWidth: "100%" },
-	podiumMeta: { fontFamily: "Silkscreen", fontSize: 8, color: "#9CA3AF" },
-	podiumStep: { width: "100%", borderWidth: 2, borderBottomWidth: 0, borderTopLeftRadius: 6, borderTopRightRadius: 6, gap: 2, backgroundColor: "rgba(255,255,255,0.05)", alignItems: "center", justifyContent: "center" },
-	podiumStepEmpty: { borderColor: "rgba(255,255,255,0.12)", borderStyle: "dashed", backgroundColor: "rgba(255,255,255,0.02)" },
-	podiumPlace: { fontFamily: "SilkscreenBold", fontSize: 12 },
 	cta: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 2, borderStyle: "dashed", borderRadius: 10, padding: 12, marginBottom: 10, backgroundColor: "rgba(255,255,255,0.03)" },
 	ctaTitle: { fontFamily: "SilkscreenBold", fontSize: 12 },
 	ctaText: { fontFamily: "Silkscreen", fontSize: 9, lineHeight: 13 },

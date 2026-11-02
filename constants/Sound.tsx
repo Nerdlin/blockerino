@@ -95,7 +95,8 @@ export type SoundType =
   | 'shotHit'
   | 'shipSunk'
   | 'ticX'
-  | 'ticO';
+  | 'ticO'
+  | 'checkersCapture';
 
 const MUSIC_TRACK_RESOURCES = {
   backgroundMusic: require('../assets/sounds/background-music.mp3'),
@@ -189,6 +190,7 @@ const SFX_RESOURCES = {
   shipSunk: require('../assets/sounds/minigames/ship-sunk.mp3'),
   ticX: require('../assets/sounds/minigames/tic-x.mp3'),
   ticO: require('../assets/sounds/minigames/tic-o.mp3'),
+  checkersCapture: require('../assets/sounds/minigames/checkers-capture.mp3'),
   sfxWoodPlace: require('../assets/sounds/generated/sfx-wood-place.mp3'),
   sfxWoodClear: require('../assets/sounds/generated/sfx-wood-clear.mp3'),
   sfxWoodClick: require('../assets/sounds/generated/sfx-wood-click.mp3'),
