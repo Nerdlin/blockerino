@@ -29,6 +29,19 @@ export const PLAY_GAMES_ACHIEVEMENTS: Record<string, string> = {
 	all_rounder: "CgkI_-O2-tADEAIQBA",
 	week_warrior: "CgkI_-O2-tADEAIQBg",
 	centurion: "CgkI_-O2-tADEAIQCA",
+	// added in 2.0.7
+	checkers_rookie: "CgkI_-O2-tADEAIQHQ",
+	checkers_captain: "CgkI_-O2-tADEAIQGg",
+	checkers_grandmaster: "CgkI_-O2-tADEAIQFw",
+	daily_habit: "CgkI_-O2-tADEAIQIQ",
+	daily_devotee: "CgkI_-O2-tADEAIQGw",
+	daily_legend: "CgkI_-O2-tADEAIQGQ",
+	star_gazer: "CgkI_-O2-tADEAIQHA",
+	star_collector: "CgkI_-O2-tADEAIQIg",
+	star_master: "CgkI_-O2-tADEAIQHw",
+	rank_gold: "CgkI_-O2-tADEAIQGA",
+	rank_diamond: "CgkI_-O2-tADEAIQIA",
+	rank_legend: "CgkI_-O2-tADEAIQHg",
 };
 
 /** Game mode -> Play Games leaderboard id. */
