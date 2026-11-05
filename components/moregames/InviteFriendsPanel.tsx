@@ -6,6 +6,7 @@ import { InviteGame, sendGameInvite } from "@/constants/GameInvite";
 import { useLanguage } from "@/constants/Localization";
 import { useTheme } from "@/constants/Theme";
 import StylizedButton from "../StylizedButton";
+import ExpandableFriendList from "../ExpandableFriendList";
 
 interface Row {
 	id: string;
@@ -73,8 +74,8 @@ export function InviteFriendsPanel({ game, roomCode, hostName }: { game: InviteG
 	return (
 		<View style={local.panel}>
 			<Text style={[local.label, { color: currentTheme.textSecondary }]}>{t("invite.friends")}</Text>
-			{rows.map((row) => (
-				<View key={row.id} testID={`invite-friend-${row.id}`} style={[local.row, { borderColor: "rgba(255,255,255,0.18)", opacity: row.online ? 1 : 0.55 }]}>
+			<ExpandableFriendList items={rows} collapsedCount={5} keyOf={(row) => row.id} nameOf={(row) => row.name} renderRow={(row) => (
+				<View testID={`invite-friend-${row.id}`} style={[local.row, { borderColor: "rgba(255,255,255,0.18)", opacity: row.online ? 1 : 0.55 }]}>
 					<View style={[local.dot, { backgroundColor: row.online ? "#2ECC40" : "#666" }]} />
 					<Text numberOfLines={1} style={[local.name, { color: currentTheme.textPrimary }]}>{row.name}</Text>
 					{row.online ? (
@@ -93,7 +94,7 @@ export function InviteFriendsPanel({ game, roomCode, hostName }: { game: InviteG
 						<Text style={[local.state, { color: currentTheme.textSecondary }]}>{t("chess.offline")}</Text>
 					)}
 				</View>
-			))}
+			)} />
 		</View>
 	);
 }

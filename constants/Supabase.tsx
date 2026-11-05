@@ -461,6 +461,20 @@ export async function submitDailyPuzzleScore(day: string, score: number): Promis
     }
 }
 
+/** Pays the three-star reward of a Daily Puzzle day (once). Null when the server could not be reached. */
+export async function claimDailyPuzzleReward(day: string): Promise<{ status: string; coins: number | null } | null> {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return { status: 'unauthenticated', coins: null };
+        const { data, error } = await supabase.rpc('claim_daily_puzzle_reward', { p_day: day });
+        if (error || !data || typeof data !== 'object') return null;
+        const row = data as { status?: unknown; coins?: unknown };
+        return { status: typeof row.status === 'string' ? row.status : 'unknown', coins: typeof row.coins === 'number' ? row.coins : null };
+    } catch {
+        return null;
+    }
+}
+
 /** The board of one Daily Puzzle day, best first. Empty when the server does not have it yet. */
 export async function getDailyPuzzleLeaderboard(day: string, limit: number = 50): Promise<(GlobalHighScore & { is_me?: boolean })[]> {
     try {

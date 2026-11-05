@@ -26,6 +26,12 @@ begin
   assert (board->0->>'is_me')::boolean, 'the caller is marked';
   assert achievement_reward('rank_legend') = 1500, 'new achievement tiers pay';
   assert achievement_reward('first_steps') = 25, 'old tiers keep their reward';
+  -- three stars pay once per puzzle day
+  update profiles set coins = 0 where auth_user_id = 'a0000000-0000-0000-0000-0000000000f1';
+  assert claim_daily_puzzle_reward(v_today)->>'status' = 'ok', 'three stars pay';
+  assert claim_daily_puzzle_reward(v_today)->>'status' = 'already', 'only once';
+  assert claim_daily_puzzle_reward(v_today - 1)->>'status' = 'not_earned', 'a day under 500 does not pay';
+  assert claim_daily_puzzle_reward(v_today - 9)->>'status' = 'too_old', 'an old day does not pay';
   raise notice 'daily puzzle scores ok';
 end $$;
 

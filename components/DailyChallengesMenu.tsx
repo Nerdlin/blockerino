@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import * as Haptics from "expo-haptics";
 import SimplePopupView from "./SimplePopupView";
 import ChallengeLeaderboard from "./ChallengeLeaderboard";
 import StylizedButton from "./StylizedButton";
 import { GameModeType, useAppState } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
 import { getHighScores } from "@/constants/Storage";
-import { getMyServerHighScore } from "@/constants/Supabase";
+import { claimDailyPuzzleReward, getMyServerHighScore, submitDailyPuzzleScore } from "@/constants/Supabase";
+import { loadShopState, useShopState } from "@/constants/Shop";
+import { useSoundSettings } from "@/constants/Sound";
 import { cssColors } from "@/constants/Color";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
@@ -15,7 +18,7 @@ import { CHALLENGE_MODE_CARDS, ChallengeCard, getGameModeConfig } from "@/consta
 import { useLanguage } from "@/constants/Localization";
 import UiIcon from "./UiIcon";
 import { noteAchievementHighWater } from "@/constants/Achievements";
-import { countChallengeStars, dailyStreak, getDailyPuzzleDays, MAX_CHALLENGE_STARS, msUntilNextPuzzle, nextGoal, puzzleDayKey, starsForScore } from "@/constants/ChallengeProgress";
+import { countChallengeStars, DAILY_THREE_STAR_COINS, dailyStreak, getClaimedDailyRewards, getDailyPuzzleDays, rememberDailyReward, MAX_CHALLENGE_STARS, msUntilNextPuzzle, nextGoal, puzzleDayKey, starsForScore } from "@/constants/ChallengeProgress";
 
 type BestScoreMap = Partial<Record<GameModeType, number>>;
 
@@ -32,6 +35,48 @@ export default function DailyChallengesMenu() {
 
     const [bestScores, setBestScores] = useState<BestScoreMap>({});
     const [streak, setStreak] = useState(0);
+    // the three-star coins of today's Daily Puzzle: paid by the server once per puzzle day
+    const { commit: commitShopState } = useShopState();
+    const { playSfx } = useSoundSettings();
+    const [rewardClaimed, setRewardClaimed] = useState(false);
+    const [claiming, setClaiming] = useState(false);
+    const [rewardNote, setRewardNote] = useState<string | null>(null);
+    useEffect(() => {
+        void getClaimedDailyRewards().then((days) => setRewardClaimed(days.includes(puzzleDayKey())));
+    }, []);
+    const claimDailyReward = useCallback(async (score: number) => {
+        if (claiming) return;
+        setClaiming(true);
+        setRewardNote(null);
+        const day = puzzleDayKey();
+        // the server pays only for a score it has: send today's best first (it may have been offline)
+        await submitDailyPuzzleScore(day, score);
+        const result = await claimDailyPuzzleReward(day);
+        setClaiming(false);
+        if (!result) {
+            setRewardNote(t("ch.rewardFailed"));
+            return;
+        }
+        if (result.status === "unauthenticated" || result.status === "no_profile") {
+            setRewardNote(t("ch.rewardSignIn"));
+            return;
+        }
+        if (result.status === "ok" || result.status === "already") {
+            await rememberDailyReward(day);
+            setRewardClaimed(true);
+            if (result.coins !== null) {
+                const latest = await loadShopState();
+                await commitShopState({ ...latest, balance: result.coins }, []);
+            }
+            if (result.status === "ok") {
+                setRewardNote(t("ch.rewardPaid", { coins: DAILY_THREE_STAR_COINS }));
+                void playSfx("achievement");
+                if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+            }
+            return;
+        }
+        setRewardNote(t("ch.rewardFailed"));
+    }, [claiming, commitShopState, playSfx, t]);
     const [untilNext, setUntilNext] = useState(msUntilNextPuzzle());
     useEffect(() => {
         const timer = setInterval(() => setUntilNext(msUntilNextPuzzle()), 30000);
@@ -143,6 +188,27 @@ export default function DailyChallengesMenu() {
                                 </View>
                             )}
                             <Text style={[styles.metaText, { color: currentTheme.textSecondary }]}>{t("ch.newIn", { time: nextPuzzleIn })}</Text>
+                        </View>
+                    )}
+                    {isDaily && (
+                        <View style={styles.rewardRow}>
+                            {stars < 3 ? (
+                                <View style={styles.rewardHint}>
+                                    <UiIcon name="coin" size={12} />
+                                    <Text style={[styles.metaText, { color: currentTheme.textSecondary }]}>{t("ch.rewardHint", { coins: DAILY_THREE_STAR_COINS })}</Text>
+                                </View>
+                            ) : rewardClaimed ? (
+                                <View style={styles.rewardHint}>
+                                    <UiIcon name="coin" size={12} />
+                                    <Text style={[styles.metaText, { color: "#4ADE80" }]}>{t("ch.rewardDone")}</Text>
+                                </View>
+                            ) : (
+                                <Pressable onPress={() => void claimDailyReward(bestScore)} disabled={claiming} style={[styles.rewardButton, claiming && { opacity: 0.6 }]}>
+                                    <UiIcon name="coin" size={14} />
+                                    <Text style={styles.rewardButtonText}>{claiming ? t("ch.checking") : t("ch.rewardClaim", { coins: DAILY_THREE_STAR_COINS })}</Text>
+                                </Pressable>
+                            )}
+                            {rewardNote && <Text style={[styles.metaText, { color: "#FACC15" }]}>{rewardNote}</Text>}
                         </View>
                     )}
                 </View>
@@ -289,6 +355,31 @@ const styles = StyleSheet.create({
     metaText: {
         fontSize: 9,
         fontFamily: "Silkscreen",
+    },
+    rewardRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 8,
+    },
+    rewardHint: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+    },
+    rewardButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 8,
+        backgroundColor: "#FACC15",
+    },
+    rewardButtonText: {
+        fontSize: 10,
+        fontFamily: "SilkscreenBold",
+        color: "#1F1300",
     },
     challengeList: {
         width: "94%",

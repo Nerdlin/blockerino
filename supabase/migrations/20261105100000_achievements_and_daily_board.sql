@@ -4,7 +4,8 @@
 --     (checkers_rookie, checkers_captain, checkers_grandmaster, daily_habit, daily_devotee, daily_legend, star_gazer, star_collector, star_master, rank_gold, rank_diamond, rank_legend);
 --     the total any account can collect grows to 46220 coins;
 --   * daily_puzzle_scores keeps each player's best Daily Puzzle score per puzzle day. The day is the player's
---     local date (the puzzle is seeded with it), so the server accepts yesterday, today and tomorrow in UTC.
+--     local date (the puzzle is seeded with it), so the server accepts yesterday, today and tomorrow in UTC;
+--   * three stars on a Daily Puzzle (a best of 500 or more that day) pay 100 coins once per puzzle day.
 
 CREATE OR REPLACE FUNCTION public.achievement_reward(p_id text)
 RETURNS integer
@@ -179,3 +180,69 @@ $$;
 
 REVOKE ALL ON FUNCTION public.get_daily_puzzle_leaderboard(date, integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_daily_puzzle_leaderboard(date, integer) TO anon, authenticated;
+
+-- Three stars on the Daily Puzzle: 100 coins once per puzzle day. The goal (500) matches CHALLENGE_GOALS in
+-- constants/ChallengeProgress.ts; a jest test compares both.
+CREATE TABLE IF NOT EXISTS public.daily_puzzle_rewards (
+  user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  day date NOT NULL,
+  coins integer NOT NULL,
+  claimed_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, day)
+);
+
+ALTER TABLE public.daily_puzzle_rewards ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.daily_puzzle_rewards FROM anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.daily_puzzle_three_star_score()
+RETURNS integer
+LANGUAGE sql
+IMMUTABLE
+AS $$ SELECT 500 $$;
+
+CREATE OR REPLACE FUNCTION public.daily_puzzle_reward_coins()
+RETURNS integer
+LANGUAGE sql
+IMMUTABLE
+AS $$ SELECT 100 $$;
+
+-- Pays the three-star reward of a puzzle day once. Returns {status, coins}:
+-- ok (paid now) | already (paid before) | not_earned (no three-star score stored for that day) | too_old |
+-- unauthenticated | no_profile. coins is the balance after the call when known.
+CREATE OR REPLACE FUNCTION public.claim_daily_puzzle_reward(p_day date)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_today date := (now() AT TIME ZONE 'utc')::date;
+  v_profile_id public.profiles.id%TYPE;
+  v_coins integer;
+  v_score integer;
+  v_inserted integer;
+BEGIN
+  IF auth.uid() IS NULL THEN RETURN jsonb_build_object('status', 'unauthenticated'); END IF;
+  IF p_day IS NULL OR p_day < v_today - 1 OR p_day > v_today + 1 THEN RETURN jsonb_build_object('status', 'too_old'); END IF;
+
+  SELECT id, coins INTO v_profile_id, v_coins FROM public.profiles WHERE auth_user_id = auth.uid() FOR UPDATE;
+  IF NOT FOUND THEN RETURN jsonb_build_object('status', 'no_profile'); END IF;
+
+  SELECT score INTO v_score FROM public.daily_puzzle_scores WHERE user_id = auth.uid() AND day = p_day;
+  IF v_score IS NULL OR v_score < public.daily_puzzle_three_star_score() THEN
+    RETURN jsonb_build_object('status', 'not_earned', 'coins', v_coins);
+  END IF;
+
+  INSERT INTO public.daily_puzzle_rewards (user_id, day, coins)
+  VALUES (auth.uid(), p_day, public.daily_puzzle_reward_coins())
+  ON CONFLICT (user_id, day) DO NOTHING;
+  GET DIAGNOSTICS v_inserted = ROW_COUNT;
+  IF v_inserted = 0 THEN RETURN jsonb_build_object('status', 'already', 'coins', v_coins); END IF;
+
+  UPDATE public.profiles SET coins = coins + public.daily_puzzle_reward_coins() WHERE id = v_profile_id RETURNING coins INTO v_coins;
+  RETURN jsonb_build_object('status', 'ok', 'coins', v_coins);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.claim_daily_puzzle_reward(date) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.claim_daily_puzzle_reward(date) TO authenticated;

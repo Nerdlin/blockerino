@@ -20,6 +20,10 @@ export const CHALLENGE_MODES = Object.keys(CHALLENGE_GOALS) as GameModeType[];
 export const MAX_CHALLENGE_STARS = CHALLENGE_MODES.length * 3;
 
 const DAILY_DAYS_KEY = "DAILY_PUZZLE_DAYS";
+const DAILY_REWARDS_KEY = "DAILY_PUZZLE_REWARDS";
+
+/** Coins for three stars on a Daily Puzzle, once per puzzle day (paid by claim_daily_puzzle_reward on the server). */
+export const DAILY_THREE_STAR_COINS = 100;
 const KEEP_DAYS = 60;
 
 export function isChallengeMode(mode: GameModeType): boolean {
@@ -112,4 +116,21 @@ export async function recordChallengeResult(mode: GameModeType, score: number): 
 	const overview = await getChallengeOverview({ mode, score });
 	noteAchievementHighWater("challengeStars", overview.stars);
 	noteAchievementHighWater("dailyStreakBest", overview.dailyStreak);
+}
+
+/** Puzzle days whose three-star reward was already paid (as far as this device knows). */
+export async function getClaimedDailyRewards(): Promise<string[]> {
+	try {
+		const raw = await AsyncStorage.getItem(DAILY_REWARDS_KEY);
+		const parsed = raw ? JSON.parse(raw) : [];
+		return Array.isArray(parsed) ? parsed.filter((day): day is string => typeof day === "string") : [];
+	} catch {
+		return [];
+	}
+}
+
+export async function rememberDailyReward(day: string): Promise<void> {
+	const days = await getClaimedDailyRewards();
+	if (days.includes(day)) return;
+	await AsyncStorage.setItem(DAILY_REWARDS_KEY, JSON.stringify([day, ...days].slice(0, KEEP_DAYS)));
 }

@@ -7,6 +7,7 @@ import { fetchFriendsOnline } from "@/constants/Invites";
 import { nameFontFamily } from "@/constants/NameFont";
 import { useFriendInvite } from "@/hooks/useFriendInvite";
 import StylizedButton from "./StylizedButton";
+import ExpandableFriendList from "./ExpandableFriendList";
 
 interface StripFriend {
 	id: string;
@@ -63,9 +64,23 @@ export default function VersusFriendsStrip({ userId }: { userId: string }) {
 
 	if (friends.length === 0) return null;
 
-	const shown = [...friends]
-		.sort((a, b) => Number(onlineIds.has(b.id)) - Number(onlineIds.has(a.id)))
-		.slice(0, MAX_SHOWN);
+	const sorted = [...friends].sort((a, b) => Number(onlineIds.has(b.id)) - Number(onlineIds.has(a.id)) || a.name.localeCompare(b.name));
+	const shown = sorted.slice(0, MAX_SHOWN);
+	// the strip shows four; everyone else (with a search for a big list) opens below it
+	const listRow = (friend: StripFriend) => {
+		const online = onlineIds.has(friend.id);
+		return (
+			<View style={[styles.listRow, { opacity: online ? 1 : 0.55 }]}>
+				<View style={[styles.listDot, { backgroundColor: online ? "#2ECC40" : "#666" }]} />
+				<Text style={[styles.listName, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(friend.name, "SilkscreenBold") }]} numberOfLines={1}>{friend.name}</Text>
+				{online ? (
+					<StylizedButton text={t("mp.invite")} onClick={() => inviteFriend(friend.id, friend.name)} backgroundColor={currentTheme.buttonPrimary} disabled={busy} style={styles.listInvite} textStyle={styles.inviteText} />
+				) : (
+					<Text style={[styles.offline, { color: currentTheme.textSecondary }]}>{t("mp.offline")}</Text>
+				)}
+			</View>
+		);
+	};
 
 	return (
 		<View style={styles.wrap}>
@@ -100,6 +115,9 @@ export default function VersusFriendsStrip({ userId }: { userId: string }) {
 					);
 				})}
 			</View>
+			{friends.length > MAX_SHOWN && (
+				<ExpandableFriendList items={sorted} collapsedCount={0} keyOf={(friend) => friend.id} nameOf={(friend) => friend.name} renderRow={listRow} />
+			)}
 		</View>
 	);
 }
@@ -116,4 +134,8 @@ const styles = StyleSheet.create({
 	inviteButton: { minWidth: 0, width: "90%", minHeight: 26, height: 26, margin: 0, paddingHorizontal: 2 },
 	inviteText: { fontSize: 9 },
 	offline: { fontFamily: "Silkscreen", fontSize: 8, height: 26, textAlignVertical: "center", lineHeight: 26 },
+	listRow: { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.14)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
+	listDot: { width: 9, height: 9, borderRadius: 5 },
+	listName: { flex: 1, fontSize: 11 },
+	listInvite: { minWidth: 84, width: 84, minHeight: 26, height: 26, margin: 0, paddingHorizontal: 4 },
 });

@@ -22,6 +22,8 @@ import UiIcon from "@/components/UiIcon";
 import VersusFriendsStrip from "./VersusFriendsStrip";
 import { EloLeaderboardView } from "./EloLeaderboardView";
 import { noteAchievementHighWater } from "@/constants/Achievements";
+import { checkRankUp } from "@/constants/RankUp";
+import RankUpOverlay from "./RankUpOverlay";
 import type { UiGlyphName } from "@/constants/UiGlyphs";
 
 interface MultiplayerMenuProps {
@@ -77,6 +79,13 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const [playerElo, setPlayerElo] = useState<number>(0);
     // the rank tiers (Gold, Diamond, Legend) are achievements
     useEffect(() => noteAchievementHighWater("eloPeak", playerElo), [playerElo]);
+    // a climb into a higher rank since the player last looked is celebrated once (server ratings only)
+    const [rankUp, setRankUp] = useState<{ index: number; elo: number } | null>(null);
+    const noteServerElo = useCallback((elo: number) => {
+        void checkRankUp(elo, ELO_TIERS.map((tier) => tier.min)).then((index) => {
+            if (index !== null && isMounted.current) setRankUp({ index, elo });
+        });
+    }, []);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [publicRooms, setPublicRooms] = useState<any[]>([]);
     const quickScanRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -120,6 +129,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
 
         if (serverElo !== null) {
             setPlayerElo(serverElo);
+            noteServerElo(serverElo);
             AsyncStorage.setItem('PLAYER_ELO', serverElo.toString());
             return;
         }
@@ -152,6 +162,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
 
             if (serverElo !== null) {
                 setPlayerElo(serverElo);
+                noteServerElo(serverElo);
                 AsyncStorage.setItem('PLAYER_ELO', serverElo.toString());
             }
             setTopEloList(list);
@@ -1036,6 +1047,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     <PixelLoader size="large" color={currentTheme.accent} style={{ marginVertical: 30 }} />
                 </Animated.View>
             )}
+            {rankUp && <RankUpOverlay tier={ELO_TIERS[rankUp.index]} elo={rankUp.elo} onClose={() => setRankUp(null)} />}
         </SimplePopupView>
     );
 }

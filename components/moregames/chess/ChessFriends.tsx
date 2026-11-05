@@ -8,6 +8,7 @@ import { ChessRatings, fetchFriendChessRatings } from "@/constants/chess/ChessRa
 import { START_RATING } from "@/constants/chess/ChessElo";
 import { TimeControl } from "@/constants/chess/TimeControls";
 import StylizedButton from "../../StylizedButton";
+import ExpandableFriendList from "../../ExpandableFriendList";
 
 export interface ChessFriend {
 	id: string;
@@ -86,11 +87,11 @@ export function ChessFriends({
 			{rows === null ? null : rows.length === 0 ? (
 				<Text style={[local.hint, { color: currentTheme.textSecondary }]}>{t(signedIn ? "chess.noFriends" : "chess.signInForFriends")}</Text>
 			) : (
-				rows.map((row) => {
+				<ExpandableFriendList items={rows} collapsedCount={5} keyOf={(row) => row.id} nameOf={(row) => row.name} renderRow={(row) => {
 					const entry = row.ratings?.[control.timeClass] ?? null;
 					const rating = String(entry?.rating ?? START_RATING);
 					return (
-						<View key={row.id} testID={`chess-friend-${row.id}`} style={[local.row, { borderColor: "rgba(255,255,255,0.18)", opacity: row.online ? 1 : 0.6 }]}>
+						<View testID={`chess-friend-${row.id}`} style={[local.row, { borderColor: "rgba(255,255,255,0.18)", opacity: row.online ? 1 : 0.6 }]}>
 							<View style={[local.dot, { backgroundColor: row.online ? "#2ECC40" : "#666" }]} />
 							<View style={{ flex: 1 }}>
 								<Text numberOfLines={1} style={[local.name, { color: currentTheme.textPrimary }]}>{row.name}</Text>
@@ -101,7 +102,7 @@ export function ChessFriends({
 							) : null}
 						</View>
 					);
-				})
+				}} />
 			)}
 			<StylizedButton text={t("chess.playWithCode")} onClick={onPlayWithCode} backgroundColor="#1E88E5" style={local.button} textStyle={{ fontSize: 12 }} />
 		</View>
