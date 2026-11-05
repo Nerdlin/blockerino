@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { normalizePlayerName } from "@/constants/Multiplayer";
 import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
 import { recordSeasonScore } from "@/constants/SeasonScores";
+import { recordChallengeResult } from "@/constants/ChallengeProgress";
 import { useShopState } from "@/constants/Shop";
 import { GameOverReason, getGameOverMessage } from "@/constants/GameModes";
 import { useLanguage } from "@/constants/Localization";
@@ -92,6 +93,8 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
     useEffect(() => {
         // The modal mounts once per finished game.
         track("game_over", { mode: gameMode, score, reason: reason ?? null });
+        // challenge stars, the Daily Puzzle streak and the board of the puzzle day
+        void recordChallengeResult(gameMode, score);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

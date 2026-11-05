@@ -68,6 +68,23 @@ export function LeaderboardPodium({ top, onOpen, metaColor }: { top: PodiumEntry
 	);
 }
 
+/** The player's own line above a table: avatar, name, a hint (local best...), and the place with its score. */
+export function LeaderboardMeCard({ name, avatarUrl, hint, place, placeHint, color }: { name: string; avatarUrl?: string | null; hint: string; place: number | null; placeHint: string; color: string }) {
+	return (
+		<View style={[styles.meCard, { borderColor: color }]}>
+			<LeaderboardAvatar name={name || "?"} url={avatarUrl} size={40} />
+			<View style={{ flex: 1, gap: 3 }}>
+				<Text style={[styles.meName, { fontFamily: nameFontFamily(name || "?") }]} numberOfLines={1}>{name}</Text>
+				<Text style={styles.meHint} numberOfLines={1}>{hint}</Text>
+			</View>
+			<View style={styles.mePlace}>
+				<Text style={[styles.mePlaceNumber, { color }]}>{place ? `#${place}` : "—"}</Text>
+				<Text style={styles.meHint} numberOfLines={1}>{placeHint}</Text>
+			</View>
+		</View>
+	);
+}
+
 const styles = StyleSheet.create({
 	podium: { width: "100%", flexDirection: "row", alignItems: "flex-end", gap: 6, marginBottom: 12, paddingTop: 4, borderBottomWidth: 2, borderColor: "rgba(255,255,255,0.18)" },
 	column: { flex: 1, alignItems: "center", gap: 3 },
@@ -77,4 +94,9 @@ const styles = StyleSheet.create({
 	step: { width: "100%", borderWidth: 2, borderBottomWidth: 0, borderTopLeftRadius: 6, borderTopRightRadius: 6, gap: 2, backgroundColor: "rgba(255,255,255,0.05)", alignItems: "center", justifyContent: "center" },
 	stepEmpty: { borderColor: "rgba(255,255,255,0.12)", borderStyle: "dashed", backgroundColor: "rgba(255,255,255,0.02)" },
 	place: { fontFamily: "SilkscreenBold", fontSize: 12 },
+	meCard: { width: "94%", flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 2, borderRadius: 10, padding: 10, marginTop: 4, marginBottom: 10, backgroundColor: "rgba(255,255,255,0.04)" },
+	meName: { fontSize: 14, color: "#F3F4F6" },
+	meHint: { fontFamily: "Silkscreen", fontSize: 9, color: "#9CA3AF" },
+	mePlace: { alignItems: "center", minWidth: 56 },
+	mePlaceNumber: { fontFamily: "SilkscreenBold", fontSize: 20 },
 });

@@ -75,3 +75,25 @@ describe("chooseDurakAction as defender", () => {
 		expect(chooseDurakAction(view, "hard").type).toBe("take");
 	});
 });
+
+describe("chooseDurakAction on special tables", () => {
+	it("passes the attack on with a plain card of the same rank on a transfer table", () => {
+		const view = { ...base, isDefender: true, hand: ["6D", "KS", "7C"], table: [{ attack: "6S", defense: null }], canTransfer: true, transferTargetHandSize: 6 };
+		expect(chooseDurakAction(view, "hard")).toEqual({ type: "transfer", card: "6D", index: 0 });
+		expect(chooseDurakAction({ ...view, canTransfer: false }, "hard").type).toBe("defend");
+		// never more cards than the next player can answer
+		expect(chooseDurakAction({ ...view, transferTargetHandSize: 1 }, "hard").type).toBe("defend");
+	});
+
+	it("does not transfer once a card on the table is covered", () => {
+		const view = { ...base, isDefender: true, hand: ["6D", "8C"], table: [{ attack: "6S", defense: "7S" }, { attack: "6C", defense: null }], canTransfer: true, transferTargetHandSize: 6 };
+		expect(chooseDurakAction(view, "hard")).toEqual({ type: "defend", card: "8C", index: 1 });
+	});
+
+	it("sometimes covers a card it cannot beat on a cheating table, never on an easy level", () => {
+		const view = { ...base, isDefender: true, hand: ["6D", "7C"], table: [{ attack: "KS", defense: null }], canCheat: true };
+		expect(chooseDurakAction(view, "hard", () => 0.01)).toEqual({ type: "defend", card: "6D", index: 0 });
+		expect(chooseDurakAction(view, "easy", () => 0.01).type).toBe("take");
+		expect(chooseDurakAction({ ...view, canCheat: false }, "hard", () => 0.01).type).toBe("take");
+	});
+});

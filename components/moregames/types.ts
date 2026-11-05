@@ -39,6 +39,8 @@ export interface MahjongTile {
 export interface DurakBout {
 	attack: string;
 	defense: string | null;
+	/** Who threw the attack card in (the attacker when missing): with "all" or "neighbors" it may be someone else. */
+	by?: OnlineRole;
 }
 
 export interface DurakState {
@@ -55,6 +57,8 @@ export interface DurakState {
 	winner: OnlineRole | null;
 	finished?: OnlineRole[];
 	draw?: boolean;
+	/** "classic" table where everyone ran out on the same deal: the last defender is the durak. */
+	durak?: OnlineRole;
 	cancelled?: boolean;
 	message: string;
 	bet: number;

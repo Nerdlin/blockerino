@@ -269,6 +269,21 @@ export const UI_GLYPHS = {
 			".........",
 		],
 	},
+	// a challenge star (gold)
+	starGold: {
+		palette: { a: "#FACC15", b: "#A16207", c: "#FEF9C3", d: "#FFFFFF" },
+		rows: [
+			"....b....",
+			"...bab...",
+			"bbbbabbbb",
+			".baacaab.",
+			"..baaab..",
+			"..baaab..",
+			".baabaab.",
+			".bb...bb.",
+			".........",
+		],
+	},
 } satisfies Record<string, PixelGlyph>;
 
 export type UiGlyphName = keyof typeof UI_GLYPHS;

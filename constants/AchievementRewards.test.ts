@@ -47,8 +47,13 @@ describe("achievement chains", () => {
 	});
 
 	it("has the same rewards in the database function as in the app", () => {
-		const migration = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", "20261021110000_achievement_rewards.sql"), "utf8");
-		const body = migration.slice(migration.indexOf("FUNCTION public.achievement_reward"), migration.indexOf("FUNCTION public.achievement_streak_requirement"));
+		// the latest migration that (re)defines achievement_reward() is the one the database runs
+		const dir = path.join(__dirname, "..", "supabase", "migrations");
+		const latest = fs.readdirSync(dir).filter((name) => name.endsWith(".sql")).sort().reverse()
+			.map((name) => fs.readFileSync(path.join(dir, name), "utf8"))
+			.find((sql) => sql.includes("FUNCTION public.achievement_reward("))!;
+		const start = latest.indexOf("FUNCTION public.achievement_reward(");
+		const body = latest.slice(start, latest.indexOf("$$;", latest.indexOf("$$", start) + 2));
 		const sqlRewards = new Map([...body.matchAll(/WHEN '([a-z_0-9]+)' THEN (\d+)/g)].map((match) => [match[1], Number(match[2])]));
 		expect(sqlRewards.size).toBe(ACHIEVEMENT_DEFINITIONS.length);
 		for (const definition of ACHIEVEMENT_DEFINITIONS) {

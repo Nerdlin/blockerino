@@ -448,6 +448,37 @@ export async function submitGlobalHighScore(
     }
 }
 
+/** Today's (or another puzzle day's) best Daily Puzzle score of the signed-in player. Day key: YYYY-MM-DD. */
+export async function submitDailyPuzzleScore(day: string, score: number): Promise<boolean> {
+    try {
+        if (!(score > 0)) return false;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return false;
+        const { data, error } = await supabase.rpc('submit_daily_puzzle_score', { p_day: day, p_score: Math.floor(score) });
+        return !error && data === true;
+    } catch {
+        return false;
+    }
+}
+
+/** The board of one Daily Puzzle day, best first. Empty when the server does not have it yet. */
+export async function getDailyPuzzleLeaderboard(day: string, limit: number = 50): Promise<(GlobalHighScore & { is_me?: boolean })[]> {
+    try {
+        const { data, error } = await supabase.rpc('get_daily_puzzle_leaderboard', { p_day: day, p_limit: limit });
+        if (error || !Array.isArray(data)) return [];
+        return (data as { player_name?: string; avatar_url?: string | null; score?: number; updated_at?: string; is_me?: boolean }[]).map((row) => ({
+            player_name: row.player_name || 'Player',
+            avatar_url: row.avatar_url ?? undefined,
+            score: Number(row.score) || 0,
+            game_mode: 'daily_puzzle',
+            created_at: row.updated_at,
+            is_me: Boolean(row.is_me),
+        }));
+    } catch {
+        return [];
+    }
+}
+
 export interface EloRating {
     id?: number | string;
     player_name: string;

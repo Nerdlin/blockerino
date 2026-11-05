@@ -21,9 +21,8 @@ import SegmentedControl, { type SegmentItem } from "./SegmentedControl";
 import UiIcon from "./UiIcon";
 import { getFriendsAllTimeLeaderboard, getSeasonBoard, getSeasonEndsAt, getSeasonLeaderboard } from "@/constants/SeasonScores";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
-import { LeaderboardAvatar, LeaderboardPodium } from "./LeaderboardPodium";
+import { LeaderboardMeCard, LeaderboardPodium } from "./LeaderboardPodium";
 import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
-import { nameFontFamily } from "@/constants/NameFont";
 
 const LEADERBOARD_LIMIT = 100;
 const LEADERBOARD_REFRESH_MS = 30000;
@@ -245,17 +244,14 @@ export default function HighScores() {
             </Text>
         )}
         {(localBestScore > 0 || myIndex >= 0) && (
-            <View style={[styles.meCard, { borderColor: modeColor }]}>
-                <LeaderboardAvatar name={myName || "?"} url={myIndex >= 0 ? globalHighScores[myIndex].avatar_url : null} size={40} />
-                <View style={{ flex: 1, gap: 3 }}>
-                    <Text style={[styles.meName, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(myName || "?") }]} numberOfLines={1}>{myName || t("hs.enterNickname")}</Text>
-                    <Text style={[styles.meHint, { color: currentTheme.textSecondary }]} numberOfLines={1}>{t("hs.localBest", { score: localBestScore })}</Text>
-                </View>
-                <View style={styles.mePlace}>
-                    <Text style={[styles.mePlaceNumber, { color: modeColor }]}>{myIndex >= 0 ? `#${myIndex + 1}` : "—"}</Text>
-                    <Text style={[styles.meHint, { color: currentTheme.textSecondary }]}>{myIndex >= 0 ? globalHighScores[myIndex].score : t("hs.notInTop")}</Text>
-                </View>
-            </View>
+            <LeaderboardMeCard
+                name={myName || t("hs.enterNickname")}
+                avatarUrl={myIndex >= 0 ? globalHighScores[myIndex].avatar_url : null}
+                hint={t("hs.localBest", { score: localBestScore })}
+                place={myIndex >= 0 ? myIndex + 1 : null}
+                placeHint={myIndex >= 0 ? String(globalHighScores[myIndex].score) : t("hs.notInTop")}
+                color={modeColor}
+            />
         )}
 
         {loading && <PixelLoader size="large" color={currentTheme.textPrimary} />}
@@ -352,33 +348,6 @@ const styles = StyleSheet.create({
     seasonLink: {
         fontFamily: 'Silkscreen',
         fontSize: 11,
-    },
-    meCard: {
-        width: '94%',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        borderWidth: 2,
-        borderRadius: 10,
-        padding: 10,
-        marginTop: 4,
-        marginBottom: 10,
-        backgroundColor: 'rgba(255,255,255,0.04)',
-    },
-    meName: {
-        fontSize: 14,
-    },
-    meHint: {
-        fontFamily: 'Silkscreen',
-        fontSize: 9,
-    },
-    mePlace: {
-        alignItems: 'center',
-        minWidth: 56,
-    },
-    mePlaceNumber: {
-        fontFamily: 'SilkscreenBold',
-        fontSize: 20,
     },
     guestNickname: {
         width: '92%',

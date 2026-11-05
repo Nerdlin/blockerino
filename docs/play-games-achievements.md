@@ -34,6 +34,28 @@ Leave "Incremental" off for all of them: the game decides when an achievement is
 | week_warrior | Week Warrior | Log in 7 days in a row. | Воин недели | Заходите 7 дней подряд. | 50 |
 | centurion | Centurion | Log in 100 days in a row. | Центурион | Заходите 100 дней подряд. | 115 |
 
+## Added in 2.0.7 (12, 590 XP; 1590 in all)
+
+Play Console now allows up to 2000 XP per game, so the new tiers fit next to the first 20. Bulk import:
+`builds/play-games-achievements-2.0.7.zip` (Achievements, Import achievements). It holds AchievementsMetadata.csv,
+AchievementsLocalizations.csv (ru-RU), AchievementsIconsMappings.csv and a 512x512 icon per achievement, drawn from the
+game's own pixel glyphs. Then copy the twelve `CgkI...` ids into `PLAY_GAMES_ACHIEVEMENTS`.
+
+| Our id | Name (en) | Name (ru) | XP |
+|---|---|---|---|
+| checkers_rookie | Checkers Rookie | Шашист | 10 |
+| checkers_captain | Checkers Captain | Капитан шашек | 25 |
+| checkers_grandmaster | Checkers Grandmaster | Гроссмейстер шашек | 75 |
+| daily_habit | Puzzle Habit | Привычка | 10 |
+| daily_devotee | Puzzle Devotee | Верность головоломке | 25 |
+| daily_legend | Puzzle Legend | Легенда головоломки | 100 |
+| star_gazer | Star Gazer | Звездочёт | 15 |
+| star_collector | Star Collector | Собиратель звёзд | 30 |
+| star_master | Star Master | Повелитель звёзд | 75 |
+| rank_gold | Gold Rank | Золотой ранг | 25 |
+| rank_diamond | Diamond Rank | Алмазный ранг | 50 |
+| rank_legend | Legend Rank | Легендарный ранг | 150 |
+
 ## Leaderboards (2)
 
 | Game mode | Name (en) | Name (ru) | Score format | Ordering |

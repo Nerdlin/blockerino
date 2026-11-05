@@ -10,7 +10,7 @@ jest.mock("react-native-webview", () => ({ WebView: () => null }));
 // eslint-disable-next-line import/first -- jest.mock calls are hoisted and must precede the import
 import { countShots, shotOutcome } from "./battleFeedback";
 // eslint-disable-next-line import/first
-import { createDurakState, planDurakFlights } from "./DurakGame";
+import { createDurakState, drawDurakCards, getDurakOutcome, getDurakThrowers, planDurakFlights } from "./DurakGame";
 // eslint-disable-next-line import/first
 import { formatSeasonKey } from "../SeasonTitleBadges";
 // eslint-disable-next-line import/first
@@ -77,5 +77,37 @@ describe("season titles", () => {
 		expect(formatSeasonKey("2026-10", t)).toBe("Oct 2026");
 		expect(formatSeasonKey("2027-01", t)).toBe("Jan 2027");
 		expect(formatSeasonKey("weird", t)).toBe("weird");
+	});
+});
+
+describe("Durak table rules", () => {
+	const withTable = (variants: DurakState["variants"], count: number): DurakState => ({
+		...createDurakState(count, variants, 36, 0),
+		attacker: "player1",
+		defender: "player2",
+		table: [{ attack: "6S", defense: "7S" }],
+	});
+
+	it("lets only the attacker lead, then throwers by the table's rule", () => {
+		expect(getDurakThrowers({ ...withTable(["all"], 4), table: [] })).toEqual(["player1"]);
+		expect(getDurakThrowers(withTable(["all"], 4))).toEqual(["player1", "player3", "player4"]);
+		expect(getDurakThrowers(withTable(["neighbors"], 4))).toEqual(["player1", "player3"]);
+		expect(getDurakThrowers(withTable(["throw_in"], 4))).toEqual(["player1"]);
+	});
+
+	it("makes the last defender the durak on a classic table and calls a draw on a draw table", () => {
+		const emptyOut = (variants: DurakState["variants"]): DurakState => {
+			const base = createDurakState(2, variants, 36, 0);
+			// the round was beaten off: the old defender (player2) now attacks, both hands and the deck are empty
+			return drawDurakCards({ ...base, deck: [], table: [], hands: { ...base.hands, player1: [], player2: [] }, attacker: "player2", defender: "player1" }, "player1");
+		};
+		const classic = emptyOut(["classic"]);
+		expect(classic.draw).toBeFalsy();
+		expect(classic.winner).toBe("player1");
+		expect(getDurakOutcome(classic, "player1")).toBe("win");
+		expect(getDurakOutcome(classic, "player2")).toBe("loss");
+		const draw = emptyOut(["draw"]);
+		expect(draw.draw).toBe(true);
+		expect(getDurakOutcome(draw, "player2")).toBe("draw");
 	});
 });

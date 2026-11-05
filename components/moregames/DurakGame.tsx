@@ -15,7 +15,7 @@ import { useUiScale } from "../SimplePopupView";
 import Slider from "@react-native-community/slider";
 import { recordMoreGameWin } from "@/constants/Achievements";
 import { recordGameOutcome } from "@/constants/GameStats";
-import { DurakBotView, chooseDurakAction } from "@/constants/bots/DurakBot";
+import { DurakBotView, chooseDurakAction, DURAK_CATCH_CHANCE } from "@/constants/bots/DurakBot";
 import { BotPanel, useBotSettings } from "./BotPanel";
 import { DurakBout, DurakState, DurakVariant, OnlineRole } from "./types";
 import { DURAK_DECK_SIZES, DURAK_EMOJIS, DurakModeToggleColumn, OnlineRoomControls, SegmentButton, createRoomCode, formatCoins, getActiveDurakRoles, getDurakNetPrize, getNextDurakRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
@@ -239,6 +239,29 @@ export function canThrowDurakCard(state: DurakState, card: string, role: OnlineR
 	return ranks.has(cardRank(card));
 }
 
+/**
+ * Who may put attack cards down now. The attacker leads; once a card is on the table "all" lets every other seat that
+ * still has cards throw in, "neighbors" the attacker and the defender's other neighbour. The attacker comes first.
+ */
+export function getDurakThrowers(state: DurakState): OnlineRole[] {
+	const seats = getActiveDurakRoles(state.playerCount).filter((role) => role !== state.defender && state.hands[role].length > 0);
+	const attackerFirst = [...seats.filter((role) => role === state.attacker), ...seats.filter((role) => role !== state.attacker)];
+	if (state.table.length === 0) return attackerFirst.filter((role) => role === state.attacker);
+	if (state.variants.includes("all")) return attackerFirst;
+	if (!state.variants.includes("neighbors")) return attackerFirst.filter((role) => role === state.attacker);
+	const otherNeighbour = getNextDurakRole(state.defender, state.playerCount, state.hands);
+	return attackerFirst.filter((role) => role === state.attacker || role === otherNeighbour);
+}
+
+/** Win, loss or draw for one seat of a finished table; null for a seat that went out but did not win (3+ players). */
+export function getDurakOutcome(state: DurakState, seat: OnlineRole): "win" | "loss" | "draw" | null {
+	if (!state.winner || state.cancelled) return null;
+	if (state.draw) return "draw";
+	if (state.winner === seat) return "win";
+	if (state.durak === seat || (state.hands[seat]?.length ?? 0) > 0) return "loss";
+	return null;
+}
+
 export function getDurakVariantLabel(variant: DurakVariant) {
 	if (variant === "throw_in") return "durak.modeThrowIn";
 	if (variant === "transfer") return "durak.modeTransfer";
@@ -319,10 +342,18 @@ export function drawDurakCards(state: DurakState, startRole: OnlineRole) {
 		next.finished = [...(state.finished || []), ...finished.filter(role => !state.finished?.includes(role))];
 		if (finished.length >= roles.length - 1) {
 			next.winner = next.finished[0];
-			// Every seat ran out of cards on the same deal: nobody is the durak.
+			// Every seat ran out of cards on the same deal. With "draw" nobody is the durak; in "classic" the last
+			// defender is (the attacker's last card went down before the answer), so the attacker wins.
 			if (next.finished.length >= roles.length) {
-				next.draw = true;
-				next.message = "Draw.";
+				const lastDefender = state.attacker;
+				if (state.variants.includes("classic") && next.finished.includes(lastDefender)) {
+					next.durak = lastDefender;
+					next.finished = [...next.finished.filter((role) => role !== lastDefender), lastDefender];
+					next.winner = next.finished[0];
+				} else {
+					next.draw = true;
+					next.message = "Draw.";
+				}
 			}
 		} else {
 			if (!next.hands[next.attacker].length) next.attacker = getNextDurakRole(next.attacker, next.playerCount, next.hands);
@@ -651,13 +682,13 @@ const { t } = useLanguage();
 		});
 	};
 
-	const callOutCheat = (boutIndex: number, isDefense: boolean) => {
-		if (!state || !seat || state.winner || state.cancelled || !state.variants.includes("cheat")) return;
+	const callOutCheat = (boutIndex: number, isDefense: boolean, accuser: OnlineRole | null = seat) => {
+		if (!state || !accuser || state.winner || state.cancelled || !state.variants.includes("cheat")) return;
 		const bout = state.table[boutIndex];
 		if (!bout) return;
 
 		if (isDefense && bout.defense) {
-			if (state.defender === seat) return; // Cannot accuse yourself
+			if (state.defender === accuser) return; // Cannot accuse yourself
 			const isLegal = canBeatDurakCard(bout.defense, bout.attack, state.trump, ["throw_in"]);
 			if (!isLegal) {
 				const next: DurakState = {
@@ -672,7 +703,8 @@ const { t } = useLanguage();
 			}
 		} else if (!isDefense) {
 			if (boutIndex === 0 && state.table.length === 1) return;
-			if (state.attacker === seat) return; // Cannot accuse yourself
+			const thrower = bout.by ?? state.attacker;
+			if (thrower === accuser) return; // Cannot accuse yourself
 			const previousCards = state.table.slice(0, boutIndex).flatMap(b => [b.attack, b.defense]).filter(Boolean) as string[];
 			if (previousCards.length === 0) return;
 			const validRanks = new Set(previousCards.map(cardRank));
@@ -680,10 +712,10 @@ const { t } = useLanguage();
 			if (!isLegal) {
 				const next: DurakState = {
 					...state,
-					hands: { ...state.hands, [state.attacker]: [...state.hands[state.attacker], bout.attack] },
+					hands: { ...state.hands, [thrower]: [...state.hands[thrower], bout.attack] },
 					table: state.table.filter((_, i) => i !== boutIndex),
-					bustedCheaters: [...(state.bustedCheaters || []), state.attacker],
-					message: `${roleLabel(state.attacker)} busted!`,
+					bustedCheaters: [...(state.bustedCheaters || []), thrower],
+					message: `${roleLabel(thrower)} busted!`,
 				};
 				syncState(next);
 			}
@@ -694,12 +726,13 @@ const { t } = useLanguage();
 	const playCard = (card: string, targetIndexOverride?: number, actor: OnlineRole | null = seat): boolean => {
 		if (!state || !actor || state.winner || state.cancelled) return false;
 		if (!online || !state.hands[actor].includes(card)) return false;
-		if (actor === state.attacker && (state.phase === "attack" || state.phase === "throw" || state.phase === "defend")) {
+		const mayThrow = actor === state.attacker || (state.table.length > 0 && getDurakThrowers(state).includes(actor));
+		if (actor !== state.defender && mayThrow && (state.phase === "attack" || state.phase === "throw" || state.phase === "defend")) {
 			if (!canThrowDurakCard(state, card, actor) || state.table.length >= Math.min(6, state.hands[state.defender].length + state.table.filter((bout) => bout.defense).length)) return false;
 			const next: DurakState = {
 				...state,
 				hands: { ...state.hands, [actor]: removeCard(state.hands[actor], card) },
-				table: [...state.table, { attack: card, defense: null }],
+				table: [...state.table, actor === state.attacker ? { attack: card, defense: null } : { attack: card, defense: null, by: actor }],
 				phase: "defend",
 				message: `${roleLabel(state.defender)} defends.`,
 			};
@@ -788,8 +821,8 @@ const { t } = useLanguage();
 	};
 
 	const startBotGame = () => {
-		// The computer neither cheats nor accuses, so a cheating table becomes a fair one. No bet, no rating.
-		const variants = activeVariants.includes("cheat") ? [...activeVariants.filter((variant) => variant !== "cheat"), "fair" as DurakVariant] : activeVariants;
+		// No bet, no rating. The bots play every rule of the table, cheating included.
+		const variants = activeVariants;
 		const count = Number(playerCount);
 		const roles = getActiveDurakRoles(count);
 		setBetError(null);
@@ -808,26 +841,73 @@ const { t } = useLanguage();
 		setPlayerNames({});
 	};
 
+	// Each card the player put down breaking the rules gets one look from the bots (cheating table).
+	const botLookedAt = useRef(new Set<string>());
 	useEffect(() => {
 		if (!botMode || !state || state.winner || state.cancelled) return;
-		// Whoever has to answer an open attack acts; otherwise the attacker leads or decides to throw in or pass.
-		const actor = state.table.some((bout) => !bout.defense) ? state.defender : state.attacker;
-		if (actor === "player1") return;
-		const view: DurakBotView = {
-			hand: state.hands[actor],
-			table: state.table,
-			trump: state.trump,
-			deckCount: state.deck.length,
-			isAttacker: actor === state.attacker,
-			isDefender: actor === state.defender,
-			defenderHandSize: state.hands[state.defender].length,
+		const human: OnlineRole = "player1";
+		const catchChance = DURAK_CATCH_CHANCE[botDifficulty];
+		if (state.variants.includes("cheat")) {
+			// a card the player covered without beating it, or threw in with a rank that is not on the table
+			let caught: { index: number; isDefense: boolean; accuser: OnlineRole } | null = null;
+			state.table.forEach((bout, index) => {
+				if (caught) return;
+				const otherBot = getActiveDurakRoles(state.playerCount).find((role) => role !== human && role !== state.defender) ?? state.attacker;
+				if (bout.defense && state.defender === human && !canBeatDurakCard(bout.defense, bout.attack, state.trump)) {
+					const key = `${state.tableId}:d:${bout.attack}:${bout.defense}`;
+					if (botLookedAt.current.has(key)) return;
+					botLookedAt.current.add(key);
+					if (Math.random() < catchChance && otherBot !== human) caught = { index, isDefense: true, accuser: otherBot };
+				}
+				const thrower = bout.by ?? state.attacker;
+				if (thrower === human && index > 0) {
+					const ranks = new Set(state.table.slice(0, index).flatMap((b) => [b.attack, b.defense]).filter(Boolean).map((card) => cardRank(card as string)));
+					if (ranks.has(cardRank(bout.attack))) return;
+					const key = `${state.tableId}:a:${bout.attack}`;
+					if (botLookedAt.current.has(key)) return;
+					botLookedAt.current.add(key);
+					if (Math.random() < catchChance) caught = { index, isDefense: false, accuser: state.defender };
+				}
+			});
+			if (caught) {
+				const { index, isDefense, accuser } = caught;
+				const timer = setTimeout(() => callOutCheat(index, isDefense, accuser), 700);
+				return () => clearTimeout(timer);
+			}
+		}
+		const viewFor = (actor: OnlineRole): DurakBotView => {
+			const transferTarget = getNextDurakRole(state.defender, state.playerCount, state.hands, true);
+			return {
+				hand: state.hands[actor],
+				table: state.table,
+				trump: state.trump,
+				deckCount: state.deck.length,
+				isAttacker: actor !== state.defender,
+				isDefender: actor === state.defender,
+				defenderHandSize: state.hands[state.defender].length,
+				canTransfer: state.variants.includes("transfer"),
+				transferTargetHandSize: state.hands[transferTarget].length,
+				canCheat: state.variants.includes("cheat") && !state.bustedCheaters?.includes(actor),
+			};
 		};
+		const open = state.table.some((bout) => !bout.defense);
 		const timer = setTimeout(() => {
-			const action = chooseDurakAction(view, botDifficulty);
-			if (action.type === "attack") playCard(action.card, undefined, actor);
-			else if (action.type === "defend") playCard(action.card, action.index, actor);
-			else if (action.type === "take") takeRound(actor);
-			else if (action.type === "pass") passRound(actor);
+			if (open) {
+				// whoever has to answer an open attack acts
+				if (state.defender === human) return;
+				const action = chooseDurakAction(viewFor(state.defender), botDifficulty);
+				if (action.type === "defend" || action.type === "transfer") playCard(action.card, action.index, state.defender);
+				else if (action.type === "take") takeRound(state.defender);
+				return;
+			}
+			// the attacker leads; on a covered table every bot that may throw in gets a turn, then the attacker passes
+			const throwers = state.table.length === 0 ? [state.attacker] : getDurakThrowers(state);
+			for (const thrower of throwers) {
+				if (thrower === human) continue;
+				const action = chooseDurakAction(viewFor(thrower), botDifficulty);
+				if (action.type === "attack" && playCard(action.card, undefined, thrower)) return;
+			}
+			if (state.attacker !== human && state.table.length > 0) passRound(state.attacker);
 		}, 900);
 		return () => clearTimeout(timer);
 	}, [botMode, state, botDifficulty]);
@@ -839,7 +919,7 @@ const { t } = useLanguage();
 		if (!botMode && !room.isConnected) return;
 		if (winRecordedRef.current === state.tableId) return;
 		// The durak is whoever is left holding cards; the first one out wins, the others in between are not counted.
-		const outcome = state.draw ? "draw" : state.winner === seat ? "win" : (state.hands[seat]?.length ?? 0) > 0 ? "loss" : null;
+		const outcome = getDurakOutcome(state, seat);
 		winRecordedRef.current = state.tableId;
 		if (!outcome) return;
 		if (outcome === "win") recordMoreGameWin("durak", { vsBot: botMode, difficulty: botDifficulty });
@@ -948,7 +1028,7 @@ const { t } = useLanguage();
 		}
 	}, [flightPlan, sfx, state]);
 	useOutcomeSound(
-		!state?.winner || state.cancelled || !seat ? null : state.draw ? "draw" : state.winner === seat ? "win" : (state.hands[seat]?.length ?? 0) > 0 ? "loss" : null,
+		!state || !seat ? null : getDurakOutcome(state, seat),
 		state?.tableId ?? "",
 	);
 
@@ -1005,7 +1085,7 @@ const { t } = useLanguage();
 						</View>
 					</View>
 
-						<BotPanel compact vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); if (next) setActiveVariants((prev) => (prev.includes("cheat") ? [...prev.filter((variant) => variant !== "cheat"), "fair"] : prev)); }} difficulty={botDifficulty} onDifficultyChange={setBotDifficulty} friendLabel={t("bot.online")} />
+						<BotPanel compact vsBot={vsBot} onVsBotChange={setVsBot} difficulty={botDifficulty} onDifficultyChange={setBotDifficulty} friendLabel={t("bot.online")} />
 
 					<Collapsible visible={!vsBot}>
 <Text style={[styles.durakSectionLabel, { color: currentTheme.textSecondary }]}>{t("durak.yourBet")}</Text>

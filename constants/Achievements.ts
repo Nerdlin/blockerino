@@ -16,6 +16,7 @@ export interface AchievementStats {
 	seaWins: number;
 	durakWins: number;
 	tictactoeWins: number;
+	checkersWins: number;
 	sudokuSolved: number;
 	mahjongCleared: number;
 	botWins: number;
@@ -24,6 +25,12 @@ export interface AchievementStats {
 	peakCoins: number;
 	/** Longest daily login streak ever seen on this device (a high-water mark, not a sum). */
 	streakBest: number;
+	/** Longest run of days in a row with a Daily Puzzle played (a high-water mark). */
+	dailyStreakBest: number;
+	/** Most challenge stars held at once (a high-water mark; see constants/ChallengeProgress.ts). */
+	challengeStars: number;
+	/** Highest Versus rating ever seen (a high-water mark). */
+	eloPeak: number;
 }
 
 export type AchievementGroup = "solo" | "versus" | "games" | "economy";
@@ -78,9 +85,9 @@ function getBestScoreTotal(scores: HighScore[]): number {
 	return LEADERBOARD_GAME_MODES.reduce((total, mode) => total + getBestScoreForMode(scores, mode), 0);
 }
 
-/** How many different games the player has won at least once (Versus, chess, Sea Battle, Durak, Tic-Tac-Toe, Sudoku, Mahjong). */
+/** How many different games the player has won at least once (Versus, chess, Sea Battle, Durak, Tic-Tac-Toe, checkers, Sudoku, Mahjong). */
 export function getGameHopperProgress(stats: AchievementStats): number {
-	return [stats.versusWins, stats.chessWins, stats.seaWins, stats.durakWins, stats.tictactoeWins, stats.sudokuSolved, stats.mahjongCleared].filter((value) => value > 0).length;
+	return [stats.versusWins, stats.chessWins, stats.seaWins, stats.durakWins, stats.tictactoeWins, stats.checkersWins, stats.sudokuSolved, stats.mahjongCleared].filter((value) => value > 0).length;
 }
 
 export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
@@ -849,6 +856,114 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 		howToUnlock: "Log in 100 days in a row.",
 		getCurrent: (_scores, stats) => stats.streakBest,
 	},
+	{
+		id: "checkers_rookie",
+		chain: "checkers_wins",
+		reward: 50,
+		title: "Checkers Rookie",
+		target: 1,
+		howToUnlock: "Win a checkers game.",
+		getCurrent: (_scores, stats) => stats.checkersWins,
+	},
+	{
+		id: "checkers_captain",
+		chain: "checkers_wins",
+		reward: 200,
+		title: "Checkers Captain",
+		target: 10,
+		howToUnlock: "Win 10 checkers games.",
+		getCurrent: (_scores, stats) => stats.checkersWins,
+	},
+	{
+		id: "checkers_grandmaster",
+		chain: "checkers_wins",
+		reward: 750,
+		title: "Checkers Grandmaster",
+		target: 50,
+		howToUnlock: "Win 50 checkers games.",
+		getCurrent: (_scores, stats) => stats.checkersWins,
+	},
+	{
+		id: "daily_habit",
+		chain: "daily_streak",
+		reward: 50,
+		title: "Puzzle Habit",
+		target: 3,
+		howToUnlock: "Play the Daily Puzzle 3 days in a row.",
+		getCurrent: (_scores, stats) => stats.dailyStreakBest,
+	},
+	{
+		id: "daily_devotee",
+		chain: "daily_streak",
+		reward: 150,
+		title: "Puzzle Devotee",
+		target: 7,
+		howToUnlock: "Play the Daily Puzzle 7 days in a row.",
+		getCurrent: (_scores, stats) => stats.dailyStreakBest,
+	},
+	{
+		id: "daily_legend",
+		chain: "daily_streak",
+		reward: 750,
+		title: "Puzzle Legend",
+		target: 30,
+		howToUnlock: "Play the Daily Puzzle 30 days in a row.",
+		getCurrent: (_scores, stats) => stats.dailyStreakBest,
+	},
+	{
+		id: "star_gazer",
+		chain: "challenge_stars",
+		reward: 100,
+		title: "Star Gazer",
+		target: 5,
+		howToUnlock: "Earn 5 challenge stars.",
+		getCurrent: (_scores, stats) => stats.challengeStars,
+	},
+	{
+		id: "star_collector",
+		chain: "challenge_stars",
+		reward: 250,
+		title: "Star Collector",
+		target: 10,
+		howToUnlock: "Earn 10 challenge stars.",
+		getCurrent: (_scores, stats) => stats.challengeStars,
+	},
+	{
+		id: "star_master",
+		chain: "challenge_stars",
+		reward: 600,
+		title: "Star Master",
+		target: 15,
+		howToUnlock: "Earn all 15 challenge stars.",
+		getCurrent: (_scores, stats) => stats.challengeStars,
+	},
+	{
+		id: "rank_gold",
+		chain: "elo_rank",
+		reward: 150,
+		title: "Gold Rank",
+		target: 1000,
+		howToUnlock: "Reach 1000 rating in Versus (Gold).",
+		getCurrent: (_scores, stats) => stats.eloPeak,
+	},
+	{
+		id: "rank_diamond",
+		chain: "elo_rank",
+		reward: 400,
+		title: "Diamond Rank",
+		target: 1200,
+		howToUnlock: "Reach 1200 rating in Versus (Diamond).",
+		getCurrent: (_scores, stats) => stats.eloPeak,
+	},
+	{
+		id: "rank_legend",
+		chain: "elo_rank",
+		reward: 1500,
+		title: "Legend Rank",
+		target: 1600,
+		howToUnlock: "Reach 1600 rating in Versus (Legend).",
+		getCurrent: (_scores, stats) => stats.eloPeak,
+	},
 ];
 
 /** Which tab of the achievements screen a chain belongs to. */
@@ -865,12 +980,16 @@ export const ACHIEVEMENT_CHAIN_GROUPS: Record<string, AchievementGroup> = {
 	move_limit: "solo",
 	modes: "solo",
 	score_total: "solo",
+	daily_streak: "solo",
+	challenge_stars: "solo",
 	versus_wins: "versus",
 	versus_played: "versus",
+	elo_rank: "versus",
 	chess_wins: "games",
 	sea_wins: "games",
 	durak_wins: "games",
 	tictactoe_wins: "games",
+	checkers_wins: "games",
 	sudoku_solved: "games",
 	mahjong_cleared: "games",
 	bot_wins: "games",
@@ -997,12 +1116,16 @@ export function getDefaultAchievementStats(): AchievementStats {
 		seaWins: 0,
 		durakWins: 0,
 		tictactoeWins: 0,
+		checkersWins: 0,
 		sudokuSolved: 0,
 		mahjongCleared: 0,
 		botWins: 0,
 		botHardWins: 0,
 		peakCoins: 0,
 		streakBest: 0,
+		dailyStreakBest: 0,
+		challengeStars: 0,
+		eloPeak: 0,
 	};
 }
 
@@ -1018,6 +1141,7 @@ function mergeAchievementProgress(base: AchievementStats, progress: Partial<Achi
 		seaWins: base.seaWins + (progress.seaWins || 0),
 		durakWins: base.durakWins + (progress.durakWins || 0),
 		tictactoeWins: base.tictactoeWins + (progress.tictactoeWins || 0),
+		checkersWins: base.checkersWins + (progress.checkersWins || 0),
 		sudokuSolved: base.sudokuSolved + (progress.sudokuSolved || 0),
 		mahjongCleared: base.mahjongCleared + (progress.mahjongCleared || 0),
 		botWins: base.botWins + (progress.botWins || 0),
@@ -1025,6 +1149,9 @@ function mergeAchievementProgress(base: AchievementStats, progress: Partial<Achi
 		// high-water marks keep the largest value instead of adding up
 		peakCoins: Math.max(base.peakCoins, progress.peakCoins || 0),
 		streakBest: Math.max(base.streakBest, progress.streakBest || 0),
+		dailyStreakBest: Math.max(base.dailyStreakBest, progress.dailyStreakBest || 0),
+		challengeStars: Math.max(base.challengeStars, progress.challengeStars || 0),
+		eloPeak: Math.max(base.eloPeak, progress.eloPeak || 0),
 	};
 }
 
@@ -1115,7 +1242,7 @@ function feedDailyQuests(progress: Partial<AchievementStats>): void {
 	recordQuestProgress("pieces", progress.totalPiecesPlaced ?? 0);
 	recordQuestProgress("botWin", progress.botWins ?? 0);
 	recordQuestProgress("versus", progress.versusPlayed ?? 0);
-	const moreWins = (progress.chessWins ?? 0) + (progress.seaWins ?? 0) + (progress.durakWins ?? 0) + (progress.tictactoeWins ?? 0) + (progress.sudokuSolved ?? 0) + (progress.mahjongCleared ?? 0);
+	const moreWins = (progress.chessWins ?? 0) + (progress.seaWins ?? 0) + (progress.durakWins ?? 0) + (progress.tictactoeWins ?? 0) + (progress.checkersWins ?? 0) + (progress.sudokuSolved ?? 0) + (progress.mahjongCleared ?? 0);
 	recordQuestProgress("moreWin", moreWins);
 	recordQuestProgress("chessWin", progress.chessWins ?? 0);
 	recordQuestProgress("durakWin", progress.durakWins ?? 0);
@@ -1123,12 +1250,13 @@ function feedDailyQuests(progress: Partial<AchievementStats>): void {
 	recordQuestProgress("puzzle", (progress.sudokuSolved ?? 0) + (progress.mahjongCleared ?? 0));
 }
 
-type WinStatField = "chessWins" | "seaWins" | "durakWins" | "tictactoeWins" | "sudokuSolved" | "mahjongCleared";
+type WinStatField = "chessWins" | "seaWins" | "durakWins" | "tictactoeWins" | "checkersWins" | "sudokuSolved" | "mahjongCleared";
 const WIN_STAT_BY_GAME: Record<string, WinStatField> = {
 	chess: "chessWins",
 	battleship: "seaWins",
 	durak: "durakWins",
 	tictactoe: "tictactoeWins",
+	checkers: "checkersWins",
 	sudoku: "sudokuSolved",
 	mahjong: "mahjongCleared",
 };
@@ -1137,7 +1265,6 @@ const WIN_STAT_BY_GAME: Record<string, WinStatField> = {
 export function recordMoreGameWin(gameId: string, options: { vsBot?: boolean; difficulty?: string } = {}): void {
 	const field = WIN_STAT_BY_GAME[gameId];
 	recordGameOutcome(gameId, "win", { vsBot: options.vsBot });
-	// a game without its own win counter (checkers) still counts towards the "beat the computer" chains
 	const progress: Partial<AchievementStats> = field ? { [field]: 1 } : {};
 	if (options.vsBot) {
 		progress.botWins = 1;
@@ -1166,6 +1293,14 @@ export function noteStreakBest(best: number): void {
 	if (!Number.isFinite(best) || best <= notedStreakBest) return;
 	notedStreakBest = best;
 	void recordAchievementProgress({ streakBest: best });
+}
+
+const notedHighWater: Partial<Record<"dailyStreakBest" | "challengeStars" | "eloPeak", number>> = {};
+/** Remembers a high-water mark (Daily Puzzle streak, challenge stars, Versus rating); cheap to call often. */
+export function noteAchievementHighWater(field: "dailyStreakBest" | "challengeStars" | "eloPeak", value: number): void {
+	if (!Number.isFinite(value) || value <= (notedHighWater[field] ?? 0)) return;
+	notedHighWater[field] = value;
+	void recordAchievementProgress({ [field]: value });
 }
 
 export async function getAchievementRows(): Promise<AchievementRow[]> {

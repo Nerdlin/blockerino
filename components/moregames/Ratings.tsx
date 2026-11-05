@@ -29,6 +29,9 @@ const GAME_GLYPHS = {
 	mahjong: ACHIEVEMENT_GLYPHS.bricks,
 } satisfies Record<RatedMoreGameId, unknown>;
 
+/** Sudoku and Mahjong are played alone: a "win" is a solved board, and Mahjong cannot be lost at all. */
+const isPuzzleGame = (gameId: RatedMoreGameId) => gameId === "sudoku" || gameId === "mahjong";
+
 const gameColor = (gameId: RatedMoreGameId) => MORE_GAME_CARDS.find((item) => item.id === gameId)?.color ?? "#FFFFFF";
 
 /** The game picker: four tiles a row, each with the game's icon over its name, in the game's colour. */
@@ -84,16 +87,20 @@ export function MoreGameLeaderboardPanel({
 	const myIndex = leaderboard.findIndex((entry) => entry.player_name.toLowerCase() === playerName.toLowerCase());
 	const myAvatar = myIndex >= 0 ? leaderboard[myIndex].avatar_url : null;
 	const myRate = winRate(myRating);
+	const puzzle = isPuzzleGame(gameId);
+	// Mahjong only records a cleared board, so its share is always 100% and says nothing
+	const showRate = gameId !== "mahjong";
+	const cta_ = (key: string) => t(puzzle ? `moregames.puzzle.${key}` : `moregames.${key}`, { place: myIndex + 1 });
 	// under the table (or in place of an empty one): where the player stands and a way straight into the game
 	const cta = (
 		<View style={[local.cta, { borderColor: color }]}>
 			<PixelGlyphView glyph={GAME_GLYPHS[gameId]} size={36} />
 			<View style={{ flex: 1, gap: 4 }}>
 				<Text style={[local.ctaTitle, { color }]}>
-					{myIndex === 0 ? t("moregames.ctaTopTitle") : myIndex > 0 ? t("moregames.ctaPlaceTitle", { place: myIndex + 1 }) : leaderboard.length === 0 ? t("moregames.ctaFirstTitle") : t("moregames.ctaJoinTitle")}
+					{myIndex === 0 ? cta_("ctaTopTitle") : myIndex > 0 ? cta_("ctaPlaceTitle") : leaderboard.length === 0 ? cta_("ctaFirstTitle") : cta_("ctaJoinTitle")}
 				</Text>
 				<Text style={[local.ctaText, { color: currentTheme.textSecondary }]}>
-					{myIndex === 0 ? t("moregames.ctaTopText") : myIndex > 0 ? t("moregames.ctaPlaceText") : leaderboard.length === 0 ? t("moregames.ctaFirstText") : t("moregames.ctaJoinText")}
+					{myIndex === 0 ? cta_("ctaTopText") : myIndex > 0 ? cta_("ctaPlaceText") : leaderboard.length === 0 ? cta_("ctaFirstText") : cta_("ctaJoinText")}
 				</Text>
 			</View>
 			<Pressable onPress={() => onPlay(gameId)} style={[local.ctaButton, { backgroundColor: color }]}>
@@ -111,17 +118,28 @@ export function MoreGameLeaderboardPanel({
 				<View style={{ flex: 1, gap: 4 }}>
 					<Text style={[local.meName, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(playerName) }]} numberOfLines={1}>{playerName}</Text>
 					<View style={local.meStats}>
-						<Text style={[local.meStat, { color: "#4ADE80" }]}>{t("moregames.statW", { n: myRating?.wins || 0 })}</Text>
-						<Text style={[local.meStat, { color: "#F87171" }]}>{t("moregames.statL", { n: myRating?.losses || 0 })}</Text>
-						<Text style={[local.meStat, { color: "#9CA3AF" }]}>{t("moregames.statD", { n: myRating?.draws || 0 })}</Text>
+						{puzzle ? (
+							<>
+								<Text style={[local.meStat, { color: "#4ADE80" }]}>{t(`moregames.solved.${gameId}`, { n: myRating?.wins || 0 })}</Text>
+								{showRate && <Text style={[local.meStat, { color: "#F87171" }]}>{t("moregames.unsolved", { n: myRating?.losses || 0 })}</Text>}
+							</>
+						) : (
+							<>
+								<Text style={[local.meStat, { color: "#4ADE80" }]}>{t("moregames.statW", { n: myRating?.wins || 0 })}</Text>
+								<Text style={[local.meStat, { color: "#F87171" }]}>{t("moregames.statL", { n: myRating?.losses || 0 })}</Text>
+								<Text style={[local.meStat, { color: "#9CA3AF" }]}>{t("moregames.statD", { n: myRating?.draws || 0 })}</Text>
+							</>
+						)}
 					</View>
-					<View style={local.rateTrack}>
-						<View style={[local.rateFill, { width: `${myRate}%`, backgroundColor: color }]} />
-					</View>
+					{showRate && (
+						<View style={local.rateTrack}>
+							<View style={[local.rateFill, { width: `${myRate}%`, backgroundColor: color }]} />
+						</View>
+					)}
 				</View>
 				<View style={local.mePlace}>
 					<Text style={[local.mePlaceNumber, { color }]}>{myIndex >= 0 ? `#${myIndex + 1}` : "—"}</Text>
-					<Text style={local.mePlaceLabel}>{t("moregames.winRateShort", { rate: myRate })}</Text>
+					<Text style={local.mePlaceLabel}>{!showRate ? t("moregames.placeWord") : t(puzzle ? "moregames.solvedRateShort" : "moregames.winRateShort", { rate: myRate })}</Text>
 				</View>
 			</View>
 
@@ -143,7 +161,11 @@ export function MoreGameLeaderboardPanel({
 								key: `${entry.game_id}-${entry.player_key || entry.player_name}`,
 								name: entry.player_name,
 								avatarUrl: entry.avatar_url,
-								meta: t("moregames.podiumWins", { wins: entry.wins, rate: winRate(entry) }),
+								meta: !puzzle
+									? t("moregames.podiumWins", { wins: entry.wins, rate: winRate(entry) })
+									: showRate
+										? `${t(`moregames.solved.${gameId}`, { n: entry.wins })} · ${winRate(entry)}%`
+										: t(`moregames.solved.${gameId}`, { n: entry.wins }),
 								isMe: entry.player_name.toLowerCase() === playerName.toLowerCase(),
 							}))}
 						/>
@@ -162,13 +184,15 @@ export function MoreGameLeaderboardPanel({
 										<Text style={[local.rowName, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(entry.player_name) }]} numberOfLines={1}>
 											{entry.player_name}{isMe ? ` (${t("moregames.you")})` : ""}
 										</Text>
-										<View style={local.rateTrackThin}>
-											<View style={[local.rateFill, { width: `${rate}%`, backgroundColor: color }]} />
-										</View>
+										{showRate && (
+											<View style={local.rateTrackThin}>
+												<View style={[local.rateFill, { width: `${rate}%`, backgroundColor: color }]} />
+											</View>
+										)}
 									</View>
 									<View style={{ alignItems: "flex-end" }}>
 										<Text style={[local.rowWins, { color: currentTheme.textPrimary }]}>{entry.wins}</Text>
-										<Text style={local.rowMeta}>{t("moregames.rowMeta", { games: entry.games_played, rate })}</Text>
+										<Text style={local.rowMeta}>{!puzzle ? t("moregames.rowMeta", { games: entry.games_played, rate }) : showRate ? t("moregames.rowMetaPuzzle", { games: entry.games_played, rate }) : t(`moregames.solvedWord.${gameId}`)}</Text>
 									</View>
 								</Pressable>
 							);

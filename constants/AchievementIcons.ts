@@ -558,6 +558,34 @@ export const ACHIEVEMENT_GLYPHS = {
 			".........",
 		],
 	},
+	checker: {
+		palette: { a: "#EF4444", b: "#991B1B", c: "#FCA5A5", d: "#FACC15" },
+		rows: [
+			".........",
+			"..aaaaa..",
+			".aacccaa.",
+			"aacaaacaa",
+			"aacadacaa",
+			"aacaaacaa",
+			"baacccaab",
+			".bbaaabb.",
+			"..bbbbb..",
+		],
+	},
+	flame: {
+		palette: { a: "#F97316", b: "#B91C1C", c: "#FDE047", d: "#FFFFFF" },
+		rows: [
+			"....a....",
+			"...aa....",
+			"..aaa.a..",
+			"..aacaaa.",
+			".aaccaaa.",
+			".acccdcab",
+			".accdddcb",
+			"..bcccbb.",
+			"...bbbb..",
+		],
+	},
 } satisfies Record<string, PixelGlyph>;
 
 export type AchievementGlyphName = keyof typeof ACHIEVEMENT_GLYPHS;
@@ -648,12 +676,30 @@ export const ACHIEVEMENT_ICON_BY_ID: Record<string, AchievementGlyphName> = {
 	fortnight_fighter: "bolt",
 	monthly_devotion: "medalStar",
 	centurion: "trophy",
+	checkers_rookie: "checker",
+	checkers_captain: "checker",
+	checkers_grandmaster: "crown",
+	daily_habit: "flame",
+	daily_devotee: "flame",
+	daily_legend: "calendarStar",
+	star_gazer: "star",
+	star_collector: "sparkle",
+	star_master: "star",
+	rank_gold: "medalStar",
+	rank_diamond: "gem",
+	rank_legend: "crown",
 };
 
 // Recolours so a glyph shared by several achievements still looks distinct.
 export const ACHIEVEMENT_PALETTE_OVERRIDES: Record<string, GlyphPalette> = {
 	speed_spark: { a: "#22D3EE", b: "#0E7490", c: "#CFFAFE", d: "#FFFFFF" },
 	daily_regular: { a: "#F8FAFC", b: "#94A3B8", c: "#3B82F6", d: "#475569" },
+	checkers_captain: { a: "#F8FAFC", b: "#64748B", c: "#CBD5E1", d: "#FACC15" },
+	checkers_grandmaster: { a: "#EF4444", b: "#991B1B", c: "#FCA5A5", d: "#FFFFFF" },
+	daily_devotee: { a: "#3B82F6", b: "#1E3A8A", c: "#BFDBFE", d: "#FFFFFF" },
+	star_master: { a: "#E879F9", b: "#86198F", c: "#FAE8FF", d: "#FFFFFF" },
+	rank_diamond: { a: "#38BDF8", b: "#0369A1", c: "#E0F2FE", d: "#FFFFFF" },
+	rank_legend: { a: "#FF4500", b: "#9A3412", c: "#FDBA74", d: "#FFFFFF" },
 };
 
 export function getAchievementGlyph(achievementId: string): { glyph: PixelGlyph; palette: GlyphPalette } | null {

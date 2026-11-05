@@ -21,6 +21,7 @@ import { useLanguage } from "@/constants/Localization";
 import UiIcon from "@/components/UiIcon";
 import VersusFriendsStrip from "./VersusFriendsStrip";
 import { EloLeaderboardView } from "./EloLeaderboardView";
+import { noteAchievementHighWater } from "@/constants/Achievements";
 import type { UiGlyphName } from "@/constants/UiGlyphs";
 
 interface MultiplayerMenuProps {
@@ -74,6 +75,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const [hasSavedName, setHasSavedName] = useState(false);
     const [playerId, setPlayerId] = useState("");
     const [playerElo, setPlayerElo] = useState<number>(0);
+    // the rank tiers (Gold, Diamond, Legend) are achievements
+    useEffect(() => noteAchievementHighWater("eloPeak", playerElo), [playerElo]);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [publicRooms, setPublicRooms] = useState<any[]>([]);
     const quickScanRef = useRef<ReturnType<typeof setInterval> | null>(null);

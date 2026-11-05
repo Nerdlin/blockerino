@@ -2,7 +2,7 @@ import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { submitMoreGameMatchResult } from "@/constants/Supabase";
-import { Animated, Easing, View, Text, Pressable } from "react-native";
+import { Animated, Easing, View, Text, Pressable, useWindowDimensions } from "react-native";
 import StylizedButton from "../StylizedButton";
 import Collapsible from "../Collapsible";
 import { recordMoreGameWin } from "@/constants/Achievements";
@@ -17,7 +17,7 @@ import { useIncomingGameInvite } from "@/constants/GameInvite";
 import { buzz, useGameSfx, useOutcomeSound } from "./feedback";
 
 /** A mark pops in when it is placed; the marks of the winning line pulse. */
-function TicMarkView({ value, winning }: { value: TicMark; winning: boolean }) {
+function TicMarkView({ value, winning, size }: { value: TicMark; winning: boolean; size: number }) {
 	const pop = useRef(new Animated.Value(0)).current;
 	const pulse = useRef(new Animated.Value(1)).current;
 	useEffect(() => {
@@ -36,7 +36,7 @@ function TicMarkView({ value, winning }: { value: TicMark; winning: boolean }) {
 		};
 	}, [winning, pulse]);
 	return (
-		<Animated.Text style={[styles.ticText, { color: value === "X" ? "#38BDF8" : "#F472B6", transform: [{ scale: Animated.multiply(pop, pulse) }] }]}>
+		<Animated.Text style={[styles.ticText, { fontSize: size, lineHeight: Math.round(size * 1.15), color: value === "X" ? "#38BDF8" : "#F472B6", transform: [{ scale: Animated.multiply(pop, pulse) }] }]}>
 			{value}
 		</Animated.Text>
 	);
@@ -55,6 +55,9 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 	const winner = getTicTacToeWinner(board);
 	const isDraw = !winner && board.every(Boolean);
 	const gameFinished = Boolean(winner) || isDraw || Boolean(remoteResult);
+	// the game is full screen on a phone: the board takes most of the width, and still leaves the controls in view
+	const window = useWindowDimensions();
+	const boardSize = Math.round(Math.max(216, Math.min(420, window.width - 48, window.height * 0.46)));
 
 	const handleEvent = useCallback((event: string, payload: any, senderRole?: OnlineRole) => {
 		if (event === "system_joined" && senderRole) {
@@ -232,8 +235,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 	return (
 		<View style={styles.onlineGame}>
 			<Text style={[styles.gameStatus, { color: winner || remoteResult ? currentTheme.accent : currentTheme.textPrimary }]}>{status}</Text>
-			{/* Sized to leave room for the opponent panel below on a phone */}
-			<View style={[styles.ticBoard, { width: 216, height: 216, maxWidth: 216 }]}>
+			<View style={[styles.ticBoard, { width: boardSize, height: boardSize, maxWidth: boardSize }]}>
 				{board.map((value, index) => (
 					<Pressable
 						key={index}
@@ -241,7 +243,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 						onPress={() => play(index)}
 						style={[styles.ticCell, { borderColor: currentTheme.gridBorder, backgroundColor: hintCell === index ? "rgba(74, 222, 128, 0.35)" : currentTheme.emptyBlockBorder }]}
 					>
-						{value ? <TicMarkView value={value} winning={winningLine.has(index)} /> : null}
+						{value ? <TicMarkView value={value} winning={winningLine.has(index)} size={Math.round(boardSize / 4)} /> : null}
 					</Pressable>
 				))}
 			</View>

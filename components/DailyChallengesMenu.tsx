@@ -13,6 +13,9 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { shouldCheckConnectionBeforeStart } from "@/constants/GameStart";
 import { CHALLENGE_MODE_CARDS, ChallengeCard, getGameModeConfig } from "@/constants/GameModes";
 import { useLanguage } from "@/constants/Localization";
+import UiIcon from "./UiIcon";
+import { noteAchievementHighWater } from "@/constants/Achievements";
+import { countChallengeStars, dailyStreak, getDailyPuzzleDays, MAX_CHALLENGE_STARS, msUntilNextPuzzle, nextGoal, puzzleDayKey, starsForScore } from "@/constants/ChallengeProgress";
 
 type BestScoreMap = Partial<Record<GameModeType, number>>;
 
@@ -28,6 +31,12 @@ export default function DailyChallengesMenu() {
     const isMobile = width < 600;
 
     const [bestScores, setBestScores] = useState<BestScoreMap>({});
+    const [streak, setStreak] = useState(0);
+    const [untilNext, setUntilNext] = useState(msUntilNextPuzzle());
+    useEffect(() => {
+        const timer = setInterval(() => setUntilNext(msUntilNextPuzzle()), 30000);
+        return () => clearInterval(timer);
+    }, []);
     const [checkingMode, setCheckingMode] = useState<GameModeType | null>(null);
     const [showRating, setShowRating] = useState(false);
     const handleBack = useCallback(() => {
@@ -50,6 +59,12 @@ export default function DailyChallengesMenu() {
 
         Promise.all(
             playableCards.map(async (card) => {
+                // the Daily Puzzle is a new board every day: its card shows today's best
+                if (card.mode === GameModeType.DailyPuzzle) {
+                    const days = await getDailyPuzzleDays();
+                    if (isMounted) setStreak(dailyStreak(days));
+                    return [card.mode, days[puzzleDayKey()] ?? 0] as const;
+                }
                 const scores = await getHighScores(card.mode, true, true, 1);
                 const local = scores[0]?.score ?? 0;
                 // a fresh install or another device has no local record: the account's record from the server counts too
@@ -58,7 +73,9 @@ export default function DailyChallengesMenu() {
             })
         ).then((entries) => {
             if (!isMounted) return;
-            setBestScores(Object.fromEntries(entries) as BestScoreMap);
+            const best = Object.fromEntries(entries) as BestScoreMap;
+            setBestScores(best);
+            noteAchievementHighWater("challengeStars", countChallengeStars(best));
         });
 
         return () => {
@@ -76,13 +93,18 @@ export default function DailyChallengesMenu() {
         setCheckingMode(null);
     };
 
-    const renderCard = (card: ChallengeCard, index: number) => {
-        const featured = index === 0;
+    const totalStars = countChallengeStars(bestScores);
+    const hours = Math.floor(untilNext / 3600000);
+    const minutes = Math.floor((untilNext % 3600000) / 60000);
+    const nextPuzzleIn = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+
+    const renderCard = (card: ChallengeCard) => {
+        const isDaily = card.mode === GameModeType.DailyPuzzle;
         const config = getGameModeConfig(card.mode);
-        const title = config.title;
         const color = config.challenge?.color ?? currentTheme.buttonPrimary;
-        const description = config.challenge?.description ?? "";
         const bestScore = bestScores[card.mode] ?? 0;
+        const stars = starsForScore(card.mode, bestScore);
+        const goal = nextGoal(card.mode, bestScore);
         const isChecking = checkingMode === card.mode;
 
         return (
@@ -90,33 +112,47 @@ export default function DailyChallengesMenu() {
                 key={card.mode}
                 style={[
                     styles.challengeRow,
-                    {
-                        borderColor: color,
-                        backgroundColor: featured ? "rgba(255, 215, 0, 0.08)" : "rgba(0, 0, 0, 0.24)",
-                    },
-                    featured && styles.featuredRow,
+                    { borderColor: color, backgroundColor: isDaily ? "rgba(255, 215, 0, 0.08)" : "rgba(0, 0, 0, 0.24)" },
+                    isDaily && styles.featuredRow,
                     isMobile && styles.mobileChallengeRow,
                 ]}
             >
                 <View style={styles.cardMain}>
-                    <Text
-                        style={[styles.cardTitle, isMobile && styles.mobileCardTitle, { color }]}
-                        numberOfLines={isMobile ? 2 : 1}
-                        adjustsFontSizeToFit
-                    >
-                        {title}
+                    <Text style={[styles.cardTitle, isMobile && styles.mobileCardTitle, { color }]} numberOfLines={1} adjustsFontSizeToFit>
+                        {t(`ch.title.${card.mode}`)}
                     </Text>
                     <Text style={[styles.cardDesc, { color: currentTheme.textPrimary }]} numberOfLines={2}>
-                        {description}
+                        {t(`ch.desc.${card.mode}`)}
                     </Text>
+                    <View style={styles.starRow}>
+                        {[0, 1, 2].map((slot) => (
+                            <View key={slot} style={{ opacity: slot < stars ? 1 : 0.22 }}>
+                                <UiIcon name="starGold" size={18} />
+                            </View>
+                        ))}
+                        <Text style={[styles.goalText, { color: stars === 3 ? color : currentTheme.textSecondary }]} numberOfLines={1}>
+                            {goal === null ? t("ch.allStars") : t("ch.nextGoal", { score: goal })}
+                        </Text>
+                    </View>
+                    {isDaily && (
+                        <View style={styles.dailyMeta}>
+                            {streak > 0 && (
+                                <View style={styles.streakChip}>
+                                    <UiIcon name="fire" size={12} />
+                                    <Text style={[styles.metaText, { color: "#FDBA74" }]}>{t("ch.streak", { days: streak })}</Text>
+                                </View>
+                            )}
+                            <Text style={[styles.metaText, { color: currentTheme.textSecondary }]}>{t("ch.newIn", { time: nextPuzzleIn })}</Text>
+                        </View>
+                    )}
                 </View>
 
                 <View style={[styles.cardAction, isMobile && styles.mobileCardAction]}>
                     <Text style={[styles.bestScoreValue, { color: currentTheme.accent }]} numberOfLines={1} adjustsFontSizeToFit>
-                        {t("ch.best")} {bestScore}
+                        {isDaily ? t("ch.today", { score: bestScore }) : `${t("ch.best")} ${bestScore}`}
                     </Text>
                     <StylizedButton
-                        text={isChecking ? t("ch.checking") : config.challenge?.buttonText ?? t("ch.play")}
+                        text={isChecking ? t("ch.checking") : t("ch.play")}
                         onClick={() => startMode(card.mode)}
                         backgroundColor={color}
                         disabled={isChecking}
@@ -150,14 +186,20 @@ export default function DailyChallengesMenu() {
                     )}
                 </View>
                 {!showRating && (
-                    <Text style={[styles.subHeader, { color: currentTheme.textSecondary }]}>{t("ch.subHeader")}</Text>
+                    <View style={styles.subHeaderRow}>
+                        <Text style={[styles.subHeader, { color: currentTheme.textSecondary }]} numberOfLines={2}>{t("ch.subHeader")}</Text>
+                        <View style={styles.totalStars}>
+                            <UiIcon name="starGold" size={18} />
+                            <Text style={[styles.metaText, { color: "#FACC15" }]}>{t("ch.starsTotal", { stars: totalStars, max: MAX_CHALLENGE_STARS })}</Text>
+                        </View>
+                    </View>
                 )}
 
                 {showRating ? (
                     <ChallengeLeaderboard />
                 ) : (
                     <View style={styles.challengeList}>
-                        {CHALLENGE_MODE_CARDS.map((card, index) => renderCard(card, index))}
+                        {CHALLENGE_MODE_CARDS.map((card) => renderCard(card))}
                     </View>
                 )}
             </Animated.View>
@@ -194,12 +236,59 @@ const styles = StyleSheet.create({
         fontFamily: "Silkscreen",
         textAlign: "center",
     },
+    subHeaderRow: {
+        width: "94%",
+        alignItems: "center",
+        gap: 6,
+        marginTop: 2,
+        marginBottom: 12,
+    },
     subHeader: {
         fontSize: 11,
         fontFamily: "Silkscreen",
-        marginTop: 2,
-        marginBottom: 12,
         textAlign: "center",
+    },
+    totalStars: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: "rgba(250, 204, 21, 0.5)",
+        backgroundColor: "rgba(250, 204, 21, 0.08)",
+    },
+    starRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 3,
+        marginTop: 1,
+    },
+    goalText: {
+        marginLeft: 4,
+        flexShrink: 1,
+        fontSize: 9,
+        fontFamily: "Silkscreen",
+    },
+    dailyMeta: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 8,
+    },
+    streakChip: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        backgroundColor: "rgba(249, 115, 22, 0.16)",
+    },
+    metaText: {
+        fontSize: 9,
+        fontFamily: "Silkscreen",
     },
     challengeList: {
         width: "94%",

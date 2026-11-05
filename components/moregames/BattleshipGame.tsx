@@ -156,9 +156,13 @@ export function CrossMark({ size }: { size: number }) {
 }
 
 export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
-	const compactFleet = useWindowDimensions().width < 420;
+	const windowWidth = useWindowDimensions().width;
+	const compactFleet = windowWidth < 420;
 	const battleGridSize = useBattleGridSize();
-	const leftPanelWidth = battleGridSize > 220 ? Math.round((battleGridSize / 10) * 0.82 * 4) + 44 : 70;
+	const { target: targetGridSize, fleet: fleetGridSize } = useInBattleGridSize();
+	const leftPanelWidth = 70;
+	// before a room, a phone shows the fleet above the board, so the board gets the whole width
+	const preLobbyGridSize = compactFleet ? Math.round(Math.max(battleGridSize, Math.min(340, windowWidth - 36))) : battleGridSize;
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
 	const [fleet, setFleet] = useState(createDefaultFleet);
@@ -631,7 +635,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 								setBoardLayout({ x: pageX, y: pageY, w, h });
 							});
 						}}>
-							<BattleGrid testPrefix="sea-mine" cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} />
+							<BattleGrid testPrefix="sea-mine" cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} size={preLobbyGridSize} />
 						</View>
 						<View style={[styles.battleLobbyButtons, { marginTop: 0 }]}>
 							{/* Right under the board: on a phone the opponent panel below pushed it off screen */}
@@ -736,14 +740,14 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 					</View>
 				)}
 				<View style={[styles.battleBoardsVertical, { zIndex: 1 }]}>
-					{ready ? <BattleGrid testPrefix="sea-target" title={t("moregames.target")} cells={targetShots} crossed={targetCrossed} onPress={fire} cosmetics={cosmetics} size={IN_BATTLE_GRID_SIZE} /> : null}
+					{ready ? <BattleGrid testPrefix="sea-target" title={t("moregames.target")} cells={targetShots} crossed={targetCrossed} onPress={fire} cosmetics={cosmetics} size={targetGridSize} /> : null}
 					<View ref={boardRef} onLayout={() => {
 						measureScreenRect(boardRef.current, (pageX, pageY, w, h) => {
 							setBoardLayout({ x: pageX, y: pageY, w, h });
 						});
 					}}>
 						{/* once the battle starts the fleet is fixed, so no ship stays highlighted as selected */}
-						<BattleGrid testPrefix="sea-mine" title={t("moregames.myFleet")} cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={ready ? undefined : selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} size={ready ? IN_BATTLE_GRID_SIZE : undefined} />
+						<BattleGrid testPrefix="sea-mine" title={t("moregames.myFleet")} cells={incomingShots} crossed={ownCrossed} ships={fleet} selectedShipId={ready ? undefined : selectedShipId} onPress={placeSelectedShip} cosmetics={cosmetics} dragPreview={dragPreview} size={ready ? fleetGridSize : battleGridSize} />
 					</View>
 				</View>
 			</View>
@@ -794,7 +798,8 @@ export function ShipDragItem({ ship, onDrop, selected, onSelect, paper, onDragMo
 		}
 	}), [ship.id, onDrop, onSelect, onDragMove, onDragEnd]);
 
-	const cellSize = Math.round((useBattleGridSize() / 10) * 0.82);
+	// the fleet list sits in a narrow column next to the board, so its ships keep one size
+	const cellSize = Math.round((SETUP_GRID_MIN / 10) * 0.82);
 	const w = ship.orientation === "h" ? ship.length * cellSize : cellSize;
 	const h = ship.orientation === "v" ? ship.length * cellSize : cellSize;
 
@@ -812,12 +817,28 @@ export function ShipDragItem({ ship, onDrop, selected, onSelect, paper, onDragMo
 	);
 }
 
-// In battle both boards are on screen at once: the same size for both, small enough to fit a phone screen.
-const IN_BATTLE_GRID_SIZE = 190;
+const SETUP_GRID_MIN = 220;
+const IN_BATTLE_GRID_MIN = 190;
 
-// Sea Battle board edge in px. The popup card itself is scaled up on big screens.
-export function getBattleGridSize(_width: number, _height: number) {
-	return 220;
+// Sea Battle board edge while placing ships. A phone plays full screen: the board takes the width left next to the
+// fleet column (70 px). Bigger screens keep the window, which the popup itself scales up.
+export function getBattleGridSize(width: number, _height: number) {
+	if (width >= 600) return SETUP_GRID_MIN;
+	return Math.round(Math.max(SETUP_GRID_MIN, Math.min(340, width - 122)));
+}
+
+// In battle both boards are on screen, one above the other. On a phone the target (where you shoot) takes the width
+// and your own fleet is a smaller map under it: it only shows the shots you take.
+export function getInBattleGridSize(width: number, height: number): { target: number; fleet: number } {
+	if (width >= 600) return { target: IN_BATTLE_GRID_MIN, fleet: IN_BATTLE_GRID_MIN };
+	const fleet = Math.round(Math.max(150, Math.min(200, (height - 330) * 0.36)));
+	const target = Math.round(Math.max(IN_BATTLE_GRID_MIN, Math.min(400, width - 24, height - 330 - fleet)));
+	return { target, fleet };
+}
+
+export function useInBattleGridSize() {
+	const { width, height } = useWindowDimensions();
+	return getInBattleGridSize(width, height);
 }
 
 // Screen-space rectangle of a view, in the same coordinates as touch pageX/pageY. On web, measure()
