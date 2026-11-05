@@ -39,7 +39,7 @@ describe("Daily Puzzle streak", () => {
 
 describe("Daily Puzzle three-star reward", () => {
 	it("uses the same goal and coins as the server", () => {
-		const sql = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", "20261105100000_achievements_and_daily_board.sql"), "utf8");
+		const sql = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", "20261105201459_achievements_and_daily_board.sql"), "utf8");
 		const body = (name: string) => sql.slice(sql.indexOf(`FUNCTION public.${name}()`), sql.indexOf("$$;", sql.indexOf(`FUNCTION public.${name}()`)));
 		expect(body("daily_puzzle_three_star_score")).toContain(`SELECT ${CHALLENGE_GOALS[GameModeType.DailyPuzzle][2]} `);
 		expect(body("daily_puzzle_reward_coins")).toContain(`SELECT ${DAILY_THREE_STAR_COINS} `);

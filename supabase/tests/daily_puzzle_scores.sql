@@ -1,4 +1,4 @@
--- Check for 20261105100000_achievements_and_daily_board.sql. Everything is rolled back; any failed assert stops the run.
+-- Check for 20261105201459_achievements_and_daily_board.sql. Everything is rolled back; any failed assert stops the run.
 begin;
 
 insert into auth.users (id, email) values

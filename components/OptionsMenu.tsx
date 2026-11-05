@@ -393,7 +393,7 @@ export default function OptionsMenu() {
 				<View style={styles.settingSection}>
 					<Text style={[styles.sectionLabel, { color: currentTheme.accent }]}>{t("settings.updates")}</Text>
 					<Text style={[styles.settingDesc, { color: currentTheme.textSecondary, marginBottom: 8 }]}>
-						{`${t("settings.version")}: ${Application.nativeApplicationVersion || '2.0.6'} (${Application.nativeBuildVersion ? `build ${Application.nativeBuildVersion}` : 'latest'})`}
+						{`${t("settings.version")}: ${Application.nativeApplicationVersion || '2.0.7'} (${Application.nativeBuildVersion ? `build ${Application.nativeBuildVersion}` : 'latest'})`}
 					</Text>
 					{Platform.OS === 'android' && (
 						<StylizedButton
