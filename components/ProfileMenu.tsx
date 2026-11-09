@@ -30,6 +30,12 @@ import { consumeProfileAuthIntent } from "@/constants/ProfileIntent";
 import MatchHistoryList from "./MatchHistoryList";
 import FriendsList from "./FriendsList";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { isDiscordActivityLocation } from "@/constants/DiscordEnvironment";
+
+// Inside a Discord Activity the page may not navigate to other sites (Discord ends the activity),
+// so the OAuth redirects to Google / Discord cannot be used there.
+const IN_DISCORD_ACTIVITY = Platform.OS === "web" && typeof window !== "undefined" && !!window.location
+	&& isDiscordActivityLocation(window.location.hostname, window.location.search);
 
 if (Platform.OS !== "web") {
 	GoogleSignin.configure({
@@ -654,21 +660,29 @@ export default function ProfileMenu() {
 							textStyle={isMobile && styles.mobileAuthButtonText}
 						/>
 
-						<StylizedButton 
-							onClick={handleGoogleSignIn}
-							text={t("profile.googleSignIn")}
-							backgroundColor="rgb(220, 70, 50)"
-							style={[styles.authButton, isMobile && styles.mobileAuthButton]}
-							textStyle={isMobile && styles.mobileAuthButtonText}
-						/>
+						{IN_DISCORD_ACTIVITY ? (
+							<Text style={{ color: currentTheme.textSecondary, fontSize: 12, textAlign: "center", marginTop: 10 }}>
+								{t("profile.discordActivityAuthHint")}
+							</Text>
+						) : (
+							<>
+								<StylizedButton 
+									onClick={handleGoogleSignIn}
+									text={t("profile.googleSignIn")}
+									backgroundColor="rgb(220, 70, 50)"
+									style={[styles.authButton, isMobile && styles.mobileAuthButton]}
+									textStyle={isMobile && styles.mobileAuthButtonText}
+								/>
 
-						<StylizedButton 
-							onClick={handleDiscordSignIn}
-							text={t("profile.discordSignIn")}
-							backgroundColor="rgb(88, 101, 242)"
-							style={[styles.authButton, isMobile && styles.mobileAuthButton]}
-							textStyle={isMobile && styles.mobileAuthButtonText}
-						/>
+								<StylizedButton 
+									onClick={handleDiscordSignIn}
+									text={t("profile.discordSignIn")}
+									backgroundColor="rgb(88, 101, 242)"
+									style={[styles.authButton, isMobile && styles.mobileAuthButton]}
+									textStyle={isMobile && styles.mobileAuthButtonText}
+								/>
+							</>
+						)}
 
 						<StylizedButton 
 							onClick={() => {
