@@ -66,7 +66,6 @@ export interface PlayerProfile {
     auth_user_id?: string | null;
     player_id?: string | null;
     player_name: string;
-    email?: string | null;
     avatar_url?: string | null;
     coins?: number | null;
     elo?: number | null;
@@ -115,7 +114,7 @@ function getUserAvatarUrl(user: User): string | null {
 async function getExistingProfileForAuthUser(userId: string): Promise<PlayerProfile | null> {
     const { data, error } = await supabase
         .from('profiles')
-        .select('id, auth_user_id, player_id, player_name, email, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
+        .select('id, auth_user_id, player_id, player_name, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
         .or(`auth_user_id.eq.${userId},player_id.eq.${userId}`)
         .limit(1);
 
@@ -130,7 +129,7 @@ async function getExistingProfileForAuthUser(userId: string): Promise<PlayerProf
 async function getReusableProfileByName(playerName: string, userId: string): Promise<PlayerProfile | null> {
     const { data, error } = await supabase
         .from('profiles')
-        .select('id, auth_user_id, player_id, player_name, email, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
+        .select('id, auth_user_id, player_id, player_name, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
         .ilike('player_name', escapeIlike(playerName))
         .limit(1);
 
@@ -158,7 +157,6 @@ export async function upsertAuthenticatedProfile(user: User, preferredName?: str
         auth_user_id: user.id,
         player_id: user.id,
         player_name: playerName,
-        email: user.email ?? null,
         // a picture the player already chose (an uploaded photo) wins over the one the sign-in provider offers
         avatar_url: targetProfile?.avatar_url || newAvatar || null,
         login_providers: providers,
@@ -177,7 +175,7 @@ export async function upsertAuthenticatedProfile(user: User, preferredName?: str
                 .from('profiles')
                 .update(payload)
                 .eq('id', targetProfile.id)
-                .select('id, auth_user_id, player_id, player_name, email, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
+                .select('id, auth_user_id, player_id, player_name, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
                 .single();
 
             if (error) {
@@ -195,7 +193,7 @@ export async function upsertAuthenticatedProfile(user: User, preferredName?: str
             const { data, error } = await supabase
                 .from('profiles')
                 .insert({ ...payload, updated_at: new Date().toISOString() })
-                .select('id, auth_user_id, player_id, player_name, email, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
+                .select('id, auth_user_id, player_id, player_name, avatar_url, coins, elo, owned_item_ids, equipped, updated_at')
                 .single();
 
             if (error) {

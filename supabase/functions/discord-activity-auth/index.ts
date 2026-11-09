@@ -126,7 +126,6 @@ serve(async (req) => {
             auth_user_id: userId,
             player_id: userId,
             player_name: playerName,
-            email,
             avatar_url: avatarUrl,
             last_login_at: new Date().toISOString(),
           },
