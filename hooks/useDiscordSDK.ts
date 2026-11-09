@@ -23,6 +23,22 @@ if (discordClientId && isActivityRuntime()) {
   }
 }
 
+/** Opens a page outside the game. Inside a Discord Activity the page itself may not leave Discord
+ *  (Discord ends the activity), so the link goes through Discord's own "open external link" prompt. */
+export async function openExternalLink(url: string): Promise<void> {
+  if (discordSdk && isActivityRuntime()) {
+    try {
+      await discordSdk.commands.openExternalLink({ url });
+    } catch (e) {
+      console.error('Discord openExternalLink failed:', e);
+    }
+    return;
+  }
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+
 export function useDiscordSDK() {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);

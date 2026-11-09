@@ -23,6 +23,14 @@ export const mainmenu: ScreenDictionary = {
 
 		"mainmenu.highScoresTitle": "High Scores",
 		"mainmenu.optionsTitle": "Options",
+
+		"tester.bannerTitle": "Have Android? Help test the app ▸",
+		"tester.dismiss": "Hide",
+		"tester.step1": "1. Join the testers group (with your Google account):",
+		"tester.joinGroup": "Join group",
+		"tester.step2": "2. Accept the invite to the test:",
+		"tester.optIn": "Become a tester",
+		"tester.step3": "3. Install Blockerino from Google Play and leave feedback there: what you liked and what broke. Please stay in the test for at least 14 days.",
 	},
 	ru: {
 		"mainmenu.shop": "МАГАЗИН",
@@ -46,5 +54,13 @@ export const mainmenu: ScreenDictionary = {
 
 		"mainmenu.highScoresTitle": "Рекорды",
 		"mainmenu.optionsTitle": "Настройки",
+
+		"tester.bannerTitle": "Есть Android? Помоги протестировать ▸",
+		"tester.dismiss": "Скрыть",
+		"tester.step1": "1. Вступи в группу тестировщиков (через аккаунт Google):",
+		"tester.joinGroup": "Вступить в группу",
+		"tester.step2": "2. Прими приглашение в тестирование:",
+		"tester.optIn": "Стать тестировщиком",
+		"tester.step3": "3. Установи Blockerino из Google Play и оставь там отзыв: что понравилось и что сломалось. Пожалуйста, не выходи из теста хотя бы 14 дней.",
 	},
 };

@@ -14,6 +14,7 @@ import PixelIcon from "./PixelIcon";
 import { useLanguage } from "@/constants/Localization";
 import { getDailyQuests, subscribeToDailyQuests } from "@/constants/DailyQuests";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
+import AndroidTesterBanner from "./AndroidTesterBanner";
 
 const CHAOS_VIOLET = "#7C3AED";
 
@@ -144,6 +145,7 @@ export default function MainMenu() {
 			<QuietButton title={t("mainmenu.highScoresTitle")} onClick={() => appendAppState(MenuStateType.HIGH_SCORES)} />
 			<QuietButton title={t("mainmenu.optionsTitle")} onClick={() => appendAppState(MenuStateType.OPTIONS)} />
 		</View>
+		<AndroidTesterBanner />
 		</FadeInView>
 		</View>
 	</View>
