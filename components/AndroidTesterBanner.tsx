@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLanguage } from "@/constants/Localization";
-import { TESTER_GROUP_URL, TESTER_OPT_IN_URL } from "@/constants/AndroidTesting";
+import { TESTER_SIGNUP_URL, TESTER_OPT_IN_URL } from "@/constants/AndroidTesting";
 import { openExternalLink } from "@/hooks/useDiscordSDK";
 
 const DISMISSED_KEY = "ANDROID_TESTER_BANNER_DISMISSED";
@@ -14,7 +14,7 @@ export default function AndroidTesterBanner() {
 	const [expanded, setExpanded] = useState(false);
 
 	useEffect(() => {
-		if (Platform.OS !== "web" || !TESTER_GROUP_URL) return;
+		if (Platform.OS !== "web" || !TESTER_SIGNUP_URL) return;
 		let active = true;
 		AsyncStorage.getItem(DISMISSED_KEY)
 			.then((value) => { if (active && value !== "1") setVisible(true); })
@@ -42,8 +42,8 @@ export default function AndroidTesterBanner() {
 			{expanded && (
 				<View style={styles.body}>
 					<Text style={styles.step}>{t("tester.step1")}</Text>
-					<Pressable style={styles.linkButton} onPress={() => void openExternalLink(TESTER_GROUP_URL)}>
-						<Text style={styles.linkText}>{t("tester.joinGroup")}</Text>
+					<Pressable style={styles.linkButton} onPress={() => void openExternalLink(TESTER_SIGNUP_URL)}>
+						<Text style={styles.linkText}>{t("tester.signUp")}</Text>
 					</Pressable>
 					<Text style={styles.step}>{t("tester.step2")}</Text>
 					<Pressable style={styles.linkButton} onPress={() => void openExternalLink(TESTER_OPT_IN_URL)}>
