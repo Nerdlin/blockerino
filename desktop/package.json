@@ -1,0 +1,47 @@
+{
+  "name": "blockerino-desktop",
+  "productName": "Blockerino",
+  "version": "2.0.7",
+  "description": "Blockerino: Pixel Duels for Windows",
+  "author": "Nerdlin",
+  "license": "SEE LICENSE IN ../LICENSE",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "build": "node build.cjs"
+  },
+  "devDependencies": {
+    "electron": "44.9.3",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.nerdlin.blockerino.desktop",
+    "productName": "Blockerino",
+    "artifactName": "blockerino-${version}-windows.${ext}",
+    "directories": {
+      "output": "../builds/desktop"
+    },
+    "files": [
+      "main.cjs",
+      "icon.png",
+      "web/**/*"
+    ],
+    "win": {
+      "icon": "icon.png",
+      "target": [
+        { "target": "portable", "arch": ["x64"] },
+        { "target": "nsis", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "blockerino-${version}-windows-setup.${ext}",
+      "shortcutName": "Blockerino"
+    },
+    "portable": {
+      "artifactName": "blockerino-${version}-windows-portable.${ext}"
+    }
+  }
+}

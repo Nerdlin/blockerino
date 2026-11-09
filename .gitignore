@@ -64,3 +64,9 @@ dist-e2e-profiles/
 
 # local Expo modules build output
 modules/*/android/build/
+
+# Windows desktop build (desktop/build.cjs)
+desktop/node_modules/
+desktop/web/
+desktop/icon.png
+builds/desktop/
