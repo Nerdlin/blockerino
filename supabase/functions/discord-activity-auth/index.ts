@@ -13,7 +13,17 @@ serve(async (req) => {
       throw new Error('access_token is required');
     }
 
-    // 1. Verify token and get Discord user info
+    // 1. The token must have been issued to OUR Discord app. Otherwise any other Discord app that
+    // collected a user's token could sign in here as that user.
+    const clientId = Deno.env.get('DISCORD_CLIENT_ID');
+    if (!clientId) throw new Error('Missing Discord credentials in environment variables');
+    const authInfoRes = await fetch('https://discord.com/api/oauth2/@me', {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+    const authInfo = authInfoRes.ok ? await authInfoRes.json() : null;
+    if (authInfo?.application?.id !== clientId) throw new Error('Failed to verify Discord token');
+
+    // 2. Verify token and get Discord user info
     const discordRes = await fetch('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer ${access_token}` },
     });
