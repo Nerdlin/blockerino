@@ -160,7 +160,8 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 	const compactFleet = windowWidth < 420;
 	const battleGridSize = useBattleGridSize();
 	const { target: targetGridSize, fleet: fleetGridSize } = useInBattleGridSize();
-	const leftPanelWidth = 70;
+	// the buttons row and the 4-deck ship need ~140 px; 70 px let them stick out of the card on the web
+	const leftPanelWidth = compactFleet ? 70 : 150;
 	// before a room, a phone shows the fleet above the board, so the board gets the whole width
 	const preLobbyGridSize = compactFleet ? Math.round(Math.max(battleGridSize, Math.min(340, windowWidth - 36))) : battleGridSize;
 	const { currentTheme } = useTheme();
@@ -179,6 +180,9 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 	const { difficulty, setDifficulty, vsBot, setVsBot } = useBotSettings("battleship");
 	const [botMode, setBotMode] = useState(false);
 	const botFleetRef = useRef<BattleShip[]>([]);
+	// The enemy ships, shown on the target board once the game is over (the bot's own, or what the opponent sent).
+	const [enemyFleet, setEnemyFleet] = useState<BattleShip[] | null>(null);
+	const fleetRevealSentRef = useRef(false);
 	const botSunkRef = useRef<string[][]>([]);
 	const [opponentReady, setOpponentReady] = useState(false);
 	// A peer is in the room. The waiting screen ends here; the Ready buttons live on the next screen.
@@ -229,6 +233,13 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 			setOpponentName(normalizeStoredPlayerName(payload?.playerName || roleLabel(senderRole)));
 			setWinnerSource("forfeit");
 			setWinner(roomRef.current.role);
+			return;
+		}
+		if (event === "fleet_reveal") {
+			const currentRole = roomRef.current.role;
+			if (!isDuelRole(currentRole) || payload.to !== currentRole) return;
+			const ships = parseRevealedFleet(payload.ships);
+			if (ships) setEnemyFleet(ships);
 			return;
 		}
 		if (event === "rematch") {
@@ -310,6 +321,22 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 	}, [ready, playerName]);
 
 	const room = useMiniGameRoom("battleship", handleEvent, playerName);
+
+	// When the game ends, the bot's fleet is shown at once; online, each side sends its fleet to the other.
+	useEffect(() => {
+		if (!winner) return;
+		if (botMode) {
+			setEnemyFleet(botFleetRef.current);
+			return;
+		}
+		const role = room.role;
+		if (fleetRevealSentRef.current || !isDuelRole(role) || !room.isConnected) return;
+		fleetRevealSentRef.current = true;
+		room.send("fleet_reveal", {
+			to: getDuelOpponent(role),
+			ships: fleetRef.current.map(({ id, name, length, x, y, orientation }) => ({ id, name, length, x, y, orientation })),
+		});
+	}, [winner, botMode, room.role, room.isConnected, room.send]);
 	const roomRef = useRef({ role: room.role, send: room.send });
 	useEffect(() => {
 		roomRef.current = { role: room.role, send: room.send };
@@ -349,6 +376,8 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 		setIncomingShots({});
 		setTargetShots({});
 		setTargetSunk([]);
+		setEnemyFleet(null);
+		fleetRevealSentRef.current = false;
 		setTurn("player1");
 		setWinner(null);
 		setWinnerSource(null);
@@ -369,6 +398,8 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 		setIncomingShots({});
 		setTargetShots({});
 		setTargetSunk([]);
+		setEnemyFleet(null);
+		fleetRevealSentRef.current = false;
 		setTurn("player1");
 		setWinner(null);
 		setWinnerSource(null);
@@ -738,7 +769,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 					</View>
 				)}
 				<View style={[styles.battleBoardsVertical, { zIndex: 1 }]}>
-					{ready ? <BattleGrid testPrefix="sea-target" title={t("moregames.target")} cells={targetShots} crossed={targetCrossed} onPress={fire} cosmetics={cosmetics} size={targetGridSize} /> : null}
+					{ready ? <BattleGrid testPrefix="sea-target" title={t("moregames.target")} cells={targetShots} crossed={targetCrossed} ships={winner && enemyFleet ? enemyFleet : undefined} onPress={fire} cosmetics={cosmetics} size={targetGridSize} /> : null}
 					<View ref={boardRef} onLayout={() => {
 						measureScreenRect(boardRef.current, (pageX, pageY, w, h) => {
 							setBoardLayout({ x: pageX, y: pageY, w, h });
@@ -820,6 +851,24 @@ const IN_BATTLE_GRID_MIN = 190;
 
 // Sea Battle board edge while placing ships. A phone plays full screen: the board takes the width left next to the
 // fleet column (70 px). Bigger screens keep the window, which the popup itself scales up.
+/** Checks a fleet sent by the opponent at the end of the game: ten ships inside the 10x10 board. */
+export function parseRevealedFleet(value: unknown): BattleShip[] | null {
+	if (!Array.isArray(value) || value.length === 0 || value.length > 10) return null;
+	const ships: BattleShip[] = [];
+	for (const item of value) {
+		if (!item || typeof item !== "object") return null;
+		const ship = item as Record<string, unknown>;
+		const length = Number(ship.length);
+		const x = Number(ship.x);
+		const y = Number(ship.y);
+		const orientation = ship.orientation === "v" ? "v" : ship.orientation === "h" ? "h" : null;
+		if (!orientation || !Number.isInteger(length) || length < 1 || length > 4 || !Number.isInteger(x) || !Number.isInteger(y)) return null;
+		if (x < 0 || y < 0 || (orientation === "h" ? x + length : x + 1) > 10 || (orientation === "v" ? y + length : y + 1) > 10) return null;
+		ships.push({ id: String(ship.id ?? `r${ships.length}`).slice(0, 8), name: String(ship.name ?? "").slice(0, 24), length, x, y, orientation });
+	}
+	return ships;
+}
+
 export function getBattleGridSize(width: number, _height: number) {
 	if (width >= 600) return SETUP_GRID_MIN;
 	return Math.round(Math.max(SETUP_GRID_MIN, Math.min(340, width - 122)));
@@ -828,9 +877,10 @@ export function getBattleGridSize(width: number, _height: number) {
 // In battle both boards are on screen, one above the other. On a phone the target (where you shoot) takes the width
 // and your own fleet is a smaller map under it: it only shows the shots you take.
 export function getInBattleGridSize(width: number, height: number): { target: number; fleet: number } {
-	if (width >= 600) return { target: IN_BATTLE_GRID_MIN, fleet: IN_BATTLE_GRID_MIN };
+	// a wide window is still limited by the game card (~520 px), not by the window
+	const usableWidth = Math.min(width, 520);
 	const fleet = Math.round(Math.max(150, Math.min(200, (height - 330) * 0.36)));
-	const target = Math.round(Math.max(IN_BATTLE_GRID_MIN, Math.min(400, width - 24, height - 330 - fleet)));
+	const target = Math.round(Math.max(IN_BATTLE_GRID_MIN, Math.min(440, usableWidth - 24, height - 330 - fleet)));
 	return { target, fleet };
 }
 

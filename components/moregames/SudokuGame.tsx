@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { submitMoreGameSoloResult } from "@/constants/Supabase";
 import { recordMoreGameWin } from "@/constants/Achievements";
 import { recordGameOutcome } from "@/constants/GameStats";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, useWindowDimensions } from "react-native";
 import StylizedButton from "../StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { ExtraGameCosmetics, SUDOKU_THEMES, SudokuPalette } from "./cosmetics";
@@ -182,9 +182,14 @@ export function SudokuGame({ cosmetics, playerName, onRatingChange }: { cosmetic
 		)));
 	};
 
+	// The board is a square that fits both sides of the window: on a wide desktop window the width alone
+	// made it taller than the screen and cut its top rows off.
+	const windowSize = useWindowDimensions();
+	const boardSize = Math.round(Math.max(240, Math.min(420, windowSize.width - 32, windowSize.height - 300)));
+
 	return (
 		<View style={[styles.centerGame, { flex: 0, gap: 10, paddingHorizontal: 2 }, sudoku.surface && styles.woodGameSurface, sudoku.surface && { backgroundColor: sudoku.surface.bg, borderColor: sudoku.surface.border }]}>
-			<View style={styles.sudokuTopBar}>
+			<View style={[styles.sudokuTopBar, { maxWidth: boardSize }]}>
 				<Text style={[styles.gameStatus, { color: complete ? "#7C2D12" : lost ? "#DC2626" : sudoku.status ?? currentTheme.textPrimary }]}>
 					{complete ? t("sudoku.solved") : lost ? t("sudoku.gameOver") : selected ? `${t("sudoku.mistakes")} ${mistakes}/${SUDOKU_MAX_MISTAKES}` : t("sudoku.selectCell")}
 				</Text>
@@ -192,7 +197,7 @@ export function SudokuGame({ cosmetics, playerName, onRatingChange }: { cosmetic
 					<Text style={[styles.noteToggleText, { color: sudoku.status ?? currentTheme.textPrimary }]}>{t("sudoku.notes")} {noteMode ? t("common.on") : t("common.off")}</Text>
 				</Pressable>
 			</View>
-			<View style={styles.sudokuBoardWrap}>
+			<View style={[styles.sudokuBoardWrap, { width: boardSize, height: boardSize }]}>
 				<View style={[styles.sudokuBoard, { borderColor: sudoku.boardBorder, backgroundColor: sudoku.boardBg }]}>
 					{grid.map((row, y) => row.map((value, x) => {
 						const fixed = puzzle[y][x] !== 0;

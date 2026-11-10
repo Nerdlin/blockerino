@@ -6,6 +6,9 @@ insert into profiles (id, player_name, auth_user_id, player_id, coins) values
   ('b0000000-0000-0000-0000-0000000000b2', 'ben', 'a0000000-0000-0000-0000-0000000000b2', 'a0000000-0000-0000-0000-0000000000b2', 0),
   ('b0000000-0000-0000-0000-0000000000c2', 'cal', 'a0000000-0000-0000-0000-0000000000c2', 'a0000000-0000-0000-0000-0000000000c2', 0);
 
+-- Amy and Ben play blitz at 1000 (new players start at 400 since 20261101120000)
+insert into chess_ratings (profile_id, time_class, rating, games_played) values
+  ('b0000000-0000-0000-0000-0000000000a2', 'blitz', 1000, 40), ('b0000000-0000-0000-0000-0000000000b2', 'blitz', 1000, 40);
 -- Cal is a much stronger blitz player
 insert into chess_ratings (profile_id, time_class, rating, games_played) values ('b0000000-0000-0000-0000-0000000000c2', 'blitz', 1500, 40);
 

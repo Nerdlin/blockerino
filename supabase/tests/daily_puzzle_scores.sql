@@ -28,6 +28,7 @@ begin
   assert achievement_reward('first_steps') = 25, 'old tiers keep their reward';
   -- three stars pay once per puzzle day
   update profiles set coins = 0 where auth_user_id = 'a0000000-0000-0000-0000-0000000000f1';
+  assert submit_daily_puzzle_score(v_today, 520), 'a three-star score today';
   assert claim_daily_puzzle_reward(v_today)->>'status' = 'ok', 'three stars pay';
   assert claim_daily_puzzle_reward(v_today)->>'status' = 'already', 'only once';
   assert claim_daily_puzzle_reward(v_today - 1)->>'status' = 'not_earned', 'a day under 500 does not pay';

@@ -1,6 +1,9 @@
 -- Check for 20261029100000_chess_ratings.sql. Everything is rolled back; any failed assert stops the run.
 begin;
 
+-- the arithmetic below assumes the old 1000 start (since 20261101120000 new players start at 400)
+alter table chess_ratings alter column rating set default 1000;
+
 insert into profiles (id, player_name, auth_user_id, player_id, coins) values
   ('b0000000-0000-0000-0000-0000000000a1', 'ann', 'a0000000-0000-0000-0000-0000000000a1', 'a0000000-0000-0000-0000-0000000000a1', 0),
   ('b0000000-0000-0000-0000-0000000000b1', 'bob', 'a0000000-0000-0000-0000-0000000000b1', 'a0000000-0000-0000-0000-0000000000b1', 0);
@@ -14,6 +17,10 @@ begin
   assert chess_elo_change(1000, 1400, 1, 30) > chess_elo_change(1400, 1000, 1, 30), 'an upset pays more';
   assert chess_elo_change(2400, 2400, 1, 99) = 5, 'K 10 for masters';
 end $$;
+
+-- the server seated both players in room ROOM (its games are ROOM-1, ROOM-2, ...)
+insert into chess_room_seats (room_code, profile_id) values
+  ('ROOM', 'b0000000-0000-0000-0000-0000000000a1'), ('ROOM', 'b0000000-0000-0000-0000-0000000000b1');
 
 set local role authenticated;
 
@@ -43,7 +50,12 @@ begin
   assert r->>'status' = 'applied' and (r->>'after')::int = 1020, 'a second report is only a read';
   assert (select rating from get_my_chess_ratings() where time_class = 'blitz') = 1020, 'still 1020';
 
-  -- a player who reports their own loss is counted at once
+  -- a loss reported for a game the server never saw is not applied (anyone could name any opponent)
+  r := report_chess_match('ROOM-NOSEAT', 'rapid', 'w', 'bob', '0-1', 40);
+  assert r->>'status' = 'pending', 'an unseated loss waits';
+  assert (select count(*) from get_my_chess_ratings() where time_class = 'rapid') = 0, 'nothing changes without seats';
+
+  -- a player who reports their own loss in a seated game is counted at once
   r := report_chess_match('ROOM-2', 'rapid', 'w', 'bob', '0-1', 40);
   assert r->>'status' = 'applied', 'own loss counts at once';
   assert (select rating from get_my_chess_ratings() where time_class = 'rapid') = 980, 'Ann lost 20 in rapid';
@@ -92,11 +104,16 @@ do $$
 declare n integer;
 begin
   insert into chess_match_reports (room_code, reporter_id, opponent_id, time_class, reporter_color, result, plies, created_at) values
+    ('GHOST-1', 'b0000000-0000-0000-0000-0000000000a1', 'b0000000-0000-0000-0000-0000000000b1', 'bullet', 'w', '1-0', 20, now() - interval '3 minutes'),
     ('ROOM-OLD', 'b0000000-0000-0000-0000-0000000000a1', 'b0000000-0000-0000-0000-0000000000b1', 'bullet', 'w', '1-0', 20, now() - interval '3 minutes'),
     ('ROOM-FRESH', 'b0000000-0000-0000-0000-0000000000a1', 'b0000000-0000-0000-0000-0000000000b1', 'bullet', 'w', '1-0', 20, now()),
     ('ROOM-SHORT', 'b0000000-0000-0000-0000-0000000000a1', 'b0000000-0000-0000-0000-0000000000b1', 'bullet', 'w', '1-0', 6, now() - interval '3 minutes');
+  insert into chess_room_seats (room_code, profile_id)
+  select room, profile from unnest(array['ROOM-OLD', 'ROOM-FRESH', 'ROOM-SHORT']) room,
+    unnest(array['b0000000-0000-0000-0000-0000000000a1', 'b0000000-0000-0000-0000-0000000000b1']::uuid[]) profile;
   n := settle_chess_reports();
-  assert n = 1, 'only the old, long, unanswered win is settled';
+  assert n = 1, 'only the old, long, unanswered win of a seated room is settled';
+  assert (select count(*) from chess_matches where room_code = 'GHOST-1') = 0, 'a win in a room nobody sat in is ignored';
   assert (select count(*) from chess_matches where room_code = 'ROOM-OLD' and status = 'applied') = 1, 'old win applied';
   assert (select count(*) from chess_matches where room_code in ('ROOM-FRESH', 'ROOM-SHORT')) = 0, 'fresh and short ones wait';
   assert settle_chess_reports() = 0, 'settling twice applies nothing more';

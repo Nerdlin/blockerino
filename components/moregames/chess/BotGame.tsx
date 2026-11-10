@@ -12,9 +12,8 @@ import { Color } from "@/constants/chess/ChessClock";
 import { ChessGameState, abort, newGame, playMove, resign, turnOf } from "@/constants/chess/ChessGameState";
 import { buildPgn, resultFromWinner } from "@/constants/chess/ChessPgn";
 import { FormResult, recordBotGame } from "@/constants/chess/ChessProgress";
-import StylizedButton from "../../StylizedButton";
 import { ExtraGameCosmetics } from "../cosmetics";
-import { HintButton } from "../HintButton";
+import { CHESS_HINT_COST, CHESS_UNDO_COST, HintButton } from "../HintButton";
 import { ChessGameView } from "./ChessGameView";
 import { useChessSounds } from "./useChessSounds";
 import { GameReview } from "./GameReview";
@@ -186,8 +185,8 @@ export function BotGame({
 			/>
 			{!state.result ? (
 				<View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-					<HintButton disabled={botToMove || Boolean(state.result)} onHint={showHint} />
-					{canUndo ? <UndoButton label={t("chess.undo")} onPress={undo} /> : null}
+					<HintButton disabled={botToMove || Boolean(state.result)} onHint={showHint} cost={CHESS_HINT_COST} />
+					{canUndo ? <HintButton disabled={false} onHint={undo} cost={CHESS_UNDO_COST} label={t("chess.undoPaid", { cost: CHESS_UNDO_COST })} secondary /> : null}
 				</View>
 			) : null}
 			{state.result ? (
@@ -209,7 +208,3 @@ export function BotGame({
 	);
 }
 
-function UndoButton({ label, onPress }: { label: string; onPress: () => void }) {
-	const { currentTheme } = useTheme();
-	return <StylizedButton text={label} onClick={onPress} backgroundColor={currentTheme.buttonSecondary} style={{ height: 36, minWidth: 0, paddingHorizontal: 12, marginTop: 6 }} textStyle={{ fontSize: 11 }} />;
-}
