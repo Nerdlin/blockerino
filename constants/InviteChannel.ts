@@ -2,7 +2,7 @@ import { supabase } from "./Supabase";
 
 // Invitations travel on the Realtime channel "invites:<user id>". It is a private channel: only its owner can
 // listen to it and only accepted friends can send to it (policies on realtime.messages, migration
-// 20261110140000). Builds before 2.0.8 still listen on the public channel of the same name, so a sender
+// 20261110134159). Builds before 2.0.8 still listen on the public channel of the same name, so a sender
 // also delivers there until those builds are gone.
 
 export function inviteTopic(userId: string): string {

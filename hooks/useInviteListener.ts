@@ -83,8 +83,9 @@ export function useInviteListener(
     useEffect(() => {
         if (!userId) return;
 
-        // Private inbox: only this player can listen to it and only friends can send to it.
-        const channel = openInviteInbox(userId)
+        // Private inbox: only this player can listen to it and only friends can send to it. Builds before 2.0.8
+        // still send on the old public channel of the same name, so it is heard too until they are gone.
+        const listen = (inbox: ReturnType<typeof openInviteInbox>) => inbox
             .on('broadcast', { event: '1v1_invite' }, (payload) => {
                 const { roomId, hostName, gameMode } = payload.payload;
                 const nextGameMode = Object.values(GameModeType).includes(gameMode) ? gameMode : GameModeType.Classic;
@@ -119,9 +120,12 @@ export function useInviteListener(
                 });
             })
             .subscribe();
+        const inbox = listen(openInviteInbox(userId));
+        const legacyInbox = listen(supabase.channel(`invites:${userId}`));
 
         return () => {
-            supabase.removeChannel(channel);
+            supabase.removeChannel(inbox);
+            supabase.removeChannel(legacyInbox);
         };
     }, [userId, presentInvite, setIncomingInvite, setChessInvite, setGameInvite, setAppState, t]);
 
