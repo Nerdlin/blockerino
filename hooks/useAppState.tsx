@@ -11,7 +11,8 @@ export enum MenuStateType {
 	DAILY_CHALLENGES = 'daily_challenges',
 	MORE_GAMES = 'more_games',
 	PROFILE = 'profile',
-	SEASON_RESULTS = 'season_results'
+	SEASON_RESULTS = 'season_results',
+	ADMIN = 'admin'
 }
 
 export enum GameModeType {

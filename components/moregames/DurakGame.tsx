@@ -1,3 +1,4 @@
+import { AdminWinButton } from "./AdminWinButton";
 import Svg, { Path } from "react-native-svg";
 import { useTheme } from "@/constants/Theme";
 import { useWindowDimensions, View, Animated, LayoutAnimation, Text, ScrollView, Image, Pressable, PanResponder, Platform } from "react-native";
@@ -1321,6 +1322,11 @@ const { t } = useLanguage();
 							})}
 						</View>
 
+						{botMode && !state.winner && !state.cancelled && (
+							<View style={{ position: "absolute", top: 8, right: 8, zIndex: 120 }}>
+								<AdminWinButton onWin={() => setState((current) => (current ? { ...current, winner: "player1" } : current))} />
+							</View>
+						)}
 						{state.cancelled ? (
 							<StylizedButton text={t("moregames.leave")} onClick={() => { room.disconnect(); setState(null); setOpponentReady(false); }} backgroundColor={cssColors.spaceGray} />
 							) : state.winner && botMode ? (

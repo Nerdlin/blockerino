@@ -1,3 +1,4 @@
+import { AdminWinButton } from "../AdminWinButton";
 import { Chess } from "chess.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Clipboard, View } from "react-native";
@@ -186,6 +187,7 @@ export function BotGame({
 			{!state.result ? (
 				<View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
 					<HintButton disabled={botToMove || Boolean(state.result)} onHint={showHint} cost={CHESS_HINT_COST} />
+					{!state.result && <AdminWinButton onWin={() => setState(resign(state, color === "w" ? "b" : "w"))} />}
 					{canUndo ? <HintButton disabled={false} onHint={undo} cost={CHESS_UNDO_COST} label={t("chess.undoPaid", { cost: CHESS_UNDO_COST })} secondary /> : null}
 				</View>
 			) : null}

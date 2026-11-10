@@ -1,3 +1,4 @@
+import { AdminWinButton } from "./AdminWinButton";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from "react";
@@ -406,6 +407,8 @@ export function CheckersGame({ playerName, onRatingChange }: { playerName: strin
 			<View style={{ flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
 				<StylizedButton text={gameFinished ? t(room.role ? "moregames.rematch" : "bot.newGame") : t("moregames.reset")} onClick={reset} backgroundColor={gameFinished ? "#16A34A" : currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
 				{!room.role && botActive && <HintButton disabled={gameFinished || state.turn !== "w"} onHint={showHint} />}
+				{/* the bot's pieces leave the board, so black has no move and white (the player) wins */}
+				{!room.role && botActive && !gameFinished && <AdminWinButton onWin={() => setState((current) => ({ ...current, turn: "b", board: current.board.map((cell) => (cell === "b" || cell === "B" ? null : cell)) }))} />}
 			</View>
 			{!room.role && (
 				<BotPanel compact vsBot={vsBot} onVsBotChange={(next) => { setVsBot(next); reset(); }} difficulty={difficulty} onDifficultyChange={(next) => { setDifficulty(next); reset(); }} />

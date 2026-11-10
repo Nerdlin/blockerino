@@ -1,3 +1,4 @@
+import { useIsAdmin } from "@/constants/Admin";
 import { MenuStateType, useAppState } from "@/hooks/useAppState";
 import { Linking, ScrollView, StyleSheet, Switch, Text, View, useWindowDimensions, TextInput, Platform } from "react-native";
 import SimplePopupView from "./SimplePopupView";
@@ -27,6 +28,7 @@ import { disablePush, enablePush, isPushEnabled, isPushSupported } from "@/const
 
 export default function OptionsMenu() {
 	const [ appState, setAppState, appendAppState, popAppState ] = useAppState();
+	const isAdmin = useIsAdmin();
 	const { width } = useWindowDimensions();
 	const isMobile = width < 600;
 	const { 
@@ -382,6 +384,15 @@ export default function OptionsMenu() {
 						backgroundColor={currentTheme.buttonSecondary}
 						style={isMobile ? { minWidth: 200, margin: 4 } : { minWidth: 240, margin: 4 }}
 					/>
+					{isAdmin && (
+						// only the admin account sees it; the server checks every admin call itself
+						<StylizedButton
+							text="Админ-панель"
+							onClick={() => appendAppState(MenuStateType.ADMIN)}
+							backgroundColor="#7C3AED"
+							style={isMobile ? { minWidth: 200, margin: 4 } : { minWidth: 240, margin: 4 }}
+						/>
+					)}
 					<StylizedButton
 						text={t("settings.github")}
 						onClick={() => void Linking.openURL("https://github.com/Nerdlin/blockerino")}

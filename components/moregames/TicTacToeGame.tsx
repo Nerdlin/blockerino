@@ -1,3 +1,4 @@
+import { AdminWinButton } from "./AdminWinButton";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
@@ -248,6 +249,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 			<View style={{ flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
 				<StylizedButton text={gameFinished ? t(room.role ? "moregames.rematch" : "bot.newGame") : t("moregames.reset")} onClick={reset} backgroundColor={gameFinished ? "#16A34A" : currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
 				{!room.role && botActive && <HintButton disabled={gameFinished || turn !== "X"} onHint={showHint} />}
+				{!room.role && botActive && !gameFinished && <AdminWinButton onWin={() => setBoard((current) => ["X", "X", "X", ...current.slice(3)])} />}
 			</View>
 			{!room.role && (
 				<>

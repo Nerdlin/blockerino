@@ -1,3 +1,4 @@
+import { AdminWinButton } from "./AdminWinButton";
 import Svg, { Path } from "react-native-svg";
 import { useWindowDimensions, View, Text, Pressable, Animated, PanResponder, Platform } from "react-native";
 import { useTheme } from "@/constants/Theme";
@@ -783,6 +784,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 			{winner && !botMode && isDuelRole(room.role) && room.isConnected && (
 				<StylizedButton text={t("moregames.rematch")} onClick={() => { rematchLocal(); room.send("rematch", {}); }} backgroundColor="#16A34A" style={styles.resetButton} textStyle={styles.smallButtonText} />
 			)}
+			{botMode && ready && !winner && <AdminWinButton onWin={() => { setWinnerSource("normal"); setWinner("player1"); }} />}
 			{botMode && (
 				<StylizedButton text={t("bot.newGame")} onClick={resetLocal} backgroundColor={currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
 			)}
