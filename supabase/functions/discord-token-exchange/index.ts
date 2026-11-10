@@ -7,7 +7,12 @@ serve(async (req) => {
   }
 
   try {
-    const { code } = await req.json();
+    const { code, redirect_uri } = await req.json();
+    // The Android app signs in through the browser and must name the redirect it used; only ours is accepted.
+    const allowedRedirects = ['com.nerdlin.blockerino://discord-auth'];
+    if (redirect_uri !== undefined && !allowedRedirects.includes(redirect_uri)) {
+      throw new Error('Unknown redirect_uri');
+    }
     if (typeof code !== 'string' || !code.trim()) {
       throw new Error('Code is required');
     }
@@ -29,6 +34,7 @@ serve(async (req) => {
         client_secret: clientSecret,
         grant_type: 'authorization_code',
         code: code,
+        ...(redirect_uri ? { redirect_uri } : {}),
       }),
     });
 

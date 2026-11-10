@@ -31,6 +31,7 @@ import MatchHistoryList from "./MatchHistoryList";
 import FriendsList from "./FriendsList";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { isDiscordActivityLocation } from "@/constants/DiscordEnvironment";
+import { signInWithDiscordNative } from "@/constants/DiscordNativeAuth";
 
 // Inside a Discord Activity the page may not navigate to other sites (Discord ends the activity),
 // so the OAuth redirects to Google / Discord cannot be used there.
@@ -458,7 +459,16 @@ export default function ProfileMenu() {
 				window.location.assign(data.url);
 				return;
 			}
-			setErrorMessage("Discord sign-in is only supported on web right now.");
+			// Android: same account as the Discord Activity (see constants/DiscordNativeAuth.ts).
+			const result = await signInWithDiscordNative();
+			if (result.status === "error") throw new Error(result.message);
+			if (result.status === "signed_in") {
+				const { data: { user } } = await supabase.auth.getUser();
+				if (user) {
+					const profile = await upsertAuthenticatedProfile(user);
+					await applyProfile(profile, user);
+				}
+			}
 		} catch (e: any) {
 			console.error(e);
 			setErrorMessage(e.message || "Discord Sign-In failed.");
