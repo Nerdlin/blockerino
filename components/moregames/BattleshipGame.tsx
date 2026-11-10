@@ -640,7 +640,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 							<Text style={{ color: allShipsPlaced ? '#22C55E' : '#FACC15', fontFamily: 'Silkscreen', fontSize: 10, minWidth: 40, textAlign: 'center' }}>
 								{`${fleet.filter(s => s.x >= 0).length}/${fleet.length}`}
 							</Text>
-							<Pressable onPress={randomizeFleet} style={[styles.battleRotateButton, { width: 38, height: 38 }]}>
+							<Pressable testID="sea-dice" accessibilityLabel="Random fleet" onPress={randomizeFleet} style={[styles.battleRotateButton, { width: 38, height: 38 }]}>
 								<UiIcon name="dice" size={16} />
 							</Pressable>
 						</View>
@@ -748,7 +748,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 							<Pressable onPress={rotateSelectedShip} style={styles.battleRotateButton}>
 								<Text style={{ fontSize: 22, color: '#FFF', lineHeight: 26 }}>↻</Text>
 							</Pressable>
-							<Pressable onPress={randomizeFleet} style={styles.battleRotateButton}>
+							<Pressable testID="sea-dice" accessibilityLabel="Random fleet" onPress={randomizeFleet} style={styles.battleRotateButton}>
 								<UiIcon name="dice" size={18} />
 							</Pressable>
 						</View>

@@ -148,7 +148,7 @@ async function launchPlayer(name, port, chromePath) {
 		waitFor: async (test, timeoutMs = 15000) => {
 			const deadline = Date.now() + timeoutMs;
 			while (Date.now() < deadline) {
-				if (test(await player.body())) return true;
+				if (await test(await player.body())) return true;
 				await sleep(400);
 			}
 			return false;
@@ -246,25 +246,35 @@ const scenarios = {
 
 	async chess(a, b) {
 		await Promise.all([a.open(), b.open()]);
-		for (const player of [a, b]) await openGame(player, "chess");
+		for (const player of [a, b]) {
+			await openGame(player, "chess");
+			await player.clickText("Play a friend", 0); await sleep(1200);
+			await player.clickText("Play with a code", 0); await sleep(1200);
+		}
 		await hostAndJoin(a, b);
 		for (const player of [a, b]) {
-			if (!(await player.waitFor((text) => /White turn/i.test(text)))) throw new Error(`${player.name} never saw the board start`);
+			const started = await player.waitFor(async () => Boolean(await player.evalJs(`Boolean(${byTestId("chess-sq-e2")})`)));
+			if (!started) throw new Error(`${player.name} never saw the board start`);
 		}
-		// White moves a pawn two squares; black must see it.
-		const pawns = await a.evalJs("(() => [...document.querySelectorAll('div,span')].filter(e => e.children.length === 0 && e.textContent.trim() === '\u2659').map(e => { const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; }))()");
-		if (!pawns || pawns.length < 5) throw new Error("could not find the white pawns");
-		const size = pawns[4].x - pawns[3].x;
-		await a.mouse(pawns[4].x, pawns[4].y); await sleep(500);
-		await a.mouse(pawns[4].x, pawns[4].y - 2 * size);
-		if (!(await b.waitFor((text) => /Black turn/i.test(text)))) throw new Error("the move never reached player B");
+		// Whoever got white plays e2-e4 (the host is not always white); the other player must see the pawn arrive.
+		const pawnOnE4 = (player) => async () => (await player.evalJs(pieceOn("e4"))) === "\u2659";
+		let delivered = false;
+		for (const [mover, watcher] of [[a, b], [b, a]]) {
+			await clickTestId(mover, "chess-sq-e2"); await sleep(400);
+			await clickTestId(mover, "chess-sq-e4"); await sleep(800);
+			if (await pawnOnE4(mover)()) { delivered = await watcher.waitFor(pawnOnE4(watcher)); break; }
+		}
+		if (!delivered) {
+			const squares = async (player) => `e2=${await player.evalJs(pieceOn("e2"))} e4=${await player.evalJs(pieceOn("e4"))}`;
+			throw new Error(`the move never reached the other player (A: ${await squares(a)} ${(await a.body()).slice(0, 160)} | B: ${await squares(b)} ${(await b.body()).slice(0, 160)})`);
+		}
 	},
 
 	async battleship(a, b) {
 		await Promise.all([a.open(), b.open()]);
 		for (const player of [a, b]) {
 			await openGame(player, "battleship");
-			await player.mouse(221, 215); await sleep(800); // dice button: random fleet
+			await clickTestId(player, "sea-dice"); await sleep(800); // random fleet
 		}
 		await hostAndJoin(a, b);
 		for (const player of [a, b]) {
@@ -298,6 +308,20 @@ const scenarios = {
 // ---- solo scenarios: one player against a bot, plus a few screens that need no opponent ----
 
 const byTestId = (id) => `document.querySelector('[data-testid="${id}"]')`;
+// Chess pieces are a layer drawn over the squares, so a square itself holds no glyph: find the glyph inside its box.
+const pieceOn = (square) => `(() => {
+	const sq = document.querySelector('[data-testid="chess-sq-${square}"]');
+	if (!sq) return '';
+	const r = sq.getBoundingClientRect();
+	const hit = [...document.querySelectorAll('div,span')].find((e) => {
+		const t = e.textContent.trim();
+		if (e.children.length || t.length !== 1 || t < '\\u2654' || t > '\\u265f') return false;
+		const b = e.getBoundingClientRect();
+		const x = b.x + b.width / 2, y = b.y + b.height / 2;
+		return x > r.left && x < r.right && y > r.top && y < r.bottom;
+	});
+	return hit ? hit.textContent.trim() : '';
+})()`;
 async function clickTestId(player, id) {
 	const box = await player.evalJs(`(() => { const el = ${byTestId(id)}; if (!el) return null; el.scrollIntoView({ block: "center" }); const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
 	if (!box) throw new Error(`${player.name}: no element ${id}`);
@@ -341,17 +365,22 @@ const soloScenarios = {
 	async bot_chess(a) {
 		await a.open();
 		await openGame(a, "chess");
-		await chooseBot(a);
+		await a.clickText("Play bots", 0); await sleep(1200);
+		await a.clickText("White", 0); await sleep(400);
+		await a.clickText("Pip", 0); await sleep(2000);
 		await clickTestId(a, "chess-sq-e2"); await sleep(400);
 		await clickTestId(a, "chess-sq-e4");
-		if (!(await a.waitFor((text) => /Bot is thinking/i.test(text), 6000))) throw new Error("the bot never started thinking");
-		if (!(await a.waitFor((text) => /White turn/i.test(text), 20000))) throw new Error("the bot never replied");
+		// the bot answered when one of black's pawns or knights has left its square
+		const home = ["a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7", "b8", "g8"];
+		const botMoved = async () => { for (const sq of home) if ((await a.evalJs(pieceOn(sq))) === "") return true; return false; };
+		if ((await a.evalJs(pieceOn("e7"))) !== "♟") throw new Error("the test cannot see the black pawns on the board");
+		if (!(await a.waitFor(botMoved, 20000))) throw new Error("the bot never replied");
 	},
 
 	async bot_battleship(a) {
 		await a.open();
 		await openGame(a, "battleship");
-		await a.mouse(221, 215); await sleep(800); // dice button: random fleet
+		await clickTestId(a, "sea-dice"); await sleep(800); // random fleet
 		await chooseBot(a);
 		await a.clickText("Play", 0); await sleep(1500);
 		await clickTestId(a, "sea-target-0,0");
