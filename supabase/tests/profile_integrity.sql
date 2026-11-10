@@ -10,7 +10,7 @@ values ('11111111-1111-1111-1111-111111111111', 'tester', '22222222-2222-2222-22
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', true);
 
--- expect: highscore 0, coins 100100 (+100000 per write), discord_id empty
+-- expect: highscore 0, coins 5100 (+5000 per write since 20261111090000), discord_id empty
 update profiles set highscore_classic = 999999, coins = 999999, discord_id = 'hacked'
   where auth_user_id = '22222222-2222-2222-2222-222222222222';
 select 'cheat update' as check, highscore_classic, coins, discord_id from profiles where id = '11111111-1111-1111-1111-111111111111';
@@ -26,7 +26,7 @@ select 'rpc bad mode' as check, submit_high_score('nope', 10);
 select 'rpc lower' as check, submit_high_score('classic', 100);
 select 'rpc result' as check, highscore_classic from profiles where id = '11111111-1111-1111-1111-111111111111';
 
--- expect: coins 200050, coins_gained_today 300000 (100000 already used above, 300000 per day in total)
+-- expect: coins 50, coins_gained_today 5000 (the 5000 a day were used up above)
 update profiles set coins = 1000000 where auth_user_id = '22222222-2222-2222-2222-222222222222';
 update profiles set coins = 1000000 where auth_user_id = '22222222-2222-2222-2222-222222222222';
 update profiles set coins = 1000000 where auth_user_id = '22222222-2222-2222-2222-222222222222';

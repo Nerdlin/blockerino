@@ -869,16 +869,22 @@ export function parseRevealedFleet(value: unknown): BattleShip[] | null {
 	return ships;
 }
 
-export function getBattleGridSize(width: number, _height: number) {
-	if (width >= 600) return SETUP_GRID_MIN;
+export function getBattleGridSize(width: number, height: number) {
+	// a wide window: the 150 px side panel sits next to the board inside a ~480 px card
+	if (width >= 600) return Math.round(Math.max(SETUP_GRID_MIN, Math.min(262, height / 1.2 - 330)));
 	return Math.round(Math.max(SETUP_GRID_MIN, Math.min(340, width - 122)));
 }
 
 // In battle both boards are on screen, one above the other. On a phone the target (where you shoot) takes the width
 // and your own fleet is a smaller map under it: it only shows the shots you take.
 export function getInBattleGridSize(width: number, height: number): { target: number; fleet: number } {
-	// a wide window is still limited by the game card (~520 px), not by the window
-	const usableWidth = Math.min(width, 520);
+	if (width >= 600) {
+		// big screens: the card is scaled up by ~1.2, so it holds about height / 1.2 of content; the fleet map stays small
+		const fleetWide = 150;
+		const targetWide = Math.round(Math.max(IN_BATTLE_GRID_MIN, Math.min(440, height / 1.2 - 300 - fleetWide)));
+		return { target: targetWide, fleet: fleetWide };
+	}
+	const usableWidth = width;
 	const fleet = Math.round(Math.max(150, Math.min(200, (height - 330) * 0.36)));
 	const target = Math.round(Math.max(IN_BATTLE_GRID_MIN, Math.min(440, usableWidth - 24, height - 330 - fleet)));
 	return { target, fleet };

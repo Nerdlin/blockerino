@@ -188,7 +188,7 @@ export function SudokuGame({ cosmetics, playerName, onRatingChange }: { cosmetic
 	const boardSize = Math.round(Math.max(240, Math.min(420, windowSize.width - 32, windowSize.height - 300)));
 
 	return (
-		<View style={[styles.centerGame, { flex: 0, gap: 10, paddingHorizontal: 2 }, sudoku.surface && styles.woodGameSurface, sudoku.surface && { backgroundColor: sudoku.surface.bg, borderColor: sudoku.surface.border }]}>
+		<View style={[styles.centerGame, { flex: 0, flexBasis: "auto", flexShrink: 0, gap: 10, paddingHorizontal: 2 }, sudoku.surface && styles.woodGameSurface, sudoku.surface && { backgroundColor: sudoku.surface.bg, borderColor: sudoku.surface.border }]}>
 			<View style={[styles.sudokuTopBar, { maxWidth: boardSize }]}>
 				<Text style={[styles.gameStatus, { color: complete ? "#7C2D12" : lost ? "#DC2626" : sudoku.status ?? currentTheme.textPrimary }]}>
 					{complete ? t("sudoku.solved") : lost ? t("sudoku.gameOver") : selected ? `${t("sudoku.mistakes")} ${mistakes}/${SUDOKU_MAX_MISTAKES}` : t("sudoku.selectCell")}
