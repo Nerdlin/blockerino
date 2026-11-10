@@ -6,10 +6,10 @@
 
 Артефакты (версия `2.0.8`, сборка `21`), выкладываются в GitHub Releases как `v2.0.8`:
 
-- **[Скачать Blockerino 2.0.8 для Android (APK)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.8/blockerino-2.0.8.apk)** · APK · сборка 21
-- **[Скачать Blockerino 2.0.8 Android App Bundle (AAB)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.8/blockerino-2.0.8.aab)** · AAB · сборка 21 (для Google Play Console)
-- **[Скачать Blockerino 2.0.8 для Windows (установщик)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.8/blockerino-2.0.8-windows-setup.exe)** · EXE
-- **[Скачать Blockerino 2.0.8 для Windows (без установки)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.8/blockerino-2.0.8-windows-portable.exe)** · EXE
+- **[Скачать Blockerino 2.0.8 для Android (APK)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.8/blockerino-2.0.8.apk)** · APK · 52,8 МиБ · сборка 21
+- **[Скачать Blockerino 2.0.8 Android App Bundle (AAB)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.8/blockerino-2.0.8.aab)** · AAB · 70,4 МиБ · сборка 21 (для Google Play Console)
+- **[Скачать Blockerino 2.0.8 для Windows (установщик)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.8/blockerino-2.0.8-windows-setup.exe)** · EXE · 122,0 МиБ
+- **[Скачать Blockerino 2.0.8 для Windows (без установки)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.8/blockerino-2.0.8-windows-portable.exe)** · EXE · 111,4 МиБ
 
 ## 🎮 Что нового
 
@@ -47,3 +47,13 @@
 ## 🚀 Развёртывание
 Миграции `20261110134159_security_audit_fixes`, `20261111090000_coin_gain_limit` и `20261111100000_admin_panel` уже применены к базе. Функции `discord-token-exchange` и `discord-app-return` выложены.
 Порядок по `docs/release-process.md`: релиз на GitHub → «релиз сделал» → пуш в `main` → в Google Play новый выпуск в «Закрытое тестирование – Alpha» (`blockerino-2.0.8.aab`).
+
+## 📦 Артефакты
+| Файл | Размер, байт | SHA-256 |
+|---|---|---|
+| blockerino-2.0.8.apk | 55385985 | 02bfe6aa8ff2a9184849d8640e1ca362f11c31f0291e28602b4cfad07b12c7cc |
+| blockerino-2.0.8.aab | 73781560 | d83abb773b4dda0c6fde5aa32b0638883d9fadd5505d002575cf0bfb4b239858 |
+| blockerino-2.0.8-windows-setup.exe | 127975400 | 623b6cc8ef1b4c18fc17e3eea181d8be2da7856d3d108d78b0e58af67c8196ed |
+| blockerino-2.0.8-windows-portable.exe | 116824848 | e341b5933a2aa6404037e34912d3990ca18f3087226e1ff92b121281d0306b75 |
+
+AAB подписан ключом загрузки, APK подписан отладочным ключом (как прошлые APK, чтобы обновляться поверх). Windows-версии не подписаны: при первом запуске Windows покажет предупреждение («Подробнее» → «Выполнить в любом случае»).
