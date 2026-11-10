@@ -91,14 +91,16 @@ function serve() {
 // One headless Chrome per player, driven over the DevTools protocol.
 async function launchPlayer(name, port, chromePath) {
 	const profile = path.join(profilesDir, name);
-	fs.rmSync(profile, { recursive: true, force: true });
+	try { fs.rmSync(profile, { recursive: true, force: true }); } catch { /* a closing browser may still hold a file */ }
 	const chrome = spawn(chromePath, [
 		"--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
 		"--window-size=390,844", "--lang=en-US", "--hide-scrollbars", "--force-device-scale-factor=1", "about:blank",
 	], { stdio: "ignore" });
 	let targets;
-	for (let attempt = 0; attempt < 80 && !targets; attempt += 1) {
-		try { targets = await (await fetch(`http://127.0.0.1:${port}/json`)).json(); } catch { await sleep(250); }
+	// The first answers may list only extension pages; wait until the tab itself is there.
+	for (let attempt = 0; attempt < 120 && !targets?.some((target) => target.type === "page"); attempt += 1) {
+		try { targets = await (await fetch(`http://127.0.0.1:${port}/json`)).json(); } catch { /* not up yet */ }
+		if (!targets?.some((target) => target.type === "page")) await sleep(250);
 	}
 	const page = targets?.find((target) => target.type === "page");
 	if (!page) throw new Error(`Chrome for ${name} did not start.`);
@@ -151,7 +153,12 @@ async function launchPlayer(name, port, chromePath) {
 			}
 			return false;
 		},
-		close: () => { try { ws.close(); } catch { /* already closed */ } chrome.kill(); },
+		// On Windows kill() leaves Chrome's child processes holding the port and the profile; take the whole tree down.
+		close: () => {
+			try { ws.close(); } catch { /* already closed */ }
+			if (isWindows && chrome.pid) spawnSync("taskkill", ["/PID", String(chrome.pid), "/T", "/F"], { stdio: "ignore" });
+			else chrome.kill();
+		},
 	};
 	return player;
 }
@@ -479,9 +486,10 @@ async function main() {
 	const server = await serve();
 	const chromePath = findChrome();
 	const results = [];
-	for (const name of names) {
-		const a = await launchPlayer(`${name}-A`, 9401, chromePath);
-		const b = scenarios[name].solo ? { name: `${name}-B`, close() {} } : await launchPlayer(`${name}-B`, 9402, chromePath);
+	for (const [index, name] of names.entries()) {
+		// a fresh pair of ports per scenario, in case the previous browsers are still shutting down
+		const a = await launchPlayer(`${name}-A`, 9401 + index * 2, chromePath);
+		const b = scenarios[name].solo ? { name: `${name}-B`, close() {} } : await launchPlayer(`${name}-B`, 9402 + index * 2, chromePath);
 		const started = Date.now();
 		try {
 			await scenarios[name](a, b);

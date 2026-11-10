@@ -71,7 +71,7 @@ describe("database rewards", () => {
 	it("match the pool and the bonus", () => {
 		// the newest migration that defines the reward table wins (the pool grows by replacing the function)
 		const dir = path.join(__dirname, "..", "supabase", "migrations");
-		const file = fs.readdirSync(dir).filter((name) => fs.readFileSync(path.join(dir, name), "utf8").includes("FUNCTION public.daily_quest_reward")).sort().pop()!;
+		const file = fs.readdirSync(dir).filter((name) => fs.readFileSync(path.join(dir, name), "utf8").includes("CREATE OR REPLACE FUNCTION public.daily_quest_reward")).sort().pop()!;
 		const sql = fs.readFileSync(path.join(dir, file), "utf8");
 		const from = sql.indexOf("FUNCTION public.daily_quest_reward");
 		const body = sql.slice(from, sql.indexOf("FUNCTION public.claim_daily_quests", from) > 0 ? sql.indexOf("FUNCTION public.claim_daily_quests", from) : undefined);

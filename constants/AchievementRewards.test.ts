@@ -51,7 +51,7 @@ describe("achievement chains", () => {
 		const dir = path.join(__dirname, "..", "supabase", "migrations");
 		const latest = fs.readdirSync(dir).filter((name) => name.endsWith(".sql")).sort().reverse()
 			.map((name) => fs.readFileSync(path.join(dir, name), "utf8"))
-			.find((sql) => sql.includes("FUNCTION public.achievement_reward("))!;
+			.find((sql) => sql.includes("CREATE OR REPLACE FUNCTION public.achievement_reward("))!;
 		const start = latest.indexOf("FUNCTION public.achievement_reward(");
 		const body = latest.slice(start, latest.indexOf("$$;", latest.indexOf("$$", start) + 2));
 		const sqlRewards = new Map([...body.matchAll(/WHEN '([a-z_0-9]+)' THEN (\d+)/g)].map((match) => [match[1], Number(match[2])]));
