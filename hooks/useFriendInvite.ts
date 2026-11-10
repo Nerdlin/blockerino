@@ -1,3 +1,4 @@
+import { isFriendInDuel, outgoingInviteAtom } from "@/constants/OutgoingInvite";
 import { sendInviteBroadcast } from "@/constants/InviteChannel";
 import { useState } from "react";
 import { Alert } from "react-native";
@@ -7,33 +8,26 @@ import { supabase } from "@/constants/Supabase";
 import { notifyInvite } from "@/constants/Invites";
 import { useLanguage } from "@/constants/Localization";
 import { inviteModeRequestAtom } from "@/components/InviteModeHost";
-import {
-	GameModeType,
-	MenuStateType,
-	multiplayerGameModeAtom,
-	multiplayerOpponentNameAtom,
-	multiplayerPlayerEloAtom,
-	multiplayerRoleAtom,
-	multiplayerRoomIdAtom,
-	useAppState,
-} from "@/hooks/useAppState";
+import { GameModeType } from "@/hooks/useAppState";
 
-// Invites a friend to a private 1v1 room: asks Classic or Chaos in the shared popup, creates the room,
-// tells the friend (push when their app is closed, a live message when it is open) and enters the game as host.
+// Invites a friend to a private 1v1 room: asks Classic or Chaos in the shared popup, creates the room, tells the
+// friend (push when their app is closed, a live message when it is open) and then waits for the answer in
+// InviteModeHost; the game starts only when the friend joins. A friend in a duel right now is not invited.
 // Used by the friends list and by the friends strip of the Versus lobby.
 export function useFriendInvite(userId: string) {
 	const { t } = useLanguage();
 	const askInviteMode = useSetAtom(inviteModeRequestAtom);
-	const setMultiplayerRoomId = useSetAtom(multiplayerRoomIdAtom);
-	const setMultiplayerRole = useSetAtom(multiplayerRoleAtom);
-	const setMultiplayerGameMode = useSetAtom(multiplayerGameModeAtom);
-	const setMultiplayerOpponentName = useSetAtom(multiplayerOpponentNameAtom);
-	const setMultiplayerPlayerElo = useSetAtom(multiplayerPlayerEloAtom);
-	const [, setAppState] = useAppState();
+	const setOutgoingInvite = useSetAtom(outgoingInviteAtom);
 	const [busy, setBusy] = useState(false);
 
 	const sendInvite = async (friendId: string, friendName: string, gameMode: GameModeType) => {
 		setBusy(true);
+
+		if (await isFriendInDuel(friendId)) {
+			Alert.alert(t("friends.inviteBusyTitle"), t("friends.inviteBusy", { name: friendName }));
+			setBusy(false);
+			return;
+		}
 
 		// 1. Create a private room
 		const { data: profile } = await supabase
@@ -76,13 +70,8 @@ export function useFriendInvite(userId: string) {
 			return;
 		}
 
-		// 3. Join the room as player1
-		setMultiplayerRoomId(room.id);
-		setMultiplayerRole("player1");
-		setMultiplayerGameMode(gameMode);
-		setMultiplayerOpponentName(friendName);
-		setMultiplayerPlayerElo(myElo);
-		setAppState(MenuStateType.MULTIPLAYER_GAME);
+		// 3. Wait for the answer; InviteModeHost enters the game as player1 once the friend has joined
+		setOutgoingInvite({ roomId: room.id, friendId, friendName, mode: gameMode, myElo, sentAt: Date.now(), status: "waiting" });
 
 		setBusy(false);
 	};

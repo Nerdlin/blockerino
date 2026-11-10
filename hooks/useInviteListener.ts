@@ -1,3 +1,5 @@
+import { sendInviteBroadcast } from '@/constants/InviteChannel';
+import { isInOnlineRoom, outgoingInviteAtom } from '@/constants/OutgoingInvite';
 import { openInviteInbox } from '@/constants/InviteChannel';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSetAtom } from 'jotai';
@@ -26,6 +28,7 @@ export function useInviteListener(
     const setIncomingInvite = useSetAtom(incomingInviteAtom);
     const setChessInvite = useSetAtom(chessInviteAtom);
     const setGameInvite = useSetAtom(gameInviteAtom);
+    const setOutgoingInvite = useSetAtom(outgoingInviteAtom);
     const [userId, setUserId] = useState<string | null>(null);
     const shownRooms = useRef(new Set<string>());
 
@@ -38,7 +41,20 @@ export function useInviteListener(
     const presentInvite = useCallback((roomId: string, hostName: string, mode: GameModeType) => {
         if (!userId || shownRooms.current.has(roomId)) return;
         shownRooms.current.add(roomId);
+        // The host waits for an answer; tell them "no" or "busy" (the room row names the host).
+        const answer = (event: 'invite_declined' | 'invite_busy') => {
+            void supabase.from('matchmaking_rooms').select('player1_id').eq('id', roomId).maybeSingle().then(({ data }) => {
+                const hostId = typeof data?.player1_id === 'string' ? data.player1_id : null;
+                if (hostId) void sendInviteBroadcast(hostId, event, { roomId });
+            });
+        };
+        // A player in an online game is not interrupted: the host hears "busy" at once.
+        if (isInOnlineRoom()) {
+            answer('invite_busy');
+            return;
+        }
         setIncomingInvite({
+            decline: () => answer('invite_declined'),
             hostName,
             mode,
             accept: async () => {
@@ -91,9 +107,22 @@ export function useInviteListener(
                 const nextGameMode = Object.values(GameModeType).includes(gameMode) ? gameMode : GameModeType.Classic;
                 presentInvite(roomId, hostName || 'Player 1', nextGameMode);
             })
+            .on('broadcast', { event: 'invite_declined' }, (payload) => {
+                const roomId = payload.payload?.roomId;
+                setOutgoingInvite((current) => (current && current.roomId === roomId && current.status === 'waiting' ? { ...current, status: 'declined' } : current));
+            })
+            .on('broadcast', { event: 'invite_busy' }, (payload) => {
+                const roomId = payload.payload?.roomId;
+                setOutgoingInvite((current) => {
+                    if (!current || current.roomId !== roomId || current.status !== 'waiting') return current;
+                    void supabase.from('matchmaking_rooms').delete().eq('id', roomId).eq('status', 'waiting');
+                    return { ...current, status: 'busy' };
+                });
+            })
             .on('broadcast', { event: 'chess_invite' }, (payload) => {
                 const invite = parseChessInvite(payload.payload);
                 if (!invite || shownRooms.current.has(invite.code)) return;
+                if (isInOnlineRoom()) return;
                 shownRooms.current.add(invite.code);
                 setIncomingInvite({
                     hostName: invite.hostName,
@@ -108,6 +137,7 @@ export function useInviteListener(
             .on('broadcast', { event: 'game_invite' }, (payload) => {
                 const invite = parseGameInvite(payload.payload);
                 if (!invite || shownRooms.current.has(`${invite.game}:${invite.code}`)) return;
+                if (isInOnlineRoom()) return;
                 shownRooms.current.add(`${invite.game}:${invite.code}`);
                 setIncomingInvite({
                     hostName: invite.hostName,
@@ -127,7 +157,7 @@ export function useInviteListener(
             supabase.removeChannel(inbox);
             supabase.removeChannel(legacyInbox);
         };
-    }, [userId, presentInvite, setIncomingInvite, setChessInvite, setGameInvite, setAppState, t]);
+    }, [userId, presentInvite, setIncomingInvite, setChessInvite, setGameInvite, setAppState, setOutgoingInvite, t]);
 
     // Invites that came as a push while the app was closed: asked at launch and whenever the app comes back.
     useEffect(() => {

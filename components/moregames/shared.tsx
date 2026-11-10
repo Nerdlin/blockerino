@@ -1,3 +1,4 @@
+import { markOnlineRoom } from "@/constants/OutgoingInvite";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/constants/Supabase";
 import { useTheme } from "@/constants/Theme";
@@ -161,6 +162,12 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 	const [roomCode, setRoomCode] = useState("");
 	const [role, setRole] = useState<OnlineRole | null>(null);
 	const [status, setStatus] = useState<RoomStatus>("offline");
+	// in an online room the player answers new invites "busy" (see useInviteListener)
+	useEffect(() => {
+		if (status !== "connected") return;
+		markOnlineRoom(1);
+		return () => markOnlineRoom(-1);
+	}, [status]);
 	const channelRef = useRef<any>(null);
 	const roleRef = useRef<OnlineRole | null>(null);
 	const onEventRef = useRef(onEvent);

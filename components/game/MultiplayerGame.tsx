@@ -1,3 +1,4 @@
+import { markOnlineRoom } from "@/constants/OutgoingInvite";
 import { PieceData, getBlockCount } from '@/constants/Piece';
 import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-dnd';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -170,6 +171,12 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const emoteCounter = useRef(0);
 
     // End game variables
+    // a player in a duel answers new invites "busy" (see useInviteListener)
+    useEffect(() => {
+        if (myRole === 'spectator') return;
+        markOnlineRoom(1);
+        return () => markOnlineRoom(-1);
+    }, [myRole]);
     const [restartRequestStatus, setRestartRequestStatus] = useState<'idle' | 'waiting_for_opponent' | 'received_request'>('idle');
     const restartStatusRef = useRef(restartRequestStatus);
     restartStatusRef.current = restartRequestStatus;
