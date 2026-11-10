@@ -9,7 +9,7 @@ serve(async (req) => {
   try {
     const { code, redirect_uri } = await req.json();
     // The Android app signs in through the browser and must name the redirect it used; only ours is accepted.
-    const allowedRedirects = ['com.nerdlin.blockerino://discord-auth'];
+    const allowedRedirects = ['https://ptcglecvavdvpxadqfqd.supabase.co/functions/v1/discord-app-return'];
     if (redirect_uri !== undefined && !allowedRedirects.includes(redirect_uri)) {
       throw new Error('Unknown redirect_uri');
     }

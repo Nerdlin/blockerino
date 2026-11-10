@@ -7,7 +7,10 @@ import { supabase } from "./Supabase";
 // one-time login. Supabase's own Discord provider is not used here, because it would open a second, empty
 // account for every player who started in the Activity.
 
+/** Where the app is opened at the end (watched by expo-web-browser). */
 export const DISCORD_NATIVE_REDIRECT = "com.nerdlin.blockerino://discord-auth";
+/** Discord accepts only http(s) redirects; this function bounces the browser to DISCORD_NATIVE_REDIRECT. */
+export const DISCORD_WEB_REDIRECT = "https://ptcglecvavdvpxadqfqd.supabase.co/functions/v1/discord-app-return";
 
 export type DiscordNativeSignIn =
 	| { status: "signed_in" }
@@ -18,14 +21,14 @@ function randomState(): string {
 	return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+// No prompt=none: Chrome only follows the jump back to the app after a tap, so Discord shows its Authorize button.
 export function buildDiscordAuthorizeUrl(clientId: string, state: string): string {
 	const params = new URLSearchParams({
 		client_id: clientId,
 		response_type: "code",
-		redirect_uri: DISCORD_NATIVE_REDIRECT,
+		redirect_uri: DISCORD_WEB_REDIRECT,
 		scope: "identify",
 		state,
-		prompt: "none",
 	});
 	return `https://discord.com/oauth2/authorize?${params.toString()}`;
 }
@@ -55,7 +58,7 @@ export async function signInWithDiscordNative(): Promise<DiscordNativeSignIn> {
 	}
 
 	const { data: exchange, error: exchangeError } = await supabase.functions.invoke("discord-token-exchange", {
-		body: { code: returned.code, redirect_uri: DISCORD_NATIVE_REDIRECT },
+		body: { code: returned.code, redirect_uri: DISCORD_WEB_REDIRECT },
 	});
 	if (exchangeError || exchange?.error || typeof exchange?.access_token !== "string") {
 		return { status: "error", message: String(exchange?.error || exchangeError?.message || "Discord did not return a token") };
