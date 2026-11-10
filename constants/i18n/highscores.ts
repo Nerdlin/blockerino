@@ -4,6 +4,9 @@ export const highscores: ScreenDictionary = {
 	en: {
 		"hs.back": "Back",
 		"hs.yourNickname": "Your Nickname:",
+		"hs.guestTitle": "You are not signed in",
+		"hs.guestText": "Your records stay on this device and do not reach the leaderboard.",
+		"hs.guestSignIn": "Sign in",
 		"hs.enterNickname": "Enter Nickname",
 		"hs.syncingBest": "Syncing best score...",
 		"hs.selectMode": "Select a game mode...",
@@ -59,6 +62,9 @@ export const highscores: ScreenDictionary = {
 	ru: {
 		"hs.back": "Назад",
 		"hs.yourNickname": "Ваш ник:",
+		"hs.guestTitle": "Вы не вошли в аккаунт",
+		"hs.guestText": "Рекорды сохраняются только на этом устройстве и не попадают в рейтинг.",
+		"hs.guestSignIn": "Войти",
 		"hs.enterNickname": "Введите ник",
 		"hs.syncingBest": "Синхронизация рекорда...",
 		"hs.selectMode": "Выберите режим...",

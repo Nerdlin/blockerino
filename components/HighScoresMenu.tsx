@@ -23,6 +23,7 @@ import { getFriendsAllTimeLeaderboard, getSeasonBoard, getSeasonEndsAt, getSeaso
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { LeaderboardMeCard, LeaderboardPodium } from "./LeaderboardPodium";
 import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
+import { setProfileAuthIntent } from "@/constants/ProfileIntent";
 
 const LEADERBOARD_LIMIT = 100;
 const LEADERBOARD_REFRESH_MS = 30000;
@@ -254,6 +255,21 @@ export default function HighScores() {
             />
         )}
 
+        {authChecked && !signedIn && (
+            // Guests easily take the local record for an account: say plainly that it does not reach the board.
+            <Pressable
+                onPress={() => { setProfileAuthIntent("login"); appendAppState(MenuStateType.PROFILE); }}
+                accessibilityRole="button"
+                style={styles.guestBanner}
+            >
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.guestBannerTitle}>{t("hs.guestTitle")}</Text>
+                    <Text style={styles.guestBannerText}>{t("hs.guestText")}</Text>
+                </View>
+                <Text style={styles.guestBannerButton}>{t("hs.guestSignIn")}</Text>
+            </Pressable>
+        )}
+
         {loading && <PixelLoader size="large" color={currentTheme.textPrimary} />}
 
         {!loading && hasScores && (
@@ -311,6 +327,32 @@ export default function HighScores() {
 }
 
 const styles = StyleSheet.create({
+    guestBanner: {
+        width: "92%",
+        maxWidth: 420,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        marginTop: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: "#FFB300",
+        backgroundColor: "rgba(255, 179, 0, 0.12)",
+    },
+    guestBannerTitle: { fontFamily: "Silkscreen", fontSize: 13, color: "#FFD54F" },
+    guestBannerText: { fontSize: 12, color: "rgba(255, 255, 255, 0.85)", marginTop: 3 },
+    guestBannerButton: {
+        fontFamily: "Silkscreen",
+        fontSize: 13,
+        color: "#111",
+        backgroundColor: "#FFB300",
+        borderRadius: 6,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        overflow: "hidden",
+    },
     topBar: {
         width: '92%',
         maxWidth: 420,
