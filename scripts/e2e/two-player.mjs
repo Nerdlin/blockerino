@@ -165,7 +165,8 @@ async function launchPlayer(name, port, chromePath) {
 
 // ---- helpers shared by the scenarios ----
 
-const MORE_GAME_INDEX = { battleship: 0, durak: 1, chess: 2, tictactoe: 4 };
+// order of the cards in More Games: Chess, Durak, Sea Battle, Checkers, Tic-Tac-Toe, Sudoku, Mahjong
+const MORE_GAME_INDEX = { chess: 0, durak: 1, battleship: 2, checkers: 3, tictactoe: 4 };
 
 async function openGame(player, game) {
 	await player.clickText("More Games"); await sleep(1500);
@@ -377,7 +378,9 @@ const soloScenarios = {
 		await a.clickSel('[aria-label="Achievements"]'); await sleep(2000);
 		const text = await a.body();
 		if (!/Today.s quests/i.test(text)) throw new Error("the daily quests card is missing");
-		const rows = (text.match(/Clear [0-9]+ lines|Finish [0-9]+ solo games|Place [0-9]+ blocks|Beat a bot: [0-9]+|Play [0-9]+ duel|Win in More Games: [0-9]+/g) || []).length;
+		// each quest row ends with its reward (+NN); the section stops at the bonus line
+		const section = text.slice(text.search(/Today.s quests/i), text.search(/All three done/i));
+		const rows = (section.match(/\+[0-9]+/g) || []).length;
 		if (rows !== 3) throw new Error(`expected 3 quests, saw ${rows}: ${text.slice(0, 300)}`);
 	},
 };
