@@ -1,3 +1,4 @@
+import { sendInviteBroadcast } from "@/constants/InviteChannel";
 import { useState } from "react";
 import { Alert } from "react-native";
 import { useSetAtom } from "jotai";
@@ -61,39 +62,12 @@ export function useFriendInvite(userId: string) {
 
 		void notifyInvite(room.id, friendId);
 
-		// 2. Broadcast invite to the friend after realtime is subscribed.
-		const inviteChannel = supabase.channel(`invites:${friendId}`);
-		const subscribed = await new Promise<boolean>((resolve) => {
-			const timeout = setTimeout(() => resolve(false), 5000);
-			inviteChannel.subscribe((status) => {
-				if (status === "SUBSCRIBED") {
-					clearTimeout(timeout);
-					resolve(true);
-				} else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-					clearTimeout(timeout);
-					resolve(false);
-				}
-			});
-		});
-
-		if (!subscribed) {
-			await supabase.from("matchmaking_rooms").delete().eq("id", room.id).eq("status", "waiting");
-			supabase.removeChannel(inviteChannel);
-			Alert.alert(t("friends.errorTitle"), t("friends.realtimeFailed"));
-			setBusy(false);
-			return;
-		}
-
-		const sendResult = await inviteChannel.send({
-			type: "broadcast",
-			event: "1v1_invite",
-			payload: {
-				roomId: room.id,
-				hostName: myName,
-				gameMode: gameMode,
-			},
-		});
-		supabase.removeChannel(inviteChannel);
+		// 2. Send the invitation to the friend's private inbox (and the old public one for older builds).
+		const sendResult = (await sendInviteBroadcast(friendId, "1v1_invite", {
+			roomId: room.id,
+			hostName: myName,
+			gameMode: gameMode,
+		})) ? "ok" : "error";
 
 		if (sendResult !== "ok") {
 			await supabase.from("matchmaking_rooms").delete().eq("id", room.id).eq("status", "waiting");

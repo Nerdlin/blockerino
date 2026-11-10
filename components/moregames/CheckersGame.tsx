@@ -319,7 +319,7 @@ export function CheckersGame({ playerName, onRatingChange }: { playerName: strin
 			: result === "draw" ? "draw" : result === "w" ? "player1" : "player2";
 		const resultKey = `${room.roomCode}:${matchResult}:${remoteResult || result}`;
 		if (ratingSubmittedRef.current === resultKey) return;
-		if (room.role !== "player1" && !remoteResult) return;
+		// Every player reports the game; the server changes ratings on the loser's report (a draw needs both).
 		ratingSubmittedRef.current = resultKey;
 		void submitMoreGameMatchResult({
 			gameId: "checkers",

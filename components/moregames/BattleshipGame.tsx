@@ -581,9 +581,7 @@ export function BattleshipGame({ cosmetics, playerName, onRatingChange }: { cosm
 		// One rating per game: the room code is unique for each Sea Battle match.
 		const resultKey = room.roomCode;
 		if (ratingSubmittedRef.current === resultKey) return;
-		const shouldSubmit = room.role === "player1" || winnerSource === "forfeit";
-		if (!shouldSubmit) return;
-
+		// Every player reports the game; the server changes ratings on the loser's report (a draw needs both).
 		ratingSubmittedRef.current = resultKey;
 		void submitMoreGameMatchResult({
 			gameId: "battleship",

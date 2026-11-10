@@ -201,9 +201,7 @@ export function TicTacToeGame({ playerName, onRatingChange }: { playerName: stri
 		const resultKey = `${room.roomCode}:${result}:${remoteResult || winner || "draw"}`;
 		if (ratingSubmittedRef.current === resultKey) return;
 
-		const shouldSubmit = room.role === "player1" || Boolean(remoteResult);
-		if (!shouldSubmit) return;
-
+		// Every player reports the game; the server changes ratings on the loser's report (a draw needs both).
 		ratingSubmittedRef.current = resultKey;
 		void submitMoreGameMatchResult({
 			gameId: "tictactoe",

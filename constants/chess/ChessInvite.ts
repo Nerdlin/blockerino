@@ -1,5 +1,5 @@
+import { sendInviteBroadcast } from "@/constants/InviteChannel";
 import { atom } from "jotai";
-import { supabase } from "@/constants/Supabase";
 import { TimeControl, parseTimeControl } from "./TimeControls";
 
 // A chess challenge to a friend: the host opens a room with a random code and sends the code over the friend's invite
@@ -35,32 +35,5 @@ export function parseChessInvite(payload: unknown): ChessInvite | null {
 
 /** Sends the challenge to the friend; false when the channel could not be reached. */
 export async function sendChessInvite(friendId: string, invite: ChessInvite): Promise<boolean> {
-	try {
-		const channel = supabase.channel(`invites:${friendId}`);
-		const subscribed = await new Promise<boolean>((resolve) => {
-			const timeout = setTimeout(() => resolve(false), 5000);
-			channel.subscribe((status) => {
-				if (status === "SUBSCRIBED") {
-					clearTimeout(timeout);
-					resolve(true);
-				} else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-					clearTimeout(timeout);
-					resolve(false);
-				}
-			});
-		});
-		if (!subscribed) {
-			supabase.removeChannel(channel);
-			return false;
-		}
-		const result = await channel.send({
-			type: "broadcast",
-			event: "chess_invite",
-			payload: { code: invite.code, hostName: invite.hostName, control: invite.control.id },
-		});
-		supabase.removeChannel(channel);
-		return result === "ok";
-	} catch {
-		return false;
-	}
+	return sendInviteBroadcast(friendId, "chess_invite", { code: invite.code, hostName: invite.hostName, control: invite.control.id });
 }

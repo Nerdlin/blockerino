@@ -7,6 +7,12 @@ import { submitGlobalHighScoreOrQueue } from './OfflineSync';
 jest.mock('./Storage', () => ({ getOwnedHighScores: jest.fn() }));
 jest.mock('./Supabase', () => ({ supabase: { auth: { getSession: jest.fn() } } }));
 jest.mock('./OfflineSync', () => ({ submitGlobalHighScoreOrQueue: jest.fn() }));
+jest.mock('./SeasonScores', () => ({
+    getSeasonBoard: (mode: string) => (mode === 'classic' || mode === 'chaos' ? mode : null),
+    getSeasonKey: () => '2026-11',
+    isSeasonOpenForSubmission: (achievedAt: number) => achievedAt >= 1000,
+    submitSeasonScoreOrQueue: jest.fn(async () => 'synced'),
+}));
 jest.mock('@react-native-async-storage/async-storage', () => {
     const values = new Map();
     return { __esModule: true, default: {
@@ -50,3 +56,19 @@ it('preserves a guest record until Discord supplies a session', async () => {
     expect(submitGlobalHighScoreOrQueue).toHaveBeenCalledTimes(1);
 });
 
+
+it('sends a guest record of the running season to the season board once', async () => {
+    const { submitSeasonScoreOrQueue } = jest.requireMock('./SeasonScores');
+    (getOwnedHighScores as jest.Mock).mockImplementation(async (mode) => mode === 'chaos' ? [{ score: 29745, date: 5000 }, { score: 100, date: 2000 }] : []);
+    await syncLocalHighScores();
+    await syncLocalHighScores();
+    expect(submitSeasonScoreOrQueue).toHaveBeenCalledTimes(1);
+    expect(submitSeasonScoreOrQueue).toHaveBeenCalledWith('chaos', 29745, 'account-a', 5000);
+});
+
+it('leaves records of past seasons off the season board', async () => {
+    const { submitSeasonScoreOrQueue } = jest.requireMock('./SeasonScores');
+    (getOwnedHighScores as jest.Mock).mockImplementation(async (mode) => mode === 'chaos' ? [{ score: 29745, date: 10 }] : []);
+    await syncLocalHighScores();
+    expect(submitSeasonScoreOrQueue).not.toHaveBeenCalled();
+});

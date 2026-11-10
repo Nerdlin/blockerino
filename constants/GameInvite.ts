@@ -1,6 +1,6 @@
+import { sendInviteBroadcast } from "./InviteChannel";
 import { atom, useAtom } from "jotai";
 import { useEffect } from "react";
-import { supabase } from "@/constants/Supabase";
 
 // An invitation to a room game in More Games (Durak, Sea Battle, Tic-Tac-Toe, Checkers): the host opens a room as usual, picks a
 // friend who is online and the room code goes over the friend's invite channel (the one the 1v1 and chess invites
@@ -31,34 +31,7 @@ export function parseGameInvite(payload: unknown): GameInvite | null {
 
 /** Sends the invitation to the friend; false when the channel could not be reached. */
 export async function sendGameInvite(friendId: string, invite: GameInvite): Promise<boolean> {
-	try {
-		const channel = supabase.channel(`invites:${friendId}`);
-		const subscribed = await new Promise<boolean>((resolve) => {
-			const timeout = setTimeout(() => resolve(false), 5000);
-			channel.subscribe((status) => {
-				if (status === "SUBSCRIBED") {
-					clearTimeout(timeout);
-					resolve(true);
-				} else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-					clearTimeout(timeout);
-					resolve(false);
-				}
-			});
-		});
-		if (!subscribed) {
-			supabase.removeChannel(channel);
-			return false;
-		}
-		const result = await channel.send({
-			type: "broadcast",
-			event: "game_invite",
-			payload: { game: invite.game, code: invite.code, hostName: invite.hostName },
-		});
-		supabase.removeChannel(channel);
-		return result === "ok";
-	} catch {
-		return false;
-	}
+	return sendInviteBroadcast(friendId, "game_invite", { game: invite.game, code: invite.code, hostName: invite.hostName });
 }
 
 /** A game calls this with the way it joins a room: an accepted invitation for this game joins once, then is cleared. */

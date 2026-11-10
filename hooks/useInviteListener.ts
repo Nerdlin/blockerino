@@ -1,3 +1,4 @@
+import { openInviteInbox } from '@/constants/InviteChannel';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSetAtom } from 'jotai';
 import { Alert, AppState } from 'react-native';
@@ -82,7 +83,8 @@ export function useInviteListener(
     useEffect(() => {
         if (!userId) return;
 
-        const channel = supabase.channel(`invites:${userId}`)
+        // Private inbox: only this player can listen to it and only friends can send to it.
+        const channel = openInviteInbox(userId)
             .on('broadcast', { event: '1v1_invite' }, (payload) => {
                 const { roomId, hostName, gameMode } = payload.payload;
                 const nextGameMode = Object.values(GameModeType).includes(gameMode) ? gameMode : GameModeType.Classic;

@@ -978,16 +978,15 @@ const { t } = useLanguage();
 		if (ratingSubmittedRef.current === resultKey) return;
 
 		const forfeit = state.message.toLowerCase().includes("left");
-		const shouldSubmit = room.role === "player1" || (forfeit && room.role === state.winner);
-		if (!shouldSubmit) return;
-
+		// Every player reports the game; the server changes ratings on the loser's report (a draw needs both).
+		// Each seat reports only its own pairings: the winner against every loser, a loser against the winner.
 		ratingSubmittedRef.current = resultKey;
 		const roles = getActiveDurakRoles(state.playerCount);
 		// A seat whose name never arrived would be rated under its "P3" label, so it is skipped.
 		const nameOf = (role: OnlineRole) => (role === room.role ? playerName : playerNames[role]);
 		const winnerName = nameOf(state.winner);
 		if (!winnerName) return;
-		const losers = roles.filter((role) => role !== state.winner && nameOf(role));
+		const losers = roles.filter((role) => role !== state.winner && nameOf(role) && (room.role === state.winner || role === room.role));
 		void Promise.all(losers.map((loserRole) => {
 			const loserName = nameOf(loserRole)!;
 			return submitMoreGameMatchResult({

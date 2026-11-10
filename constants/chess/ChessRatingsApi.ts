@@ -56,6 +56,15 @@ export function parseReport(data: unknown): ReportOutcome {
 	};
 }
 
+/** Tells the server this player sat down at the board of a room; a one-sided result is only rated for seated players. */
+export async function joinChessGame(roomCode: string): Promise<void> {
+	try {
+		await supabase.rpc("chess_join_game", { p_room_code: roomCode });
+	} catch {
+		// unrated at worst
+	}
+}
+
 /** Reports a finished friend game. Null-safe: a failure only means the result is not rated. */
 export async function reportChessMatch(input: {
 	roomCode: string;

@@ -19,7 +19,7 @@ import {
 	settleTimeout,
 } from "@/constants/chess/ChessGameState";
 import { buildPgn, resultFromWinner } from "@/constants/chess/ChessPgn";
-import { ReportOutcome, reportChessMatch } from "@/constants/chess/ChessRatingsApi";
+import { joinChessGame, ReportOutcome, reportChessMatch } from "@/constants/chess/ChessRatingsApi";
 import { TimeControl, formatTimeControl, parseTimeControl } from "@/constants/chess/TimeControls";
 import { normalizeStoredPlayerName, OnlineRoomControls, roleLabel, useMiniGameRoom } from "../shared";
 import { OnlineRole } from "../types";
@@ -221,6 +221,14 @@ export function RoomGame({
 		startGame(activeControl, next, gameNo + 1);
 		room.send("start", { control: activeControl.id, white: next, number: gameNo + 1, name: playerName });
 	}, [rematch, room, whiteRole, activeControl, gameNo, startGame]);
+
+	// The server rates a game only for players it saw at the board, so each side checks in once per room.
+	const seatedRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (!room.roomCode || !opponentReady || !state || seatedRef.current === room.roomCode) return;
+		seatedRef.current = room.roomCode;
+		void joinChessGame(room.roomCode);
+	}, [room.roomCode, opponentReady, state]);
 
 	// Achievements and the rating report happen once per finished game.
 	const savedRef = useRef<string | null>(null);
