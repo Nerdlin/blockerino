@@ -45,6 +45,10 @@ const MIME = {
 };
 
 let mainWindow = null;
+// When the game last sent the player to a sign-in page. A browser coming back with ?code is believed only within
+// 10 minutes of that and only once: otherwise any website could make the game window reload with a URL of its choice.
+let signInStartedAt = 0;
+const SIGN_IN_WINDOW_MS = 10 * 60 * 1000;
 
 function isAuthCallback(url) {
 	return url.searchParams.has("code") || url.searchParams.has("error") || url.searchParams.has("error_description");
@@ -87,6 +91,12 @@ function startServer() {
 
 		// The browser came back from Google/Discord: give the code to the game window.
 		if (!fromGame && isAuthCallback(url)) {
+			if (!signInStartedAt || Date.now() - signInStartedAt > SIGN_IN_WINDOW_MS) {
+				res.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+				res.end("No sign-in was started from the game.");
+				return;
+			}
+			signInStartedAt = 0;
 			const ok = url.searchParams.has("code");
 			res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
 			res.end(callbackPage(ok));
@@ -119,6 +129,8 @@ function startServer() {
 }
 
 function openOutside(url) {
+	// a sign-in page (Supabase, Google or Discord): the answer may come back to the local server for a while
+	if (/supabase\.co\/auth|accounts\.google\.com|discord\.com\/(api\/)?oauth2/i.test(url)) signInStartedAt = Date.now();
 	if (/^https?:\/\//i.test(url) || /^mailto:/i.test(url)) shell.openExternal(url);
 }
 
@@ -142,6 +154,8 @@ function createWindow() {
 			nodeIntegration: false,
 		},
 	});
+	// the page sets a long SEO title; the window keeps the game name
+	mainWindow.on("page-title-updated", (event) => event.preventDefault());
 	mainWindow.webContents.setUserAgent(`${mainWindow.webContents.getUserAgent()} ${UA_MARK}`);
 
 	// Links that open new tabs (Discord, Google Play, GitHub...) go to the normal browser.
