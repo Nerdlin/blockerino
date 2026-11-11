@@ -2,7 +2,7 @@ import { Alert, Linking, Platform } from 'react-native';
 import * as Application from 'expo-application';
 import { supabase } from './Supabase';
 import { loadStoredLanguage, translate, type Language } from './Localization';
-import { getInstallerPackageName, GOOGLE_PLAY_INSTALLER } from '@/modules/install-source';
+import { getInstallerPackageName, getPlayUpdate, GOOGLE_PLAY_INSTALLER, startPlayUpdate } from '@/modules/install-source';
 
 export interface AppVersionConfig {
     latestVersion: string;
@@ -29,10 +29,10 @@ class UpdateService {
             return;
         }
 
-        // Google Play updates its installs itself, and an app from Play may not offer another way to update it: only
-        // the GitHub APK gets the update dialog. A manual check opens the game in the Play Store instead.
+        // An app from Google Play may only be updated through Play: it gets Play's own "Update available" window
+        // (2.0.9 and newer); only the GitHub APK gets our dialog.
         if (getInstallerPackageName() === GOOGLE_PLAY_INSTALLER) {
-            if (force) await this.openPlayListing();
+            await this.checkPlayUpdate(force);
             return;
         }
 
@@ -81,6 +81,40 @@ class UpdateService {
             console.error('Error checking for updates:', error);
             if (force) {
                 Alert.alert(translate(language, 'update.failedTitle'), translate(language, 'update.failed'));
+            }
+        } finally {
+            this.checking = false;
+        }
+    }
+
+    private async checkPlayUpdate(force: boolean): Promise<void> {
+        if (this.checking) return;
+        if (!force && Date.now() - this.lastCheckAt < AUTO_CHECK_INTERVAL_MS) return;
+        this.checking = true;
+        try {
+            const info = await getPlayUpdate();
+            this.lastCheckAt = Date.now();
+            if (!info) {
+                // a build before 2.0.9 cannot show Play's window: a manual check opens the Play Store page
+                if (force) await this.openPlayListing();
+                return;
+            }
+            // An update the player already started must be finished; a new one is offered once per app session
+            // (a newer build is offered again), and a manual check always shows it.
+            if (info.status === 'in_progress' || (info.status === 'available' && (force || info.versionCode > this.notifiedBuild))) {
+                this.notifiedBuild = Math.max(this.notifiedBuild, info.versionCode);
+                const result = await startPlayUpdate();
+                if (result === 'failed' && force) await this.openPlayListing();
+                return;
+            }
+            if (force) {
+                if (info.status === 'none') {
+                    const language = await loadStoredLanguage();
+                    const version = Application.nativeApplicationVersion || '1.0.0';
+                    Alert.alert(translate(language, 'update.upToDateTitle'), translate(language, 'update.upToDate', { version }));
+                } else {
+                    await this.openPlayListing();
+                }
             }
         } finally {
             this.checking = false;

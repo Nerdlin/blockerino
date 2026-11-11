@@ -13,3 +13,8 @@ android {
     versionName "1.0.0"
   }
 }
+
+dependencies {
+  // Google Play in-app updates: the "Update available" window for installs from Play
+  implementation "com.google.android.play:app-update:2.1.0"
+}
