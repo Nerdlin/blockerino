@@ -25,6 +25,7 @@ import { noteAchievementHighWater } from "@/constants/Achievements";
 import { checkRankUp } from "@/constants/RankUp";
 import RankUpOverlay from "./RankUpOverlay";
 import type { UiGlyphName } from "@/constants/UiGlyphs";
+import { ensureOnlineIdentity, getAccountSession } from '@/constants/AccountSession';
 
 interface MultiplayerMenuProps {
     onStartGame: (roomId: string, role: 'player1' | 'player2' | 'spectator', opponentName: string, gameMode: GameModeType, playerElo: number) => void;
@@ -205,14 +206,21 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         }
     });
 
-    // A signed-in player sits in rooms under the account id, so the server can tell who played a match.
+    // A player sits in rooms under an id the server knows, so it can tell who played a match: the account id when
+    // signed in, otherwise a guest's invisible anonymous account (if the server allows it; else the device id).
     useEffect(() => {
-        if (!authChecked || !signedIn) return;
+        if (!authChecked) return;
         let active = true;
-        supabase.auth.getSession().then(({ data }) => {
-            const accountId = data.session?.user?.id;
-            if (active && accountId) setPlayerId(accountId);
-        });
+        if (signedIn) {
+            getAccountSession().then(({ data }) => {
+                const accountId = data.session?.user?.id;
+                if (active && accountId) setPlayerId(accountId);
+            });
+        } else {
+            void ensureOnlineIdentity().then((guestId) => {
+                if (active && guestId) setPlayerId(guestId);
+            });
+        }
         return () => { active = false; };
     }, [authChecked, signedIn]);
 
@@ -220,7 +228,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     useEffect(() => {
         if (!authChecked || !signedIn) return;
         let active = true;
-        void supabase.auth.getSession().then(async ({ data }) => {
+        void getAccountSession().then(async ({ data }) => {
             const id = data.session?.user?.id;
             if (!id) return;
             const { data: rows } = await supabase.from('profiles').select('avatar_url').eq('auth_user_id', id).limit(1);

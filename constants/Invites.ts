@@ -1,5 +1,6 @@
 import { supabase } from "./Supabase";
 import { GameModeType } from "@/hooks/useAppState";
+import { getAccountSession } from './AccountSession';
 
 // The server side of a 1v1 invite: the push for a friend whose app is closed (notify_invite), the invites waiting
 // when the app opens (get_my_pending_invites) and the "online" marks of friends (touch_presence / get_friends_online).
@@ -62,7 +63,7 @@ export async function markInvitesRead(ids: number[]): Promise<void> {
 
 export async function touchPresence(): Promise<void> {
 	try {
-		const { data: { session } } = await supabase.auth.getSession();
+		const { data: { session } } = await getAccountSession();
 		if (session?.user) await supabase.rpc("touch_presence");
 	} catch {
 		// presence is a nicety

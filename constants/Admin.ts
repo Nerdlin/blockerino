@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { atom, useAtom } from "jotai";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "./Supabase";
+import { getAccountSession } from './AccountSession';
 
 // The game's administrator (the accounts in public.admins). The client only decides what to show; every admin
 // function on the server checks is_admin() itself, so a modified client gains nothing.
@@ -18,7 +19,7 @@ export function useIsAdmin(): boolean {
 	useEffect(() => {
 		let active = true;
 		const check = async () => {
-			const { data: { session } } = await supabase.auth.getSession();
+			const { data: { session } } = await getAccountSession();
 			const userId = session?.user.id ?? null;
 			if (!userId) {
 				checkedFor = null;

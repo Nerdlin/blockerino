@@ -51,6 +51,15 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     },
 });
 
+// A guest's anonymous session (online matches only) reads as signed out; see constants/AccountSession.ts.
+async function getAccountSession(): ReturnType<typeof supabase.auth.getSession> {
+    const result = await supabase.auth.getSession();
+    if (result.data.session?.user?.is_anonymous) {
+        return { ...result, data: { session: null } } as Awaited<ReturnType<typeof supabase.auth.getSession>>;
+    }
+    return result;
+}
+
 if (Platform.OS !== 'web') {
     AppState.addEventListener('change', (state) => {
         if (state === 'active') {
@@ -283,7 +292,7 @@ function getHighScoreColumn(gameMode: string): HighScoreColumn {
 /** The signed-in player's own best result in a mode as the server has it (null: signed out, no row or no column). */
 export async function getMyServerHighScore(gameMode: string): Promise<number | null> {
     try {
-        const { data: session } = await supabase.auth.getSession();
+        const { data: session } = await getAccountSession();
         const userId = session.session?.user?.id;
         if (!userId) return null;
         const column = getHighScoreColumn(gameMode);
@@ -418,7 +427,7 @@ export async function submitGlobalHighScore(
         const finalPlayerName = playerName.trim();
         if (!finalPlayerName || score <= 0) return false;
 
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await getAccountSession();
         if (sessionError || !session?.user) return false;
         // Creates the profile and syncs the nickname. The score itself only travels through the
         // submit_high_score RPC: the server rejects direct client writes to highscore_* columns.
@@ -450,7 +459,7 @@ export async function submitGlobalHighScore(
 export async function submitDailyPuzzleScore(day: string, score: number): Promise<boolean> {
     try {
         if (!(score > 0)) return false;
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await getAccountSession();
         if (!session?.user) return false;
         const { data, error } = await supabase.rpc('submit_daily_puzzle_score', { p_day: day, p_score: Math.floor(score) });
         return !error && data === true;
@@ -462,7 +471,7 @@ export async function submitDailyPuzzleScore(day: string, score: number): Promis
 /** Pays the three-star reward of a Daily Puzzle day (once). Null when the server could not be reached. */
 export async function claimDailyPuzzleReward(day: string): Promise<{ status: string; coins: number | null } | null> {
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await getAccountSession();
         if (!session?.user) return { status: 'unauthenticated', coins: null };
         const { data, error } = await supabase.rpc('claim_daily_puzzle_reward', { p_day: day });
         if (error || !data || typeof data !== 'object') return null;
@@ -508,7 +517,7 @@ export interface DurakStakeOutcome {
 // Stakes at a betting Durak table are held by the server. Returns null when the call must be retried.
 async function callDurakRpc(fn: 'durak_pay_ante' | 'durak_report', args: Record<string, unknown>): Promise<DurakStakeOutcome | null> {
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await getAccountSession();
         if (!session?.user) return { status: 'unauthenticated', coins: null };
 
         const { data, error } = await supabase.rpc(fn, args);
@@ -548,7 +557,7 @@ export interface VersusReportOutcome {
 // they sat in that room and changes the rating itself. Returns null when the report must be retried.
 export async function reportVersusResult(roomId: string, result: VersusResult): Promise<VersusReportOutcome | null> {
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await getAccountSession();
         if (!session?.user) return { status: 'guest', elo: null };
 
         const { data, error } = await supabase.rpc('report_versus_result', { p_room_id: roomId, p_result: result });

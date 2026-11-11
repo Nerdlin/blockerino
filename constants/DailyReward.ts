@@ -1,6 +1,7 @@
 import { atom } from "jotai";
 import { noteStreakBest } from "./Achievements";
 import { supabase } from "./Supabase";
+import { getAccountSession } from './AccountSession';
 
 // Daily login streak. The server owns the streak and pays the coins (daily_streak migration); this file
 // only asks it and shows the answer. Signed-in players only: guests have no server profile.
@@ -63,7 +64,7 @@ export function parseDailyRewardClaim(data: unknown): { state: "claimed" | "alre
 /** Null for guests and when the server cannot be reached. */
 export async function fetchDailyRewardStatus(): Promise<DailyRewardStatus | null> {
 	try {
-		const { data: { session } } = await supabase.auth.getSession();
+		const { data: { session } } = await getAccountSession();
 		if (!session?.user) return null;
 		const { data, error } = await supabase.rpc("daily_reward_status");
 		if (error) return null;
@@ -78,7 +79,7 @@ export async function fetchDailyRewardStatus(): Promise<DailyRewardStatus | null
 /** Null when the claim must be retried (no account, offline, no profile yet). */
 export async function claimDailyReward(): Promise<{ state: "claimed" | "already"; claim: DailyRewardClaim } | null> {
 	try {
-		const { data: { session } } = await supabase.auth.getSession();
+		const { data: { session } } = await getAccountSession();
 		if (!session?.user) return null;
 		const { data, error } = await supabase.rpc("claim_daily_reward");
 		if (error) return null;

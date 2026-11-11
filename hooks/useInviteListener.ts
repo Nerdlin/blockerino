@@ -12,6 +12,7 @@ import { fetchPendingInvites, markInvitesRead } from '@/constants/Invites';
 import { chessInviteAtom, parseChessInvite } from '@/constants/chess/ChessInvite';
 import { formatTimeControl } from '@/constants/chess/TimeControls';
 import { gameInviteAtom, parseGameInvite } from '@/constants/GameInvite';
+import { getAccountSession, accountSessionOf } from '@/constants/AccountSession';
 
 // An invite reaches a player in two ways: live (a realtime message, while the app is open) and as a push (the app was
 // closed; opening it from the push brings the invite back from the server). Both end in the same popup; a room is
@@ -33,8 +34,8 @@ export function useInviteListener(
     const shownRooms = useRef(new Set<string>());
 
     useEffect(() => {
-        supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user.id || null));
-        const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => setUserId(session?.user.id || null));
+        getAccountSession().then(({ data }) => setUserId(data.session?.user.id || null));
+        const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => setUserId(accountSessionOf(session)?.user.id || null));
         return () => authListener.subscription.unsubscribe();
     }, []);
 

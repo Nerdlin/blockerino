@@ -9,6 +9,7 @@ import { START_RATING } from "@/constants/chess/ChessElo";
 import { TimeControl } from "@/constants/chess/TimeControls";
 import StylizedButton from "../../StylizedButton";
 import ExpandableFriendList from "../../ExpandableFriendList";
+import { getAccountSession } from '@/constants/AccountSession';
 
 export interface ChessFriend {
 	id: string;
@@ -43,7 +44,7 @@ export function ChessFriends({
 	useEffect(() => {
 		let active = true;
 		void (async () => {
-			const { data: session } = await supabase.auth.getSession();
+			const { data: session } = await getAccountSession();
 			const me = session.session?.user?.id;
 			if (!me) {
 				if (active) {

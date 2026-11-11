@@ -22,6 +22,7 @@ import { track } from "@/constants/Analytics";
 import { getHighScores } from "@/constants/Storage";
 import ShareCard, { SHARE_CARD_WIDTH } from "./ShareCard";
 import { buildShareText, shareScoreCard } from "@/constants/ShareScore";
+import { getAccountSession } from '@/constants/AccountSession';
 
 const PLAYER_NAME_KEY = 'PLAYER_NAME';
 const GAMES_FINISHED_KEY = 'GAMES_FINISHED';
@@ -63,7 +64,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
 
     useEffect(() => {
         let active = true;
-        supabase.auth.getSession()
+        getAccountSession()
             .then(({ data }) => { if (active) setSignedIn(Boolean(data.session)); })
             .catch(() => { if (active) setSignedIn(true); });
         return () => { active = false; };

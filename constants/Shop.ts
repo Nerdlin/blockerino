@@ -4,6 +4,7 @@ import { useCallback, useEffect } from "react";
 import { supabase } from "./Supabase";
 import { track } from "./Analytics";
 import { noteCoinBalance } from "./Achievements";
+import { getAccountSession } from './AccountSession';
 
 export type ShopCategory = "piece_skin" | "background" | "music" | "sfx" | "chess_piece" | "chess_board" | "sea_skin" | "card_skin" | "sudoku_theme" | "mahjong_theme";
 export type BackgroundScene = "classic" | "ender" | "sunset" | "ice" | "cyber";
@@ -997,7 +998,7 @@ interface RemoteShopProfile {
 
 async function getShopSyncIdentity(): Promise<ShopSyncIdentity | null> {
 	// Since 2.0 only a signed-in account can write its profile row; guests keep their shop state on the device and skip the sync.
-	const { data: sessionData } = await supabase.auth.getSession();
+	const { data: sessionData } = await getAccountSession();
 	if (!sessionData.session) return null;
 	const [rawName, playerId] = await Promise.all([
 		AsyncStorage.getItem(PLAYER_NAME_KEY),
@@ -1153,7 +1154,7 @@ export type ServerPurchaseResult =
 /** Buys with the coins stored on the server. Guests have no server profile and keep the local flow. */
 export async function purchaseShopItemOnServer(itemId: string): Promise<ServerPurchaseResult> {
 	try {
-		const { data: { session } } = await supabase.auth.getSession();
+		const { data: { session } } = await getAccountSession();
 		if (!session?.user) return { kind: "guest" };
 
 		const { data, error } = await supabase.rpc("purchase_shop_item", { p_item_id: itemId });

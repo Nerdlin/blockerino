@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ACHIEVEMENT_DEFINITIONS, AchievementRow } from "./Achievements";
 import { supabase } from "./Supabase";
+import { getAccountSession } from './AccountSession';
 
 // Coins for finished achievement tiers. The server owns the wallet and the reward table (achievement_rewards
 // migration); this file asks it to pay and remembers which tiers were paid. Signed-in players only.
@@ -51,7 +52,7 @@ async function rememberClaimed(claimed: string[]): Promise<void> {
 /** Null for guests and when the server cannot be reached. An empty list only reads which tiers were claimed. */
 export async function claimAchievements(ids: string[]): Promise<AchievementClaimResult | null> {
 	try {
-		const { data: { session } } = await supabase.auth.getSession();
+		const { data: { session } } = await getAccountSession();
 		if (!session?.user) return null;
 		const { data, error } = await supabase.rpc("claim_achievements", { p_ids: ids });
 		if (error) return null;

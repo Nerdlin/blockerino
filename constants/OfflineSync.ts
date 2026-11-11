@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { reportVersusResult, submitGlobalHighScore, supabase } from "./Supabase";
 import type { VersusReportOutcome, VersusResult } from "./Supabase";
+import { getAccountSession } from './AccountSession';
 
 const PENDING_GLOBAL_HIGH_SCORES_KEY = "PENDING_GLOBAL_HIGH_SCORES";
 const PENDING_VERSUS_REPORTS_KEY = "PENDING_VERSUS_REPORTS";
@@ -139,7 +140,7 @@ export async function submitGlobalHighScoreOrQueue(
 ): Promise<"synced" | "queued" | "skipped"> {
 	const normalizedName = normalizeQueueName(playerName);
 	if (!normalizedName || score <= 0) return "skipped";
-	const ownerUserId = submitScore === submitGlobalHighScore ? (await supabase.auth.getSession()).data.session?.user.id : undefined;
+	const ownerUserId = submitScore === submitGlobalHighScore ? (await getAccountSession()).data.session?.user.id : undefined;
 
 	try {
 		const synced = await submitScore(normalizedName, score, gameMode);
@@ -164,7 +165,7 @@ export async function flushPendingGlobalHighScores(
 	const remaining: PendingGlobalHighScore[] = [];
 	let synced = 0;
 	const enforceOwner = submitScore === submitGlobalHighScore;
-	const currentUserId = enforceOwner ? (await supabase.auth.getSession()).data.session?.user.id : undefined;
+	const currentUserId = enforceOwner ? (await getAccountSession()).data.session?.user.id : undefined;
 	const currentName = enforceOwner ? (await AsyncStorage.getItem('PLAYER_NAME'))?.trim().toLowerCase() : undefined;
 
 	for (const entry of pending) {

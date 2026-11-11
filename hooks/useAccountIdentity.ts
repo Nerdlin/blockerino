@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/constants/Supabase";
+import { getAccountSession } from '@/constants/AccountSession';
 
 const PLAYER_NAME_KEY = "PLAYER_NAME";
 
@@ -14,7 +15,7 @@ export interface AccountIdentity {
 
 async function loadIdentity(): Promise<AccountIdentity> {
 	try {
-		const { data } = await supabase.auth.getSession();
+		const { data } = await getAccountSession();
 		const user = data.session?.user;
 		if (!user) return { checked: true, signedIn: false, name: null };
 

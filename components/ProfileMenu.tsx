@@ -32,6 +32,7 @@ import FriendsList from "./FriendsList";
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { isDiscordActivityLocation } from "@/constants/DiscordEnvironment";
 import { signInWithDiscordNative } from "@/constants/DiscordNativeAuth";
+import { getAccountSession, accountSessionOf } from '@/constants/AccountSession';
 
 // Inside a Discord Activity the page may not navigate to other sites (Discord ends the activity),
 // so the OAuth redirects to Google / Discord cannot be used there.
@@ -300,14 +301,15 @@ export default function ProfileMenu() {
 			clearWebAuthCallbackParams();
 		}
 
-		supabase.auth.getSession().then(async ({ data: { session } }) => {
+		getAccountSession().then(async ({ data: { session } }) => {
 			if (mounted) {
 				await hydrateSession(session, { force: true });
 				setLoading(false);
 			}
 		});
 
-		const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+		const { data: listener } = supabase.auth.onAuthStateChange((event, rawSession) => {
+			const session = accountSessionOf(rawSession);
 			if (mounted) {
 				setSession(session);
 				if (session?.user) {

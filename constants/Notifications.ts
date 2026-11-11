@@ -5,6 +5,7 @@ import { Platform } from "react-native";
 import { loadStoredLanguage } from "./Localization";
 import { supabase } from "./Supabase";
 import { track } from "./Analytics";
+import { getAccountSession } from './AccountSession';
 
 // Notifications, two ways to see the same thing (the server creates them, see the notifications migration):
 //   * push: Android and iOS apps register an Expo push token (needs the player's permission and an account);
@@ -34,7 +35,7 @@ export function isPushSupported(): boolean {
 
 async function hasSession(): Promise<boolean> {
 	try {
-		const { data: { session } } = await supabase.auth.getSession();
+		const { data: { session } } = await getAccountSession();
 		return Boolean(session?.user);
 	} catch {
 		return false;

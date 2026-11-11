@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase, type GlobalHighScore } from "./Supabase";
 import { getShopItem, normalizeShopState, type ShopState } from "./Shop";
+import { getAccountSession } from './AccountSession';
 
 // What happens after a season closes (public.close_season()): final top-10 tables, rewards for
 // the top 10 (coins, plus an exclusive background for the podium) and the soft Versus elo reset.
@@ -119,7 +120,7 @@ export async function claimSeasonRewards(): Promise<SeasonRewardEntry[]> {
 	let claimed: SeasonRewardEntry[] = [];
 
 	try {
-		const { data: { session } } = await supabase.auth.getSession();
+		const { data: { session } } = await getAccountSession();
 		if (session?.user) {
 			const { data, error } = await supabase.rpc("claim_season_rewards");
 			if (error) throw error;
@@ -150,7 +151,7 @@ export function shouldAnnounceEloReset(
 /** The signed-in player's latest Versus elo reset, if it has not been announced yet. */
 export async function getUnseenEloReset(): Promise<EloSeasonReset | null> {
 	try {
-		const { data: { session } } = await supabase.auth.getSession();
+		const { data: { session } } = await getAccountSession();
 		if (!session?.user) return null;
 
 		const { data, error } = await supabase
@@ -239,7 +240,7 @@ export function sortSeasonTitles(titles: SeasonTitle[]): SeasonTitle[] {
 /** Permanent record of the signed-in player's past top-10 finishes. */
 export async function getMySeasonTitles(limit: number = 3): Promise<SeasonTitle[]> {
 	try {
-		const { data: { session } } = await supabase.auth.getSession();
+		const { data: { session } } = await getAccountSession();
 		if (!session?.user) return [];
 
 		const { data: profile } = await supabase

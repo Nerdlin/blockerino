@@ -2,6 +2,7 @@ import { atom, useSetAtom } from "jotai";
 import { useCallback } from "react";
 import { supabase } from "./Supabase";
 import { adoptGameRecords, getGameRecords, parseGameRecords, subscribeToRecordChanges, type GameRecords } from "./GameStats";
+import { getAccountSession } from './AccountSession';
 
 // Another player's profile, and the account side of "my profile": who may open it, and the per-game record that
 // is pushed to the server. The server decides what a caller may see (get_public_profile), so this file only asks
@@ -125,7 +126,7 @@ export async function fetchPublicProfile(name: string): Promise<ProfileLoad> {
 /** Null for guests and when the server cannot be reached. */
 export async function getProfileVisibility(): Promise<ProfileVisibility | null> {
 	try {
-		const { data: { session } } = await supabase.auth.getSession();
+		const { data: { session } } = await getAccountSession();
 		if (!session?.user) return null;
 		const { data, error } = await supabase.rpc("get_profile_visibility");
 		if (error || !data || typeof data !== "object") return null;
@@ -149,7 +150,7 @@ export async function setProfileVisibility(value: ProfileVisibility): Promise<bo
 
 export async function sendFriendRequestTo(targetUserId: string): Promise<boolean> {
 	try {
-		const { data: { session } } = await supabase.auth.getSession();
+		const { data: { session } } = await getAccountSession();
 		if (!session?.user || session.user.id === targetUserId) return false;
 		const { error } = await supabase.from("friends").insert({ user_id_1: session.user.id, user_id_2: targetUserId, status: "pending" });
 		return !error;
@@ -188,7 +189,7 @@ export function syncGameRecords(): Promise<void> {
 	if (syncing) return syncing;
 	syncing = (async () => {
 		try {
-			const { data: { session } } = await supabase.auth.getSession();
+			const { data: { session } } = await getAccountSession();
 			if (!session?.user) return;
 			const local = await getGameRecords();
 			const { data, error } = await supabase.rpc("sync_game_records", { p_records: local });

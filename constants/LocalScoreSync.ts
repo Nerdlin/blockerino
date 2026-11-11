@@ -4,6 +4,7 @@ import { LEADERBOARD_GAME_MODES } from './GameModes';
 import { supabase } from './Supabase';
 import { submitGlobalHighScoreOrQueue } from './OfflineSync';
 import { getSeasonBoard, getSeasonKey, isSeasonOpenForSubmission, submitSeasonScoreOrQueue } from './SeasonScores';
+import { getAccountSession } from './AccountSession';
 
 let running: Promise<void> | null = null;
 
@@ -13,7 +14,7 @@ let running: Promise<void> | null = null;
 export function syncLocalHighScores(): Promise<void> {
     if (running) return running;
     running = (async () => {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await getAccountSession();
         if (!session?.user) return;
         const name = (await AsyncStorage.getItem('PLAYER_NAME'))?.trim();
         if (!name) return;

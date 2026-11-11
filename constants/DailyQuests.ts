@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "./Supabase";
+import { getAccountSession } from './AccountSession';
 
 // Three small tasks every day ("clear 15 lines", "beat the bot"). The device picks them from the date, counts
 // progress locally and asks the server to pay: the reward table lives in the daily_quests migration, so the
@@ -261,7 +262,7 @@ export function parseQuestClaim(data: unknown): QuestClaimResult | null {
 /** Null for guests and when the server cannot be reached. An empty list only reads what was claimed today. */
 export async function claimDailyQuests(day: string, ids: string[]): Promise<QuestClaimResult | null> {
 	try {
-		const { data: { session } } = await supabase.auth.getSession();
+		const { data: { session } } = await getAccountSession();
 		if (!session?.user) return null;
 		const { data, error } = await supabase.rpc("claim_daily_quests", { p_day: day, p_ids: ids });
 		if (error) return null;

@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase, type GlobalHighScore } from "./Supabase";
+import { getAccountSession } from './AccountSession';
 
 // Monthly leaderboard seasons for Classic and Chaos. A season is a UTC calendar month and is
 // keyed 'YYYY-MM', matching public.current_season_key() on the server.
@@ -135,7 +136,7 @@ export async function submitSeasonScoreOrQueue(
 /** Convenience wrapper for game-over code: resolves the signed-in user itself. */
 export async function recordSeasonScore(gameMode: string, score: number): Promise<void> {
 	try {
-		const { data: { session } } = await supabase.auth.getSession();
+		const { data: { session } } = await getAccountSession();
 		if (!session?.user) return;
 		await submitSeasonScoreOrQueue(gameMode, score, session.user.id);
 	} catch (error) {
@@ -180,7 +181,7 @@ export async function flushPendingSeasonScores(
 }
 
 export async function flushPendingSeasonScoresForSession(): Promise<void> {
-	const { data: { session } } = await supabase.auth.getSession();
+	const { data: { session } } = await getAccountSession();
 	await flushPendingSeasonScores(session?.user.id);
 }
 

@@ -12,6 +12,7 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
 import { supabase } from "@/constants/Supabase";
 import { track } from "@/constants/Analytics";
+import { getAccountSession } from '@/constants/AccountSession';
 
 /** The Profile screen sets this to true; the host below asks for confirmation and deletes the account. */
 export const deleteAccountOpenAtom = atom(false);
@@ -46,7 +47,7 @@ export default function AccountDeleteHost() {
 		setBusy(true);
 		setFailed(false);
 		try {
-			const { data: { session } } = await supabase.auth.getSession();
+			const { data: { session } } = await getAccountSession();
 			if (session) {
 				await removeAvatarFiles(session.user.id);
 				const { data, error } = await supabase.rpc("delete_my_account");

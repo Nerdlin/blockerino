@@ -7,6 +7,7 @@ import { useLanguage } from "@/constants/Localization";
 import { useTheme } from "@/constants/Theme";
 import StylizedButton from "../StylizedButton";
 import ExpandableFriendList from "../ExpandableFriendList";
+import { getAccountSession } from '@/constants/AccountSession';
 
 interface Row {
 	id: string;
@@ -29,7 +30,7 @@ export function InviteFriendsPanel({ game, roomCode, hostName }: { game: InviteG
 	useEffect(() => {
 		let active = true;
 		void (async () => {
-			const { data: session } = await supabase.auth.getSession();
+			const { data: session } = await getAccountSession();
 			const me = session.session?.user?.id;
 			if (!me) {
 				if (active) setRows([]);

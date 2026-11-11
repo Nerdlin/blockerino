@@ -2,6 +2,7 @@ import { supabase } from "@/constants/Supabase";
 import { Color } from "./ChessClock";
 import { ChessResult } from "./ChessPgn";
 import { TIME_CLASSES, TimeClass } from "./TimeControls";
+import { getAccountSession } from '../AccountSession';
 
 // The client side of the chess_ratings migration: read my ratings, report how an online game ended. Ratings are
 // computed and stored only on the server; a guest (not signed in) simply has none.
@@ -26,7 +27,7 @@ export function parseRatings(rows: unknown): ChessRatings {
 
 export async function fetchMyChessRatings(): Promise<ChessRatings> {
 	try {
-		const { data: { session } } = await supabase.auth.getSession();
+		const { data: { session } } = await getAccountSession();
 		if (!session?.user) return { ...NO_RATINGS };
 		const { data, error } = await supabase.rpc("get_my_chess_ratings");
 		if (error) return { ...NO_RATINGS };

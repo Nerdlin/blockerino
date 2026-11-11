@@ -5,6 +5,7 @@ import { Board } from './Board';
 import { getDailyPuzzleKey, Hand } from './Hand';
 import { supabase } from './Supabase';
 import { reportPlayGamesScore } from './PlayGamesSync';
+import { getAccountSession } from './AccountSession';
 
 const highScoresKey = "HIGH_SCORES";
 const HIGH_SCORE_UPDATE_DEBOUNCE_MS = 250;
@@ -111,7 +112,7 @@ export async function updateHighScore(
 }
 
 export async function createHighScore(score: HighScore): Promise<HighScoreId> {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await getAccountSession();
     score = { ...score, ownerUserId: session?.user.id ?? null };
     const highScoreKeys = await getHighScoreKeys();
     const id = createHighScoreId();
