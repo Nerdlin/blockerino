@@ -1,4 +1,21 @@
 import { isGemColor } from "@/constants/Levels";
+
+/** A gem cell of a level: a cut cyan stone turned on its corner. */
+function gemBlockStyle(size: number): object {
+	"worklet";
+	return {
+		backgroundColor: '#3FE6E0',
+		borderWidth: Math.max(2, Math.round(size * 0.12)),
+		borderTopColor: '#E8FFFE',
+		borderLeftColor: '#B5FFFB',
+		borderRightColor: '#1FA5A0',
+		borderBottomColor: '#11706C',
+		borderRadius: Math.round(size * 0.18),
+		transform: [{ rotate: '45deg' }, { scale: 0.74 }],
+		opacity: 1,
+		boxShadow: '0 0 8px rgba(120,255,250,0.8)',
+	};
+}
 import React from "react";
 import {
 	Board,
@@ -208,6 +225,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 		// Reanimated runs a style once on the JS thread (runtime kind 1) for the first frame; reading the board there would copy it
 		// across runtimes for every cell, so that run draws the cell from its props and the UI thread takes over.
 		if (isJsFirstRun()) {
+			if (!startsEmpty && isGemColor(startColor)) return gemBlockStyle(gridBlockSize);
 			return startsEmpty ? createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) : { ...createFilledBlockStyle(startColor, 7, pieceSkinId), opacity: 1, transform: [] };
 		}
 		const block = board.value[y][x];
@@ -227,17 +245,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 		let style: any = createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0);
 		// a gem of a level (constants/Levels.ts): clear its row or column to break it
 		if (block.blockType === BoardBlockType.FILLED && isGemColor(block.color)) {
-			return {
-				backgroundColor: '#3FE6E0',
-				borderWidth: Math.max(2, Math.round(gridBlockSize * 0.12)),
-				borderTopColor: '#E8FFFE',
-				borderLeftColor: '#B5FFFB',
-				borderRightColor: '#1FA5A0',
-				borderBottomColor: '#11706C',
-				borderRadius: Math.round(gridBlockSize * 0.22),
-				transform: [{ rotate: '45deg' }, { scale: 0.78 }],
-				opacity: 1,
-			};
+			return gemBlockStyle(gridBlockSize);
 		}
 		if (block.blockType === BoardBlockType.FILLED || block.blockType === BoardBlockType.HOVERED) {
 			style = {
@@ -350,7 +358,7 @@ function BlockGridView({
 		};
 
 		const live = y < liveRows;
-		const plainStyle = live ? null : (block.blockType === BoardBlockType.EMPTY ? createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) : createFilledBlockStyle(block.color, 7, pieceSkinId));
+		const plainStyle = live ? null : (block.blockType === BoardBlockType.EMPTY ? createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) : isGemColor(block.color) ? gemBlockStyle(GRID_BLOCK_SIZE) : createFilledBlockStyle(block.color, 7, pieceSkinId));
 		blockElements.push(
 			<Animated.View key={`${x},${y}`} style={blockPositionStyle}>
 				{!live ? <View style={[plainStyle, { width: GRID_BLOCK_SIZE, height: GRID_BLOCK_SIZE }]} /> : <GridBlock
