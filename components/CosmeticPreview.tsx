@@ -9,6 +9,7 @@ import {
 	SUDOKU_THEMES,
 } from "./moregames/cosmetics";
 import { createFilledBlockStyle, pieceColors } from "@/constants/Piece";
+import SkinnedBlock from "./SkinnedBlock";
 
 // Little scenes that show a shop item the way it looks in its own game: the board and pieces for chess, a radar
 // grid for Sea Battle, a card back and face, a sudoku board and a mahjong table. `large` is the version shown in
@@ -252,7 +253,7 @@ function BlockerinoPreview({ item, u }: { item: ShopItem; u: number }) {
 					{[0, 1].map((row) => (
 						<View key={row} style={{ flexDirection: "row", gap: 3 * u }}>
 							{[0, 1, 2].map((col) => (
-								<View key={col} style={[{ width: 18 * u, height: 18 * u }, createFilledBlockStyle(pieceColors[row * 3 + col], Math.max(2, Math.round(4 * u)), item.id)]} />
+								<SkinnedBlock key={col} color={pieceColors[row * 3 + col]} size={18 * u} skinId={item.id} borderWidth={Math.max(2, Math.round(4 * u))} />
 							))}
 						</View>
 					))}

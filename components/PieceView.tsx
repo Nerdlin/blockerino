@@ -1,6 +1,6 @@
 import { PieceData } from "@/constants/Piece";
 import { View } from "react-native";
-import { createFilledBlockStyle } from "@/constants/Piece";
+import SkinnedBlock from "./SkinnedBlock";
 import { shopStateAtom } from "@/constants/Shop";
 import { useAtomValue } from "jotai";
 
@@ -22,10 +22,14 @@ export function PieceView({piece, blockSize, style}: {piece: PieceData, blockSiz
                     opacity: 0.8,
                 };
                 pieceBlocks.push(
-                    <View
+                    <SkinnedBlock
                         key={`${x},${y}`}
-                        style={[createFilledBlockStyle(piece.color, blockSize / 4, pieceSkinId), blockStyle]}
-                    ></View>,
+                        color={piece.color}
+                        size={blockSize}
+                        skinId={pieceSkinId}
+                        borderWidth={blockSize / 4}
+                        style={blockStyle}
+                    />,
                 );
             }
         }

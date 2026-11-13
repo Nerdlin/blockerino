@@ -2,6 +2,9 @@ import React from "react";
 import { useGameSizes } from "@/constants/Board";
 import { Hand } from "@/constants/Hand";
 import { createFilledBlockStyle } from "@/constants/Piece";
+import SkinnedBlock from "../SkinnedBlock";
+import { colorToHex } from "@/constants/Color";
+import { getSkinKindId, skinBlockShape, skinDecorStyle } from "@/constants/SkinFx";
 import { shopStateAtom } from "@/constants/Shop";
 import { SharedPoint, useDraggable } from "@mgcrea/react-native-dnd";
 import { useAtomValue } from "jotai";
@@ -29,6 +32,7 @@ function HandBlock({
 	GRID_BLOCK_SIZE: number;
 	pieceSkinId: string;
 }) {
+	const skinKind = getSkinKindId(pieceSkinId);
 	const animatedStyle = useAnimatedStyle(() => {
 		const piece = hand.value[i];
 		if (piece == null) {
@@ -51,12 +55,20 @@ function HandBlock({
 				width: GRID_BLOCK_SIZE,
 				height: GRID_BLOCK_SIZE,
 				...createFilledBlockStyle(piece.color, 7, pieceSkinId),
+				...skinBlockShape(skinKind, GRID_BLOCK_SIZE, colorToHex(piece.color)),
 				opacity: 1,
 			};
 		}
 
 		return style;
-	}, [pieceSkinId]);
+	}, [pieceSkinId, skinKind]);
+
+	// the skin surface (crystal facet, lava core, ...) on this block of the hand
+	const decorStyle = useAnimatedStyle(() => {
+		const piece = hand.value[i];
+		if (skinKind === 0 || piece == null || x > piece.matrix[0].length - 1 || y > piece.matrix.length - 1 || piece.matrix[y][x] === 0) return { opacity: 0 };
+		return { ...(skinDecorStyle(skinKind, GRID_BLOCK_SIZE, colorToHex(piece.color)) ?? {}), opacity: 1 };
+	}, [skinKind]);
 
 	return (
 		<Animated.View
@@ -68,7 +80,9 @@ function HandBlock({
 				},
 				animatedStyle,
 			]}
-		/>
+		>
+			{skinKind !== 0 && <Animated.View pointerEvents="none" style={decorStyle} />}
+		</Animated.View>
 	);
 }
 
@@ -224,21 +238,12 @@ export function ReadOnlyHandPieces({ hand, boardSize, scale = 1 }: { hand: Hand;
 			for (let x = 0; x < pieceWidth; x++) {
 				if (piece.matrix[y][x] >= 1) {
 					pieceBlocks.push(
-						<View 
-							key={`p${x},${y}`} 
-							style={[
-								styles.emptyBlock, 
-								{
-									top: y * blockSize,
-									left: x * blockSize,
-									width: blockSize,
-									height: blockSize,
-									...createFilledBlockStyle(piece.color, Math.max(1, Math.round(blockSize * 0.15)), pieceSkinId),
-									opacity: 1,
-									justifyContent: 'center',
-									alignItems: 'center',
-								}
-							]} 
+						<SkinnedBlock
+							key={`p${x},${y}`}
+							color={piece.color}
+							size={blockSize}
+							skinId={pieceSkinId}
+							style={[styles.emptyBlock, { top: y * blockSize, left: x * blockSize, opacity: 1 }]}
 						/>
 					);
 				}

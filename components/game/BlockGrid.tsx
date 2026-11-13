@@ -1,4 +1,5 @@
 import { isGemColor } from "@/constants/Levels";
+import { getSkinKindId, skinAppear, skinBlockShape, skinClear, skinDecorStyle } from "@/constants/SkinFx";
 
 /** A gem cell of a level: a cut cyan stone turned on its corner. */
 function gemBlockStyle(size: number): object {
@@ -151,6 +152,9 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 	const placedBlockFall = useSharedValue(0);
 	const waveEffect = useSharedValue(0);
 	const flashOpacity = useSharedValue(0);
+	// 1 when the block stands still; runs 0 -> 1 when a block is placed (the skin's own way of appearing)
+	const appear = useSharedValue(1);
+	const skinKind = getSkinKindId(pieceSkinId);
 	// eslint-disable-next-line react-hooks/rules-of-hooks -- PARTICLE_CONFIGS is fixed per platform, so the hook count never changes
 	const sparkProgress = PARTICLE_CONFIGS.length > 0 ? useSharedValue(0) : null;
 	const cellSeed = (x * 7919 + y * 104729 + 31) % 100003;
@@ -183,8 +187,10 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 			}
 		}
 		// Сброс анимации при размещении нового блока
-		else if (cur === BoardBlockType.FILLED && prev === BoardBlockType.EMPTY) {
+		else if (cur === BoardBlockType.FILLED && (prev === BoardBlockType.EMPTY || prev === BoardBlockType.HOVERED)) {
 			placedBlockFall.value = 0;
+			appear.value = 0;
+			appear.value = withTiming(1, { duration: 280 });
 			if (sparkProgress) sparkProgress.value = 0;
 		}
 		// Анимация волны для блоков, которые будут разрушены
@@ -250,9 +256,13 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 		if (block.blockType === BoardBlockType.FILLED || block.blockType === BoardBlockType.HOVERED) {
 			style = {
 				...createFilledBlockStyle(block.color, 7, pieceSkinId),
+				...skinBlockShape(skinKind, gridBlockSize, colorToHex(block.color)),
 				opacity: block.blockType === BoardBlockType.HOVERED ? 0.45 : 1,
 				transform: []
 			};
+			if (block.blockType === BoardBlockType.FILLED && appear.value < 1) {
+				style = { ...style, ...skinAppear(skinKind, appear.value, gridBlockSize) };
+			}
 		}
 		// Улучшенная анимация для блоков, которые будут разрушены
 		else if (block.blockType === BoardBlockType.HOVERED_BREAK_EMPTY || block.blockType === BoardBlockType.HOVERED_BREAK_FILLED) {
@@ -282,17 +292,10 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 	const fallingStyle = useAnimatedStyle(() => {
 		if (placedBlockFall.value > 0) {
 			const block = board.value[y][x];
-			let progress = placedBlockFall.value;
-			progress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress); // easeOutCirc
 			return {
 				...createFilledBlockStyle(block.color, 7, pieceSkinId),
-				opacity: 1 - progress,
-				transform: [
-					{ scale: 1 - progress * 0.5 },
-					{ translateX: fallDirectionX * progress },
-					{ translateY: fallDirectionY * progress },
-					{ rotate: `${fallRotation * progress}deg` }
-				],
+				...skinBlockShape(skinKind, gridBlockSize, colorToHex(block.color)),
+				...skinClear(skinKind, placedBlockFall.value, gridBlockSize, fallDirectionX, fallDirectionY, fallRotation),
 				position: 'absolute',
 				top: 0,
 				left: 0,
@@ -304,9 +307,20 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 		return { opacity: 0, width: 0, height: 0, position: 'absolute' };
 	});
 
+	// the skin's surface over a filled block (stone face, crystal facet, lava core, neon hollow, drop shine)
+	const decorStyle = useAnimatedStyle(() => {
+		if (skinKind === 0 || isJsFirstRun()) return { opacity: 0 };
+		const block = board.value[y][x];
+		if ((block.blockType !== BoardBlockType.FILLED && block.blockType !== BoardBlockType.HOVERED) || isGemColor(block.color)) return { opacity: 0 };
+		const decor = skinDecorStyle(skinKind, gridBlockSize, colorToHex(block.color));
+		if (!decor) return { opacity: 0 };
+		return { ...decor, opacity: block.blockType === BoardBlockType.HOVERED ? 0.45 : appear.value };
+	});
+
 	return (
 		<>
 			<Animated.View style={[staticStyle, { width: gridBlockSize, height: gridBlockSize, justifyContent: 'center', alignItems: 'center' }]} />
+			{skinKind !== 0 && <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: 0, top: 0, width: gridBlockSize, height: gridBlockSize }, decorStyle]} />}
 			<Animated.View style={fallingStyle} />
 			{PARTICLE_CONFIGS.map((_, i) => (
 				<SparkParticle
