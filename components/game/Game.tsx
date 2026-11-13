@@ -23,6 +23,10 @@ import { track } from '@/constants/Analytics';
 import SecondChanceModal from '../SecondChanceModal';
 import { applySecondChancePenalty, canUseSecondChance, getSecondChanceCost, SECOND_CHANCE_COSTS } from '@/constants/SecondChance';
 import { getRandomPieceColor } from '@/constants/Piece';
+import { getDifficulty, hasRunGoals, isDangerFill } from '@/constants/RunGoals';
+import RunGoalBar from './RunGoalBar';
+import DangerFrame from './DangerFrame';
+import { setMusicRate } from '@/constants/Sound';
 import { recordAchievementProgress } from '@/constants/Achievements';
 import { recordQuestProgress } from '@/constants/DailyQuests';
 import { consumeMoveLimitMove, GameOverReason, getGameModeConfig, getInitialMovesRemaining, getInitialTimeRemaining, isMoveLimitComplete } from '@/constants/GameModes';
@@ -126,6 +130,25 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const removeScorePopupHelper = (id: number) => {
 		setScorePopups(prev => prev.filter(p => p.id !== id));
 	};
+
+	// The board is almost full: a red frame pulses around it and the music speeds up.
+	const countFilled = (cells: typeof board.value) => {
+		"worklet";
+		let filled = 0;
+		for (let y = 0; y < cells.length; y++) {
+			for (let x = 0; x < cells[y].length; x++) {
+				if (cells[y][x].blockType === BoardBlockType.FILLED) filled++;
+			}
+		}
+		return filled;
+	};
+	const danger = useSharedValue(isDangerFill(countFilled(board.value), boardLength * boardLength));
+	const [dangerOn, setDangerOn] = useState(danger.value);
+	useEffect(() => {
+		setMusicRate(dangerOn && !isGameOver ? 1.12 : 1);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [dangerOn, isGameOver]);
+	useEffect(() => () => setMusicRate(1), []);
 
 	const scoreStorageId = useSharedValue<HighScoreId | undefined>(validInitialState ? validInitialState.scoreStorageId : undefined);
 	const { playSfx, playComboSound, initialize } = useSoundSettings();
@@ -258,6 +281,8 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 
 		score.value = nextScore;
 		board.value = nextBoard;
+		danger.value = isDangerFill(countFilled(nextBoard), boardLength * boardLength);
+		setDangerOn(danger.value);
 		hand.value = nextHand;
 		combo.value = 0;
 		lastBrokenLine.value = 0;
@@ -462,7 +487,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 					handCount.value += 1;
 					nextHand = createSeededHand(handSize, dailySeed + 1 + handCount.value);
 				} else {
-					nextHand = createRandomHandWorklet(handSize, gameMode);
+					nextHand = createRandomHandWorklet(handSize, gameMode, getDifficulty(gameMode, score.value));
 				}
 			} else {
 				nextHand = newHand;
@@ -470,6 +495,11 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			hand.value = nextHand;
 			
 			board.value = newBoard;
+			const nowDanger = isDangerFill(countFilled(newBoard), boardLength * boardLength);
+			if (nowDanger !== danger.value) {
+				danger.value = nowDanger;
+				runOnJS(setDangerOn)(nowDanger);
+			}
 			const nextMovesRemaining = consumeMoveLimitMove(gameMode, movesRemaining.value, linesBroken, combo.value);
 			movesRemaining.value = nextMovesRemaining;
 
@@ -554,8 +584,10 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 					<StickyGameHud gameMode={gameMode} score={score}></StickyGameHud>
 					<DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
 						<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand} gameMode={gameMode} timeRemaining={timeRemaining} movesRemaining={movesRemaining}></StatsGameHud>
+						{hasRunGoals(gameMode) && <RunGoalBar gameMode={gameMode} score={score} initialScore={validInitialState ? validInitialState.score : 0} width={GRID_BLOCK_SIZE * boardLength + 6} />}
 						<View style={{ position: 'relative', alignSelf: 'center' }}>
 							<BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
+							<DangerFrame active={dangerOn && !isGameOver} />
 							<View style={[StyleSheet.absoluteFill, { pointerEvents: 'none', zIndex: 9999 }]}>
 								{scorePopups.map(popup => (
 									<ScorePopup 

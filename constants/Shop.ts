@@ -1281,8 +1281,8 @@ export function useShopState() {
 		return equipResult;
 	}, [buyOnServer, commit, state]);
 
-	const awardCoins = useCallback(async (score: number) => {
-		const coins = calculateCoinsForScore(score);
+	const awardCoins = useCallback(async (score: number, bonus: number = 0) => {
+		const coins = calculateCoinsForScore(score) + Math.max(0, Math.floor(bonus));
 		if (coins <= 0) return 0;
 
 		const latest = await loadShopState();

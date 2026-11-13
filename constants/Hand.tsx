@@ -78,26 +78,28 @@ export function createSeededHand(size: number, seedNum: number): Hand {
 	return hand;
 }
 
-export function createRandomHand(size: number, gameMode?: string): Hand {
+export function createRandomHand(size: number, gameMode?: string, difficulty: number = 0): Hand {
 	const hand = new Array<PieceData | null>(size);
+	// A hand normally holds one guaranteed small "rescue" piece; the harder the run, the more hands come without it.
+	const rescueIndex = Math.random() < 1 - 0.75 * difficulty ? Math.floor(Math.random() * size) : -1;
 	if (gameMode !== 'chaos') {
-		const rescueIndex = Math.floor(Math.random() * size);
+		// Classic keeps big pieces out while the run is young, then lets one into a hand more and more often.
+		const complexSlot = Math.random() < 0.7 * difficulty ? Math.floor(Math.random() * size) : -1;
 
 		for (let i = 0; i < size; i++) {
 			const rescueOnly = i === rescueIndex;
-			const excludeComplex = true;
-			hand[i] = getRandomPiece(gameMode, rescueOnly, excludeComplex);
+			const excludeComplex = i !== complexSlot;
+			hand[i] = getRandomPiece(gameMode, rescueOnly, excludeComplex, difficulty);
 		}
 		return hand;
 	}
 
-	const rescueIndex = Math.floor(Math.random() * size);
-	const complexLimit = Math.max(1, Math.floor(size / 2));
+	const complexLimit = Math.max(1, Math.floor(size / 2)) + (difficulty >= 0.5 ? 1 : 0);
 	let complexCount = 0;
 	for (let i = 0; i < size; i++) {
 		const rescueOnly = i === rescueIndex;
 		const excludeComplex = !rescueOnly && complexCount >= complexLimit;
-		const piece = getRandomPiece(gameMode, rescueOnly, excludeComplex);
+		const piece = getRandomPiece(gameMode, rescueOnly, excludeComplex, difficulty);
 		if (isClassicComplexPiece(piece)) {
 			complexCount++;
 		}
@@ -106,27 +108,29 @@ export function createRandomHand(size: number, gameMode?: string): Hand {
 	return hand;
 }
 
-export function createRandomHandWorklet(size: number, gameMode?: string): Hand {
+export function createRandomHandWorklet(size: number, gameMode?: string, difficulty: number = 0): Hand {
 	"worklet";
 	const hand = new Array<PieceData | null>(size);
+	// A hand normally holds one guaranteed small "rescue" piece; the harder the run, the more hands come without it.
+	const rescueIndex = Math.random() < 1 - 0.75 * difficulty ? Math.floor(Math.random() * size) : -1;
 	if (gameMode !== 'chaos') {
-		const rescueIndex = Math.floor(Math.random() * size);
+		// Classic keeps big pieces out while the run is young, then lets one into a hand more and more often.
+		const complexSlot = Math.random() < 0.7 * difficulty ? Math.floor(Math.random() * size) : -1;
 
 		for (let i = 0; i < size; i++) {
 			const rescueOnly = i === rescueIndex;
-			const excludeComplex = true;
-			hand[i] = getRandomPieceWorklet(gameMode, rescueOnly, excludeComplex);
+			const excludeComplex = i !== complexSlot;
+			hand[i] = getRandomPieceWorklet(gameMode, rescueOnly, excludeComplex, difficulty);
 		}
 		return hand;
 	}
 
-	const rescueIndex = Math.floor(Math.random() * size);
-	const complexLimit = Math.max(1, Math.floor(size / 2));
+	const complexLimit = Math.max(1, Math.floor(size / 2)) + (difficulty >= 0.5 ? 1 : 0);
 	let complexCount = 0;
 	for (let i = 0; i < size; i++) {
 		const rescueOnly = i === rescueIndex;
 		const excludeComplex = !rescueOnly && complexCount >= complexLimit;
-		const piece = getRandomPieceWorklet(gameMode, rescueOnly, excludeComplex);
+		const piece = getRandomPieceWorklet(gameMode, rescueOnly, excludeComplex, difficulty);
 		if (isClassicComplexPiece(piece)) {
 			complexCount++;
 		}

@@ -16,6 +16,15 @@ const SOFT_LOOP_WINDOW_SECONDS = 0.9;
 const SOFT_LOOP_INTERVAL_MS = 250;
 const SOFT_LOOP_FADE_STEPS = 6;
 const SOFT_LOOP_FADE_STEP_MS = 90;
+/**
+ * Tracks shorter than this are seamless loops of a few bars (the shop packs are 6-10 s): they repeat without a gap.
+ * Fading such a loop out and in on every repeat is what made it sound like it "starts over" all the time.
+ */
+const SEAMLESS_LOOP_MAX_SECONDS = 30;
+
+export function isSeamlessLoopDuration(duration: number): boolean {
+  return duration > 0 && duration < SEAMLESS_LOOP_MAX_SECONDS;
+}
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 /** Players kept for sound effects in all, and for any one sound (so quick repeats can overlap). */
@@ -712,6 +721,7 @@ class SoundManager {
   private customMusicUrl: string | null = null;
   private initialized = false;
   private musicRequestId = 0;
+  private musicRate = 1;
   private musicLoopTimer: ReturnType<typeof setInterval> | null = null;
   private musicLooping = false;
   private currentMusicVolume = 1;
@@ -842,6 +852,10 @@ class SoundManager {
 
     const duration = Number(music.duration) || 0;
     const currentTime = Number(music.currentTime) || 0;
+    // a short loop repeats by itself, with no fade
+    const seamless = isSeamlessLoopDuration(duration);
+    if (music.loop !== seamless) music.loop = seamless;
+    if (seamless) return;
     if (duration <= SOFT_LOOP_WINDOW_SECONDS + 0.5 || duration - currentTime > SOFT_LOOP_WINDOW_SECONDS) {
       return;
     }
@@ -1121,6 +1135,17 @@ class SoundManager {
     }
   }
 
+  /** Plays the music faster or slower (1 = normal); used for the "board is almost full" signal. */
+  setMusicRate(rate: number) {
+    if (this.musicRate === rate) return;
+    this.musicRate = rate;
+    try {
+      this.musicTracks.forEach((music) => music.setPlaybackRate(rate, 'high'));
+    } catch (error) {
+      console.log('Music rate change failed:', error);
+    }
+  }
+
   // Остановка фоновой музыки
   async stopMusic() {
     try {
@@ -1178,6 +1203,11 @@ class SoundManager {
 
 // Экспортируем экземпляр менеджера звуков
 export const soundManager = new SoundManager();
+
+/** See SoundManager.setMusicRate. */
+export function setMusicRate(rate: number) {
+  soundManager.setMusicRate(rate);
+}
 
 // Хук для управления звуком
 export function useSoundSettings(options: { manageMusicPlayback?: boolean } = {}) {

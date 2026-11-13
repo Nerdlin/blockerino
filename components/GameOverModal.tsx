@@ -23,6 +23,8 @@ import { getHighScores } from "@/constants/Storage";
 import ShareCard, { SHARE_CARD_WIDTH } from "./ShareCard";
 import { buildShareText, shareScoreCard } from "@/constants/ShareScore";
 import { getAccountSession } from '@/constants/AccountSession';
+import { getMedalForScore, getNextMedal } from '@/constants/RunGoals';
+import { MedalBadge } from './game/RunGoalBar';
 
 const PLAYER_NAME_KEY = 'PLAYER_NAME';
 const GAMES_FINISHED_KEY = 'GAMES_FINISHED';
@@ -102,7 +104,8 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
     useEffect(() => {
         if (coinsAwardedRef.current) return;
         coinsAwardedRef.current = true;
-        awardCoins(score).then(setCoinsAwarded);
+        // the run's medal pays its coins on top of the usual ones
+        awardCoins(score, getMedalForScore(gameMode, score)?.coins ?? 0).then(setCoinsAwarded);
     }, [awardCoins, score]);
 
     const doSubmit = React.useCallback(async (nameToSubmit: string) => {
@@ -185,6 +188,8 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
     };
 
     const modeTitle = t(`mode.${gameMode}`);
+    const medal = getMedalForScore(gameMode, score);
+    const nextMedal = getNextMedal(gameMode, score);
     const isRecord = bestScore !== null && score > 0 && score >= bestScore;
     const handleShare = async () => {
         if (sharing) return;
@@ -248,6 +253,22 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                         {t("over.coinsAwarded", { coins: coinsAwarded })}
                     </Text>
                 </FadeInView>
+            )}
+
+            {medal && (
+                <FadeInView pop delay={900}>
+                    <View style={styles.medalRow}>
+                        <MedalBadge kind={medal.id} size={18} />
+                        <Text style={[styles.coinsText, { color: '#FFD700', marginBottom: 0 }]}>
+                            {t("goals.medalEarned", { medal: t(`goals.${medal.id}`), coins: medal.coins })}
+                        </Text>
+                    </View>
+                </FadeInView>
+            )}
+            {nextMedal && score > 0 && (
+                <Text style={[styles.coinsText, { color: currentTheme.textSecondary, fontSize: 12, marginBottom: 8 }]}>
+                    {t("goals.toNextMedal", { medal: t(`goals.${nextMedal.id}`), points: nextMedal.score - score })}
+                </Text>
             )}
 
             {recordLine}
@@ -373,6 +394,13 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
 }
 
 const styles = StyleSheet.create({
+    medalRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginBottom: 6,
+    },
     gameOverText: {
         fontSize: 36,
         fontFamily: 'Silkscreen',

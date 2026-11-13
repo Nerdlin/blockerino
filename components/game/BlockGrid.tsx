@@ -207,7 +207,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 		// Reanimated runs a style once on the JS thread (runtime kind 1) for the first frame; reading the board there would copy it
 		// across runtimes for every cell, so that run draws the cell from its props and the UI thread takes over.
 		if (isJsFirstRun()) {
-			return startsEmpty ? createEmptyBlockStyle(currentTheme.emptyBlockBorder) : { ...createFilledBlockStyle(startColor, 7, pieceSkinId), opacity: 1, transform: [] };
+			return startsEmpty ? createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) : { ...createFilledBlockStyle(startColor, 7, pieceSkinId), opacity: 1, transform: [] };
 		}
 		const block = board.value[y][x];
 
@@ -216,14 +216,14 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 			const flashVal = Math.max(loadBlockFlash.value * 0.15, flashOpacity.value * 0.9);
 			if (flashVal > 0.0075) {
 				return {
-					...createEmptyBlockStyle(currentTheme.emptyBlockBorder),
+					...createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0),
 					backgroundColor: `rgba(255, 255, 255, ${flashVal})`,
 				};
 			}
-			return createEmptyBlockStyle(currentTheme.emptyBlockBorder);
+			return createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0);
 		}
 
-		let style: any = createEmptyBlockStyle(currentTheme.emptyBlockBorder);
+		let style: any = createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0);
 		if (block.blockType === BoardBlockType.FILLED || block.blockType === BoardBlockType.HOVERED) {
 			style = {
 				...createFilledBlockStyle(block.color, 7, pieceSkinId),
@@ -335,7 +335,7 @@ function BlockGridView({
 		};
 
 		const live = y < liveRows;
-		const plainStyle = live ? null : (block.blockType === BoardBlockType.EMPTY ? createEmptyBlockStyle(currentTheme.emptyBlockBorder) : createFilledBlockStyle(block.color, 7, pieceSkinId));
+		const plainStyle = live ? null : (block.blockType === BoardBlockType.EMPTY ? createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) : createFilledBlockStyle(block.color, 7, pieceSkinId));
 		blockElements.push(
 			<Animated.View key={`${x},${y}`} style={blockPositionStyle}>
 				{!live ? <View style={[plainStyle, { width: GRID_BLOCK_SIZE, height: GRID_BLOCK_SIZE }]} /> : <GridBlock
@@ -360,6 +360,15 @@ function BlockGridView({
 			</Animated.View>
 		);
 	});
+
+	// One 1px line between every two rows and columns, at whole pixels.
+	const gridLines: any[] = [];
+	for (let i = 1; i < boardLength; i++) {
+		gridLines.push(
+			<View key={`v${i}`} style={{ position: "absolute", pointerEvents: "none", left: i * GRID_BLOCK_SIZE, top: 0, width: 1, height: GRID_BLOCK_SIZE * boardLength, backgroundColor: currentTheme.emptyBlockBorder }} />,
+			<View key={`h${i}`} style={{ position: "absolute", pointerEvents: "none", top: i * GRID_BLOCK_SIZE, left: 0, height: 1, width: GRID_BLOCK_SIZE * boardLength, backgroundColor: currentTheme.emptyBlockBorder }} />,
+		);
+	}
 
 	const gridStyle = useAnimatedStyle(() => {
 		const activeIndex = draggingPiece.value;
@@ -386,6 +395,7 @@ function BlockGridView({
 				gridStyle
 			]}
 		>
+			{gridLines}
 			{blockElements}
 		</Animated.View>
 	);

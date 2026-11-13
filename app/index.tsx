@@ -298,7 +298,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 
 			{/* Options and the profile are drawn after every screen that can open them (game, More Games, Challenges,
 			    Versus), or they open hidden behind it. */}
-			{ appState.containsState(MenuStateType.OPTIONS) && !appState.containsState(MenuStateType.PROFILE) && <OptionsMenu></OptionsMenu> }
+			{ appState.containsState(MenuStateType.OPTIONS) && !appState.containsState(MenuStateType.PROFILE) && !appState.containsState(MenuStateType.ADMIN) && <OptionsMenu></OptionsMenu> }
 			{ appState.containsState(MenuStateType.PROFILE) && <ProfileMenu />}
 
 			{ showContinueModal && savedGame && (

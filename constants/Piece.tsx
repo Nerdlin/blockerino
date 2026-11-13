@@ -547,15 +547,20 @@ export function isClassicComplexPiece(piece: Pick<PieceData, 'matrix'>): boolean
 	);
 }
 
-function getDistributionPointsForMode(piece: PieceDataSaved, gameMode?: string): number {
+// difficulty (0..1, see RunGoals.getDifficulty): big awkward pieces come more often, small easy ones less often
+function getDistributionPointsForMode(piece: PieceDataSaved, gameMode?: string, difficulty: number = 0): number {
 	"worklet";
-	if (gameMode !== CLASSIC_MODE || !isClassicComplexPiece(piece)) {
-		return piece.distributionPoints;
+	if (isClassicComplexPiece(piece)) {
+		if (gameMode !== CLASSIC_MODE) return piece.distributionPoints * (1 + 0.6 * difficulty);
+		return Math.max(0.25, piece.distributionPoints * (0.25 + 0.75 * difficulty));
 	}
-	return Math.max(0.25, piece.distributionPoints * 0.25);
+	if (difficulty > 0 && isClassicRescuePiece(piece)) {
+		return piece.distributionPoints * (1 - 0.6 * difficulty);
+	}
+	return piece.distributionPoints;
 }
 
-function chooseWeightedPiece(gameMode?: string, rescueOnly: boolean = false, excludeComplex: boolean = false): PieceDataSaved {
+function chooseWeightedPiece(gameMode?: string, rescueOnly: boolean = false, excludeComplex: boolean = false, difficulty: number = 0): PieceDataSaved {
 	"worklet";
 	let total = 0;
 	for (let i = 0; i < piecesData.length; i++) {
@@ -566,7 +571,7 @@ function chooseWeightedPiece(gameMode?: string, rescueOnly: boolean = false, exc
 		if (excludeComplex && isClassicComplexPiece(piece)) {
 			continue;
 		}
-		total += getDistributionPointsForMode(piece, gameMode);
+		total += getDistributionPointsForMode(piece, gameMode, rescueOnly ? 0 : difficulty);
 	}
 
 	let position = Math.random() * total;
@@ -578,7 +583,7 @@ function chooseWeightedPiece(gameMode?: string, rescueOnly: boolean = false, exc
 		if (excludeComplex && isClassicComplexPiece(piece)) {
 			continue;
 		}
-		position -= getDistributionPointsForMode(piece, gameMode);
+		position -= getDistributionPointsForMode(piece, gameMode, rescueOnly ? 0 : difficulty);
 		if (position < 0) {
 			return piece;
 		}
@@ -596,17 +601,17 @@ export function getRandomPieceColorWorklet(): Color {
 	return pieceColors[Math.floor(Math.random() * pieceColors.length)];
 }
 
-export function getRandomPiece(gameMode?: string, rescueOnly: boolean = false, excludeComplex: boolean = false): PieceData {
-	const piece = chooseWeightedPiece(gameMode, rescueOnly, excludeComplex);
+export function getRandomPiece(gameMode?: string, rescueOnly: boolean = false, excludeComplex: boolean = false, difficulty: number = 0): PieceData {
+	const piece = chooseWeightedPiece(gameMode, rescueOnly, excludeComplex, difficulty);
 	return {
 		...piece,
 		color: getRandomPieceColor()
 	};
 }
 
-export function getRandomPieceWorklet(gameMode?: string, rescueOnly: boolean = false, excludeComplex: boolean = false): PieceData {
+export function getRandomPieceWorklet(gameMode?: string, rescueOnly: boolean = false, excludeComplex: boolean = false, difficulty: number = 0): PieceData {
 	"worklet";
-	const piece = chooseWeightedPiece(gameMode, rescueOnly, excludeComplex);
+	const piece = chooseWeightedPiece(gameMode, rescueOnly, excludeComplex, difficulty);
 	return {
 		...piece,
 		color: getRandomPieceColorWorklet()
@@ -1222,7 +1227,7 @@ export function createFilledBlockStyle(color: Color, borderWidth: number = 7, pi
 	}
 }
 
-export function createEmptyBlockStyle(borderColor: string = 'rgb(40, 40, 40)'): object {
+export function createEmptyBlockStyle(borderColor: string = 'rgb(40, 40, 40)', borderWidth: number = 0.5): object {
 	"worklet";
 	return {
 		backgroundColor: 'rgba(0, 0, 0, 0)',
@@ -1232,7 +1237,7 @@ export function createEmptyBlockStyle(borderColor: string = 'rgb(40, 40, 40)'): 
 		borderRightColor: borderColor,
 		borderBottomColor: borderColor,
 		opacity: 1,
-		borderWidth: 0.5,
+		borderWidth,
 		borderRadius: 0,
 		boxSizing: 'border-box',
 		...(Platform.OS === "web" ? { boxShadow: "none" } : {}),
