@@ -140,6 +140,16 @@ export const GAME_MODE_CONFIGS: Record<GameModeType, GameModeConfig> = {
 			tags: ["combo", "x2 lines", "chain"],
 		},
 	},
+	// The level map (constants/Levels.ts): each level sets its own board, goal and limit.
+	[GameModeType.Level]: {
+		id: GameModeType.Level,
+		title: "Level",
+		shortTitle: "Level",
+		leaderboardTitle: "Level",
+		boardLength: 8,
+		handSize: 3,
+		allowSecondChance: false,
+	},
 };
 
 export const CHALLENGE_MODE_CARDS: ChallengeCard[] = [

@@ -17,6 +17,7 @@ import { shouldCheckConnectionBeforeStart } from "@/constants/GameStart";
 import { CHALLENGE_MODE_CARDS, ChallengeCard, getGameModeConfig } from "@/constants/GameModes";
 import { useLanguage } from "@/constants/Localization";
 import UiIcon from "./UiIcon";
+import LevelMap from "./LevelMap";
 import { noteAchievementHighWater } from "@/constants/Achievements";
 import { countChallengeStars, DAILY_THREE_STAR_COINS, dailyStreak, getClaimedDailyRewards, getDailyPuzzleDays, rememberDailyReward, MAX_CHALLENGE_STARS, msUntilNextPuzzle, nextGoal, puzzleDayKey, starsForScore } from "@/constants/ChallengeProgress";
 
@@ -34,6 +35,8 @@ export default function DailyChallengesMenu() {
     const isMobile = width < 600;
 
     const [bestScores, setBestScores] = useState<BestScoreMap>({});
+    // the level map first; the five old challenges live under "Modes"
+    const [tab, setTab] = useState<"levels" | "modes">("levels");
     const [streak, setStreak] = useState(0);
     // the three-star coins of today's Daily Puzzle: paid by the server once per puzzle day
     const { commit: commitShopState } = useShopState();
@@ -252,6 +255,20 @@ export default function DailyChallengesMenu() {
                     )}
                 </View>
                 {!showRating && (
+                    <View style={styles.tabs}>
+                        {(["levels", "modes"] as const).map((key) => (
+                            <Pressable
+                                key={key}
+                                testID={`challenges-tab-${key}`}
+                                onPress={() => setTab(key)}
+                                style={[styles.tab, tab === key && { backgroundColor: currentTheme.buttonPrimary }]}
+                            >
+                                <Text style={[styles.tabText, { color: tab === key ? "#fff" : currentTheme.textSecondary }]}>{t(key === "levels" ? "levels.tabLevels" : "levels.tabModes")}</Text>
+                            </Pressable>
+                        ))}
+                    </View>
+                )}
+                {!showRating && tab === "modes" && (
                     <View style={styles.subHeaderRow}>
                         <Text style={[styles.subHeader, { color: currentTheme.textSecondary }]} numberOfLines={2}>{t("ch.subHeader")}</Text>
                         <View style={styles.totalStars}>
@@ -263,6 +280,8 @@ export default function DailyChallengesMenu() {
 
                 {showRating ? (
                     <ChallengeLeaderboard />
+                ) : tab === "levels" ? (
+                    <LevelMap />
                 ) : (
                     <View style={styles.challengeList}>
                         {CHALLENGE_MODE_CARDS.map((card) => renderCard(card))}
@@ -274,6 +293,23 @@ export default function DailyChallengesMenu() {
 }
 
 const styles = StyleSheet.create({
+    tabs: {
+        flexDirection: "row",
+        alignSelf: "center",
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: "rgba(255,255,255,0.15)",
+        overflow: "hidden",
+        marginBottom: 10,
+    },
+    tab: {
+        paddingHorizontal: 22,
+        paddingVertical: 8,
+    },
+    tabText: {
+        fontFamily: "Silkscreen",
+        fontSize: 13,
+    },
     contentContainer: {
         width: "100%",
         alignItems: "center",

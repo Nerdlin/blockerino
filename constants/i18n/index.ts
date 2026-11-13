@@ -16,6 +16,7 @@ import { update } from "./update";
 import { daily } from "./daily";
 import { firstrun } from "./firstrun";
 import { goals } from "./goals";
+import { levels } from "./levels";
 import { notifications } from "./notifications";
 import { playerprofile } from "./playerprofile";
 import { chess } from "./chess";
@@ -38,6 +39,7 @@ const modules: ScreenDictionary[] = [
 	daily,
 	firstrun,
 	goals,
+	levels,
 	notifications,
 	playerprofile,
 	chess,

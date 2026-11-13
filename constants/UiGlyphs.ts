@@ -284,6 +284,21 @@ export const UI_GLYPHS = {
 			".........",
 		],
 	},
+	// a locked level
+	lock: {
+		palette: { a: "#94A3B8", b: "#334155", c: "#CBD5E1", d: "#0F172A" },
+		rows: [
+			"...bbb...",
+			"..b...b..",
+			"..b...b..",
+			".bbbbbbb.",
+			".bcaaaab.",
+			".baadaab.",
+			".baadaab.",
+			".baaaaab.",
+			".bbbbbbb.",
+		],
+	},
 } satisfies Record<string, PixelGlyph>;
 
 export type UiGlyphName = keyof typeof UI_GLYPHS;

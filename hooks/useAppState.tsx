@@ -22,7 +22,8 @@ export enum GameModeType {
 	TimeAttack = 'time_attack',
 	MoveLimit = 'move_limit',
 	Rescue = 'rescue',
-	ComboTrial = 'combo_trial'
+	ComboTrial = 'combo_trial',
+	Level = 'level'
 }
 
 export const multiplayerRoomIdAtom = atom<string | null>(null);

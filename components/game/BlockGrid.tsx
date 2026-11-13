@@ -1,3 +1,4 @@
+import { isGemColor } from "@/constants/Levels";
 import React from "react";
 import {
 	Board,
@@ -224,6 +225,20 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 		}
 
 		let style: any = createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0);
+		// a gem of a level (constants/Levels.ts): clear its row or column to break it
+		if (block.blockType === BoardBlockType.FILLED && isGemColor(block.color)) {
+			return {
+				backgroundColor: '#3FE6E0',
+				borderWidth: Math.max(2, Math.round(gridBlockSize * 0.12)),
+				borderTopColor: '#E8FFFE',
+				borderLeftColor: '#B5FFFB',
+				borderRightColor: '#1FA5A0',
+				borderBottomColor: '#11706C',
+				borderRadius: Math.round(gridBlockSize * 0.22),
+				transform: [{ rotate: '45deg' }, { scale: 0.78 }],
+				opacity: 1,
+			};
+		}
 		if (block.blockType === BoardBlockType.FILLED || block.blockType === BoardBlockType.HOVERED) {
 			style = {
 				...createFilledBlockStyle(block.color, 7, pieceSkinId),

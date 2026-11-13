@@ -254,7 +254,7 @@ export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score:
 	});
 
 	return <>
-		<View style={[
+		{gameMode !== GameModeType.Level && <View style={[
 			styles.highScoreLabel,
 			isMobile && {
 				top: 15,
@@ -265,7 +265,7 @@ export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score:
 			<Text style={[styles.highScoreText, isMobile && { fontSize: 22 }]}>
 				{Math.max(scoreState, highestScore)}
 			</Text>
-		</View>
+		</View>}
 		<SettingsButton isMobile={isMobile}></SettingsButton>
 	</>
 }

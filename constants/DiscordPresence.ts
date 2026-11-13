@@ -38,6 +38,7 @@ const MODE_LABELS: Record<GameModeType, string> = {
   [GameModeType.MoveLimit]: 'Move Limit',
   [GameModeType.Rescue]: 'Rescue',
   [GameModeType.ComboTrial]: 'Combo Trial',
+  [GameModeType.Level]: 'Levels',
 };
 
 const MODE_ASSET_KEYS: Record<GameModeType, keyof typeof DISCORD_PRESENCE_ASSETS> = {
@@ -48,6 +49,7 @@ const MODE_ASSET_KEYS: Record<GameModeType, keyof typeof DISCORD_PRESENCE_ASSETS
   [GameModeType.MoveLimit]: 'moveLimit',
   [GameModeType.Rescue]: 'rescue',
   [GameModeType.ComboTrial]: 'comboTrial',
+  [GameModeType.Level]: 'daily',
 };
 
 export function getPresenceModeLabel(mode: GameModeType | undefined): string {

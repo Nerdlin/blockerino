@@ -24,6 +24,10 @@ import SecondChanceModal from '../SecondChanceModal';
 import { applySecondChancePenalty, canUseSecondChance, getSecondChanceCost, SECOND_CHANCE_COSTS } from '@/constants/SecondChance';
 import { getRandomPieceColor } from '@/constants/Piece';
 import { getDifficulty, hasRunGoals, isDangerFill } from '@/constants/RunGoals';
+import { countGems, createLevelBoard, currentLevelAtom, getLevel, isLevelGoalMet, starsForWin } from '@/constants/Levels';
+import LevelHud from './LevelHud';
+import LevelResultModal from '../LevelResultModal';
+import { useAtomValue } from 'jotai';
 import RunGoalBar from './RunGoalBar';
 import DangerFrame from './DangerFrame';
 import { setMusicRate } from '@/constants/Sound';
@@ -64,10 +68,13 @@ function runPiecePlacedHaptic() {
 
 export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initialState?: SavedGameState}) => {
 	const modeConfig = getGameModeConfig(gameMode);
+	// A level of the map brings its own board, pieces, goal and limit (constants/Levels.ts).
+	const levelId = useAtomValue(currentLevelAtom);
+	const level = gameMode === GameModeType.Level && levelId ? getLevel(levelId) : undefined;
 	const boardLength = modeConfig.boardLength;
 	const { GRID_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardLength);
 	const handSize = modeConfig.handSize;
-	const timeLimitSeconds = modeConfig.timeLimitSeconds;
+	const timeLimitSeconds = level ? level.time : modeConfig.timeLimitSeconds;
 	const allowSecondChance = modeConfig.allowSecondChance;
 	const comboResetMoves = modeConfig.comboResetMoves ?? handSize;
 	const lineScoreMultiplier = modeConfig.lineScoreMultiplier ?? 1;
@@ -78,6 +85,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const dailyKey = isDaily ? getDailyPuzzleKey() : undefined;
 	const dailySeed = isDaily ? getNumericSeedFromDate(`${dailyKey}:${modeConfig.seedSalt}`) : 0;
 	const canUseInitialState = Boolean(
+		!level &&
 		initialState &&
 		Array.isArray(initialState.board) &&
 		initialState.board.length === boardLength &&
@@ -91,7 +99,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const board = useSharedValue(
 		validInitialState 
 			? validInitialState.board 
-			: (isDaily ? createSeededBoard(boardLength, dailySeed) : (startBoard ? createSeededBoard(boardLength, Math.floor(Math.random() * 1000000000), startBoard.minBlocks, startBoard.maxBlocks) : newEmptyBoard(boardLength)))
+			: level ? createLevelBoard(level) : (isDaily ? createSeededBoard(boardLength, dailySeed) : (startBoard ? createSeededBoard(boardLength, Math.floor(Math.random() * 1000000000), startBoard.minBlocks, startBoard.maxBlocks) : newEmptyBoard(boardLength)))
 	);
 	const draggingPiece = useSharedValue<number | null>(null);
 	const lastHoveredDropId = useSharedValue<string | null>(null);
@@ -99,7 +107,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const hand = useSharedValue(
 		validInitialState 
 			? validInitialState.hand 
-			: (isDaily ? createSeededHand(handSize, dailySeed + 1 + handCount.value) : createRandomHand(handSize, gameMode))
+			: level ? createSeededHand(handSize, level.seed + 1) : (isDaily ? createSeededHand(handSize, dailySeed + 1 + handCount.value) : createRandomHand(handSize, gameMode))
 	);
 	const score = useSharedValue(validInitialState ? validInitialState.score : 0);
 	const combo = useSharedValue(validInitialState ? validInitialState.combo : 0);
@@ -107,8 +115,13 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const lastBrokenLine = useSharedValue(validInitialState ? validInitialState.lastBrokenLine : 0);
 
 	// Time Attack mode timer remaining state
-	const timeRemaining = useSharedValue(validInitialState ? validInitialState.timeRemaining ?? getInitialTimeRemaining(gameMode) : getInitialTimeRemaining(gameMode));
-	const movesRemaining = useSharedValue(validInitialState ? validInitialState.movesRemaining ?? getInitialMovesRemaining(gameMode) : getInitialMovesRemaining(gameMode));
+	const timeRemaining = useSharedValue(level ? level.time ?? 0 : validInitialState ? validInitialState.timeRemaining ?? getInitialTimeRemaining(gameMode) : getInitialTimeRemaining(gameMode));
+	const movesRemaining = useSharedValue(level ? level.moves ?? 0 : validInitialState ? validInitialState.movesRemaining ?? getInitialMovesRemaining(gameMode) : getInitialMovesRemaining(gameMode));
+	// what a level run has done: lines cleared, best combo, gems still on the board
+	const levelLines = useSharedValue(0);
+	const levelBestCombo = useSharedValue(0);
+	const levelGems = useSharedValue(level ? level.gems : 0);
+	const [levelResult, setLevelResult] = useState<{ won: boolean; stars: number } | null>(null);
 
 	// Состояние для отображения модального окна проигрыша
 	const [isGameOver, setIsGameOver] = useState(false);
@@ -221,7 +234,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		nextMovesRemaining = movesRemaining.value,
 		immediate = false,
 	) => {
-		if (isGameOverRef.current) return;
+		if (isGameOverRef.current || level) return;
 		saveActiveGame({
 			gameMode,
 			// a save made mid-drag must not keep the dragged piece's shadow
@@ -260,8 +273,22 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		clearActiveGame();
 	};
 
+	// a level ends won (the goal is met) or lost (no limit left, no room for a piece)
+	const finishLevel = (won: boolean, left: number) => {
+		if (isGameOverRef.current || !level) return;
+		isGameOverRef.current = true;
+		setActiveCombo(0);
+		setIsGameOver(true);
+		setLevelResult({ won, stars: won ? starsForWin(level, left) : 0 });
+		track(won ? "level_won" : "level_lost", { level: level.id, score: Math.floor(score.value) });
+	};
+
 	const startSecondChanceOrFinish = (reason: SecondChanceReason) => {
 		if (isGameOverRef.current) return;
+		if (level) {
+			finishLevel(false, 0);
+			return;
+		}
 		if (allowSecondChance && canUseSecondChance(secondChancesUsed.value)) {
 			secondChanceDecisionLockedRef.current = false;
 			setSecondChanceReason(reason);
@@ -338,6 +365,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				timeRemaining.value = Math.max(0, timeRemaining.value - 1);
 			}
 			if (timeRemaining.value <= 0) startSecondChanceOrFinish("time");
+			else if (level) return;
 			else saveCurrentGame();
 		}, 1000);
 
@@ -345,7 +373,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	}, [timeLimitSeconds, isGameOver, secondChanceReason]);
 
 	useEffect(() => {
-		if (scoreStorageId.value !== undefined) return;
+		if (scoreStorageId.value !== undefined || level) return;
 		createHighScore({score: score.value, date: new Date().getTime(), type: gameMode}).then((id) => {
 			scoreStorageId.value = id;
 		});
@@ -440,7 +468,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				score.value += pointsEarned;
 
 				// Time Attack: +5s per broken line
-				if (timeLimitSeconds !== undefined) {
+				if (timeLimitSeconds !== undefined && !level) {
 					timeRemaining.value = Math.min(99, timeRemaining.value + linesBroken * 5);
 				}
 			} else {
@@ -453,7 +481,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			}
 
 			// Time Attack: +1s per 15 points
-			if (timeLimitSeconds !== undefined) {
+			if (timeLimitSeconds !== undefined && !level) {
 				timeRemaining.value = Math.min(99, timeRemaining.value + Math.floor(pointsEarned / 15));
 			}
 			runOnJS(recordAchievementProgress)({ totalPiecesPlaced: 1, totalLinesCleared: linesBroken });
@@ -483,7 +511,10 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			
 			let nextHand;
 			if (empty) {
-				if (isDaily) {
+				if (level) {
+					handCount.value += 1;
+					nextHand = createSeededHand(handSize, level.seed + 1 + handCount.value);
+				} else if (isDaily) {
 					handCount.value += 1;
 					nextHand = createSeededHand(handSize, dailySeed + 1 + handCount.value);
 				} else {
@@ -500,8 +531,23 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				danger.value = nowDanger;
 				runOnJS(setDangerOn)(nowDanger);
 			}
-			const nextMovesRemaining = consumeMoveLimitMove(gameMode, movesRemaining.value, linesBroken, combo.value);
+			const nextMovesRemaining = level ? (level.moves !== undefined ? Math.max(0, movesRemaining.value - 1) : 0) : consumeMoveLimitMove(gameMode, movesRemaining.value, linesBroken, combo.value);
 			movesRemaining.value = nextMovesRemaining;
+			if (level) {
+				levelLines.value += linesBroken;
+				levelBestCombo.value = Math.max(levelBestCombo.value, combo.value);
+				levelGems.value = countGems(newBoard);
+				const run = { score: score.value, lines: levelLines.value, bestCombo: levelBestCombo.value, gemsLeft: levelGems.value };
+				if (isLevelGoalMet(level, run)) {
+					runOnJS(finishLevel)(true, level.moves !== undefined ? nextMovesRemaining : timeRemaining.value);
+				} else if ((level.moves !== undefined && nextMovesRemaining <= 0) || !hasAnyPossibleMove(newBoard, nextHand)) {
+					runOnJS(finishLevel)(false, 0);
+				}
+				draggingPiece.value = null;
+				lastHoveredDropId.value = null;
+				possibleBoardDropSpots.value = emptyPossibleBoardSpots(boardLength);
+				return;
+			}
 
 			// Сохраняем состояние текущей игры
 			runOnJS(saveCurrentGame)(newBoard, nextHand, secondChancesUsed.value, nextMovesRemaining);
@@ -584,6 +630,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 					<StickyGameHud gameMode={gameMode} score={score}></StickyGameHud>
 					<DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
 						<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand} gameMode={gameMode} timeRemaining={timeRemaining} movesRemaining={movesRemaining}></StatsGameHud>
+						{level && <LevelHud level={level} score={score} lines={levelLines} bestCombo={levelBestCombo} gemsLeft={levelGems} movesRemaining={movesRemaining} timeRemaining={timeRemaining} width={GRID_BLOCK_SIZE * boardLength + 6} />}
 						{hasRunGoals(gameMode) && <RunGoalBar gameMode={gameMode} score={score} initialScore={validInitialState ? validInitialState.score : 0} width={GRID_BLOCK_SIZE * boardLength + 6} />}
 						<View style={{ position: 'relative', alignSelf: 'center' }}>
 							<BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
@@ -624,7 +671,10 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 						/>
 					)}
 					
-					{isGameOver && (
+					{isGameOver && level && levelResult && (
+						<LevelResultModal level={level} won={levelResult.won} stars={levelResult.stars} score={Math.floor(score.value)} />
+					)}
+					{isGameOver && !level && (
 						<GameOverModal score={Math.floor(score.value)} gameMode={gameMode} reason={gameOverReason} />
 					)}
 				</View>
