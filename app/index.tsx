@@ -19,6 +19,7 @@ import { setCrashScreen } from '@/constants/CrashReports';
 import { firstRunCoachAtom, shouldRunFirstRun } from '@/constants/FirstRun';
 import React, { useState, useEffect } from "react";
 import OptionsMenu from "@/components/OptionsMenu";
+import BackgroundSceneLayer from "@/components/BackgroundScene";
 import {
 	MenuStateType,
 	useAppState,
@@ -54,7 +55,7 @@ import InviteModeHost from "@/components/InviteModeHost";
 import AccountDeleteHost from "@/components/AccountDeleteHost";
 import ProfileMenu from "@/components/ProfileMenu";
 import MoreGamesMenu from "@/components/MoreGamesMenu";
-import { getBackgroundParticleConfig, shopStateAtom, useShopBootstrap } from "@/constants/Shop";
+import { getBackgroundParticleConfig, getShopItem, shopStateAtom, useShopBootstrap } from "@/constants/Shop";
 import { useInviteListener } from "@/hooks/useInviteListener";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import { useDiscordPresence } from "@/hooks/useDiscordPresence";
@@ -251,6 +252,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 		<StatusBar style="light" backgroundColor="#050510" translucent={false} />
 		<Animated.View entering={FadeIn} exiting={FadeOut} style={styles.container}>
 			<AnimatedBackground isGameplayActive={isGameplayActive} />
+			{clientEffectsReady && <BackgroundSceneLayer backgroundId={shopState.equipped.background} accent={getShopItem(shopState.equipped.background)?.accent ?? "#FFFFFF"} isGameplayActive={isGameplayActive} />}
 			{clientEffectsReady && [...Array(particleConfig.count)].map((_, i) => (
 				<PieceParticle
 					key={`particle${i}-${isGameplayActive ? 'game' : 'menu'}`}
