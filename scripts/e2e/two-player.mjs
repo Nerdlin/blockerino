@@ -17,7 +17,7 @@ const outDirName = "dist-e2e";
 const outDir = path.join(root, outDirName);
 const profilesDir = path.join(root, "dist-e2e-profiles");
 const PORT = 8099;
-const LOCAL_API = "http://127.0.0.1:54321";
+const LOCAL_API = "http://127.0.0.1:55321";
 const skipBuild = process.argv.includes("--skip-build");
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const isWindows = process.platform === "win32";
@@ -48,7 +48,7 @@ async function assertLocalSupabase() {
 		const response = await fetch(`${LOCAL_API}/auth/v1/health`);
 		if (!response.ok && response.status !== 401) throw new Error(String(response.status));
 	} catch {
-		throw new Error("Local Supabase is not reachable on 127.0.0.1:54321. Start it with: npx supabase start");
+		throw new Error("Local Supabase is not reachable on 127.0.0.1:55321. Start it with: npx supabase start");
 	}
 }
 
@@ -70,7 +70,7 @@ function assertBundleIsLocal() {
 	const dir = path.join(outDir, "_expo", "static", "js", "web");
 	const bundles = fs.existsSync(dir) ? fs.readdirSync(dir).filter((name) => name.endsWith(".js")) : [];
 	const local = bundles.some((name) => fs.readFileSync(path.join(dir, name), "utf8").includes(LOCAL_API));
-	if (!local) throw new Error("The e2e bundle does not point at the local Supabase (127.0.0.1:54321). Refusing to run: it could sign people up on the live project.");
+	if (!local) throw new Error("The e2e bundle does not point at the local Supabase (127.0.0.1:55321). Refusing to run: it could sign people up on the live project.");
 }
 
 const MIME = { ".html": "text/html", ".js": "application/javascript", ".json": "application/json", ".css": "text/css", ".png": "image/png", ".ico": "image/x-icon", ".ttf": "font/ttf", ".svg": "image/svg+xml", ".mp3": "audio/mpeg", ".wav": "audio/wav" };

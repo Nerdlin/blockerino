@@ -8,7 +8,7 @@
 //   Ivy   - open profile, not a friend (add her from her profile)
 import { spawnSync } from "node:child_process";
 
-const API = "http://127.0.0.1:54321";
+const API = "http://127.0.0.1:55321";
 const PASSWORD = "Local-seed-pass-1";
 const PEOPLE = [
 	{ name: "Tester", email: "tester@seed.example.test", elo: 1000, classic: 320, chaos: 0 },

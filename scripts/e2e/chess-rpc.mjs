@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-const API = "http://127.0.0.1:54321";
+const API = "http://127.0.0.1:55321";
 const PASSWORD = "Local-seed-pass-1";
 const isWindows = process.platform === "win32";
 
