@@ -403,6 +403,17 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		return false;
 	};
 
+	// Development on the web only: lets the promo-video bot read the board and the hand (scripts/promo).
+	useEffect(() => {
+		if (!__DEV__ || Platform.OS !== "web" || typeof window === "undefined") return;
+		(window as any).__blockerino = {
+			board: () => board.value.map((row) => row.map((cell) => cell.blockType === BoardBlockType.FILLED ? 1 : 0)),
+			hand: () => hand.value.map((piece) => piece ? piece.matrix : null),
+			blockSize: GRID_BLOCK_SIZE,
+		};
+		return () => { delete (window as any).__blockerino; };
+	}, [GRID_BLOCK_SIZE]);
+
 	const handleDragEnd: DndProviderProps["onDragEnd"] = ({ active, over }) => {
 		"worklet";
 		if (over) {

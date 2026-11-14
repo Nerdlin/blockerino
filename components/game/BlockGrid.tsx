@@ -422,6 +422,7 @@ function BlockGridView({
 
 	return (
 		<Animated.View
+			testID="board-grid"
 			style={[
 				styles.grid,
 				{

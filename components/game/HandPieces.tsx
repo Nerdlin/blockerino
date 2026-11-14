@@ -176,7 +176,7 @@ function HandPiecesView({ hand, boardSize }: HandProps) {
 		};
 
 		handPieces.push(
-			<View key={"v" + i} style={[styles.piece, { width: HAND_BLOCK_SIZE * 5, height: HAND_BLOCK_SIZE * 5 }]}>
+			<View key={"v" + i} testID={`hand-slot-${i}`} style={[styles.piece, { width: HAND_BLOCK_SIZE * 5, height: HAND_BLOCK_SIZE * 5 }]}>
 				<PieceDraggable
 					id={id}
 					key={`${i}`}
