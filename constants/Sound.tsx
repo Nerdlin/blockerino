@@ -2,7 +2,7 @@ import { createAudioPlayer, AudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { playlistForPack, songUrl } from './MusicCatalog';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { atom, useAtom, useAtomValue } from 'jotai';
-import { shopStateAtom } from './Shop';
+import { shopLoadedAtom, shopStateAtom } from './Shop';
 import { useEffect, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
 
@@ -1196,6 +1196,7 @@ export function useSoundSettings(options: { manageMusicPlayback?: boolean } = {}
   const [musicEnabled, setMusicEnabled] = useAtom(musicEnabledAtom);
   const [sfxEnabled, setSfxEnabled] = useAtom(sfxEnabledAtom);
   const shopState = useAtomValue(shopStateAtom);
+  const shopLoaded = useAtomValue(shopLoadedAtom);
   const musicPackId = shopState.equipped.music;
   const sfxPackId = shopState.equipped.sfx;
 
@@ -1258,7 +1259,9 @@ export function useSoundSettings(options: { manageMusicPlayback?: boolean } = {}
   };
 
   useEffect(() => {
-    if (!manageMusicPlayback) {
+    // wait for the saved shop state: before it loads the equipped music is the default pack, which would start
+    // a classic song for a moment before the player's own pack
+    if (!manageMusicPlayback || !shopLoaded) {
       return;
     }
 
@@ -1267,7 +1270,7 @@ export function useSoundSettings(options: { manageMusicPlayback?: boolean } = {}
     } else {
       soundManager.stopMusic();
     }
-  }, [manageMusicPlayback, musicEnabled, musicPackId, musicVolume]);
+  }, [manageMusicPlayback, shopLoaded, musicEnabled, musicPackId, musicVolume]);
 
   // The music is paused while the app is in the background (see app/index.tsx); start it again on return.
   const resumeRef = useRef({ musicEnabled, musicVolume, musicPackId });

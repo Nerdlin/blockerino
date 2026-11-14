@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { atom, useAtom } from "jotai";
+import { atom, useAtom, useSetAtom } from "jotai";
 import { useCallback, useEffect } from "react";
 import { supabase } from "./Supabase";
 import { track } from "./Analytics";
@@ -718,6 +718,8 @@ const SHOP_ITEM_MAP = new Map(SHOP_ITEMS.map((item) => [item.id, item]));
 
 
 export const shopStateAtom = atom<ShopState>(createDefaultShopState());
+/** True once the saved shop state is loaded at startup (until then shopStateAtom holds the defaults). */
+export const shopLoadedAtom = atom(false);
 
 export function createDefaultShopState(): ShopState {
 	return {
@@ -1283,14 +1285,16 @@ export function useShopState() {
 
 export function useShopBootstrap() {
 	const [, setState] = useAtom(shopStateAtom);
+	const setLoaded = useSetAtom(shopLoadedAtom);
 
 	useEffect(() => {
 		loadShopState().then(async (local) => {
 			setState(local);
+			setLoaded(true);
 			const syncResult = await syncShopStateWithProfile(local);
 			if (syncResult.status === "synced") {
 				setState(syncResult.state);
 			}
 		});
-	}, [setState]);
+	}, [setState, setLoaded]);
 }
