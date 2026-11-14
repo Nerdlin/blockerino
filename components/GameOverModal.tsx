@@ -9,7 +9,7 @@ import { supabase } from "@/constants/Supabase";
 import { setProfileAuthIntent } from "@/constants/ProfileIntent";
 import { useSoundSettings } from "@/constants/Sound";
 import {useTheme, ThemeType, opaqueColor } from "@/constants/Theme";
-import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { normalizePlayerName } from "@/constants/Multiplayer";
 import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
@@ -38,7 +38,6 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
     const { playSfx } = useSoundSettings();
     const { currentTheme } = useTheme();
     const { t } = useLanguage();
-    const scale = useSharedValue(1);
     const [playerName, setPlayerName] = useState('');
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'queued' | 'failed' | 'needs_name'>('idle');
     const [coinsAwarded, setCoinsAwarded] = useState(0);
@@ -83,17 +82,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
 
     useEffect(() => {
         playSfx('gameOver');
-
-        // Пульсирующая анимация для текста "Game Over"
-        scale.value = withRepeat(
-            withSequence(
-                withTiming(1.1, { duration: 700 }),
-                withTiming(1, { duration: 700 })
-            ),
-            -1,
-            true
-        );
-    }, [playSfx, scale]);
+    }, [playSfx]);
 
     useEffect(() => {
         // The modal mounts once per finished game.
@@ -159,11 +148,6 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
         doSubmit(playerName);
     };
 
-    const animatedTextStyle = useAnimatedStyle(() => {
-        return {
-            transform: [{ scale: scale.value }]
-        };
-    });
 
     const canEditNickname = submitStatus === 'idle' || submitStatus === 'needs_name';
 
@@ -205,108 +189,107 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
         else if (result === 'failed') setShareNote(t("share.failed"));
     };
 
-    const recordLine = bestScore === null || score <= 0 ? null : score >= bestScore ? (
-        <Text style={[styles.coinsText, { color: '#FFD700', marginBottom: 14 }]}>{t("over.newRecord")}</Text>
-    ) : (
-        <Text style={[styles.coinsText, { color: currentTheme.textSecondary, marginBottom: 14 }]}>
-            {t("over.toRecord", { points: bestScore - score, best: bestScore })}
-        </Text>
-    );
-
     const reasonKey = reason === "time" ? "over.reason.time" : reason === "move_limit" ? "over.reason.moveLimit" : "over.reason.noRoom";
     const medals = getMedals(gameMode);
+    const titleColor = currentTheme.id === ThemeType.BLUE ? 'rgb(0, 153, 255)' : currentTheme.buttonPrimary;
+    const scoreColor = currentTheme.id === ThemeType.BLUE ? 'rgb(255, 204, 0)' : currentTheme.accent;
+    const medalColor = medal ? MEDAL_TINT[medal.id] : currentTheme.textSecondary;
+    const coinsChip = coinsAwarded > 0 ? (
+        <FadeInView pop delay={700}>
+            <View style={styles.coinsChip}>
+                <View style={styles.coinDot} />
+                <Text style={styles.coinsChipText}>{t("over.coinsAwarded", { coins: coinsAwarded })}</Text>
+            </View>
+        </FadeInView>
+    ) : null;
 
     return (
         <>
-        <SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
-            <Animated.Text
-                entering={FadeIn.duration(600)}
-                style={[styles.gameOverText, { color: currentTheme.id === ThemeType.BLUE ? 'rgb(0, 153, 255)' : currentTheme.buttonPrimary }, animatedTextStyle]}
-            >
+        <SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]} contentStyle={styles.content}>
+            {/* header */}
+            <Animated.Text entering={FadeIn.duration(500)} style={[styles.title, { color: titleColor }]}>
                 {t("over.gameOver")}
             </Animated.Text>
-            <Text style={[styles.reasonText, { color: currentTheme.textSecondary }]}>{t(reasonKey)}</Text>
+            <Text style={[styles.reason, { color: currentTheme.textSecondary }]}>{t(reasonKey)}</Text>
 
-            <View style={[styles.scoreCard, isRecord && styles.scoreCardRecord]}>
-                <Text style={[styles.scoreLabel, { color: currentTheme.textSecondary }]}>{t("over.yourScore")}</Text>
-                <AnimatedNumber
-                    value={score}
-                    duration={900}
-                    style={[styles.scoreValue, { color: currentTheme.id === ThemeType.BLUE ? 'rgb(255, 204, 0)' : currentTheme.accent }]}
-                />
+            {/* the score */}
+            <View style={styles.hero}>
+                <Text style={[styles.heroLabel, { color: currentTheme.textSecondary }]}>{t("over.yourScore")}</Text>
+                <AnimatedNumber value={score} duration={900} style={[styles.heroScore, { color: scoreColor }]} />
                 {isRecord ? (
                     <FadeInView pop delay={900}>
                         <Text style={styles.recordBadge}>{t("over.newRecord")}</Text>
                     </FadeInView>
                 ) : bestScore !== null && score > 0 ? (
-                    <Text style={[styles.toRecord, { color: currentTheme.textSecondary }]}>{t("over.toRecord", { points: bestScore - score, best: bestScore })}</Text>
+                    <View style={styles.bestRow}>
+                        <Text style={[styles.bestText, { color: currentTheme.textPrimary }]}>{t("over.bestShort", { best: bestScore })}</Text>
+                        <View style={styles.bestDot} />
+                        <Text style={[styles.bestText, { color: currentTheme.textSecondary }]}>{t("over.toBestShort", { points: bestScore - score })}</Text>
+                    </View>
                 ) : null}
             </View>
 
-            {medals.length > 0 && (
-                <View style={[styles.medalCard, medal && { borderColor: MEDAL_TINT[medal.id] }]}>
-                    <Text style={[styles.medalTitle, { color: medal ? MEDAL_TINT[medal.id] : currentTheme.textSecondary }]}>
-                        {medal ? t("goals.medalEarned", { medal: t(`goals.${medal.id}`), coins: medal.coins }) : t("over.noMedal")}
-                    </Text>
-                    <MedalTrack medals={medals} score={score} />
-                    <Text style={styles.medalNext}>
+            {/* medal path and the coins of the run */}
+            {medals.length > 0 ? (
+                <View style={[styles.panel, medal && { borderColor: `${MEDAL_TINT[medal.id]}55` }]}>
+                    <View style={styles.panelHead}>
+                        <Text style={[styles.panelTitle, { color: medalColor }]} numberOfLines={1}>
+                            {medal ? t(`goals.${medal.id}`) : t("over.noMedal")}
+                        </Text>
+                        {coinsChip}
+                    </View>
+                    <MedalTrack medals={medals} score={score} size={30} />
+                    <Text style={[styles.panelNext, { color: currentTheme.textSecondary }]}>
                         {nextMedal ? t("goals.toNextMedal", { medal: t(`goals.${nextMedal.id}`), points: nextMedal.score - score }) : t("goals.done")}
                     </Text>
                 </View>
-            )}
+            ) : coinsChip ? (
+                <View style={styles.coinsAlone}>{coinsChip}</View>
+            ) : null}
 
-            {coinsAwarded > 0 && (
-                <FadeInView pop delay={700}>
-                    <View style={styles.coinsPill}>
-                        <Text style={[styles.coinsText, { color: '#FFD700' }]}>{t("over.coinsAwarded", { coins: coinsAwarded })}</Text>
-                    </View>
-                </FadeInView>
-            )}
-
-            <View style={styles.buttonContainer}>
+            {/* actions */}
+            <View style={styles.actions}>
                 <StylizedButton
                     text={t("over.playAgain")}
                     onClick={handlePlayAgain}
                     backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(0, 153, 51)' : currentTheme.buttonPrimary}
-                    style={{ minWidth: 240, height: 58 }}
-                    textStyle={{ fontSize: 20 }}
+                    style={styles.primaryButton}
+                    textStyle={styles.primaryText}
                 />
                 <View style={styles.secondaryRow}>
                     <StylizedButton
                         text={t("over.mainMenu")}
                         onClick={handleMainMenu}
-                        backgroundColor={currentTheme.buttonSecondary}
+                        backgroundColor="rgba(255,255,255,0.08)"
+                        borderColor="rgba(255,255,255,0.14)"
                         style={styles.secondaryButton}
-                        textStyle={{ fontSize: 14 }}
+                        textStyle={styles.secondaryText}
                     />
                     {score > 0 && (
                         <StylizedButton
                             text={t("share.button")}
                             onClick={handleShare}
                             disabled={sharing}
-                            backgroundColor="rgb(70, 70, 90)"
+                            backgroundColor="rgba(255,255,255,0.08)"
+                            borderColor="rgba(255,255,255,0.14)"
                             style={styles.secondaryButton}
-                            textStyle={{ fontSize: 14 }}
+                            textStyle={styles.secondaryText}
                         />
                     )}
                 </View>
             </View>
 
-            {shareNote && <Text style={[styles.statusText, { color: currentTheme.textSecondary }]}>{shareNote}</Text>}
-
-            <View style={styles.statusContainer}>
+            {/* where the score went */}
+            <View style={styles.footer}>
+                {shareNote && <Text style={[styles.status, { color: currentTheme.textSecondary }]}>{shareNote}</Text>}
                 {canEditNickname && (
-                    <View style={{ width: '100%', alignItems: 'center', gap: 8 }}>
-                        <Text style={[styles.messageText, { color: currentTheme.textSecondary, marginBottom: 0, paddingHorizontal: 0, fontSize: 12 }]}>
-                            {t("over.enterNickname")}
-                        </Text>
+                    <View style={styles.nickBlock}>
+                        <Text style={[styles.status, { color: currentTheme.textSecondary }]}>{t("over.enterNickname")}</Text>
                         <View style={styles.nickRow}>
                             <TextInput
                                 style={[styles.nicknameInput, {
-                                    flex: 1,
                                     color: currentTheme.textPrimary,
-                                    borderColor: submitStatus === 'needs_name' ? 'rgb(255, 80, 80)' : currentTheme.textSecondary,
-                                    backgroundColor: 'rgba(0, 0, 0, 0.4)'
+                                    borderColor: submitStatus === 'needs_name' ? 'rgb(255, 80, 80)' : 'rgba(255,255,255,0.18)',
                                 }]}
                                 value={playerName}
                                 onChangeText={(name) => {
@@ -323,28 +306,26 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                                 text={t("over.saveScore")}
                                 onClick={handleManualSubmit}
                                 backgroundColor={currentTheme.buttonPrimary}
-                                style={{ minWidth: 0, height: 44, paddingHorizontal: 12, margin: 0 }}
+                                style={styles.nickButton}
                                 textStyle={{ fontSize: 12 }}
                             />
                         </View>
                         {!signedIn && finishedCount >= ACCOUNT_PROMPT_AFTER_GAMES && (
-                            <View style={{ width: '100%', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                                <Text style={[styles.messageText, { color: currentTheme.textSecondary, paddingHorizontal: 0, fontSize: 11 }]}>
-                                    {t("over.accountPrompt")}
-                                </Text>
-                                <View style={{ flexDirection: 'row', gap: 8, width: '100%', justifyContent: 'center' }}>
-                                    <StylizedButton text={t("over.createAccount")} onClick={() => openAccountScreen('register')} backgroundColor={currentTheme.accent} style={{ flex: 1, minWidth: 0, minHeight: 38, paddingHorizontal: 4, margin: 0 }} textStyle={{ fontSize: 11 }} />
-                                    <StylizedButton text={t("over.haveAccount")} onClick={() => openAccountScreen('login')} backgroundColor="rgb(90,90,90)" style={{ flex: 1, minWidth: 0, minHeight: 38, paddingHorizontal: 4, margin: 0 }} textStyle={{ fontSize: 11 }} />
+                            <View style={styles.accountBlock}>
+                                <Text style={[styles.status, { color: currentTheme.textSecondary, fontSize: 11 }]}>{t("over.accountPrompt")}</Text>
+                                <View style={styles.accountRow}>
+                                    <StylizedButton text={t("over.createAccount")} onClick={() => openAccountScreen('register')} backgroundColor={currentTheme.accent} style={styles.accountButton} textStyle={{ fontSize: 11 }} />
+                                    <StylizedButton text={t("over.haveAccount")} onClick={() => openAccountScreen('login')} backgroundColor="rgb(90,90,90)" style={styles.accountButton} textStyle={{ fontSize: 11 }} />
                                 </View>
                             </View>
                         )}
                     </View>
                 )}
-                {submitStatus === 'submitting' && <Text style={[styles.statusText, { color: currentTheme.textSecondary }]}>{t("over.saving")}</Text>}
-                {submitStatus === 'success' && <Text style={[styles.statusText, { color: 'rgb(0, 200, 80)' }]}>{t("over.saved", { name: playerName })}</Text>}
-                {submitStatus === 'queued' && <Text style={[styles.statusText, { color: currentTheme.accent }]}>{t("over.savedOffline")}</Text>}
-                {submitStatus === 'failed' && <Text style={[styles.statusText, { color: 'rgb(255, 80, 80)' }]}>{t("over.syncFailed")}</Text>}
-                {submitStatus === 'needs_name' && <Text style={[styles.statusText, { color: 'rgb(255, 80, 80)' }]}>{t("over.needName")}</Text>}
+                {submitStatus === 'submitting' && <Text style={[styles.status, { color: currentTheme.textSecondary }]}>{t("over.saving")}</Text>}
+                {submitStatus === 'success' && <Text style={[styles.status, { color: 'rgb(74, 222, 128)' }]}>{t("over.saved", { name: playerName })}</Text>}
+                {submitStatus === 'queued' && <Text style={[styles.status, { color: currentTheme.accent }]}>{t("over.savedOffline")}</Text>}
+                {submitStatus === 'failed' && <Text style={[styles.status, { color: 'rgb(255, 80, 80)' }]}>{t("over.syncFailed")}</Text>}
+                {submitStatus === 'needs_name' && <Text style={[styles.status, { color: 'rgb(255, 80, 80)' }]}>{t("over.needName")}</Text>}
             </View>
         </SimplePopupView>
         {/* Drawn off screen: this is the picture that gets shared. */}
@@ -363,169 +344,210 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
     );
 }
 
+const PANEL_BG = 'rgba(255,255,255,0.045)';
+const PANEL_BORDER = 'rgba(255,255,255,0.09)';
+
 const styles = StyleSheet.create({
-    reasonText: {
+    content: {
+        paddingVertical: 18,
+        paddingHorizontal: 16,
+    },
+    title: {
+        fontSize: 30,
         fontFamily: 'Silkscreen',
-        fontSize: 12,
         textAlign: 'center',
-        marginTop: -8,
+        ...Platform.select({
+            web: { textShadow: "0 3px 0 rgba(0, 0, 0, 0.6)" },
+            default: { textShadowColor: 'rgba(0, 0, 0, 0.6)', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 0 },
+        }),
+    },
+    reason: {
+        fontFamily: 'Silkscreen',
+        fontSize: 11,
+        textAlign: 'center',
+        marginTop: 2,
+    },
+    hero: {
+        alignItems: 'center',
+        marginTop: 14,
         marginBottom: 14,
     },
-    scoreCard: {
-        alignSelf: 'stretch',
-        alignItems: 'center',
-        paddingVertical: 10,
-        marginBottom: 12,
-        borderRadius: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-    },
-    scoreCardRecord: {
-        borderWidth: 2,
-        borderColor: '#FFD700',
-        backgroundColor: 'rgba(255,215,0,0.08)',
-    },
-    scoreLabel: {
+    heroLabel: {
         fontFamily: 'Silkscreen',
-        fontSize: 14,
+        fontSize: 11,
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+    },
+    heroScore: {
+        fontSize: 56,
+        lineHeight: 64,
+        fontFamily: 'SilkscreenBold',
+        textAlign: 'center',
+    },
+    bestRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 999,
+        backgroundColor: PANEL_BG,
+        borderWidth: 1,
+        borderColor: PANEL_BORDER,
+    },
+    bestText: {
+        fontFamily: 'Silkscreen',
+        fontSize: 11,
+    },
+    bestDot: {
+        width: 4,
+        height: 4,
+        backgroundColor: 'rgba(255,255,255,0.3)',
     },
     recordBadge: {
         fontFamily: 'Silkscreen',
-        fontSize: 14,
+        fontSize: 13,
         color: '#1A1200',
         backgroundColor: '#FFD700',
-        paddingHorizontal: 10,
-        paddingVertical: 3,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
         borderRadius: 6,
         overflow: 'hidden',
     },
-    toRecord: {
-        fontFamily: 'Silkscreen',
-        fontSize: 12,
-    },
-    medalCard: {
+    panel: {
         alignSelf: 'stretch',
         paddingHorizontal: 14,
-        paddingVertical: 12,
-        marginBottom: 12,
+        paddingTop: 10,
+        paddingBottom: 12,
         borderRadius: 14,
-        borderWidth: 2,
-        borderColor: 'rgba(255,255,255,0.12)',
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        gap: 10,
+        borderWidth: 1,
+        borderColor: PANEL_BORDER,
+        backgroundColor: PANEL_BG,
+        gap: 8,
     },
-    medalTitle: {
-        fontFamily: 'Silkscreen',
-        fontSize: 13,
-        textAlign: 'center',
+    panelHead: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
     },
-    medalNext: {
+    panelTitle: {
+        flexShrink: 1,
         fontFamily: 'Silkscreen',
         fontSize: 14,
-        color: '#FFD700',
+    },
+    panelNext: {
+        fontFamily: 'Silkscreen',
+        fontSize: 11,
         textAlign: 'center',
     },
-    coinsPill: {
-        alignSelf: 'center',
-        paddingHorizontal: 14,
-        paddingVertical: 5,
-        borderRadius: 14,
+    coinsChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 999,
         backgroundColor: 'rgba(255,215,0,0.12)',
-        marginBottom: 6,
+    },
+    coinDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#FFD700',
+    },
+    coinsChipText: {
+        fontFamily: 'Silkscreen',
+        fontSize: 12,
+        color: '#FFD700',
+    },
+    coinsAlone: {
+        alignItems: 'center',
+    },
+    actions: {
+        alignSelf: 'stretch',
+        gap: 10,
+        marginTop: 16,
+    },
+    primaryButton: {
+        alignSelf: 'stretch',
+        minWidth: 0,
+        height: 56,
+        margin: 0,
+        borderRadius: 14,
+    },
+    primaryText: {
+        fontSize: 20,
     },
     secondaryRow: {
         flexDirection: 'row',
         gap: 10,
-        justifyContent: 'center',
-        alignSelf: 'stretch',
     },
     secondaryButton: {
         flex: 1,
         minWidth: 0,
         height: 46,
         margin: 0,
+        borderRadius: 12,
+    },
+    secondaryText: {
+        fontSize: 13,
+    },
+    footer: {
+        alignSelf: 'stretch',
+        alignItems: 'center',
+        marginTop: 12,
+        gap: 6,
+    },
+    status: {
+        fontFamily: 'Silkscreen',
+        fontSize: 12,
+        textAlign: 'center',
+    },
+    nickBlock: {
+        alignSelf: 'stretch',
+        alignItems: 'center',
+        gap: 6,
     },
     nickRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        width: '100%',
-    },
-    medalRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        marginBottom: 6,
-    },
-    gameOverText: {
-        fontSize: 36,
-        fontFamily: 'Silkscreen',
-        marginBottom: 16,
-        textAlign: 'center',
-        ...Platform.select({
-            web: {
-                textShadow: "2px 2px 3px rgba(0, 0, 0, 0.75)"
-            },
-            default: {
-                textShadowColor: 'rgba(0, 0, 0, 0.75)',
-                textShadowOffset: { width: 2, height: 2 },
-                textShadowRadius: 3
-            }
-        })
-    },
-    scoreText: {
-        fontSize: 24,
-        fontFamily: 'Silkscreen',
-        marginBottom: 10,
-        textAlign: 'center',
-    },
-    scoreValue: {
-        fontSize: 42,
-        fontFamily: 'SilkscreenBold',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    coinsText: {
-        fontSize: 14,
-        fontFamily: 'Silkscreen',
-        marginBottom: 12,
-        textAlign: 'center',
-    },
-    statusContainer: {
-        marginTop: 20,
-        marginBottom: 12,
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        width: '100%'
-    },
-    statusText: {
-        fontSize: 18,
-        fontFamily: 'Silkscreen',
-        textAlign: 'center',
-    },
-    messageText: {
-        fontSize: 16,
-        fontFamily: 'Silkscreen',
-        marginBottom: 12,
-        textAlign: 'center',
-        paddingHorizontal: 20,
-    },
-    buttonContainer: {
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: '100%',
-        gap: 15
+        alignSelf: 'stretch',
     },
     nicknameInput: {
-        width: '80%',
-        maxWidth: 300,
-        height: 45,
-        borderWidth: 2,
-        borderRadius: 8,
-        paddingHorizontal: 15,
-        fontSize: 18,
+        flex: 1,
+        height: 42,
+        borderWidth: 1,
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        fontSize: 16,
         fontFamily: 'Silkscreen',
         textAlign: 'center',
-    }
+        backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    },
+    nickButton: {
+        minWidth: 0,
+        height: 42,
+        paddingHorizontal: 12,
+        margin: 0,
+    },
+    accountBlock: {
+        alignSelf: 'stretch',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 2,
+    },
+    accountRow: {
+        flexDirection: 'row',
+        gap: 8,
+        alignSelf: 'stretch',
+    },
+    accountButton: {
+        flex: 1,
+        minWidth: 0,
+        minHeight: 38,
+        paddingHorizontal: 4,
+        margin: 0,
+    },
 });

@@ -4,6 +4,8 @@ export const gameover: ScreenDictionary = {
 	en: {
 		// GameOverModal
 		"over.gameOver": "Game Over",
+		"over.bestShort": "Best {best}",
+		"over.toBestShort": "{points} to go",
 		"over.reason.noRoom": "No room left for your pieces",
 		"over.reason.time": "Time ran out",
 		"over.reason.moveLimit": "Out of moves",
@@ -67,6 +69,8 @@ export const gameover: ScreenDictionary = {
 	ru: {
 		// GameOverModal
 		"over.gameOver": "Игра окончена",
+		"over.bestShort": "Рекорд {best}",
+		"over.toBestShort": "ещё {points}",
 		"over.reason.noRoom": "Фигурам больше нет места",
 		"over.reason.time": "Время вышло",
 		"over.reason.moveLimit": "Ходы закончились",
