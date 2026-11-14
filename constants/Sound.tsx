@@ -11,8 +11,6 @@ const MUSIC_VOLUME_KEY = 'MUSIC_VOLUME';
 const SFX_VOLUME_KEY = 'SFX_VOLUME';
 const MUSIC_ENABLED_KEY = 'MUSIC_ENABLED';
 const SFX_ENABLED_KEY = 'SFX_ENABLED';
-export const CUSTOM_MUSIC_URL_KEY = 'CUSTOM_MUSIC_URL';
-export const CUSTOM_SFX_URL_KEY = 'CUSTOM_SFX_URL';
 const SOFT_LOOP_WINDOW_SECONDS = 0.9;
 const SOFT_LOOP_INTERVAL_MS = 250;
 const SOFT_LOOP_FADE_STEPS = 6;
@@ -35,6 +33,8 @@ const SFX_PLAYERS_PER_SOUND = 3;
 const SFX_START_GRACE_MS = 120;
 /** Monitor ticks (250 ms each) the music may stay silent while it should play before it is started again. */
 const MUSIC_STALL_CHECKS = 4;
+// checks (SOFT_LOOP_INTERVAL_MS each) a website song may take to load before the songs inside the app play instead
+const REMOTE_LOAD_CHECKS = 48;
 
 interface PooledSfxPlayer {
   key: string;
@@ -378,81 +378,9 @@ const SFX_RESOURCES = {
 
 type BuiltInMusicTrackKey = keyof typeof MUSIC_TRACK_RESOURCES;
 /** "remote:<song id>": a song of constants/MusicCatalog.ts loaded from the game's website. */
-export type MusicTrackKey = BuiltInMusicTrackKey | 'musicCustom' | `remote:${string}`;
+export type MusicTrackKey = BuiltInMusicTrackKey | `remote:${string}`;
 type SfxAssetKey = keyof typeof SFX_RESOURCES;
 type SoundAssetKey = SfxAssetKey | BuiltInMusicTrackKey;
-
-export type CustomAudioSourceKind = 'empty' | 'direct' | 'youtube' | 'spotify' | 'yandex' | 'other';
-
-export interface CustomAudioSourceInfo {
-  kind: CustomAudioSourceKind;
-  canPlayInApp: boolean;
-  label: string;
-  message: string;
-  url: string;
-}
-
-const DIRECT_AUDIO_URL_PATTERN = /\.(mp3|m4a|aac|wav|ogg|oga|flac|opus|m3u8)(\?|#|$)/i;
-
-export function getCustomAudioSourceInfo(rawUrl: string): CustomAudioSourceInfo {
-  const url = rawUrl.trim();
-  if (!url) {
-    return {
-      kind: 'empty',
-      canPlayInApp: false,
-      label: 'No link',
-      message: 'Paste a music or sound link.',
-      url,
-    };
-  }
-
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return {
-      kind: 'other',
-      canPlayInApp: false,
-      label: 'Invalid link',
-      message: 'Use a full https:// link.',
-      url,
-    };
-  }
-
-  const host = parsed.hostname.toLowerCase();
-  const provider =
-    host.includes('youtube.com') || host.includes('youtu.be')
-      ? 'youtube'
-      : host.includes('spotify.com')
-        ? 'spotify'
-        : host.includes('music.yandex') || host.includes('yandex.')
-          ? 'yandex'
-          : null;
-
-  if (provider) {
-    const label = provider === 'youtube' ? 'YouTube' : provider === 'spotify' ? 'Spotify' : 'Yandex Music';
-    return {
-      kind: provider,
-      canPlayInApp: false,
-      label,
-      message: `${label} link saved. Open it outside the game; in-game playback needs a direct audio stream.`,
-      url,
-    };
-  }
-
-  const isHttpAudio = (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
-    (DIRECT_AUDIO_URL_PATTERN.test(parsed.pathname) || DIRECT_AUDIO_URL_PATTERN.test(parsed.href));
-
-  return {
-    kind: isHttpAudio ? 'direct' : 'other',
-    canPlayInApp: isHttpAudio,
-    label: isHttpAudio ? 'Direct audio' : 'Saved link',
-    message: isHttpAudio
-      ? 'Direct audio stream will play in game.'
-      : 'Link saved. If it is not a direct audio stream, open it outside the game.',
-    url,
-  };
-}
 
 const MUSIC_PACK_TRACKS: Record<string, BuiltInMusicTrackKey> = {
   music_classic: 'backgroundMusic',
@@ -537,7 +465,7 @@ function getMusicVolumeMultiplier(musicPackId: string): number {
   // the songs are loudness-normalized
   if (isPlaylistPack(musicPackId)) return 1;
   const track = getMusicTrackKey(musicPackId);
-  return track === 'musicCustom' || track.startsWith('remote:') ? 1 : MUSIC_TRACK_VOLUME_MULTIPLIERS[track as BuiltInMusicTrackKey] ?? 1;
+  return track.startsWith('remote:') ? 1 : MUSIC_TRACK_VOLUME_MULTIPLIERS[track as BuiltInMusicTrackKey] ?? 1;
 }
 
 function getSfxVolumeMultiplier(sfxPackId: string): number {
@@ -549,9 +477,9 @@ export const MUSIC_PLAYLIST: MusicTrackKey[] = [
   'cc0Stage1', 'cc0Stage2', 'cc0Relaxed', 'cc0Storytime', 'cc0SpaceUpbeat',
   'cc0Sports3', 'cc0SportsFinal', 'cc0Action6', 'cc0Action7', 'cc0Action9',
 ];
-/** Every music pack plays songs (its own playlist) except the player's own music link. */
+/** Every music pack plays songs: its own playlist, one song after another. */
 export function isPlaylistPack(musicPackId: string): boolean {
-  return musicPackId !== 'music_custom';
+  return musicPackId.length > 0;
 }
 
 /** The songs of a pack: the songs inside the app for the default music, the pack's website songs otherwise. */
@@ -572,7 +500,7 @@ export function getMusicTrackKey(musicPackId: string): MusicTrackKey {
 }
 
 export function hasMusicTrackForPack(musicPackId: string): boolean {
-  return musicPackId === 'music_custom' || Object.prototype.hasOwnProperty.call(MUSIC_PACK_TRACKS, musicPackId);
+  return Object.prototype.hasOwnProperty.call(MUSIC_PACK_TRACKS, musicPackId);
 }
 
 interface SfxRoleAssets {
@@ -675,7 +603,7 @@ export function mapSfxForPack(type: SoundType, sfxPackId: string): SfxAssetKey {
 }
 
 export function hasSfxAssetsForPack(sfxPackId: string): boolean {
-  return sfxPackId === 'sfx_custom' || sfxPackId === 'sfx_classic' || Object.prototype.hasOwnProperty.call(SFX_PACK_ASSETS, sfxPackId);
+  return sfxPackId === 'sfx_classic' || Object.prototype.hasOwnProperty.call(SFX_PACK_ASSETS, sfxPackId);
 }
 
 // Статичные импорты звуков вместо динамических
@@ -761,7 +689,6 @@ class SoundManager {
   private playlistPack: string | null = null;
   private advancingPlaylist = false;
   private musicPlaying = false;
-  private customMusicUrl: string | null = null;
   private initialized = false;
   private musicRequestId = 0;
   private musicRate = 1;
@@ -824,8 +751,6 @@ class SoundManager {
 
   private async loadMusicSafely(key: MusicTrackKey): Promise<AudioPlayer | null> {
     try {
-      if (key === 'musicCustom') return null;
-
       const soundResource = key.startsWith('remote:')
         ? { uri: songUrl(key.slice('remote:'.length), Platform.OS === 'web') }
         : getSoundResource(key as SoundType);
@@ -884,10 +809,13 @@ class SoundManager {
       if (ended) await this.advancePlaylist();
       else if (!music.playing && !music.isBuffering) {
         this.musicStalledChecks += 1;
-        // a website song that does not start (no internet): the songs inside the app play instead
-        if (this.currentMusicKey.startsWith('remote:') && currentTime === 0 && this.musicStalledChecks >= MUSIC_STALL_CHECKS * 3) {
+        // a website song that does not start (no internet): the songs inside the app play instead. A song that is
+        // still loading gets much longer than one that loaded and stopped; the pack is tried again next time.
+        const giveUpAfter = music.isLoaded ? MUSIC_STALL_CHECKS * 3 : REMOTE_LOAD_CHECKS;
+        if (this.currentMusicKey.startsWith('remote:') && currentTime === 0 && this.musicStalledChecks >= giveUpAfter) {
           this.musicStalledChecks = 0;
           this.playlist = MUSIC_PLAYLIST;
+          this.playlistPack = null;
           await this.advancePlaylist();
           return;
         }
@@ -1119,19 +1047,6 @@ class SoundManager {
         await this.initialize();
       }
       
-      if (sfxPackId === 'sfx_custom') {
-        const customUrl = await AsyncStorage.getItem(CUSTOM_SFX_URL_KEY);
-        const source = getCustomAudioSourceInfo(customUrl || '');
-        if (source.canPlayInApp) {
-          try {
-            this.playOneShot(source.url, source.url, volume ?? 1);
-            return;
-          } catch (error) {
-            console.log("Custom SFX could not play, falling back to default:", error);
-          }
-        }
-      }
-
       const soundResource = getSoundResource(type);
       if (soundResource) {
         this.playOneShot(type, soundResource, volume ?? 1);
@@ -1158,49 +1073,6 @@ class SoundManager {
 
       if (requestId !== this.musicRequestId) return;
 
-      if (musicPackId === 'music_custom') {
-        const customUrl = await AsyncStorage.getItem(CUSTOM_MUSIC_URL_KEY);
-        if (requestId !== this.musicRequestId) return;
-
-        const source = getCustomAudioSourceInfo(customUrl || '');
-        if (source.canPlayInApp) {
-          try {
-            const customKey: MusicTrackKey = 'musicCustom';
-            let customMusic = this.musicTracks.get(customKey);
-            if (!customMusic || this.customMusicUrl !== source.url) {
-              customMusic?.pause();
-              customMusic = createAudioPlayer(source.url);
-              customMusic.loop = false;
-              this.musicTracks.set(customKey, customMusic);
-              this.customMusicUrl = source.url;
-              this.musicPlaying = false;
-            }
-
-            if (this.currentMusicKey !== customKey) {
-              this.pauseMusicTracksExcept(customKey);
-              this.currentMusicKey = customKey;
-              this.musicPlaying = false;
-            }
-
-            if (requestId !== this.musicRequestId) return;
-
-            this.currentMusicVolume = volume ?? 1;
-            customMusic.volume = this.currentMusicVolume;
-            if (!this.musicPlaying) {
-              customMusic.play();
-              this.musicPlaying = true;
-            }
-            this.startSoftLoopMonitor();
-            return;
-          } catch (error) {
-            console.log("Custom music could not play, falling back to classic:", error);
-          }
-        } else if (source.kind !== 'empty') {
-          await this.pauseMusic();
-          return;
-        }
-      }
-
       const playlist = isPlaylistPack(musicPackId);
       this.playlistMode = playlist;
       if (playlist && this.playlistPack !== musicPackId) {
@@ -1216,6 +1088,13 @@ class SoundManager {
 
       if (musicKey !== this.currentMusicKey) {
         this.pauseMusicTracksExcept(musicKey);
+        // songs of another pack are not needed any more: free them (each holds a stream from the website)
+        this.musicTracks.forEach((player, key) => {
+          if (key !== musicKey && !this.playlist.includes(key)) {
+            this.musicTracks.delete(key);
+            releasePlayer(player);
+          }
+        });
         this.currentMusicKey = musicKey;
         this.musicPlaying = false;
       } else {
@@ -1290,7 +1169,7 @@ class SoundManager {
   async updateMusicVolume(volume: number, musicPackId: string = 'music_classic') {
     try {
       this.currentMusicVolume = volume;
-      const musicKey: MusicTrackKey = musicPackId === 'music_custom' ? 'musicCustom' : this.currentMusicKey;
+      const musicKey: MusicTrackKey = this.currentMusicKey;
       const music = this.musicTracks.get(musicKey);
       if (music) {
         music.volume = volume;
@@ -1374,9 +1253,8 @@ export function useSoundSettings(options: { manageMusicPlayback?: boolean } = {}
     setMusicEnabled(settings.musicEnabled);
     setSfxEnabled(settings.sfxEnabled);
     
-    if (manageMusicPlayback && settings.musicEnabled) {
-      await soundManager.playMusic(settings.musicVolume * getMusicVolumeMultiplier(musicPackId), musicPackId);
-    }
+    // The music itself is started by the effect below with the equipped pack: musicPackId here is the value of the
+    // first render, before the shop state loads, so playing it here switched every player to the classic pack.
   };
 
   useEffect(() => {
