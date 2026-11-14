@@ -1,4 +1,5 @@
 import { createAudioPlayer, AudioPlayer, setAudioModeAsync } from 'expo-audio';
+import { playlistForPack, songUrl } from './MusicCatalog';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { atom, useAtom, useAtomValue } from 'jotai';
 import { shopStateAtom } from './Shop';
@@ -376,7 +377,8 @@ const SFX_RESOURCES = {
 } as const;
 
 type BuiltInMusicTrackKey = keyof typeof MUSIC_TRACK_RESOURCES;
-export type MusicTrackKey = BuiltInMusicTrackKey | 'musicCustom';
+/** "remote:<song id>": a song of constants/MusicCatalog.ts loaded from the game's website. */
+export type MusicTrackKey = BuiltInMusicTrackKey | 'musicCustom' | `remote:${string}`;
 type SfxAssetKey = keyof typeof SFX_RESOURCES;
 type SoundAssetKey = SfxAssetKey | BuiltInMusicTrackKey;
 
@@ -532,8 +534,10 @@ const MUSIC_TRACK_VOLUME_MULTIPLIERS: Partial<Record<BuiltInMusicTrackKey, numbe
 };
 
 function getMusicVolumeMultiplier(musicPackId: string): number {
+  // the songs are loudness-normalized
+  if (isPlaylistPack(musicPackId)) return 1;
   const track = getMusicTrackKey(musicPackId);
-  return track === 'musicCustom' ? 1 : MUSIC_TRACK_VOLUME_MULTIPLIERS[track] ?? 1;
+  return track === 'musicCustom' || track.startsWith('remote:') ? 1 : MUSIC_TRACK_VOLUME_MULTIPLIERS[track as BuiltInMusicTrackKey] ?? 1;
 }
 
 function getSfxVolumeMultiplier(sfxPackId: string): number {
@@ -545,15 +549,21 @@ export const MUSIC_PLAYLIST: MusicTrackKey[] = [
   'cc0Stage1', 'cc0Stage2', 'cc0Relaxed', 'cc0Storytime', 'cc0SpaceUpbeat',
   'cc0Sports3', 'cc0SportsFinal', 'cc0Action6', 'cc0Action7', 'cc0Action9',
 ];
-const PLAYLIST_PACKS = new Set(['music_classic']);
-
+/** Every music pack plays songs (its own playlist) except the player's own music link. */
 export function isPlaylistPack(musicPackId: string): boolean {
-  return PLAYLIST_PACKS.has(musicPackId);
+  return musicPackId !== 'music_custom';
 }
 
-/** The next song of the playlist: a random one that is not the one that just played. */
-export function nextPlaylistTrack(current: MusicTrackKey | null, random: () => number = Math.random): MusicTrackKey {
-  const choices = MUSIC_PLAYLIST.filter((key) => key !== current);
+/** The songs of a pack: the songs inside the app for the default music, the pack's website songs otherwise. */
+export function playlistForMusicPack(musicPackId: string): MusicTrackKey[] {
+  if (musicPackId === 'music_classic' || !musicPackId.startsWith('music_')) return MUSIC_PLAYLIST;
+  const songs = playlistForPack(musicPackId);
+  return songs.length > 0 ? songs.map((song) => `remote:${song.id}` as MusicTrackKey) : MUSIC_PLAYLIST;
+}
+
+/** The next song of a playlist: a random one that is not the one that just played. */
+export function nextPlaylistTrack(current: MusicTrackKey | null, random: () => number = Math.random, list: MusicTrackKey[] = MUSIC_PLAYLIST): MusicTrackKey {
+  const choices = list.length > 1 ? list.filter((key) => key !== current) : list;
   return choices[Math.floor(random() * choices.length) % choices.length];
 }
 
@@ -747,6 +757,8 @@ class SoundManager {
   private currentMusicKey: MusicTrackKey = 'backgroundMusic';
   /** The default music: songs one after another instead of one looping track. */
   private playlistMode = false;
+  private playlist: MusicTrackKey[] = MUSIC_PLAYLIST;
+  private playlistPack: string | null = null;
   private advancingPlaylist = false;
   private musicPlaying = false;
   private customMusicUrl: string | null = null;
@@ -814,7 +826,9 @@ class SoundManager {
     try {
       if (key === 'musicCustom') return null;
 
-      const soundResource = getSoundResource(key);
+      const soundResource = key.startsWith('remote:')
+        ? { uri: songUrl(key.slice('remote:'.length), Platform.OS === 'web') }
+        : getSoundResource(key as SoundType);
       if (!soundResource) {
         console.log(`Resource not found for music "${key}"`);
         return null;
@@ -862,7 +876,7 @@ class SoundManager {
       return;
     }
 
-    if (this.playlistMode && MUSIC_PLAYLIST.includes(this.currentMusicKey)) {
+    if (this.playlistMode && this.playlist.includes(this.currentMusicKey)) {
       const duration = Number(music.duration) || 0;
       const currentTime = Number(music.currentTime) || 0;
       if (music.loop) music.loop = false;
@@ -870,8 +884,14 @@ class SoundManager {
       if (ended) await this.advancePlaylist();
       else if (!music.playing && !music.isBuffering) {
         this.musicStalledChecks += 1;
-        if (this.musicStalledChecks >= MUSIC_STALL_CHECKS) {
+        // a website song that does not start (no internet): the songs inside the app play instead
+        if (this.currentMusicKey.startsWith('remote:') && currentTime === 0 && this.musicStalledChecks >= MUSIC_STALL_CHECKS * 3) {
           this.musicStalledChecks = 0;
+          this.playlist = MUSIC_PLAYLIST;
+          await this.advancePlaylist();
+          return;
+        }
+        if (this.musicStalledChecks % MUSIC_STALL_CHECKS === 0 && this.musicStalledChecks > 0) {
           try { music.play(); } catch {}
         }
       } else this.musicStalledChecks = 0;
@@ -917,7 +937,7 @@ class SoundManager {
     const requestId = this.musicRequestId;
     try {
       const previousKey = this.currentMusicKey;
-      const nextKey = nextPlaylistTrack(previousKey);
+      const nextKey = nextPlaylistTrack(previousKey, Math.random, this.playlist);
       const next = await this.getOrLoadMusic(nextKey);
       if (!next || requestId !== this.musicRequestId || !this.musicPlaying) return;
       const previous = this.musicTracks.get(previousKey);
@@ -1183,8 +1203,12 @@ class SoundManager {
 
       const playlist = isPlaylistPack(musicPackId);
       this.playlistMode = playlist;
+      if (playlist && this.playlistPack !== musicPackId) {
+        this.playlistPack = musicPackId;
+        this.playlist = playlistForMusicPack(musicPackId);
+      }
       const musicKey = playlist
-        ? (MUSIC_PLAYLIST.includes(this.currentMusicKey) ? this.currentMusicKey : nextPlaylistTrack(null))
+        ? (this.playlist.includes(this.currentMusicKey) ? this.currentMusicKey : nextPlaylistTrack(null, Math.random, this.playlist))
         : getMusicTrackKey(musicPackId);
       const nextMusic = await this.getOrLoadMusic(musicKey);
       if (requestId !== this.musicRequestId) return;
@@ -1266,10 +1290,7 @@ class SoundManager {
   async updateMusicVolume(volume: number, musicPackId: string = 'music_classic') {
     try {
       this.currentMusicVolume = volume;
-      let musicKey = getMusicTrackKey(musicPackId);
-      if (musicPackId === 'music_custom') {
-        musicKey = 'musicCustom';
-      }
+      const musicKey: MusicTrackKey = musicPackId === 'music_custom' ? 'musicCustom' : this.currentMusicKey;
       const music = this.musicTracks.get(musicKey);
       if (music) {
         music.volume = volume;
