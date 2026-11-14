@@ -69,29 +69,7 @@ export default function AchievementsMenu() {
 		return counts;
 	}, [chains]);
 
-	// Secret states
-	const [firstStepsClicks, setFirstStepsClicks] = useState(0);
-	const [secretMessage, setSecretMessage] = useState<string | null>(null);
-	const { state: shopState, commit: commitShopState } = useShopState();
-
-	const handleChainPress = async (chain: AchievementChainView) => {
-		if (chain.chain !== "solo_games") return;
-		if (shopState.ownedItemIds.includes("sfx_custom")) return;
-
-		const newClicks = firstStepsClicks + 1;
-		setFirstStepsClicks(newClicks);
-
-		if (newClicks === 7) {
-			setSecretMessage("SECRET UNLOCKED: Custom SFX URL in Shop!");
-			const newState = {
-				...shopState,
-				ownedItemIds: [...shopState.ownedItemIds, "sfx_custom"],
-			};
-			await commitShopState(newState);
-		} else if (newClicks >= 3) {
-			setSecretMessage(`${7 - newClicks} clicks remaining...`);
-		}
-	};
+	const { commit: commitShopState } = useShopState();
 
 	const isMountedRef = useRef(true);
 	const hasLoadedRef = useRef(false);
@@ -217,11 +195,6 @@ export default function AchievementsMenu() {
 			{claimNote && (
 				<Text style={[styles.note, { color: claimNote.ok ? "#4ADE80" : "#F87171" }]}>{claimNote.text}</Text>
 			)}
-			{secretMessage && (
-				<Text style={{ fontFamily: 'Silkscreen', fontSize: 12, color: '#FFD700', marginBottom: 10, textAlign: 'center' }}>
-					{secretMessage}
-				</Text>
-			)}
 			<View style={styles.tabs}>
 				<SegmentedControl<AchievementGroup>
 					small
@@ -241,7 +214,6 @@ export default function AchievementsMenu() {
 								chain={chain}
 								signedIn={signedIn}
 								claiming={claiming}
-								onPress={() => void handleChainPress(chain)}
 								onClaim={() => void claim(chain.claimable.map((tier) => tier.id))}
 							/>
 						</FadeInView>
@@ -257,13 +229,11 @@ function ChainCard({
 	chain,
 	signedIn,
 	claiming,
-	onPress,
 	onClaim,
 }: {
 	chain: AchievementChainView;
 	signedIn: boolean;
 	claiming: boolean;
-	onPress: () => void;
 	onClaim: () => void;
 }) {
 	const { currentTheme } = useTheme();
@@ -276,7 +246,6 @@ function ChainCard({
 
 	return (
 		<Pressable
-			onPress={onPress}
 			style={[
 				styles.row,
 				{

@@ -10,7 +10,7 @@ describe("music catalog", () => {
 		for (const song of REMOTE_SONGS) {
 			expect(fs.existsSync(path.join(__dirname, "..", "public", "music", `${song.id}.mp3`))).toBe(true);
 		}
-		const packs = SHOP_ITEMS.filter((item) => item.category === "music" && item.id !== "music_classic" && item.id !== "music_custom");
+		const packs = SHOP_ITEMS.filter((item) => item.category === "music" && item.id !== "music_classic");
 		expect(packs.length).toBeGreaterThan(20);
 		for (const pack of packs) {
 			const list = playlistForPack(pack.id);

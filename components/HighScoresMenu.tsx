@@ -12,7 +12,6 @@ import { useTheme } from "@/constants/Theme";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { normalizePlayerName } from "@/constants/Multiplayer";
 import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
-import { useShopState } from "@/constants/Shop";
 import { getGameModeConfig, MAIN_LEADERBOARD_GAME_MODES } from "@/constants/GameModes";
 import { useLanguage } from "@/constants/Localization";
 import { syncLocalHighScores } from "@/constants/LocalScoreSync";
@@ -43,9 +42,6 @@ export default function HighScores() {
     const [ playerName, setPlayerName ] = useState('');
     
     // Secret states
-    const [chaosClicks, setChaosClicks] = useState(0);
-    const [secretMessage, setSecretMessage] = useState<string | null>(null);
-    const { state: shopState, commit: commitShopState } = useShopState();
     const currentModeConfig = getGameModeConfig(gameMode);
     const localBestScore = highScores[0]?.score ?? 0;
     const [scope, setScope] = useState<"season" | "alltime" | "friends">("season");
@@ -56,32 +52,7 @@ export default function HighScores() {
     const showFriends = scope === "friends" && seasonBoard !== null && signedIn;
     const seasonDaysLeft = Math.ceil((getSeasonEndsAt().getTime() - Date.now()) / 86400000);
 
-    const handleChaosClick = async () => {
-        setGameMode(GameModeType.Chaos);
-        
-        if (shopState.ownedItemIds.includes("music_custom")) return;
-
-        const newClicks = chaosClicks + 1;
-        setChaosClicks(newClicks);
-
-        if (newClicks === 12) {
-            setSecretMessage("SECRET UNLOCKED: Custom Music URL in Shop!");
-            const newState = {
-                ...shopState,
-                ownedItemIds: [...shopState.ownedItemIds, "music_custom"]
-            };
-            await commitShopState(newState);
-        } else if (newClicks >= 3) {
-            setSecretMessage(`${12 - newClicks} clicks remaining...`);
-        }
-    };
-
     const handleModeClick = (mode: GameModeType) => {
-        if (mode === GameModeType.Chaos) {
-            void handleChaosClick();
-            return;
-        }
-
         setGameMode(mode);
     };
 
@@ -239,11 +210,6 @@ export default function HighScores() {
                 <Text style={[styles.seasonLink, { color: currentTheme.accent }]}>{t("hs.pastSeasonShort")}</Text>
             </Pressable>
         </View>
-        {secretMessage && (
-            <Text style={{ fontFamily: 'Silkscreen', fontSize: 12, color: '#FFD700', marginTop: 5, textAlign: 'center' }}>
-                {secretMessage}
-            </Text>
-        )}
         {(localBestScore > 0 || myIndex >= 0) && (
             <LeaderboardMeCard
                 name={myName || t("hs.enterNickname")}

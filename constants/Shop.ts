@@ -361,26 +361,6 @@ const BASE_SHOP_ITEMS: ShopItem[] = [
 		accent: "#ADB5BD",
 		previewColors: ["#343A40", "#ADB5BD", "#F8F9FA"],
 	},
-	{
-		id: "music_custom",
-		category: "music",
-		title: "Custom Music Link",
-		description: "YouTube, Spotify, Yandex, or direct audio. Configure in Options.",
-		price: 0,
-		accent: "#FFFFFF",
-		previewColors: ["#FF0000", "#00FF00", "#0000FF"],
-		secret: true,
-	},
-	{
-		id: "sfx_custom",
-		category: "sfx",
-		title: "Custom SFX Link",
-		description: "External link or direct SFX audio. Configure in Options.",
-		price: 0,
-		accent: "#FFFFFF",
-		previewColors: ["#FF00FF", "#00FFFF", "#FFFF00"],
-		secret: true,
-	},
 	// Season podium rewards: never sold, granted by close_season() through the reward claim.
 	{
 		id: "background_season_gold",

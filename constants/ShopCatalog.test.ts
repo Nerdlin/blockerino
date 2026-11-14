@@ -22,6 +22,13 @@ function readServerCatalog(): Map<string, CatalogRow> {
 	for (const match of sql.matchAll(/^\s*\('([a-z0-9_]+)', (\d+), '(free|paid|client_secret|server_only)'\)/gm)) {
 		rows.set(match[1], { price: Number(match[2]), kind: match[3] });
 	}
+	// items removed from the game later: DELETE FROM public.shop_catalog WHERE item_id IN ('a', 'b');
+	for (const name of fs.readdirSync(dir).sort()) {
+		const later = fs.readFileSync(path.join(dir, name), "utf8");
+		for (const del of later.matchAll(/DELETE FROM public\.shop_catalog WHERE item_id IN \(([^)]*)\)/g)) {
+			for (const id of del[1].matchAll(/'([a-z0-9_]+)'/g)) rows.delete(id[1]);
+		}
+	}
 	return rows;
 }
 

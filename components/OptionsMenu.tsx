@@ -1,25 +1,18 @@
 import { useIsAdmin } from "@/constants/Admin";
 import { MenuStateType, useAppState } from "@/hooks/useAppState";
-import { Linking, ScrollView, StyleSheet, Switch, Text, View, useWindowDimensions, TextInput, Platform } from "react-native";
+import { Linking, ScrollView, StyleSheet, Switch, Text, View, useWindowDimensions, Platform } from "react-native";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import SegmentedControl from "./SegmentedControl";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import * as Application from "expo-application";
 import { updateService } from "@/constants/UpdateService";
-import {
-	CUSTOM_MUSIC_URL_KEY,
-	CUSTOM_SFX_URL_KEY,
-	getCustomAudioSourceInfo,
-	useSoundSettings,
-} from "@/constants/Sound";
-import { Theme, ThemeType, useTheme } from "@/constants/Theme";
+import { useSoundSettings } from "@/constants/Sound";
+import { ThemeType, useTheme } from "@/constants/Theme";
 import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, useLanguage, type Language } from "@/constants/Localization";
 import Slider from "@react-native-community/slider";
 import { clearActiveGame } from "@/constants/Storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-import { useShopState } from "@/constants/Shop";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { isAnalyticsEnabled, setAnalyticsEnabled } from "@/constants/Analytics";
 import { useRouter, type Href } from "expo-router";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
@@ -46,23 +39,6 @@ export default function OptionsMenu() {
 
 	const { currentTheme } = useTheme();
 	const { language, changeLanguage, loadLanguage, t } = useLanguage();
-	const { state: shopState } = useShopState();
-	const [customMusicUrl, setCustomMusicUrl] = useState("");
-	const [customSfxUrl, setCustomSfxUrl] = useState("");
-
-	useEffect(() => {
-		AsyncStorage.getItem(CUSTOM_MUSIC_URL_KEY).then(val => { if (val) setCustomMusicUrl(val); });
-		AsyncStorage.getItem(CUSTOM_SFX_URL_KEY).then(val => { if (val) setCustomSfxUrl(val); });
-	}, []);
-
-	const handleCustomMusicUrlBlur = () => {
-		AsyncStorage.setItem(CUSTOM_MUSIC_URL_KEY, customMusicUrl.trim());
-	};
-	
-	const handleCustomSfxUrlBlur = () => {
-		AsyncStorage.setItem(CUSTOM_SFX_URL_KEY, customSfxUrl.trim());
-	};
-
 	useEffect(() => {
 		initialize();
 		loadLanguage();
@@ -289,28 +265,6 @@ export default function OptionsMenu() {
 							</Text>
 						</View>
 					)}
-
-					{shopState.equipped.music === "music_custom" && (
-						<CustomAudioInput
-							title={t("settings.customMusic")}
-							value={customMusicUrl}
-							onChangeText={setCustomMusicUrl}
-							onSave={handleCustomMusicUrlBlur}
-							currentTheme={currentTheme}
-							isMobile={isMobile}
-						/>
-					)}
-
-					{shopState.equipped.sfx === "sfx_custom" && (
-						<CustomAudioInput
-							title={t("settings.customSfx")}
-							value={customSfxUrl}
-							onChangeText={setCustomSfxUrl}
-							onSave={handleCustomSfxUrlBlur}
-							currentTheme={currentTheme}
-							isMobile={isMobile}
-						/>
-					)}
 				</View>
 
 				<View style={styles.settingSection}>
@@ -420,68 +374,6 @@ export default function OptionsMenu() {
 	);
 }
 
-function CustomAudioInput({
-	title,
-	value,
-	onChangeText,
-	onSave,
-	currentTheme,
-	isMobile,
-}: {
-	title: string;
-	value: string;
-	onChangeText: (value: string) => void;
-	onSave: () => void;
-	currentTheme: Theme;
-	isMobile: boolean;
-}) {
-	const { t } = useLanguage();
-	const sourceInfo = useMemo(() => getCustomAudioSourceInfo(value), [value]);
-	const canOpenExternal = sourceInfo.kind !== "empty" && !sourceInfo.canPlayInApp && sourceInfo.url.startsWith("http");
-
-	const openExternal = async () => {
-		onSave();
-		if (canOpenExternal) {
-			await Linking.openURL(sourceInfo.url);
-		}
-	};
-
-	return (
-		<View style={styles.customAudioContainer}>
-			<Text style={[styles.settingTitle, { color: currentTheme.textPrimary }]}>{title}</Text>
-			<TextInput
-				style={[styles.urlInput, {
-					color: currentTheme.textPrimary,
-					borderColor: currentTheme.textSecondary,
-					backgroundColor: 'rgba(0, 0, 0, 0.4)'
-				}, isMobile && { fontSize: 10 }]}
-				value={value}
-				onChangeText={onChangeText}
-				onBlur={onSave}
-				onSubmitEditing={onSave}
-				placeholder={t("settings.customPlaceholder")}
-				placeholderTextColor={currentTheme.textSecondary}
-				autoCapitalize="none"
-				autoCorrect={false}
-			/>
-			<View style={styles.customAudioStatusRow}>
-				<Text style={[styles.customAudioStatus, { color: sourceInfo.canPlayInApp ? currentTheme.accent : currentTheme.textSecondary }]}>
-					{sourceInfo.label}: {sourceInfo.message}
-				</Text>
-				{canOpenExternal && (
-					<StylizedButton
-						text={t("settings.open")}
-						onClick={openExternal}
-						backgroundColor={currentTheme.buttonSecondary}
-						style={styles.openLinkButton}
-						textStyle={styles.openLinkButtonText}
-					/>
-				)}
-			</View>
-		</View>
-	);
-}
-
 function SettingLabel({
 	title, 
 	description, 
@@ -571,43 +463,6 @@ const styles = StyleSheet.create({
 		fontSize: 10,
 		width: 40,
 		textAlign: "right",
-	},
-	urlInput: {
-		width: "100%",
-		borderWidth: 1,
-		borderRadius: 6,
-		paddingHorizontal: 8,
-		paddingVertical: 6,
-		fontFamily: "Silkscreen",
-		fontSize: 10,
-		marginTop: 6,
-	},
-	customAudioContainer: {
-		width: "80%",
-		alignItems: "stretch",
-		marginTop: 8,
-		marginBottom: 8,
-	},
-	customAudioStatusRow: {
-		width: "100%",
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-		marginTop: 6,
-	},
-	customAudioStatus: {
-		flex: 1,
-		fontFamily: "Silkscreen",
-		fontSize: 8,
-		lineHeight: 12,
-	},
-	openLinkButton: {
-		minWidth: 72,
-		minHeight: 28,
-		paddingHorizontal: 8,
-	},
-	openLinkButtonText: {
-		fontSize: 10,
 	},
 	themesContainer: {
 		flexDirection: 'row',

@@ -7,7 +7,7 @@ import {
 	getBackgroundScene,
 	getShopItemsByCategory,
 	getVisibleShopItemsByCategory,
-	isSecretShopItem,
+
 	mergeShopStates,
 	normalizeShopState,
 	purchaseShopItem,
@@ -61,24 +61,18 @@ describe("shop catalog and wallet", () => {
 		expect(equip.state.equipped.piece_skin).toBe("piece_minecraft");
 	});
 
-	it("hides secret URL items until they are unlocked", () => {
+	it("drops the removed custom music and sounds links and falls back to the classic packs", () => {
 		const state = createDefaultShopState();
-
-		expect(isSecretShopItem("music_custom")).toBe(true);
-		expect(isSecretShopItem("sfx_custom")).toBe(true);
-		expect(getVisibleShopItemsByCategory("music", state.ownedItemIds).some((item) => item.id === "music_custom")).toBe(false);
-		expect(getVisibleShopItemsByCategory("sfx", state.ownedItemIds).some((item) => item.id === "sfx_custom")).toBe(false);
-
-		const directPurchase = purchaseShopItem({ ...state, balance: 9999 }, "music_custom");
-		expect(directPurchase.ok).toBe(false);
-		expect(directPurchase.state.ownedItemIds).not.toContain("music_custom");
-
-		const unlocked = normalizeShopState({
+		const migrated = normalizeShopState({
 			...state,
-			ownedItemIds: [...state.ownedItemIds, "music_custom"],
+			ownedItemIds: [...state.ownedItemIds, "music_custom", "sfx_custom"],
+			equipped: { ...state.equipped, music: "music_custom", sfx: "sfx_custom" },
 		});
-		expect(getVisibleShopItemsByCategory("music", unlocked.ownedItemIds).some((item) => item.id === "music_custom")).toBe(true);
-		expect(getVisibleShopItemsByCategory("music", unlocked.ownedItemIds)[0].id).toBe("music_custom");
+		expect(migrated.ownedItemIds).not.toContain("music_custom");
+		expect(migrated.ownedItemIds).not.toContain("sfx_custom");
+		expect(migrated.equipped.music).toBe("music_classic");
+		expect(migrated.equipped.sfx).toBe("sfx_classic");
+		expect(getVisibleShopItemsByCategory("music", migrated.ownedItemIds).some((item) => item.id === "music_custom")).toBe(false);
 	});
 
 	it("grants starter coins when migrating an older saved shop state", () => {

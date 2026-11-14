@@ -1,6 +1,6 @@
 import { SHOP_ITEMS } from "./Shop";
 import { createAudioPlayer } from "expo-audio";
-import { getAudioModeOptions, getCustomAudioSourceInfo, getMusicTrackKey, hasMusicTrackForPack, hasSfxAssetsForPack, mapSfxForPack, shouldPauseMusicForAppState, soundManager } from "./Sound";
+import { getAudioModeOptions, getMusicTrackKey, hasMusicTrackForPack, hasSfxAssetsForPack, mapSfxForPack, shouldPauseMusicForAppState, soundManager } from "./Sound";
 
 jest.mock("expo-audio", () => ({
 	createAudioPlayer: jest.fn(),
@@ -92,24 +92,6 @@ describe("sound settings", () => {
 		}
 	});
 
-	it("accepts external music providers without treating them as in-game streams", () => {
-		expect(getCustomAudioSourceInfo("https://www.youtube.com/watch?v=test")).toMatchObject({
-			kind: "youtube",
-			canPlayInApp: false,
-		});
-		expect(getCustomAudioSourceInfo("https://open.spotify.com/track/test")).toMatchObject({
-			kind: "spotify",
-			canPlayInApp: false,
-		});
-		expect(getCustomAudioSourceInfo("https://music.yandex.ru/album/1/track/2")).toMatchObject({
-			kind: "yandex",
-			canPlayInApp: false,
-		});
-		expect(getCustomAudioSourceInfo("https://example.com/song.mp3?token=1")).toMatchObject({
-			kind: "direct",
-			canPlayInApp: true,
-		});
-	});
 });
 
 describe("music playlist", () => {
@@ -117,7 +99,6 @@ describe("music playlist", () => {
 	it("the default music is a playlist of songs, never the same song twice in a row", () => {
 		expect(isPlaylistPack("music_classic")).toBe(true);
 		expect(isPlaylistPack("music_lofi")).toBe(true);
-		expect(isPlaylistPack("music_custom")).toBe(false);
 		expect(MUSIC_PLAYLIST.length).toBeGreaterThanOrEqual(8);
 		for (const current of MUSIC_PLAYLIST) {
 			for (const r of [0, 0.3, 0.6, 0.9999]) {
