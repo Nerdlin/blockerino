@@ -14,7 +14,7 @@ const FILL: Record<PixelMedalKind, string> = { bronze: "#D08A45", silver: "#C9D1
  * The medals of a mode as a path: start ═══ bronze ═══ silver ═══ gold. Each stretch fills with the score reached on
  * the way to its medal, earned medals pop in one after another and the next one pulses.
  */
-export default function MedalTrack({ medals, score, size = 36 }: { medals: TrackMedal[]; score: number; size?: number }) {
+export default function MedalTrack({ medals, score, size = 36, startDelay = 0 }: { medals: TrackMedal[]; score: number; size?: number; /** ms before the path starts filling (a screen still coming in) */ startDelay?: number }) {
 	const nextIndex = medals.findIndex((m) => score < m.score);
 	return (
 		<View style={styles.track}>
@@ -24,8 +24,8 @@ export default function MedalTrack({ medals, score, size = 36 }: { medals: Track
 				const earned = score >= m.score;
 				return (
 					<View key={m.id} style={styles.step}>
-						<Stretch fill={fill} color={FILL[m.id]} delay={150 + i * 350} top={Math.round(3 + size * 1.25 * 0.7 - 5)} />
-						<MedalSlot medal={m} earned={earned} next={i === nextIndex} size={size} delay={350 + i * 350} />
+						<Stretch fill={fill} color={FILL[m.id]} delay={startDelay + 150 + i * 350} top={Math.round(3 + size * 1.25 * 0.7 - 5)} />
+						<MedalSlot medal={m} earned={earned} next={i === nextIndex} size={size} delay={startDelay + 350 + i * 350} />
 					</View>
 				);
 			})}

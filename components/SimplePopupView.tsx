@@ -21,6 +21,7 @@ export default function SimplePopupView({
 	scrollRef,
 	footer,
 	contentStyle,
+	entrance = "rise",
 }: {
 	children: React.ReactNode,
 	style?: any[],
@@ -29,14 +30,20 @@ export default function SimplePopupView({
 	footer?: React.ReactNode,
 	/** Extra style for the scrolling content (padding of a full-screen popup). */
 	contentStyle?: object,
+	/** "pop": the card grows in with a soft spring (a result screen); "rise": the usual quick fade up. */
+	entrance?: "rise" | "pop",
 }) {
 	const { width, height } = useWindowDimensions();
 	const scale = getPopupScale(width, height);
 	// Every popup eases in: it fades up from a few pixels lower.
 	const enter = useRef(new Animated.Value(0)).current;
 	useEffect(() => {
-		Animated.timing(enter, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-	}, [enter]);
+		const animation = entrance === "pop"
+			? Animated.spring(enter, { toValue: 1, friction: 8, tension: 60, useNativeDriver: true })
+			: Animated.timing(enter, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true });
+		animation.start();
+		return () => animation.stop();
+	}, [enter, entrance]);
 	if (style === undefined)
 		style = [];
 	// A screen that starts with a Back button asks for the top ("justifyContent: flex-start") instead of floating in the middle.
@@ -48,8 +55,10 @@ export default function SimplePopupView({
 				styles.popupContainer,
 				...style,
 				{
-					opacity: enter,
-					transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }, ...(scale > 1 ? [{ scale }] : [])],
+					opacity: entrance === "pop" ? enter.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 1, 1], extrapolate: "clamp" }) : enter,
+					transform: entrance === "pop"
+						? [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }, { scale: enter.interpolate({ inputRange: [0, 1], outputRange: [0.86 * scale, scale] }) }]
+						: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }, ...(scale > 1 ? [{ scale }] : [])],
 				},
 			]}
 		>

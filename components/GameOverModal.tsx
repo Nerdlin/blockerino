@@ -9,7 +9,7 @@ import { supabase } from "@/constants/Supabase";
 import { setProfileAuthIntent } from "@/constants/ProfileIntent";
 import { useSoundSettings } from "@/constants/Sound";
 import {useTheme, ThemeType, opaqueColor } from "@/constants/Theme";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { normalizePlayerName } from "@/constants/Multiplayer";
 import { submitGlobalHighScoreOrQueue } from "@/constants/OfflineSync";
@@ -194,8 +194,12 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
     const titleColor = currentTheme.id === ThemeType.BLUE ? 'rgb(0, 153, 255)' : currentTheme.buttonPrimary;
     const scoreColor = currentTheme.id === ThemeType.BLUE ? 'rgb(255, 204, 0)' : currentTheme.accent;
     const medalColor = medal ? MEDAL_TINT[medal.id] : currentTheme.textSecondary;
+    // the window grows in, then its parts follow one after another; the score counts once the window is there
+    const COUNT_DELAY = 420;
+    const countDuration = Math.min(1800, 900 + String(Math.max(0, score)).length * 180);
+    const rise = (delay: number) => FadeInDown.delay(delay).duration(420);
     const coinsChip = coinsAwarded > 0 ? (
-        <FadeInView pop delay={700}>
+        <FadeInView pop delay={1000}>
             <View style={styles.coinsChip}>
                 <View style={styles.coinDot} />
                 <Text style={styles.coinsChipText}>{t("over.coinsAwarded", { coins: coinsAwarded })}</Text>
@@ -205,50 +209,51 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
 
     return (
         <>
-        <SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]} contentStyle={styles.content}>
+        <Animated.View pointerEvents="none" entering={FadeIn.duration(380)} style={styles.backdrop} />
+        <SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]} contentStyle={styles.content} entrance="pop">
             {/* header */}
-            <Animated.Text entering={FadeIn.duration(500)} style={[styles.title, { color: titleColor }]}>
+            <Animated.Text entering={rise(100)} style={[styles.title, { color: titleColor }]}>
                 {t("over.gameOver")}
             </Animated.Text>
-            <Text style={[styles.reason, { color: currentTheme.textSecondary }]}>{t(reasonKey)}</Text>
+            <Animated.Text entering={FadeIn.delay(220).duration(400)} style={[styles.reason, { color: currentTheme.textSecondary }]}>{t(reasonKey)}</Animated.Text>
 
             {/* the score */}
-            <View style={styles.hero}>
+            <Animated.View entering={rise(260)} style={styles.hero}>
                 <Text style={[styles.heroLabel, { color: currentTheme.textSecondary }]}>{t("over.yourScore")}</Text>
-                <AnimatedNumber value={score} duration={900} style={[styles.heroScore, { color: scoreColor }]} />
+                <AnimatedNumber value={score} delay={COUNT_DELAY} duration={countDuration} popOnFinish style={[styles.heroScore, { color: scoreColor }]} />
                 {isRecord ? (
-                    <FadeInView pop delay={900}>
+                    <FadeInView pop delay={COUNT_DELAY + countDuration}>
                         <Text style={styles.recordBadge}>{t("over.newRecord")}</Text>
                     </FadeInView>
                 ) : bestScore !== null && score > 0 ? (
-                    <View style={styles.bestRow}>
+                    <Animated.View entering={FadeIn.delay(COUNT_DELAY + 200).duration(400)} style={styles.bestRow}>
                         <Text style={[styles.bestText, { color: currentTheme.textPrimary }]}>{t("over.bestShort", { best: bestScore })}</Text>
                         <View style={styles.bestDot} />
                         <Text style={[styles.bestText, { color: currentTheme.textSecondary }]}>{t("over.toBestShort", { points: bestScore - score })}</Text>
-                    </View>
+                    </Animated.View>
                 ) : null}
-            </View>
+            </Animated.View>
 
             {/* medal path and the coins of the run */}
             {medals.length > 0 ? (
-                <View style={[styles.panel, medal && { borderColor: `${MEDAL_TINT[medal.id]}55` }]}>
+                <Animated.View entering={rise(460)} style={[styles.panel, medal && { borderColor: `${MEDAL_TINT[medal.id]}55` }]}>
                     <View style={styles.panelHead}>
                         <Text style={[styles.panelTitle, { color: medalColor }]} numberOfLines={1}>
                             {medal ? t(`goals.${medal.id}`) : t("over.noMedal")}
                         </Text>
                         {coinsChip}
                     </View>
-                    <MedalTrack medals={medals} score={score} size={30} />
+                    <MedalTrack medals={medals} score={score} size={30} startDelay={600} />
                     <Text style={[styles.panelNext, { color: currentTheme.textSecondary }]}>
                         {nextMedal ? t("goals.toNextMedal", { medal: t(`goals.${nextMedal.id}`), points: nextMedal.score - score }) : t("goals.done")}
                     </Text>
-                </View>
+                </Animated.View>
             ) : coinsChip ? (
                 <View style={styles.coinsAlone}>{coinsChip}</View>
             ) : null}
 
             {/* actions */}
-            <View style={styles.actions}>
+            <Animated.View entering={rise(600)} style={styles.actions}>
                 <StylizedButton
                     text={t("over.playAgain")}
                     onClick={handlePlayAgain}
@@ -277,10 +282,10 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                         />
                     )}
                 </View>
-            </View>
+            </Animated.View>
 
             {/* where the score went */}
-            <View style={styles.footer}>
+            <Animated.View entering={FadeIn.delay(780).duration(400)} style={styles.footer}>
                 {shareNote && <Text style={[styles.status, { color: currentTheme.textSecondary }]}>{shareNote}</Text>}
                 {canEditNickname && (
                     <View style={styles.nickBlock}>
@@ -326,7 +331,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                 {submitStatus === 'queued' && <Text style={[styles.status, { color: currentTheme.accent }]}>{t("over.savedOffline")}</Text>}
                 {submitStatus === 'failed' && <Text style={[styles.status, { color: 'rgb(255, 80, 80)' }]}>{t("over.syncFailed")}</Text>}
                 {submitStatus === 'needs_name' && <Text style={[styles.status, { color: 'rgb(255, 80, 80)' }]}>{t("over.needName")}</Text>}
-            </View>
+            </Animated.View>
         </SimplePopupView>
         {/* Drawn off screen: this is the picture that gets shared. */}
         <View pointerEvents="none" style={{ position: 'absolute', left: -(SHARE_CARD_WIDTH + 80), top: 0 }}>
@@ -348,6 +353,11 @@ const PANEL_BG = 'rgba(255,255,255,0.045)';
 const PANEL_BORDER = 'rgba(255,255,255,0.09)';
 
 const styles = StyleSheet.create({
+    backdrop: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 99,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    },
     content: {
         paddingVertical: 18,
         paddingHorizontal: 16,

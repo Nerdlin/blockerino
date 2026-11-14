@@ -7,10 +7,16 @@ export default function AnimatedNumber({
 	value,
 	style,
 	duration = 650,
+	delay = 0,
+	popOnFinish = false,
 }: {
 	value: number;
 	style?: StyleProp<TextStyle>;
 	duration?: number;
+	/** Wait this long before the first count (a screen that is still sliding in). */
+	delay?: number;
+	/** A small pop when the first count lands on its value. */
+	popOnFinish?: boolean;
 }) {
 	const [shown, setShown] = useState(0);
 	const shownRef = useRef(0);
@@ -38,16 +44,26 @@ export default function AnimatedNumber({
 				Animated.spring(pop, { toValue: 1, friction: 4, useNativeDriver: true }),
 			]).start();
 		}
+		const wasFirst = first.current;
 		first.current = false;
-		count.start(() => {
+		const start = () => count.start(({ finished }) => {
 			shownRef.current = value;
 			setShown(value);
+			if (finished && wasFirst && popOnFinish) {
+				Animated.sequence([
+					Animated.timing(pop, { toValue: 1.16, duration: 110, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+					Animated.spring(pop, { toValue: 1, friction: 4, tension: 120, useNativeDriver: true }),
+				]).start();
+			}
 		});
+		const timer = wasFirst && delay > 0 ? setTimeout(start, delay) : null;
+		if (!timer) start();
 		return () => {
+			if (timer) clearTimeout(timer);
 			progress.removeListener(listener);
 			count.stop();
 		};
-	}, [value, duration, pop]);
+	}, [value, duration, delay, popOnFinish, pop]);
 
 	return <Animated.Text style={[style, { transform: [{ scale: pop }] }]}>{shown}</Animated.Text>;
 }
