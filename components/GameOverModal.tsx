@@ -24,7 +24,9 @@ import ShareCard, { SHARE_CARD_WIDTH } from "./ShareCard";
 import { buildShareText, shareScoreCard } from "@/constants/ShareScore";
 import { getAccountSession } from '@/constants/AccountSession';
 import { getMedalForScore, getMedals, getNextMedal } from '@/constants/RunGoals';
-import { MedalBadge } from './game/RunGoalBar';
+import MedalTrack from './MedalTrack';
+
+const MEDAL_TINT = { bronze: '#E09A5A', silver: '#D6DDE4', gold: '#FFD23F' } as const;
 
 const PLAYER_NAME_KEY = 'PLAYER_NAME';
 const GAMES_FINISHED_KEY = 'GAMES_FINISHED';
@@ -213,8 +215,6 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
 
     const reasonKey = reason === "time" ? "over.reason.time" : reason === "move_limit" ? "over.reason.moveLimit" : "over.reason.noRoom";
     const medals = getMedals(gameMode);
-    const prevMedalScore = medal ? medal.score : 0;
-    const medalProgress = nextMedal ? Math.max(0, Math.min(1, (score - prevMedalScore) / Math.max(1, nextMedal.score - prevMedalScore))) : 1;
 
     return (
         <>
@@ -244,27 +244,14 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
             </View>
 
             {medals.length > 0 && (
-                <View style={styles.medalCard}>
-                    <View style={styles.medalHead}>
-                        <View style={styles.medalIcons}>
-                            {medals.map((m) => (
-                                <View key={m.id} style={{ opacity: medal && m.score <= medal.score ? 1 : 0.25 }}>
-                                    <MedalBadge kind={m.id} size={22} />
-                                </View>
-                            ))}
-                        </View>
-                        <Text style={[styles.medalTitle, { color: medal ? '#FFD700' : currentTheme.textSecondary }]}>
-                            {medal ? t("goals.medalEarned", { medal: t(`goals.${medal.id}`), coins: medal.coins }) : t("over.noMedal")}
-                        </Text>
-                    </View>
-                    {nextMedal && (
-                        <>
-                            <View style={styles.medalTrack}>
-                                <View style={[styles.medalFill, { width: `${Math.round(medalProgress * 100)}%` }]} />
-                            </View>
-                            <Text style={styles.medalNext}>{t("goals.toNextMedal", { medal: t(`goals.${nextMedal.id}`), points: nextMedal.score - score })}</Text>
-                        </>
-                    )}
+                <View style={[styles.medalCard, medal && { borderColor: MEDAL_TINT[medal.id] }]}>
+                    <Text style={[styles.medalTitle, { color: medal ? MEDAL_TINT[medal.id] : currentTheme.textSecondary }]}>
+                        {medal ? t("goals.medalEarned", { medal: t(`goals.${medal.id}`), coins: medal.coins }) : t("over.noMedal")}
+                    </Text>
+                    <MedalTrack medals={medals} score={score} />
+                    <Text style={styles.medalNext}>
+                        {nextMedal ? t("goals.toNextMedal", { medal: t(`goals.${nextMedal.id}`), points: nextMedal.score - score }) : t("goals.done")}
+                    </Text>
                 </View>
             )}
 
@@ -417,41 +404,23 @@ const styles = StyleSheet.create({
     },
     medalCard: {
         alignSelf: 'stretch',
-        padding: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
         marginBottom: 12,
-        borderRadius: 12,
+        borderRadius: 14,
         borderWidth: 2,
-        borderColor: 'rgba(255,215,0,0.45)',
-        backgroundColor: 'rgba(255,215,0,0.06)',
-        gap: 8,
-    },
-    medalHead: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        borderColor: 'rgba(255,255,255,0.12)',
+        backgroundColor: 'rgba(255,255,255,0.04)',
         gap: 10,
     },
-    medalIcons: {
-        flexDirection: 'row',
-        gap: 4,
-    },
     medalTitle: {
-        flex: 1,
         fontFamily: 'Silkscreen',
         fontSize: 13,
-    },
-    medalTrack: {
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: 'rgba(255,255,255,0.12)',
-        overflow: 'hidden',
-    },
-    medalFill: {
-        height: 8,
-        backgroundColor: '#FFD700',
+        textAlign: 'center',
     },
     medalNext: {
         fontFamily: 'Silkscreen',
-        fontSize: 15,
+        fontSize: 14,
         color: '#FFD700',
         textAlign: 'center',
     },

@@ -10,6 +10,7 @@ import { useSoundSettings } from "@/constants/Sound";
 import { useTheme } from "@/constants/Theme";
 import { track } from "@/constants/Analytics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import PixelMedal from "../PixelMedal";
 
 const GOAL_COLORS: Record<RunGoalKind, string> = {
 	bronze: "#CD7F32",
@@ -19,8 +20,9 @@ const GOAL_COLORS: Record<RunGoalKind, string> = {
 	friend: "#5AC8FA",
 };
 
-/** A small round medal (or a marker for the record / a friend). */
+/** A pixel medal for bronze / silver / gold, a small round marker for the record or a friend. */
 export function MedalBadge({ kind, size = 12 }: { kind: RunGoalKind; size?: number }) {
+	if (kind === "bronze" || kind === "silver" || kind === "gold") return <PixelMedal kind={kind} size={Math.round(size * 1.25)} />;
 	const color = GOAL_COLORS[kind];
 	return (
 		<View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, borderWidth: Math.max(1, Math.round(size / 6)), borderColor: "rgba(0,0,0,0.45)" }} />
