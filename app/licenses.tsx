@@ -54,12 +54,18 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 			<LegalHeading>Music and sound effects</LegalHeading>
 			<LegalParagraph>
-				Most music packs and sound packs of Blockerino were produced with AI tools for the game.
+				Sound packs other than the default one were produced with AI tools for the game.
 			</LegalParagraph>
 			<LegalParagraph>
 				The default music plays songs by Juhani Junkala (juhanijunkala.com) from "Chiptune Adventures" and "12 Indie Game
 				Music Loops", released under CC0 1.0 (public domain) on OpenGameArt.org: Stage 1, Stage 2, Menu Title (relaxed),
 				Storytime, Space Upbeat, Retro Sports Stage 3 and Final, Super Action Stage 6, 7 and 9.
+			</LegalParagraph>
+			<LegalParagraph>
+				The other music packs play songs released under CC0 1.0 (public domain) on OpenGameArt.org: Holizna ("Happy Lo-Fi",
+				"Chill Beats", "Sad Lofi 1"), Juhani Junkala ("Retro Game Music Pack", "Chiptune Adventures", "12 Indie Game Music
+				Loops"), Phillip Miller ("Free NES Music Pack"), wolfgang_ ("8-Bit Cave Loop", "Desert Theme", "8-Bit Haunted House"),
+				RandomMind ("The Bard's Tale") and Centurion_of_war ("Chippy Melody").
 			</LegalParagraph>
 			<LegalParagraph>
 				The menu click, hover, block placed, invalid move and achievement sounds come from "Interface Sounds" by Kenney
