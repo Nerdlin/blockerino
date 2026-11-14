@@ -303,7 +303,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 			{ appState.containsState(MenuStateType.OPTIONS) && !appState.containsState(MenuStateType.PROFILE) && !appState.containsState(MenuStateType.ADMIN) && <OptionsMenu></OptionsMenu> }
 			{ appState.containsState(MenuStateType.PROFILE) && <ProfileMenu />}
 
-			{ showContinueModal && savedGame && (
+			{ showContinueModal && savedGame && currentAppState === MenuStateType.MENU && (
 				<ContinueGameModal
 					score={savedGame.score}
 					gameMode={savedGame.gameMode}
