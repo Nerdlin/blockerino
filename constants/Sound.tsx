@@ -1075,12 +1075,18 @@ class SoundManager {
 
       const playlist = isPlaylistPack(musicPackId);
       this.playlistMode = playlist;
-      if (playlist && this.playlistPack !== musicPackId) {
+      const packChanged = playlist && this.playlistPack !== musicPackId;
+      if (packChanged) {
         this.playlistPack = musicPackId;
         this.playlist = playlistForMusicPack(musicPackId);
       }
+      // A new pack always starts one of its songs, never the song that is playing now: some packs share a song,
+      // and keeping it made a pack change sound as if nothing happened. The same pack (volume change, return from
+      // the background) keeps its song.
       const musicKey = playlist
-        ? (this.playlist.includes(this.currentMusicKey) ? this.currentMusicKey : nextPlaylistTrack(null, Math.random, this.playlist))
+        ? (!packChanged && this.playlist.includes(this.currentMusicKey)
+          ? this.currentMusicKey
+          : nextPlaylistTrack(this.currentMusicKey, Math.random, this.playlist))
         : getMusicTrackKey(musicPackId);
       const nextMusic = await this.getOrLoadMusic(musicKey);
       if (requestId !== this.musicRequestId) return;
