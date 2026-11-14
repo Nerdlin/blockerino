@@ -111,3 +111,19 @@ describe("sound settings", () => {
 		});
 	});
 });
+
+describe("music playlist", () => {
+	const { MUSIC_PLAYLIST, isPlaylistPack, nextPlaylistTrack } = jest.requireActual("./Sound");
+	it("the default music is a playlist of songs, never the same song twice in a row", () => {
+		expect(isPlaylistPack("music_classic")).toBe(true);
+		expect(isPlaylistPack("music_lofi")).toBe(false);
+		expect(MUSIC_PLAYLIST.length).toBeGreaterThanOrEqual(8);
+		for (const current of MUSIC_PLAYLIST) {
+			for (const r of [0, 0.3, 0.6, 0.9999]) {
+				const next = nextPlaylistTrack(current, () => r);
+				expect(next).not.toBe(current);
+				expect(MUSIC_PLAYLIST).toContain(next);
+			}
+		}
+	});
+});

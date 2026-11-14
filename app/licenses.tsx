@@ -54,8 +54,16 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 			<LegalHeading>Music and sound effects</LegalHeading>
 			<LegalParagraph>
-				The music and sound effects of Blockerino were produced with AI tools. No recordings from third-party sound
-				libraries are included.
+				Most music packs and sound packs of Blockerino were produced with AI tools for the game.
+			</LegalParagraph>
+			<LegalParagraph>
+				The default music plays songs by Juhani Junkala (juhanijunkala.com) from "Chiptune Adventures" and "12 Indie Game
+				Music Loops", released under CC0 1.0 (public domain) on OpenGameArt.org: Stage 1, Stage 2, Menu Title (relaxed),
+				Storytime, Space Upbeat, Retro Sports Stage 3 and Final, Super Action Stage 6, 7 and 9.
+			</LegalParagraph>
+			<LegalParagraph>
+				The menu click, hover, block placed, invalid move and achievement sounds come from "Interface Sounds" by Kenney
+				(kenney.nl), released under CC0 1.0 (public domain).
 			</LegalParagraph>
 
 			<LegalHeading>Services</LegalHeading>

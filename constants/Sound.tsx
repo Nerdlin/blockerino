@@ -109,6 +109,17 @@ export type SoundType =
 
 const MUSIC_TRACK_RESOURCES = {
   backgroundMusic: require('../assets/sounds/background-music.mp3'),
+  // CC0 songs by Juhani Junkala (docs/audio-credits.md): the default "classic" music plays them as a playlist
+  cc0Stage1: require('../assets/sounds/cc0/jj-stage-1.mp3'),
+  cc0Stage2: require('../assets/sounds/cc0/jj-stage-2.mp3'),
+  cc0Relaxed: require('../assets/sounds/cc0/jj-relaxed.mp3'),
+  cc0Storytime: require('../assets/sounds/cc0/jj-storytime.mp3'),
+  cc0SpaceUpbeat: require('../assets/sounds/cc0/jj-space-upbeat.mp3'),
+  cc0Sports3: require('../assets/sounds/cc0/jj-sports-3.mp3'),
+  cc0SportsFinal: require('../assets/sounds/cc0/jj-sports-final.mp3'),
+  cc0Action6: require('../assets/sounds/cc0/jj-action-6.mp3'),
+  cc0Action7: require('../assets/sounds/cc0/jj-action-7.mp3'),
+  cc0Action9: require('../assets/sounds/cc0/jj-action-9.mp3'),
   musicLofi: require('../assets/sounds/generated/music-lofi.mp3'),
   musicArcade: require('../assets/sounds/generated/music-arcade.mp3'),
   musicCave: require('../assets/sounds/generated/music-cave.mp3'),
@@ -529,6 +540,23 @@ function getSfxVolumeMultiplier(sfxPackId: string): number {
   return SFX_PACK_VOLUME_MULTIPLIERS[sfxPackId] ?? 1;
 }
 
+/** The songs of the default music: each plays to its end, then another one starts (never the same twice in a row). */
+export const MUSIC_PLAYLIST: MusicTrackKey[] = [
+  'cc0Stage1', 'cc0Stage2', 'cc0Relaxed', 'cc0Storytime', 'cc0SpaceUpbeat',
+  'cc0Sports3', 'cc0SportsFinal', 'cc0Action6', 'cc0Action7', 'cc0Action9',
+];
+const PLAYLIST_PACKS = new Set(['music_classic']);
+
+export function isPlaylistPack(musicPackId: string): boolean {
+  return PLAYLIST_PACKS.has(musicPackId);
+}
+
+/** The next song of the playlist: a random one that is not the one that just played. */
+export function nextPlaylistTrack(current: MusicTrackKey | null, random: () => number = Math.random): MusicTrackKey {
+  const choices = MUSIC_PLAYLIST.filter((key) => key !== current);
+  return choices[Math.floor(random() * choices.length) % choices.length];
+}
+
 export function getMusicTrackKey(musicPackId: string): MusicTrackKey {
   return MUSIC_PACK_TRACKS[musicPackId] ?? 'backgroundMusic';
 }
@@ -717,6 +745,9 @@ class SoundManager {
   private musicStalledChecks = 0;
   private musicTracks: Map<MusicTrackKey, AudioPlayer> = new Map();
   private currentMusicKey: MusicTrackKey = 'backgroundMusic';
+  /** The default music: songs one after another instead of one looping track. */
+  private playlistMode = false;
+  private advancingPlaylist = false;
   private musicPlaying = false;
   private customMusicUrl: string | null = null;
   private initialized = false;
@@ -831,6 +862,22 @@ class SoundManager {
       return;
     }
 
+    if (this.playlistMode && MUSIC_PLAYLIST.includes(this.currentMusicKey)) {
+      const duration = Number(music.duration) || 0;
+      const currentTime = Number(music.currentTime) || 0;
+      if (music.loop) music.loop = false;
+      const ended = duration > 0 && (currentTime >= duration - 0.25 || (!music.playing && !music.isBuffering && currentTime >= duration - 1));
+      if (ended) await this.advancePlaylist();
+      else if (!music.playing && !music.isBuffering) {
+        this.musicStalledChecks += 1;
+        if (this.musicStalledChecks >= MUSIC_STALL_CHECKS) {
+          this.musicStalledChecks = 0;
+          try { music.play(); } catch {}
+        }
+      } else this.musicStalledChecks = 0;
+      return;
+    }
+
     // The track should be playing but is not (a seek that never resumed, the system stopping the player): after
     // about a second of silence start it again, from the top when it had run out.
     if (!music.playing && !music.isBuffering) {
@@ -861,6 +908,34 @@ class SoundManager {
     }
 
     await this.softRestartCurrentMusic();
+  }
+
+  /** The song ended: the next one of the playlist starts from its beginning. The old player is freed. */
+  private async advancePlaylist() {
+    if (this.advancingPlaylist) return;
+    this.advancingPlaylist = true;
+    const requestId = this.musicRequestId;
+    try {
+      const previousKey = this.currentMusicKey;
+      const nextKey = nextPlaylistTrack(previousKey);
+      const next = await this.getOrLoadMusic(nextKey);
+      if (!next || requestId !== this.musicRequestId || !this.musicPlaying) return;
+      const previous = this.musicTracks.get(previousKey);
+      if (previous) {
+        this.musicTracks.delete(previousKey);
+        releasePlayer(previous);
+      }
+      this.currentMusicKey = nextKey;
+      next.loop = false;
+      next.volume = this.currentMusicVolume;
+      try { next.setPlaybackRate(this.musicRate, 'high'); } catch {}
+      await next.seekTo(0);
+      next.play();
+    } catch (error) {
+      console.log('Next song failed:', error);
+    } finally {
+      this.advancingPlaylist = false;
+    }
   }
 
   private async softRestartCurrentMusic() {
@@ -1106,7 +1181,11 @@ class SoundManager {
         }
       }
 
-      const musicKey = getMusicTrackKey(musicPackId);
+      const playlist = isPlaylistPack(musicPackId);
+      this.playlistMode = playlist;
+      const musicKey = playlist
+        ? (MUSIC_PLAYLIST.includes(this.currentMusicKey) ? this.currentMusicKey : nextPlaylistTrack(null))
+        : getMusicTrackKey(musicPackId);
       const nextMusic = await this.getOrLoadMusic(musicKey);
       if (requestId !== this.musicRequestId) return;
       if (!nextMusic) return;
