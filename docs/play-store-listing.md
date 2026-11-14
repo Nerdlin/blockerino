@@ -103,3 +103,73 @@ Blockerino — пиксельная головоломка с блоками. П
    менее 12** и попросить принять приглашение и установить игру. Считается непрерывная подписка 14 дней.
 4. По истечении срока: Dashboard → «Apply for production» (отвечаете на вопросы о тесте), после одобрения выпускаете
    в Production (можно поэтапно, 10 → 50 → 100%).
+
+## Новая карточка к выпуску 2.0.9 (копировать в Play Console)
+
+Вставлять вместе с выходом 2.0.9, чтобы описание совпадало с тем, что есть в игре. Ключевые слова для поиска
+(block puzzle, pixel, puzzle game, 1v1, offline, levels, chess, sudoku) стоят в первых строках: Play сильнее
+всего учитывает название, краткое описание и начало полного.
+
+**Краткое описание, RU (78 символов):** Блочная головоломка: 50 уровней, медали, сундуки, дуэли 1 на 1 и мини-игры
+**Краткое описание, EN (78 символов):** Block puzzle with 50 levels, medals, chests, 1v1 duels and classic mini-games
+
+**Полное описание, RU:**
+Blockerino — пиксельная блочная головоломка. Перетаскивайте фигуры на поле, собирайте линии и столбцы, делайте комбо и бейте свои рекорды. Просто начать, трудно оторваться.
+
+🧩 50 УРОВНЕЙ С ПОНЯТНОЙ ЦЕЛЬЮ
+Пять глав: «Основы», «Кристаллы», «Комбо», «Тесно» и «На время». В каждом уровне своя задача — набрать очки, убрать линии, разбить кристаллы или сделать комбо — и ограничение по ходам или времени. До трёх звёзд за уровень, за пройденную главу — сундук с наградой.
+
+🏅 БЕСКОНЕЧНЫЙ РЕЖИМ С МЕДАЛЯМИ
+Классика 8×8 и Хаос 10×10. Над полем видна ближайшая цель: бронза, серебро, золото, твой рекорд и рекорды друзей. Чем дальше, тем сложнее фигуры — проверьте, сколько продержитесь. Месячные сезоны и таблицы лидеров.
+
+⚔️ ДУЭЛИ 1 НА 1
+Играйте с другом или случайным соперником в реальном времени, с рейтингом и реваншем.
+
+🎁 НАГРАДА ЗА ВХОД
+Календарь на 28 дней: монеты каждый день, сундуки на 7, 14 и 21 день и большой сундук на 28-й. Внутри — монеты или скины разной редкости.
+
+🎨 СКИНЫ, ФОНЫ И МУЗЫКА
+Блоки из камня, кристалла, лавы, неона и жидкости — у каждого свой вид, появление и разрушение. Живые фоны со снегом, звёздами и неоновой сеткой. Плейлисты настоящей музыки. Всё зарабатывается в игре, за реальные деньги ничего не продаётся.
+
+♟️ ЕЩЁ ИГРЫ
+Шахматы с ботами и рейтингом, морской бой, дурак, шашки, крестики-нолики, судоку и маджонг.
+
+👥 ДРУЗЬЯ
+Добавляйте друзей, смотрите их рекорды и приглашайте в игру. Вы сами решаете, кто видит ваш профиль.
+
+Без рекламы. На русском и английском, на телефоне, в браузере и в Discord.
+
+**Полное описание, EN:**
+Blockerino is a pixel-art block puzzle. Drag pieces onto the board, clear rows and columns, chain combos and beat your best score. Easy to start, hard to put down.
+
+🧩 50 LEVELS WITH A CLEAR GOAL
+Five chapters: Basics, Gems, Combos, Tight Spot and Against the Clock. Every level has its own goal — reach a score, clear lines, break the gems or land a combo — with a move or time limit. Up to three stars per level and a chest for every chapter.
+
+🏅 ENDLESS MODE WITH MEDALS
+Classic 8×8 and Chaos 10×10. The next goal is always on screen: bronze, silver, gold, your record and your friends' records. Pieces get tougher the longer you last. Monthly seasons and leaderboards.
+
+⚔️ 1V1 DUELS
+Play a friend or a random opponent in real time, with a rating and rematches.
+
+🎁 DAILY REWARDS
+A 28-day calendar: coins every day, chests on days 7, 14 and 21 and a big chest on day 28 with coins or skins of different rarity.
+
+🎨 SKINS, BACKGROUNDS AND MUSIC
+Stone, crystal, lava, neon and liquid blocks, each with its own look and effects. Living backgrounds with snow, stars and a neon grid. Playlists of real music. Everything is earned in the game; nothing is sold for real money.
+
+♟️ MORE GAMES
+Chess with bots and ratings, Sea Battle, Durak, checkers, tic-tac-toe, sudoku and mahjong.
+
+👥 FRIENDS
+Add friends, compare records and invite them to a game. You decide who can see your profile.
+
+No ads. English and Russian, on your phone, in the browser and inside Discord.
+
+**Скриншоты 2.0.9 (порядок важен, первые 3 видны без прокрутки):**
+1. Партия с полосой «Бронза — ещё 120» и красной рамкой опасности. Подпись: «Бей медали и свои рекорды».
+2. Карта уровней с главами. Подпись: «50 уровней с понятной целью».
+3. Уровень с кристаллами. Подпись: «Разбивай кристаллы».
+4. Календарь входа с сундуком. Подпись: «Сундуки каждую неделю».
+5. Дуэль 1 на 1. Подпись: «Дуэли с друзьями».
+6. Магазин скинов (кристалл, лава, неон). Подпись: «Скины, фоны и музыка».
+7. Мини-игры (шахматы). Подпись: «Шахматы, морской бой и другие».
