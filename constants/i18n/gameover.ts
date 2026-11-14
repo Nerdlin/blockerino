@@ -4,6 +4,10 @@ export const gameover: ScreenDictionary = {
 	en: {
 		// GameOverModal
 		"over.gameOver": "Game Over",
+		"over.reason.noRoom": "No room left for your pieces",
+		"over.reason.time": "Time ran out",
+		"over.reason.moveLimit": "Out of moves",
+		"over.noMedal": "No medal yet",
 		"over.yourScore": "Your Score",
 		"over.coinsAwarded": "+{coins} shop coins",
 		"over.enterNickname": "Enter a nickname to save your score!",
@@ -63,6 +67,10 @@ export const gameover: ScreenDictionary = {
 	ru: {
 		// GameOverModal
 		"over.gameOver": "Игра окончена",
+		"over.reason.noRoom": "Фигурам больше нет места",
+		"over.reason.time": "Время вышло",
+		"over.reason.moveLimit": "Ходы закончились",
+		"over.noMedal": "Пока без медали",
 		"over.yourScore": "Очки",
 		"over.coinsAwarded": "+{coins} монет",
 		"over.enterNickname": "Введите ник, чтобы сохранить результат!",

@@ -3,7 +3,8 @@ FONT LICENSES
 
 Blockerino bundles the following fonts. Every one of them is licensed under the SIL Open Font License,
 Version 1.1 (full text below). The fonts are used unmodified, with one exception: in PixelifySans-Variable.ttf the glyph for the digit 5 was
-redrawn, because the original looked exactly like the letter S (the font declares no Reserved Font Name).
+redrawn, because the original looked exactly like the letter S, and the Cyrillic capitals О (U+041E) and П (U+041F), missing
+from the font, were mapped to its Latin O and Greek Pi glyphs (the font declares no Reserved Font Name).
 
   Press Start 2P        Copyright 2012 The Press Start 2P Project Authors (cody@zone38.net),
                         with Reserved Font Name "Press Start 2P".
