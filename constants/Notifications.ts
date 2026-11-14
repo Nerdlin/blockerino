@@ -60,11 +60,22 @@ export async function setupNotifications(): Promise<void> {
 				name: "Blockerino",
 				importance: Notifications.AndroidImportance.DEFAULT,
 			});
+			// 2.0.9: the game's own notification sound. A channel's sound cannot change after it is made, so it is a new
+			// channel; the server sends to it only for tokens registered with it (set_push_channel).
+			await Notifications.setNotificationChannelAsync(PUSH_CHANNEL, {
+				name: "Blockerino",
+				importance: Notifications.AndroidImportance.HIGH,
+				sound: "notification.wav",
+				vibrationPattern: [0, 120, 80, 120],
+			});
 		}
 	} catch {
 		// Without the module (old build) the app simply has no push.
 	}
 }
+
+/** The Android channel with the game's notification sound (android/app/src/main/res/raw/notification.wav). */
+export const PUSH_CHANNEL = "game";
 
 export async function getPushPermission(): Promise<PushPermission> {
 	if (!isPushSupported()) return "unsupported";
@@ -107,6 +118,10 @@ async function registerToken(requestPermission: boolean): Promise<PushStatus> {
 			p_language: await loadStoredLanguage(),
 		});
 		if (error || stored !== true) return "error";
+		if (Platform.OS === "android") {
+			// an older server has no such function: the push then keeps the default channel
+			await supabase.rpc("set_push_channel", { p_token: token, p_channel: PUSH_CHANNEL }).then(() => undefined, () => undefined);
+		}
 
 		await AsyncStorage.setItem(TOKEN_KEY, token);
 		await AsyncStorage.setItem(ENABLED_KEY, "true");

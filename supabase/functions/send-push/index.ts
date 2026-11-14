@@ -23,6 +23,8 @@ interface TokenRow {
 	token: string;
 	profile_id: string;
 	language: string;
+	/** "game" for 2.0.9+ (own sound), null before. */
+	channel: string | null;
 }
 
 interface ExpoTicket {
@@ -53,7 +55,7 @@ Deno.serve(async (req) => {
 	const profileIds = [...new Set(notifications.map((n) => n.profile_id))];
 	const { data: tokenRows, error: tokenError } = await supabase
 		.from("push_tokens")
-		.select("token, profile_id, language")
+		.select("token, profile_id, language, channel")
 		.in("profile_id", profileIds);
 	if (tokenError) return json({ error: tokenError.message }, 500);
 	const tokensByProfile = new Map<string, TokenRow[]>();
@@ -73,9 +75,10 @@ Deno.serve(async (req) => {
 				to: token.token,
 				title: text.title,
 				body: text.body,
-				sound: "default",
+				// 2.0.9+ registered its token with the "game" channel and its own sound; older builds keep the default
+				sound: token.channel === "game" ? "notification.wav" : "default",
 				priority: "high",
-				channelId: "default",
+				channelId: token.channel === "game" ? "game" : "default",
 				data: { notificationId: notification.id, kind: notification.kind },
 				ttl: notification.kind === "invite" ? 180 : undefined,
 			});

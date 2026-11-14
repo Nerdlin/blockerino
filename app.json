@@ -82,7 +82,8 @@
       [
         "expo-notifications",
         {
-          "color": "#FF3B3B"
+          "color": "#FF3B3B",
+          "sounds": ["./assets/sounds/notification.wav"]
         }
       ]
     ],
