@@ -1,5 +1,5 @@
 import { isGemColor } from "@/constants/Levels";
-import { getSkinKindId, skinAppear, skinBlockShape, skinClear, skinDecorStyle } from "@/constants/SkinFx";
+import { SKIN_NEON, getSkinKindId, skinAppear, skinBlockShape, skinClear, skinDecorStyle } from "@/constants/SkinFx";
 
 /** A gem cell of a level: a cut cyan stone turned on its corner. */
 function gemBlockStyle(size: number): object {
@@ -30,6 +30,7 @@ import { Hand } from "@/constants/Hand";
 import {
 	createEmptyBlockStyle,
 	createFilledBlockStyle,
+	filledBlockBorderWidth,
 } from "@/constants/Piece";
 import { shopStateAtom } from "@/constants/Shop";
 import { Theme, useTheme } from "@/constants/Theme";
@@ -142,6 +143,12 @@ interface GridBlockProps {
 	startColor: Color;
 }
 
+// Reanimated keeps the last value of a style key that an animated style stops returning (on Android), so every state
+// of a cell sets these again: otherwise a neon glow, a wave scale or an appear transform stays on an emptied cell.
+const CELL_RESET = Platform.OS === "web"
+	? { transform: [], zIndex: 0, boxShadow: "none" }
+	: { transform: [], zIndex: 0, boxShadow: [] as never[] };
+
 // Memoised like BlockDroppable below: while the board goes live row by row, a re-render of the grid must not set up
 // every cell that is already live again.
 const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceSkinId, startsEmpty, startColor }: GridBlockProps) {
@@ -154,6 +161,9 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 	const flashOpacity = useSharedValue(0);
 	// 1 when the block stands still; runs 0 -> 1 when a block is placed (the skin's own way of appearing)
 	const appear = useSharedValue(1);
+	// neon skins: a cell a block just left keeps its glow for a moment and lets it fade (a light trail)
+	const trail = useSharedValue(0);
+	const trailColor = useSharedValue("#ffffff");
 	const skinKind = getSkinKindId(pieceSkinId);
 	// eslint-disable-next-line react-hooks/rules-of-hooks -- PARTICLE_CONFIGS is fixed per platform, so the hook count never changes
 	const sparkProgress = PARTICLE_CONFIGS.length > 0 ? useSharedValue(0) : null;
@@ -168,8 +178,19 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 	useAnimatedReaction(() => {
 		return board.value[y][x].blockType;
 	}, (cur, prev) => {
+		if (skinKind === SKIN_NEON) {
+			if (cur === BoardBlockType.HOVERED || cur === BoardBlockType.FILLED) {
+				trailColor.value = colorToHex(board.value[y][x].color);
+				trail.value = 0;
+			} else if (cur === BoardBlockType.EMPTY && prev !== null && prev !== BoardBlockType.EMPTY) {
+				trail.value = 1;
+				trail.value = withTiming(0, { duration: 700 });
+			}
+		}
 		// Анимация при удалении блока
 		if (cur === BoardBlockType.EMPTY && (prev === BoardBlockType.FILLED || prev === BoardBlockType.HOVERED_BREAK_EMPTY || prev === BoardBlockType.HOVERED_BREAK_FILLED)) {
+			// the wave of "about to break" repeats forever; the cleared cell does not need it any more
+			waveEffect.value = 0;
 			flashOpacity.value = withSequence(
 				withTiming(1, { duration: 100 }),
 				withTiming(0, { duration: 250 })
@@ -231,8 +252,8 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 		// Reanimated runs a style once on the JS thread (runtime kind 1) for the first frame; reading the board there would copy it
 		// across runtimes for every cell, so that run draws the cell from its props and the UI thread takes over.
 		if (isJsFirstRun()) {
-			if (!startsEmpty && isGemColor(startColor)) return gemBlockStyle(gridBlockSize);
-			return startsEmpty ? createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) : { ...createFilledBlockStyle(startColor, 7, pieceSkinId), opacity: 1, transform: [] };
+			if (!startsEmpty && isGemColor(startColor)) return { ...CELL_RESET, ...gemBlockStyle(gridBlockSize) };
+			return startsEmpty ? { ...CELL_RESET, ...createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) } : { ...CELL_RESET, ...createFilledBlockStyle(startColor, 7, pieceSkinId), ...skinBlockShape(skinKind, gridBlockSize, colorToHex(startColor)), opacity: 1, transform: [] };
 		}
 		const block = board.value[y][x];
 
@@ -241,20 +262,27 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 			const flashVal = Math.max(loadBlockFlash.value * 0.15, flashOpacity.value * 0.9);
 			if (flashVal > 0.0075) {
 				return {
+					...CELL_RESET,
 					...createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0),
 					backgroundColor: `rgba(255, 255, 255, ${flashVal})`,
 				};
 			}
-			return createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0);
+			if (trail.value > 0.02) {
+				const h = trailColor.value;
+				const rgba = `rgba(${parseInt(h.slice(1, 3), 16)}, ${parseInt(h.slice(3, 5), 16)}, ${parseInt(h.slice(5, 7), 16)}, ${(trail.value * 0.85).toFixed(3)})`;
+				return { ...CELL_RESET, ...createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0), boxShadow: `0 0 ${Math.round(gridBlockSize * 0.3)}px ${rgba}` };
+			}
+			return { ...CELL_RESET, ...createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) };
 		}
 
-		let style: any = createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0);
+		let style: any = { ...CELL_RESET, ...createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) };
 		// a gem of a level (constants/Levels.ts): clear its row or column to break it
 		if (block.blockType === BoardBlockType.FILLED && isGemColor(block.color)) {
-			return gemBlockStyle(gridBlockSize);
+			return { ...CELL_RESET, ...gemBlockStyle(gridBlockSize) };
 		}
 		if (block.blockType === BoardBlockType.FILLED || block.blockType === BoardBlockType.HOVERED) {
 			style = {
+				...CELL_RESET,
 				...createFilledBlockStyle(block.color, 7, pieceSkinId),
 				...skinBlockShape(skinKind, gridBlockSize, colorToHex(block.color)),
 				opacity: block.blockType === BoardBlockType.HOVERED ? 0.45 : 1,
@@ -272,6 +300,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 			const waveScale = 1 + (waveEffect.value * 0.1);
 
 			style = {
+				...CELL_RESET,
 				...createFilledBlockStyle(blockColor, 7, pieceSkinId),
 				borderWidth: 2,
 				borderColor: interpolateColor(
@@ -307,20 +336,31 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 		return { opacity: 0, width: 0, height: 0, position: 'absolute' };
 	});
 
-	// the skin's surface over a filled block (stone face, crystal facet, lava core, neon hollow, drop shine)
-	const decorStyle = useAnimatedStyle(() => {
+	// the skin's surface over a filled block (stone face, crystal facet, lava core, neon hollow, drop shine). It sits in a
+	// frame with the block's own border width, so its insets count from the same inner edge as in the hand and the shop,
+	// and it follows the block while it appears. The surface itself does not depend on the block's color.
+	const decorFrameStyle = useAnimatedStyle((): any => {
 		if (skinKind === 0 || isJsFirstRun()) return { opacity: 0 };
 		const block = board.value[y][x];
 		if ((block.blockType !== BoardBlockType.FILLED && block.blockType !== BoardBlockType.HOVERED) || isGemColor(block.color)) return { opacity: 0 };
-		const decor = skinDecorStyle(skinKind, gridBlockSize, colorToHex(block.color));
-		if (!decor) return { opacity: 0 };
-		return { ...decor, opacity: block.blockType === BoardBlockType.HOVERED ? 0.45 : appear.value };
+		if (block.blockType === BoardBlockType.HOVERED) return { opacity: 0.45, transform: [] };
+		if (appear.value < 1) {
+			const a = skinAppear(skinKind, appear.value, gridBlockSize) as { opacity?: number; transform?: any[] };
+			return { opacity: a.opacity ?? 1, transform: a.transform ?? [] };
+		}
+		return { opacity: 1, transform: [] };
 	});
+	const decor = skinKind === 0 ? null : skinDecorStyle(skinKind, gridBlockSize, "#ffffff");
+	const decorFrame = { position: 'absolute' as const, left: 0, top: 0, width: gridBlockSize, height: gridBlockSize, borderWidth: filledBlockBorderWidth(7, pieceSkinId), borderColor: 'transparent' };
 
 	return (
 		<>
 			<Animated.View style={[staticStyle, { width: gridBlockSize, height: gridBlockSize, justifyContent: 'center', alignItems: 'center' }]} />
-			{skinKind !== 0 && <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: 0, top: 0, width: gridBlockSize, height: gridBlockSize }, decorStyle]} />}
+			{decor && (
+				<Animated.View pointerEvents="none" style={[decorFrame, decorFrameStyle]}>
+					<View style={decor} />
+				</Animated.View>
+			)}
 			<Animated.View style={fallingStyle} />
 			{PARTICLE_CONFIGS.map((_, i) => (
 				<SparkParticle

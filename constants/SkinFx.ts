@@ -60,9 +60,11 @@ export function getSkinKindId(pieceSkinId: string = "piece_classic"): number {
 
 /**
  * The extra layer drawn over a filled block (its surface): returns a style for one absolutely placed view inside
- * the block, or null for the plain bevel. `size` is the block size, `hex` its color.
+ * the block, or null for the plain bevel. `size` is the block size. Insets count from the inner edge of the block (inside
+ * its border), so the layer must sit inside the block or inside a frame with the same border width (BlockGrid). The
+ * layer does not depend on the block color, so one style fits every block of a skin.
  */
-export function skinDecorStyle(kind: number, size: number, hex: string): Record<string, unknown> | null {
+export function skinDecorStyle(kind: number, size: number, _hex?: string): Record<string, unknown> | null {
 	"worklet";
 	const inset = Math.max(2, Math.round(size * 0.2));
 	const core = Math.max(2, Math.round(size * 0.16));
@@ -94,7 +96,7 @@ export function skinDecorStyle(kind: number, size: number, hex: string): Record<
 		// a dark, hollow middle: only the bright rim is left, like a neon tube
 		return {
 			position: "absolute", left: inset - 1, top: inset - 1, right: inset - 1, bottom: inset - 1,
-			backgroundColor: "rgba(0,0,0,0.78)", borderWidth: 1, borderColor: hex,
+			backgroundColor: "rgba(0,0,0,0.78)", borderWidth: 1, borderColor: "rgba(255,255,255,0.35)",
 		};
 	}
 	if (kind === SKIN_LIQUID) {

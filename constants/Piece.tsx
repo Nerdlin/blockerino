@@ -1185,6 +1185,18 @@ function getBorderColors(backgroundColor: Color) {
 	};
 }
 
+/** The border width createFilledBlockStyle gives a block of this skin (skin layers inside the block line up with it). */
+export function filledBlockBorderWidth(borderWidth: number, pieceSkinId: string = "piece_classic"): number {
+	"worklet";
+	const skinFamily = getPieceSkinFamily(pieceSkinId);
+	if (skinFamily === "piece_minecraft") return Math.max(1, Math.round(borderWidth * 0.75));
+	if (skinFamily === "piece_crystal") return Math.max(1, Math.round(borderWidth * 0.55));
+	if (skinFamily === "piece_lava") return Math.max(1, Math.round(borderWidth * 0.9));
+	if (skinFamily === "piece_circuit") return Math.max(1, Math.round(borderWidth * 0.45));
+	if (getExactPieceSkinPalette(pieceSkinId) !== null) return Math.max(1, Math.round(borderWidth * 0.65));
+	return borderWidth;
+}
+
 export function createFilledBlockStyle(color: Color, borderWidth: number = 7, pieceSkinId: string = "piece_classic"): object {
 	"worklet";
 	const skinFamily = getPieceSkinFamily(pieceSkinId);

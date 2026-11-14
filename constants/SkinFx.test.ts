@@ -34,3 +34,18 @@ describe("skin kinds", () => {
 		}
 	});
 });
+
+describe("skin surface geometry", () => {
+	// a layer with both a width and a right inset is placed by its width (right is ignored), which drew it shifted
+	it("never sets a size together with the opposite inset, and stays inside the block", () => {
+		for (const size of [28, 40, 52]) for (const kind of [SKIN_STONE, SKIN_CRYSTAL, SKIN_LAVA, SKIN_NEON, SKIN_LIQUID]) {
+			const d = skinDecorStyle(kind, size) as Record<string, number>;
+			expect(d.width !== undefined && d.right !== undefined).toBe(false);
+			expect(d.height !== undefined && d.bottom !== undefined).toBe(false);
+			const w = d.width ?? size - d.left - d.right;
+			expect(d.left).toBeGreaterThanOrEqual(-2);
+			expect(d.left + w).toBeLessThanOrEqual(size);
+			expect(w).toBeGreaterThan(0);
+		}
+	});
+});
