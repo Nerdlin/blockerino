@@ -1,0 +1,27 @@
+{
+	"version": "2.0.9",
+	"build": 22,
+	"date": "2026-11-14",
+	"apk": "https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9.apk",
+	"release": "https://github.com/Nerdlin/blockerino/releases/tag/v2.0.9",
+	"levels": 50,
+	"miniGames": 7,
+	"highlights": {
+		"ru": [
+			"50 уровней в 5 главах",
+			"Медали и растущая сложность",
+			"Календарь входа с сундуками",
+			"Шесть видов скинов и неоновый след",
+			"Живые фоны",
+			"Настоящая музыка"
+		],
+		"en": [
+			"50 levels in 5 chapters",
+			"Medals and rising difficulty",
+			"Login calendar with chests",
+			"Six kinds of skins and a neon trail",
+			"Living backgrounds",
+			"Real music"
+		]
+	}
+}
