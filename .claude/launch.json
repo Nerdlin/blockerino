@@ -5,6 +5,8 @@
       "name": "web",
       "runtimeExecutable": "npx",
       "runtimeArgs": [
+        "cross-env",
+        "EXPO_NO_DEPENDENCY_VALIDATION=1",
         "expo",
         "start",
         "--web",
@@ -27,6 +29,21 @@
         "8097"
       ],
       "port": 8097
+    },
+    {
+      "name": "phone",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "cross-env",
+        "EXPO_NO_DEPENDENCY_VALIDATION=1",
+        "EXPO_NATIVE_ONLY=1",
+        "expo",
+        "start",
+        "--dev-client",
+        "--port",
+        "8081"
+      ],
+      "port": 8081
     }
   ]
 }
