@@ -71,3 +71,4 @@ desktop/web/
 desktop/icon.png
 builds/desktop/
 docs/tiktok/*.mp4
+public/site-info.json

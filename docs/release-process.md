@@ -10,6 +10,7 @@ Supabase ↔ GitHub), а запись `android_version` в `app_config` расс
 ### 1. Подготовка (делает Claude, без пуша)
 - Поднять версию: `app.json` (`version`, `versionCode`, `runtimeVersion`), `package.json`, `android/app/build.gradle` (`versionCode`, `versionName`), запасное значение в `components/OptionsMenu.tsx`.
 - Написать `docs/release-X.Y.Z.md` (что нового, проверки, развёртывание).
+- Обновить `docs/site-info.json` (дата и 4–6 главных новинок на русском и английском): сайт aionerdlin.me берёт оттуда «Что нового», версию и ссылку на APK. Файл `public/site-info.json` собирается сам при выкладке сайта (`scripts/site-info.mjs` в `predeploy`).
 - Проверки: `npx tsc --noEmit`, `npx jest`.
 - Закоммитить локально. **Не пушить.**
 

@@ -1,0 +1,24 @@
+{
+  "_comment": "What aionerdlin.me shows about the latest release. Update the date and highlights with every release (docs/release-process.md); version, build and the APK link come from app.json at build time (scripts/site-info.mjs).",
+  "date": "2026-11-14",
+  "levels": 50,
+  "miniGames": 7,
+  "highlights": {
+    "ru": [
+      "50 уровней в 5 главах",
+      "Медали и растущая сложность",
+      "Календарь входа с сундуками",
+      "Шесть видов скинов и неоновый след",
+      "Живые фоны",
+      "Настоящая музыка"
+    ],
+    "en": [
+      "50 levels in 5 chapters",
+      "Medals and rising difficulty",
+      "Login calendar with chests",
+      "Six kinds of skins and a neon trail",
+      "Living backgrounds",
+      "Real music"
+    ]
+  }
+}
