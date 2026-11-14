@@ -6,10 +6,10 @@
 
 Артефакты (версия `2.0.9`, сборка `22`), выкладываются в GitHub Releases как `v2.0.9`:
 
-- **[Скачать Blockerino 2.0.9 для Android (APK)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9.apk)** · APK · сборка 22
-- **[Скачать Blockerino 2.0.9 Android App Bundle (AAB)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9.aab)** · AAB · сборка 22 (для Google Play Console)
-- **[Скачать Blockerino 2.0.9 для Windows (установщик)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9-windows-setup.exe)** · EXE
-- **[Скачать Blockerino 2.0.9 для Windows (без установки)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9-windows-portable.exe)** · EXE
+- **[Скачать Blockerino 2.0.9 для Android (APK)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9.apk)** · APK · 61,3 МиБ · сборка 22
+- **[Скачать Blockerino 2.0.9 Android App Bundle (AAB)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9.aab)** · AAB · 78,7 МиБ · сборка 22 (для Google Play Console)
+- **[Скачать Blockerino 2.0.9 для Windows (установщик)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9-windows-setup.exe)** · EXE · 183,4 МиБ
+- **[Скачать Blockerino 2.0.9 для Windows (без установки)](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9-windows-portable.exe)** · EXE · 172,7 МиБ
 
 ## 🎮 Что нового
 
@@ -37,6 +37,22 @@
 - Админ-панель и окно «Незаконченная игра» больше не открываются под другими окнами.
 - Ровная сетка поля; в русском интерфейсе слова на «О» и «П» снова пиксельным шрифтом.
 
+## 🧪 Проверки
+- `npx tsc --noEmit` без ошибок, Jest: все наборы, в том числе новые тесты уровней, сундуков, медалей, скинов и музыки.
+- Проверки базы (`npm run db:check`): все миграции на чистой базе, включая сундуки и уровни.
+- e2e (`npm run e2e:two-player`): все 12 сценариев.
+- В браузере: уровни, кристаллы, окно итога, календарь, скины, живые фоны, окно конца игры, песни паков.
+
 ## 🚀 Развёртывание
-Миграции `20261114100000_streak_chest`, `20261114110000_levels`, `20261114120000_push_channel` применяются при пуше в `main`. Функцию `send-push` выложить заново (канал уведомлений). Песни паков лежат на сайте (`public/music`) и появятся после выкладки `main`.
+Миграции `20261114100000_streak_chest` и `20261114110000_levels` применяются при пуше в `main`. Функцию `send-push` выложить заново (новый канал уведомлений со звуком). В `app_config` — 2.0.9 / сборка 22 и **обязательное обновление** (`isMandatory: true`): старые версии не поддерживаются. Песни паков лежат на сайте (`public/music`) и появятся после выкладки `main`.
 Порядок по `docs/release-process.md`: релиз на GitHub → «релиз сделал» → пуш в `main` → Google Play.
+
+## 📦 Артефакты
+| Файл | Размер, байт | SHA-256 |
+|---|---|---|
+| blockerino-2.0.9.apk | 64249533 | bc7178f2af2876fd6402200caef62545d50a681be7128c7dcfbd7779ef93249d |
+| blockerino-2.0.9.aab | 82539355 | df9a3ac0a3b5ec62179e8d631650ab9a17e0f6c1ecf0f539aa70bef431ded760 |
+| blockerino-2.0.9-windows-setup.exe | 192281413 | 779fdc3486f356fecdd73494a4512afb4db23af220e473515ecc73c89fe32d8c |
+| blockerino-2.0.9-windows-portable.exe | 181097278 | 99742b80c8e95865e090786368cbbb85be0d93e0548e952cd07d7eeb32396cdf |
+
+AAB подписан ключом загрузки (DA:E7:84:66…), APK — отладочным ключом (как прошлые APK, чтобы обновляться поверх). Windows-версии не подписаны.
