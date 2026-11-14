@@ -3,6 +3,8 @@
 // shipped inside the app (constants/Sound.tsx); the other packs play songs from the game's website (public/music),
 // loaded when the pack plays.
 
+import { PACK_SONGS, PACK_SONG_INFO } from "./PackSongs";
+
 export type Mood = "calm" | "dark" | "action" | "world" | "space";
 
 export interface RemoteSong {
@@ -77,8 +79,15 @@ function hash(text: string): number {
 
 export const PACK_PLAYLIST_SIZE = 4;
 
-/** The songs of a pack: 4 of its mood, starting at a place picked from the pack id, so packs of one mood differ. */
+/**
+ * The songs of a pack. Most packs have their own songs that match their name (constants/PackSongs.ts, picked on
+ * OpenGameArt, CC0); a pack without them plays 4 songs of its mood, starting at a place picked from the pack id.
+ */
 export function playlistForPack(packId: string): RemoteSong[] {
+	const own = PACK_SONGS[packId];
+	if (own && own.length > 0) {
+		return own.map((id) => ({ id, title: PACK_SONG_INFO[id]?.title ?? id, author: PACK_SONG_INFO[id]?.author ?? "", mood: [moodOfPack(packId)] }));
+	}
 	const pool = REMOTE_SONGS.filter((song) => song.mood.includes(moodOfPack(packId)));
 	const start = hash(packId) % pool.length;
 	const step = pool.length > PACK_PLAYLIST_SIZE * 2 ? 2 : 1;
@@ -91,8 +100,12 @@ export function playlistForPack(packId: string): RemoteSong[] {
 }
 
 const SITE = "https://blockerino.aionerdlin.me";
+/** The packs' own songs live in Cloudflare R2 (bucket blockerino-music), not in the game's repository. */
+export const MUSIC_HOST = "https://music.aionerdlin.me";
 
-/** Where a song is loaded from: the site itself on the web (also inside Discord), the full address in the app. */
+/** Where a song is loaded from: the packs' own songs from the music host; the older ones from the game's site (the site
+ *  itself on the web, also inside Discord, the full address in the app). */
 export function songUrl(id: string, isWeb: boolean): string {
+	if (id.startsWith("oga-")) return `${MUSIC_HOST}/${id}.mp3`;
 	return isWeb ? `/music/${id}.mp3` : `${SITE}/music/${id}.mp3`;
 }

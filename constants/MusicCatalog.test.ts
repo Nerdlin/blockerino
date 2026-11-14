@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { REMOTE_SONGS, moodOfPack, playlistForPack, songUrl } from "./MusicCatalog";
+import { PACK_SONGS, PACK_SONG_INFO } from "./PackSongs";
 import { SHOP_ITEMS } from "./Shop";
 
 jest.mock("@react-native-async-storage/async-storage", () => require("@react-native-async-storage/async-storage/jest/async-storage-mock"));
@@ -13,14 +14,18 @@ describe("music catalog", () => {
 		const packs = SHOP_ITEMS.filter((item) => item.category === "music" && item.id !== "music_classic");
 		expect(packs.length).toBeGreaterThan(20);
 		for (const pack of packs) {
+			// every pack plays its own songs, picked for its name
+			expect(PACK_SONGS[pack.id]?.length ?? 0).toBeGreaterThanOrEqual(3);
 			const list = playlistForPack(pack.id);
-			expect(list.length).toBeGreaterThanOrEqual(3);
+			expect(list.map((song) => song.id)).toEqual(PACK_SONGS[pack.id]);
 			expect(new Set(list.map((song) => song.id)).size).toBe(list.length);
-			for (const song of list) expect(song.mood).toContain(moodOfPack(pack.id));
+			for (const song of list) {
+				expect(PACK_SONG_INFO[song.id]).toBeDefined();
+				expect(PACK_SONG_INFO[song.id].source.startsWith("https://opengameart.org/content/")).toBe(true);
+			}
 		}
-		// packs of one mood do not all play the same songs
-		const calm = packs.filter((pack) => moodOfPack(pack.id) === "calm").map((pack) => playlistForPack(pack.id)[0].id);
-		expect(new Set(calm).size).toBeGreaterThan(1);
+		// the packs do not all play the same songs
+		expect(new Set(packs.map((pack) => PACK_SONGS[pack.id].join(","))).size).toBeGreaterThan(packs.length - 3);
 	});
 
 	it("moods and addresses", () => {
@@ -31,5 +36,7 @@ describe("music catalog", () => {
 		expect(moodOfPack("music_salsa")).toBe("world");
 		expect(songUrl("nes-jazz", true)).toBe("/music/nes-jazz.mp3");
 		expect(songUrl("nes-jazz", false)).toBe("https://blockerino.aionerdlin.me/music/nes-jazz.mp3");
+		expect(songUrl("oga-harp", true)).toBe("https://music.aionerdlin.me/oga-harp.mp3");
+		expect(songUrl("oga-harp", false)).toBe("https://music.aionerdlin.me/oga-harp.mp3");
 	});
 });

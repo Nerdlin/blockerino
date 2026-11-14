@@ -68,6 +68,11 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 				RandomMind ("The Bard's Tale") and Centurion_of_war ("Chippy Melody").
 			</LegalParagraph>
 			<LegalParagraph>
+				Each shop music pack also plays its own songs, picked for its name and released under CC0 1.0 (public domain) on
+				OpenGameArt.org, by: Agecaf, aqrezes, Bobjt, Centurion_of_war, chilledoutduckgames, cinameng, congusbongus, cowardlion, cynicmusic, Deva, Dizzy Crow, earlbeat, Frenchyboy, Fupi, G_P, glitchart, Gradoa, haruta, Hazmat Harry, Holizna, HydroGene, iamoneabe, IndieDevs, Indieteur, isaiah658, josepharaoh99, JoshMckay, Joth, KarateStudios, KiluaBoy, Kistol, Kosmo The Cat, LowSociety, Loyalty Freak Music, madworldgames, MintoDog, mrpoly, mutantleg, northivanastan, obscure music, Of Far Different Nature, omfgdude, plemuzic, Pro Sensory, RandomMind, Ruskerdax, Samza, section31, ShggothSlave, skrjablin, SkyleTheFrench, SpiderDave, Spring Spring, SubspaceAudio, Sudocolon, symphony, TAD, tapatilorenzo, Tarush Singhal, ThePixel, TinyWorlds, TokyoGeisha, Tozan, tricksntraps, Tsorthan Grove, Umplix, vitalezzz, wipics, Wolfgang_, yd, Zane Little Music, zesona, Zodik, Écrivain. Song titles and links: docs/audio-credits.md in the game's
+				repository.
+			</LegalParagraph>
+			<LegalParagraph>
 				The menu click, hover, block placed, invalid move and achievement sounds come from "Interface Sounds" by Kenney
 				(kenney.nl), released under CC0 1.0 (public domain).
 			</LegalParagraph>
