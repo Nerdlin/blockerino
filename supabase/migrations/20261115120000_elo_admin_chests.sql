@@ -240,7 +240,7 @@ CREATE OR REPLACE FUNCTION public.chest_price(p_size text)
 RETURNS integer
 LANGUAGE sql
 IMMUTABLE
-AS $ SELECT CASE p_size WHEN 'small' THEN 500 WHEN 'big' THEN 1200 ELSE NULL END; $;
+AS $$ SELECT CASE p_size WHEN 'small' THEN 500 WHEN 'big' THEN 1200 ELSE NULL END; $$;
 
 -- Buys and opens a chest. Returns {status: ok | no_coins | bad_size | unauthenticated | no_profile, chest, coins,
 -- owned_item_ids, lucky}.
