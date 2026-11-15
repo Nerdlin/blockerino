@@ -5,6 +5,9 @@ Blockerino bundles the following fonts. Every one of them is licensed under the 
 Version 1.1 (full text below). The fonts are used unmodified, with one exception: in PixelifySans-Variable.ttf the glyph for the digit 5 was
 redrawn, because the original looked exactly like the letter S, and the Cyrillic capitals О (U+041E) and П (U+041F), missing
 from the font, were mapped to its Latin O and Greek Pi glyphs (the font declares no Reserved Font Name).
+PixelifySans-Ru.ttf, the face of the Russian version, is a static Regular cut of that file made by
+scripts/build-pixelify-ru.py: the lowercase в, д, е, ё, т, ъ, ы, ь are redrawn to read better, every letter is a little
+wider and lines are a little taller.
 
   Press Start 2P        Copyright 2012 The Press Start 2P Project Authors (cody@zone38.net),
                         with Reserved Font Name "Press Start 2P".

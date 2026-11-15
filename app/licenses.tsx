@@ -9,7 +9,7 @@ export default function Licenses() {
 			<LegalParagraph>© 2025–2026 Nerdlin. All rights reserved.</LegalParagraph>
 
 			<LegalHeading>Fonts</LegalHeading>
-			<LegalParagraph>All fonts are used under the SIL Open Font License 1.1 (openfontlicense.org). They are unmodified, except that in Pixelify Sans the Cyrillic letters О and П, missing from the font, were mapped to its Latin O and Greek Pi glyphs.</LegalParagraph>
+			<LegalParagraph>All fonts are used under the SIL Open Font License 1.1 (openfontlicense.org). They are unmodified, except Pixelify Sans: the digit 5 is redrawn, the missing Cyrillic О and П use its Latin O and Greek Pi, and in the Russian face the lowercase в, д, е, ё, т, ъ, ы, ь are redrawn and letters and lines are spaced a little wider.</LegalParagraph>
 			<LegalBullet>Press Start 2P: Copyright 2012 The Press Start 2P Project Authors (cody@zone38.net).</LegalBullet>
 			<LegalBullet>Silkscreen: Copyright 2001 The Silkscreen Project Authors (github.com/googlefonts/silkscreen).</LegalBullet>
 			<LegalBullet>Pixelify Sans: Copyright 2021 The Pixelify Sans Project Authors (github.com/eifetx/Pixelify-Sans).</LegalBullet>
