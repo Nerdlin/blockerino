@@ -6,6 +6,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
+import { setRussianTypography } from "@/constants/RuTypography";
 import Animated, {
 	FadeIn,
 	FadeOut,
@@ -53,6 +54,8 @@ import NotificationsHost from "@/components/NotificationsHost";
 import PlayerProfileHost from "@/components/PlayerProfileHost";
 import InviteModeHost from "@/components/InviteModeHost";
 import AccountDeleteHost from "@/components/AccountDeleteHost";
+import GameDialogHost from "@/components/GameDialogHost";
+import OtaUpdateHost from "@/components/OtaUpdateHost";
 import ProfileMenu from "@/components/ProfileMenu";
 import MoreGamesMenu from "@/components/MoreGamesMenu";
 import { getBackgroundParticleConfig, getShopItem, shopStateAtom, useShopBootstrap } from "@/constants/Shop";
@@ -102,16 +105,18 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 	// Russian needs a Cyrillic-capable pixel face; map it onto the Silkscreen family
 	// names so every existing styled Text renders Cyrillic without per-component edits.
 	const useCyrillicPixelFont = bootLanguage === "ru";
+	// and gentler sizes for it (constants/RuTypography.ts), set before the first screen draws
+	setRussianTypography(useCyrillicPixelFont);
 	const [loaded] = useFonts({
 		"Press-Start-2P": require("../assets/fonts/PressStart2P-Regular.ttf"),
 		// For nicknames with Cyrillic letters in the English app (see constants/NameFont.ts).
-		PixelifySans: require("../assets/fonts/PixelifySans-Variable.ttf"),
+		PixelifySans: require("../assets/fonts/PixelifySans-Ru.ttf"),
 		SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
 		Silkscreen: useCyrillicPixelFont
-			? require("../assets/fonts/PixelifySans-Variable.ttf")
+			? require("../assets/fonts/PixelifySans-Ru.ttf")
 			: require("../assets/fonts/Silkscreen-Regular.ttf"),
 		SilkscreenBold: useCyrillicPixelFont
-			? require("../assets/fonts/PixelifySans-Variable.ttf")
+			? require("../assets/fonts/PixelifySans-Ru.ttf")
 			: require("../assets/fonts/Silkscreen-Bold.ttf"),
 	});
 
@@ -319,6 +324,9 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 			<PlayerProfileHost />
 			<InviteModeHost />
 			<AccountDeleteHost />
+			<OtaUpdateHost />
+			{/* last: message windows sit above every other popup */}
+			<GameDialogHost />
 		</Animated.View>
 		</>
 	);

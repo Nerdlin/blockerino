@@ -1,3 +1,4 @@
+import { gameAlert } from "@/constants/GameDialog";
 import { Chess } from "chess.js";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAtom } from "jotai";
@@ -70,7 +71,7 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 		const code = makeInviteCode();
 		const sent = await sendChessInvite(friend.id, { code, hostName: playerName, control });
 		if (!sent) {
-			Alert.alert(t("chess.challengeFailed"));
+			gameAlert(t("chess.challengeFailed"));
 			return;
 		}
 		setFound({ code, color: "w", opponent: friend.name, control, waitMs: 60000, challenge: true });

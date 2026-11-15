@@ -1,7 +1,8 @@
+import { gameAlert } from "@/constants/GameDialog";
 import { isFriendInDuel, outgoingInviteAtom } from "@/constants/OutgoingInvite";
 import { sendInviteBroadcast } from "@/constants/InviteChannel";
 import { useState } from "react";
-import { Alert } from "react-native";
+
 import { useSetAtom } from "jotai";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/constants/Supabase";
@@ -24,7 +25,7 @@ export function useFriendInvite(userId: string) {
 		setBusy(true);
 
 		if (await isFriendInDuel(friendId)) {
-			Alert.alert(t("friends.inviteBusyTitle"), t("friends.inviteBusy", { name: friendName }));
+			gameAlert(t("friends.inviteBusyTitle"), t("friends.inviteBusy", { name: friendName }));
 			setBusy(false);
 			return;
 		}
@@ -49,7 +50,7 @@ export function useFriendInvite(userId: string) {
 		}).select().single();
 
 		if (error || !room) {
-			Alert.alert(t("friends.errorTitle"), t("friends.createRoomFailed"));
+			gameAlert(t("friends.errorTitle"), t("friends.createRoomFailed"));
 			setBusy(false);
 			return;
 		}
@@ -65,7 +66,7 @@ export function useFriendInvite(userId: string) {
 
 		if (sendResult !== "ok") {
 			await supabase.from("matchmaking_rooms").delete().eq("id", room.id).eq("status", "waiting");
-			Alert.alert(t("friends.errorTitle"), t("friends.inviteSendFailed"));
+			gameAlert(t("friends.errorTitle"), t("friends.inviteSendFailed"));
 			setBusy(false);
 			return;
 		}

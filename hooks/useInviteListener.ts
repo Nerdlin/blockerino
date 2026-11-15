@@ -1,9 +1,10 @@
+import { gameAlert } from "@/constants/GameDialog";
 import { sendInviteBroadcast } from '@/constants/InviteChannel';
 import { isInOnlineRoom, outgoingInviteAtom } from '@/constants/OutgoingInvite';
 import { openInviteInbox } from '@/constants/InviteChannel';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSetAtom } from 'jotai';
-import { Alert, AppState } from 'react-native';
+import { AppState } from 'react-native';
 import { supabase } from '@/constants/Supabase';
 import { useAppState, MenuStateType, GameModeType } from '@/hooks/useAppState';
 import { useLanguage } from '@/constants/Localization';
@@ -62,7 +63,7 @@ export function useInviteListener(
                 // First check if the room still exists and is waiting
                 const { data: room } = await supabase.from('matchmaking_rooms').select('status').eq('id', roomId).single();
                 if (!room || room.status !== 'waiting') {
-                    Alert.alert(t("invite.expiredTitle"), t("invite.expired"));
+                    gameAlert(t("invite.expiredTitle"), t("invite.expired"));
                     return;
                 }
 
@@ -82,7 +83,7 @@ export function useInviteListener(
                 }).eq('id', roomId);
 
                 if (error) {
-                    Alert.alert(t("invite.errorTitle"), t("invite.joinFailed"));
+                    gameAlert(t("invite.errorTitle"), t("invite.joinFailed"));
                     return;
                 }
 

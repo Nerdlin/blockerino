@@ -1,4 +1,5 @@
-import { Alert, Linking, Platform } from 'react-native';
+import { gameAlert } from "@/constants/GameDialog";
+import { Linking, Platform } from 'react-native';
 import * as Application from 'expo-application';
 import { supabase } from './Supabase';
 import { loadStoredLanguage, translate, type Language } from './Localization';
@@ -75,12 +76,12 @@ class UpdateService {
                     this.showUpdateDialog(config, language);
                 }
             } else if (force) {
-                Alert.alert(translate(language, 'update.upToDateTitle'), translate(language, 'update.upToDate', { version: currentVersion }));
+                gameAlert(translate(language, 'update.upToDateTitle'), translate(language, 'update.upToDate', { version: currentVersion }));
             }
         } catch (error) {
             console.error('Error checking for updates:', error);
             if (force) {
-                Alert.alert(translate(language, 'update.failedTitle'), translate(language, 'update.failed'));
+                gameAlert(translate(language, 'update.failedTitle'), translate(language, 'update.failed'));
             }
         } finally {
             this.checking = false;
@@ -111,7 +112,7 @@ class UpdateService {
                 if (info.status === 'none') {
                     const language = await loadStoredLanguage();
                     const version = Application.nativeApplicationVersion || '1.0.0';
-                    Alert.alert(translate(language, 'update.upToDateTitle'), translate(language, 'update.upToDate', { version }));
+                    gameAlert(translate(language, 'update.upToDateTitle'), translate(language, 'update.upToDate', { version }));
                 } else {
                     await this.openPlayListing();
                 }
@@ -163,7 +164,7 @@ class UpdateService {
 
         if (config.isMandatory) {
             // Обязательное обновление - только одна кнопка
-            Alert.alert(
+            gameAlert(
                 title,
                 message,
                 [
@@ -176,7 +177,7 @@ class UpdateService {
             );
         } else {
             // Опциональное обновление
-            Alert.alert(
+            gameAlert(
                 title,
                 message,
                 [
@@ -198,7 +199,7 @@ class UpdateService {
             await Linking.openURL(url);
         } catch (error) {
             console.error('Error opening download URL:', error);
-            Alert.alert(translate(language, 'update.openFailedTitle'), translate(language, 'update.openFailed'));
+            gameAlert(translate(language, 'update.openFailedTitle'), translate(language, 'update.openFailed'));
         }
     }
 

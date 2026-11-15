@@ -1,5 +1,6 @@
+import { gameAlert } from "@/constants/GameDialog";
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Alert, Pressable } from "react-native";
+import { View, Text, StyleSheet, TextInput, ScrollView, Pressable } from "react-native";
 import PixelLoader from "@/components/PixelLoader";
 import { supabase } from '@/constants/Supabase';
 import { useTheme } from '@/constants/Theme';
@@ -160,7 +161,7 @@ export default function FriendsList({ userId }: { userId: string }) {
             .limit(20);
 
         if (profileError || !profiles || profiles.length === 0) {
-            Alert.alert(t("friends.notFoundTitle"), t("friends.notFoundMessage", { name: cleanQuery }));
+            gameAlert(t("friends.notFoundTitle"), t("friends.notFoundMessage", { name: cleanQuery }));
             setSearchLoading(false);
             return;
         }
@@ -181,13 +182,13 @@ export default function FriendsList({ userId }: { userId: string }) {
         setSearchLoading(true);
         const targetId = targetProfile.auth_user_id;
         if (!targetId) {
-            Alert.alert(t("friends.errorTitle"), t("friends.mustLogin"));
+            gameAlert(t("friends.errorTitle"), t("friends.mustLogin"));
             setSearchLoading(false);
             return;
         }
 
         if (targetId === userId) {
-            Alert.alert(t("friends.oopsTitle"), t("friends.cantAddSelf"));
+            gameAlert(t("friends.oopsTitle"), t("friends.cantAddSelf"));
             setSearchLoading(false);
             return;
         }
@@ -199,7 +200,7 @@ export default function FriendsList({ userId }: { userId: string }) {
             .or(`and(user_id_1.eq.${userId},user_id_2.eq.${targetId}),and(user_id_1.eq.${targetId},user_id_2.eq.${userId})`);
             
         if (existing && existing.length > 0) {
-            Alert.alert(t("friends.infoTitle"), t("friends.alreadyStatus", { status: existing[0].status }));
+            gameAlert(t("friends.infoTitle"), t(existing[0].status === "accepted" ? "friends.alreadyFriends" : "friends.alreadyPending"));
             setSearchLoading(false);
             return;
         }
@@ -215,9 +216,9 @@ export default function FriendsList({ userId }: { userId: string }) {
 
         if (insertError) {
             console.error("Could not send friend request:", insertError);
-            Alert.alert(t("friends.errorTitle"), insertError.message || t("friends.requestFailed"));
+            gameAlert(t("friends.errorTitle"), insertError.message || t("friends.requestFailed"));
         } else {
-            Alert.alert(t("friends.successTitle"), t("friends.requestSent"));
+            gameAlert(t("friends.successTitle"), t("friends.requestSent"));
             setSearchQuery('');
             setSuggestions([]);
             fetchFriends();
@@ -233,7 +234,7 @@ export default function FriendsList({ userId }: { userId: string }) {
             .eq('user_id_2', userId);
 
         if (error) {
-            Alert.alert(t("friends.errorTitle"), error.message || t("friends.acceptFailed"));
+            gameAlert(t("friends.errorTitle"), error.message || t("friends.acceptFailed"));
             return;
         }
         fetchFriends();
@@ -242,7 +243,7 @@ export default function FriendsList({ userId }: { userId: string }) {
     const handleDeleteOrCancel = async (friendId: string) => {
         const { error } = await supabase.from('friends').delete().eq('id', friendId);
         if (error) {
-            Alert.alert(t("friends.errorTitle"), error.message || t("friends.updateFailed"));
+            gameAlert(t("friends.errorTitle"), error.message || t("friends.updateFailed"));
             return;
         }
         fetchFriends();
