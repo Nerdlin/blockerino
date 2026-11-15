@@ -231,13 +231,16 @@ export default function ProfileMenu() {
 				await createHighScore({ score: remoteChaos, date: Date.now(), type: GameModeType.Chaos });
 			}
 
-			const { count, error } = await supabase
-				.from("match_history")
-				.select("*", { count: "exact", head: true })
-				.or(`player1_id.eq.${userId},player2_id.eq.${userId}`);
-
-			if (!error && count !== null) {
-				setGamesPlayed(count);
+			// history rows plus the offset an admin may set (player_matches); the plain count where the server lacks it
+			const matches = await supabase.rpc("player_matches", { p_user: userId });
+			if (!matches.error && typeof matches.data === "number") {
+				setGamesPlayed(matches.data);
+			} else {
+				const { count, error } = await supabase
+					.from("match_history")
+					.select("*", { count: "exact", head: true })
+					.or(`player1_id.eq.${userId},player2_id.eq.${userId}`);
+				if (!error && count !== null) setGamesPlayed(count);
 			}
 		} catch (e) {
 			console.error("Error loading profile stats", e);

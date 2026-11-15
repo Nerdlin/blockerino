@@ -95,6 +95,8 @@ export interface AdminPlayer {
 	last_seen: string | null;
 	has_account: boolean;
 	is_admin: boolean;
+	/** Versus matches shown on the profile (history plus the admin offset); missing on an older server. */
+	matches?: number;
 }
 
 export interface AdminSeasonRow {
@@ -126,5 +128,9 @@ export const adminApi = {
 	resetRecord: (profileId: string, mode: "classic" | "chaos") => call<{ ok: boolean }>("admin_reset_record", { p_profile_id: profileId, p_mode: mode }),
 	seasonTop: (board: "classic" | "chaos") => call<AdminSeasonRow[]>("admin_season_top", { p_board: board }),
 	setAndroidVersion: (value: AndroidVersionConfig) => call<AndroidVersionConfig>("admin_set_android_version", { p_value: value }),
+	setElo: (profileId: string, elo: number, reason: string) =>
+		call<{ elo: number }>("admin_set_elo", { p_profile_id: profileId, p_elo: elo, p_reason: reason }),
+	setMatches: (profileId: string, matches: number, reason: string) =>
+		call<{ matches: number }>("admin_set_matches", { p_profile_id: profileId, p_matches: matches, p_reason: reason }),
 	recentLog: () => call<AdminLogRow[]>("admin_recent_log"),
 };

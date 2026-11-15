@@ -1,3 +1,5 @@
+import { LeaderboardAvatar } from "@/components/LeaderboardPodium";
+import { usePlayerAvatar } from "@/constants/PlayerAvatars";
 import { markOnlineRoom } from "@/constants/OutgoingInvite";
 import { PieceData, getBlockCount } from '@/constants/Piece';
 import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-dnd';
@@ -32,6 +34,7 @@ import { useAtom, useSetAtom } from 'jotai';
 import { getEloBadge } from '@/components/MultiplayerMenu';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getGameModeConfig } from '@/constants/GameModes';
+import { ELO_LOSS, ELO_WIN } from '@/constants/Elo';
 import {
     ActivePlayerRole,
     MatchWinnerRole,
@@ -138,6 +141,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const opponentPerk = useLeaderboardPerk(opponentName);
     const [playerAvatar, setPlayerAvatar] = useState<string | null>(null);
     const [opponentAvatar, setOpponentAvatar] = useState<string | null>(null);
+    // the own picture from the signed-in profile, when the nickname lookup finds none
+    const myAvatar = usePlayerAvatar(null, true);
 
     // Opponent states
     const [opponentBoard, setOpponentBoard] = useState<Board>(newEmptyBoard(boardLength));
@@ -280,8 +285,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
             const winnerId = winnerRole === 'player1' ? roomInfo.player1_id : (winnerRole === 'player2' ? roomInfo.player2_id : null);
             const player1Score = myRole === 'player1' ? score.value : opponentScoreRef.current;
             const player2Score = myRole === 'player2' ? score.value : opponentScoreRef.current;
-            const player1EloChange = winnerRole === 'draw' ? 0 : winnerRole === 'player1' ? 10 : -10;
-            const player2EloChange = winnerRole === 'draw' ? 0 : winnerRole === 'player2' ? 10 : -10;
+            const player1EloChange = winnerRole === 'draw' ? 0 : winnerRole === 'player1' ? ELO_WIN : -ELO_LOSS;
+            const player2EloChange = winnerRole === 'draw' ? 0 : winnerRole === 'player2' ? ELO_WIN : -ELO_LOSS;
             const historyEntry = {
                 room_id: roomId,
                 player1_id: roomInfo.player1_id,
@@ -1163,15 +1168,9 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 							<View style={[styles.opponentMiniContainer, isShortScreen && { padding: 6, marginTop: 6 }]}>
 								<View style={[styles.opponentMiniTopRow, isShortScreen && { marginBottom: 2, paddingRight: 54 }]}>
 									<View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
-										{opponentAvatar && opponentAvatar.startsWith("http") ? (
-											<Image source={{ uri: opponentAvatar }} style={{ width: 18, height: 18, borderRadius: 9, marginRight: 4, backgroundColor: 'transparent' }} />
-										) : opponentAvatar ? (
-											<Text style={{ fontSize: 14, marginRight: 4 }}>{opponentAvatar}</Text>
-										) : (
-											<View style={{ width: 18, height: 18, borderRadius: 9, marginRight: 4, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}>
-												<Text style={{ fontSize: 10, color: '#fff' }}>{opponentName.charAt(0).toUpperCase()}</Text>
-											</View>
-										)}
+										<View style={{ marginRight: 6 }}>
+											<LeaderboardAvatar name={opponentName} url={opponentAvatar} size={isShortScreen ? 20 : 26} />
+										</View>
 										<Text style={[styles.opponentNameText, { color: opponentPerk?.tier.color ?? currentTheme.textSecondary }, isShortScreen && { fontSize: 14 }]} numberOfLines={1}>
 											{opponentName} {oppBadge ? `[${oppBadge.tier}]` : ""} {opponentIsGameOver && "(Dead)"}
 										</Text>
@@ -1231,6 +1230,12 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 									<Text style={[styles.playerNameText, { color: currentTheme.textPrimary, marginBottom: 0 }]}>
 										You [{myBadge.tier} - {playerElo}]
 									</Text>
+								</View>
+							)}
+							{!isLargeScreen && !isShortScreen && (
+								<View style={styles.myMiniRow}>
+									<LeaderboardAvatar name={playerNameRef.current || "?"} url={playerAvatar ?? myAvatar} size={26} />
+									<Text style={[styles.myMiniName, { color: currentTheme.textPrimary }]} numberOfLines={1}>{playerNameRef.current}</Text>
 								</View>
 							)}
 							<DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
@@ -1464,6 +1469,18 @@ const LiveDot = () => {
 };
 
 const styles = StyleSheet.create({
+    myMiniRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        alignSelf: 'center',
+        marginBottom: 4,
+    },
+    myMiniName: {
+        fontFamily: 'Silkscreen',
+        fontSize: 14,
+        maxWidth: 220,
+    },
 	root: {
 		width: '100%',
 		flex: 1,

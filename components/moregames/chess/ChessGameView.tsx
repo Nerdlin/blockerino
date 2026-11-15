@@ -146,7 +146,7 @@ export function ChessGameView({
 
 			<PlayerBar name={opponent.name} rating={opponent.rating} color={opponent.color} look={opponent.look} clock={clockOf(topColor)} active={running === topColor} low={lowOf(topColor)} />
 			<ChessBoard fen={shownFen} moves={shownMoves} flipped={flipped} selected={live ? selected : null} legalTargets={targets} lastMove={lastMove} hint={live ? hint ?? null : null} cosmetics={cosmetics} onPressSquare={press} />
-			<PlayerBar name={me.name} rating={me.rating} color={me.color} clock={clockOf(myColor)} active={running === myColor} low={lowOf(myColor)} />
+			<PlayerBar self name={me.name} rating={me.rating} color={me.color} clock={clockOf(myColor)} active={running === myColor} low={lowOf(myColor)} />
 
 			{pending ? (
 				<PromotionPicker

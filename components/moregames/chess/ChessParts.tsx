@@ -1,6 +1,6 @@
 import { Chess } from "chess.js";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from "react-native";
+import { LayoutChangeEvent, Pressable, StyleSheet, Text, View, Image } from "react-native";
 import Animated, {
 	Easing,
 	FadeIn,
@@ -19,6 +19,7 @@ import { TrackedPiece, livePieces, trackPieces } from "@/constants/chess/PieceTr
 import { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics } from "../cosmetics";
 import { styles as gameStyles } from "../styles";
 import { BotAvatar } from "./BotAvatar";
+import { usePlayerAvatar } from "@/constants/PlayerAvatars";
 
 export const CHESS_FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 export const CHESS_RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
@@ -154,19 +155,24 @@ export function ChessBoard({
 	const files = flipped ? [...CHESS_FILES].reverse() : CHESS_FILES;
 	const kingInCheck = checkedKingSquare(fen);
 	const palette = CHESS_PIECE_COLORS[cosmetics.chessPieces];
-	const [width, setWidth] = useState(336);
+	// The space the board may take; the board itself is a whole number of pixels per square. Percent squares on an
+	// aspect-ratio box came out taller than wide on some phones (Galaxy A34), while the pieces were placed by the width,
+	// so they slid up a little more on every rank.
+	const [space, setSpace] = useState(336);
 	const [settled, setSettled] = useState(false);
 	useEffect(() => {
 		const timer = setTimeout(() => setSettled(true), 400);
 		return () => clearTimeout(timer);
 	}, []);
-	const cell = Math.max(1, (width - BOARD_BORDER * 2) / 8);
-	const onLayout = (event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width);
+	const cell = Math.max(1, Math.floor((Math.min(space, 336) - BOARD_BORDER * 2) / 8));
+	const boardSize = cell * 8 + BOARD_BORDER * 2;
+	const onLayout = (event: LayoutChangeEvent) => setSpace(event.nativeEvent.layout.width);
 	const pieces = useMemo(() => piecesFor(fen, moves), [fen, moves]);
 	const at = (square: string) => ({ x: files.indexOf(square[0]) * cell, y: ranks.indexOf(square[1]) * cell });
 
 	return (
-		<View style={gameStyles.chessBoard} onLayout={onLayout}>
+		<View style={local.boardSpace} onLayout={onLayout}>
+		<View style={[gameStyles.chessBoard, { width: boardSize, height: boardSize, aspectRatio: undefined }]}>
 			{ranks.map((rank) =>
 				files.map((file) => {
 					const square = `${file}${rank}`;
@@ -181,6 +187,8 @@ export function ChessBoard({
 							style={[
 								gameStyles.chessCell,
 								{
+									width: cell,
+									height: cell,
 									backgroundColor:
 										selected === square ? "#FACC15"
 										: hint?.from === square ? "#38BDF8"
@@ -209,6 +217,7 @@ export function ChessBoard({
 					settled={settled}
 				/>
 			))}
+		</View>
 		</View>
 	);
 }
@@ -249,16 +258,20 @@ export function PlayerBar({
 	active,
 	low,
 	look,
+	self = false,
 }: {
 	name: string;
 	rating?: string;
 	color: string;
 	look?: BotLook;
+	/** The signed-in player: the picture comes from the own profile; others are looked up by nickname. */
+	self?: boolean;
 	clock?: string;
 	active: boolean;
 	low?: boolean;
 }) {
 	const { currentTheme } = useTheme();
+	const avatarUrl = usePlayerAvatar(look ? null : name, self);
 	const pulse = useSharedValue(1);
 	useEffect(() => {
 		pulse.value = low && active ? withRepeat(withSequence(withTiming(1.12, { duration: 350 }), withTiming(1, { duration: 350 })), -1, false) : withTiming(1, { duration: 150 });
@@ -268,6 +281,8 @@ export function PlayerBar({
 		<View style={local.bar}>
 			{look ? (
 				<BotAvatar look={look} color={color} size={34} />
+			) : avatarUrl && avatarUrl.startsWith("http") ? (
+				<Image source={{ uri: avatarUrl }} style={[local.avatar, local.avatarImage, { borderColor: color }]} />
 			) : (
 				<View style={[local.avatar, { backgroundColor: color }]}>
 					<Text style={local.avatarText}>{name.trim()[0]?.toUpperCase() ?? "?"}</Text>
@@ -307,6 +322,7 @@ export function MoveStrip({ history, viewPly }: { history: string[]; viewPly: nu
 
 const local = StyleSheet.create({
 	lastMove: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(255,196,0,0.42)" },
+	boardSpace: { width: "100%", maxWidth: 336, alignItems: "center" },
 	piece: { position: "absolute", alignItems: "center", justifyContent: "center" },
 	promotion: { alignItems: "center", gap: 6, marginTop: 8 },
 	promotionLabel: { fontFamily: "Silkscreen", fontSize: 10 },
@@ -314,6 +330,7 @@ const local = StyleSheet.create({
 	promotionButton: { borderWidth: 2, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, alignItems: "center", justifyContent: "center" },
 	bar: { flexDirection: "row", alignItems: "center", gap: 8, width: "100%", maxWidth: 336, marginVertical: 6 },
 	avatar: { width: 28, height: 28, borderRadius: 4, alignItems: "center", justifyContent: "center" },
+	avatarImage: { width: 34, height: 34, borderRadius: 6, borderWidth: 2, backgroundColor: "rgba(255,255,255,0.08)" },
 	avatarText: { fontFamily: "SilkscreenBold", fontSize: 13, color: "#0b0b10" },
 	name: { fontFamily: "SilkscreenBold", fontSize: 12, flexShrink: 1 },
 	rating: { fontFamily: "Silkscreen", fontSize: 10 },

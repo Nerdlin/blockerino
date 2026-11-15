@@ -34,6 +34,8 @@ const TABS: { key: Tab; label: string }[] = [
 
 const ACTION_LABELS: Record<string, string> = {
 	adjust_coins: "Монеты",
+	set_elo: "Рейтинг ELO",
+	set_matches: "Число матчей",
 	reset_record: "Сброс рекорда",
 	set_android_version: "Версия Android",
 };
@@ -177,6 +179,10 @@ function PlayersTab() {
 function PlayerCard({ player, onBack }: { player: AdminPlayer; onBack: () => void }) {
 	const { currentTheme } = useTheme();
 	const [coins, setCoins] = useState(player.coins);
+	const [elo, setElo] = useState(player.elo);
+	const [matches, setMatches] = useState<number | null>(player.matches ?? null);
+	const [eloInput, setEloInput] = useState("");
+	const [matchesInput, setMatchesInput] = useState("");
 	const [amount, setAmount] = useState("");
 	const [reason, setReason] = useState("");
 	const [message, setMessage] = useState<string | null>(null);
@@ -200,13 +206,30 @@ function PlayerCard({ player, onBack }: { player: AdminPlayer; onBack: () => voi
 		return `Теперь ${result.coins} монет`;
 	});
 	const typed = Math.trunc(Number(amount));
+	const wholeNumber = (text: string) => (/^\d+$/.test(text.trim()) ? Number(text.trim()) : null);
+	const typedElo = wholeNumber(eloInput);
+	const typedMatches = wholeNumber(matchesInput);
+	const saveElo = () => run(async () => {
+		if (typedElo === null) return "Введите число";
+		const result = await adminApi.setElo(player.id, typedElo, reason || "админ-панель");
+		setElo(result.elo);
+		setEloInput("");
+		return `Рейтинг теперь ${result.elo}`;
+	});
+	const saveMatches = () => run(async () => {
+		if (typedMatches === null) return "Введите число";
+		const result = await adminApi.setMatches(player.id, typedMatches, reason || "админ-панель");
+		setMatches(result.matches);
+		setMatchesInput("");
+		return `Матчей теперь ${result.matches}`;
+	});
 
 	return (
 		<View style={{ gap: 10 }}>
 			<Pressable onPress={onBack}><Text style={[styles.link, { color: currentTheme.accent }]}>‹ К списку</Text></Pressable>
 			<Text style={[styles.title, { color: currentTheme.textPrimary, textAlign: "left" }]}>{player.player_name}</Text>
 			<Text style={[styles.muted, { color: currentTheme.textSecondary }]}>
-				Монеты {coins} · Elo {player.elo} · серия {player.streak_count}{"\n"}
+				Монеты {coins} · Elo {elo} · матчей {matches ?? "—"} · серия {player.streak_count}{"\n"}
 				Классика {player.highscore_classic} · Хаос {player.highscore_chaos}{"\n"}
 				Вход: {player.login_providers?.join(", ") || "—"}, последний {formatDate(player.last_login_at)}{"\n"}
 				С нами с {formatDate(player.created_at)}
@@ -225,6 +248,19 @@ function PlayerCard({ player, onBack }: { player: AdminPlayer; onBack: () => voi
 			</View>
 			<TextInput value={reason} onChangeText={setReason} placeholder="причина (для журнала)" placeholderTextColor={currentTheme.textSecondary}
 				style={[styles.input, { color: currentTheme.textPrimary, borderColor: currentTheme.textSecondary }]} />
+
+			<Text style={[styles.label, { color: currentTheme.textPrimary }]}>Рейтинг и матчи</Text>
+			<View style={styles.row}>
+				<TextInput value={eloInput} onChangeText={setEloInput} keyboardType="number-pad" placeholder={`ELO (сейчас ${elo})`} placeholderTextColor={currentTheme.textSecondary}
+					style={[styles.input, { flex: 1, color: currentTheme.textPrimary, borderColor: currentTheme.textSecondary }]} />
+				<StylizedButton text="Задать" onClick={() => void saveElo()} backgroundColor={currentTheme.buttonPrimary} style={styles.smallButton} textStyle={styles.smallText} disabled={busy || typedElo === null} />
+			</View>
+			<View style={styles.row}>
+				<TextInput value={matchesInput} onChangeText={setMatchesInput} keyboardType="number-pad" placeholder={`Матчей (сейчас ${matches ?? "—"})`} placeholderTextColor={currentTheme.textSecondary}
+					style={[styles.input, { flex: 1, color: currentTheme.textPrimary, borderColor: currentTheme.textSecondary }]} />
+				<StylizedButton text="Задать" onClick={() => void saveMatches()} backgroundColor={currentTheme.buttonPrimary} style={styles.smallButton} textStyle={styles.smallText} disabled={busy || typedMatches === null || !player.has_account} />
+			</View>
+			{!player.has_account && <Text style={[styles.muted, { color: currentTheme.textSecondary }]}>У гостя нет истории матчей: число матчей задаётся только игрокам с аккаунтом.</Text>}
 
 			<Text style={[styles.label, { color: currentTheme.textPrimary }]}>Подозрительный рекорд</Text>
 			<Text style={[styles.muted, { color: currentTheme.textSecondary }]}>Обнуляет лучший счёт режима и убирает игрока из таблицы текущего сезона.</Text>

@@ -942,8 +942,8 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 		chain: "elo_rank",
 		reward: 150,
 		title: "Gold Rank",
-		target: 1000,
-		howToUnlock: "Reach 1000 rating in Versus (Gold).",
+		target: 500,
+		howToUnlock: "Reach 500 rating in Versus (Gold).",
 		getCurrent: (_scores, stats) => stats.eloPeak,
 	},
 	{
@@ -951,8 +951,8 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 		chain: "elo_rank",
 		reward: 400,
 		title: "Diamond Rank",
-		target: 1200,
-		howToUnlock: "Reach 1200 rating in Versus (Diamond).",
+		target: 900,
+		howToUnlock: "Reach 900 rating in Versus (Diamond).",
 		getCurrent: (_scores, stats) => stats.eloPeak,
 	},
 	{
@@ -960,8 +960,8 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
 		chain: "elo_rank",
 		reward: 1500,
 		title: "Legend Rank",
-		target: 1600,
-		howToUnlock: "Reach 1600 rating in Versus (Legend).",
+		target: 2000,
+		howToUnlock: "Reach 2000 rating in Versus (Legend).",
 		getCurrent: (_scores, stats) => stats.eloPeak,
 	},
 ];

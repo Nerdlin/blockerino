@@ -36,21 +36,21 @@ const NAME_REQUIRED_MESSAGE = "mp.nameRequired";
 const NAME_READY_MESSAGE = "mp.nameReady";
 
 export function getEloBadge(elo: number): { tier: string; color: string; icon: UiGlyphName } {
-    if (elo < 800) return { tier: "Bronze", color: "#CD7F32", icon: "medalBronze" as const };
-    if (elo < 1000) return { tier: "Silver", color: "#C0C0C0", icon: "medalSilver" as const };
-    if (elo < 1200) return { tier: "Gold", color: "#FFD700", icon: "medalGold" as const };
+    if (elo < 200) return { tier: "Bronze", color: "#CD7F32", icon: "medalBronze" as const };
+    if (elo < 500) return { tier: "Silver", color: "#C0C0C0", icon: "medalSilver" as const };
+    if (elo < 900) return { tier: "Gold", color: "#FFD700", icon: "medalGold" as const };
     if (elo < 1400) return { tier: "Diamond", color: "#00BFFF", icon: "diamond" as const };
-    if (elo < 1600) return { tier: "Master", color: "#DA70D6", icon: "star" as const };
+    if (elo < 2000) return { tier: "Master", color: "#DA70D6", icon: "star" as const };
     return { tier: "Legend", color: "#FF4500", icon: "crown" as const };
 }
 
 const ELO_TIERS = [
-    { tier: "Bronze", color: "#CD7F32", icon: "medalBronze" as const, min: 0, max: 800 },
-    { tier: "Silver", color: "#C0C0C0", icon: "medalSilver" as const, min: 800, max: 1000 },
-    { tier: "Gold", color: "#FFD700", icon: "medalGold" as const, min: 1000, max: 1200 },
-    { tier: "Diamond", color: "#00BFFF", icon: "diamond" as const, min: 1200, max: 1400 },
-    { tier: "Master", color: "#DA70D6", icon: "star" as const, min: 1400, max: 1600 },
-    { tier: "Legend", color: "#FF4500", icon: "crown" as const, min: 1600, max: 2000 },
+    { tier: "Bronze", color: "#CD7F32", icon: "medalBronze" as const, min: 0, max: 200 },
+    { tier: "Silver", color: "#C0C0C0", icon: "medalSilver" as const, min: 200, max: 500 },
+    { tier: "Gold", color: "#FFD700", icon: "medalGold" as const, min: 500, max: 900 },
+    { tier: "Diamond", color: "#00BFFF", icon: "diamond" as const, min: 900, max: 1400 },
+    { tier: "Master", color: "#DA70D6", icon: "star" as const, min: 1400, max: 2000 },
+    { tier: "Legend", color: "#FF4500", icon: "crown" as const, min: 2000, max: 3000 },
 ];
 
 function getEloDetails(elo: number) {
@@ -960,7 +960,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         </View>
                         {getEloDetails(playerElo).nextTier && (
                             <Text style={[styles.eloDetailNext, { color: currentTheme.textSecondary }]}>
-                                {t("mp.pointsToTier", { points: getEloDetails(playerElo).nextTier!.min - playerElo, tier: getEloDetails(playerElo).nextTier!.tier })}
+                                {t("mp.pointsToTier", { points: getEloDetails(playerElo).nextTier!.min - playerElo, tier: t(`mp.tierName.${getEloDetails(playerElo).nextTier!.tier}`) })}
                             </Text>
                         )}
                     </View>
@@ -968,8 +968,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                     <Text style={[styles.subHeader, { color: currentTheme.textSecondary, marginTop: 16, marginBottom: 8, alignSelf: 'center', marginLeft: 0 }]}>
                         {t("mp.ratingTiers")}
                     </Text>
-                    <ScrollView style={styles.eloTierList} nestedScrollEnabled={true}>
-                        {ELO_TIERS.map((tierInfo) => {
+                    <View style={styles.eloTierList}>
+                        {ELO_TIERS.map((tierInfo, tierIndex) => {
                             const isCurrent = getEloBadge(playerElo).tier === tierInfo.tier;
                             return (
                                 <View key={tierInfo.tier} style={[
@@ -982,13 +982,13 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                             {t(`mp.tierName.${tierInfo.tier}`)}{isCurrent ? t("mp.youAreHere") : ''}
                                         </Text>
                                         <Text style={[styles.eloTierRange, { color: currentTheme.textSecondary }]}>
-                                            {t("mp.tierRange", { min: tierInfo.min, max: tierInfo.max === 2000 ? t("mp.maxRange") : tierInfo.max })}
+                                            {t("mp.tierRange", { min: tierInfo.min, max: tierIndex === ELO_TIERS.length - 1 ? t("mp.maxRange") : tierInfo.max })}
                                         </Text>
                                     </View>
                                 </View>
                             );
                         })}
-                    </ScrollView>
+                    </View>
 
                     <View style={styles.eloInfoBox}>
                         <Text style={[styles.eloInfoTitle, { color: currentTheme.accent }]}>{t("mp.howEloTitle")}</Text>
@@ -1389,7 +1389,6 @@ const styles = StyleSheet.create({
     },
     eloTierList: {
         width: '90%',
-        maxHeight: 220,
         marginBottom: 10,
     },
     eloTierRow: {
