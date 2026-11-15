@@ -20,6 +20,7 @@ import { levels } from "./levels";
 import { notifications } from "./notifications";
 import { playerprofile } from "./playerprofile";
 import { chess } from "./chess";
+import { chests } from "./chests";
 
 export type ScreenDictionary = { en: Record<string, string>; ru: Record<string, string> };
 
@@ -43,6 +44,7 @@ const modules: ScreenDictionary[] = [
 	notifications,
 	playerprofile,
 	chess,
+	chests,
 ];
 
 export const moduleTranslations: Record<Language, Record<string, string>> = {

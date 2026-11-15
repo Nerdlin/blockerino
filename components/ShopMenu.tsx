@@ -7,6 +7,7 @@ import StylizedButton from "./StylizedButton";
 import SegmentedControl from "./SegmentedControl";
 import CosmeticPreview from "./CosmeticPreview";
 import ShopPreviewModal from "./ShopPreviewModal";
+import ChestShop from "./ChestShop";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
 import {
@@ -21,11 +22,14 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useLanguage } from "@/constants/Localization";
 import { shopItemText } from "@/constants/i18n/shopItems";
 
-const CATEGORIES: { id: ShopCategory; labelKey: string }[] = [
+type ShopTab = ShopCategory | "chests";
+
+const CATEGORIES: { id: ShopTab; labelKey: string }[] = [
 	{ id: "piece_skin", labelKey: "shop.category.pieces" },
 	{ id: "background", labelKey: "shop.category.background" },
 	{ id: "music", labelKey: "shop.category.music" },
 	{ id: "sfx", labelKey: "shop.category.sounds" },
+	{ id: "chests", labelKey: "shop.category.chests" },
 ];
 
 export default function ShopMenu() {
@@ -36,7 +40,8 @@ export default function ShopMenu() {
 	const { t, language } = useLanguage();
 	const { width } = useWindowDimensions();
 	const isMobile = width < 620;
-	const [activeCategory, setActiveCategory] = useState<ShopCategory>("piece_skin");
+	const [activeTab, setActiveTab] = useState<ShopTab>("piece_skin");
+	const activeCategory: ShopCategory = activeTab === "chests" ? "piece_skin" : activeTab;
 	const [message, setMessage] = useState(t("shop.caption"));
 	const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
 
@@ -46,7 +51,7 @@ export default function ShopMenu() {
 	);
 	const visibleCatalogCount = useMemo(
 		() => CATEGORIES.reduce((total, category) => (
-			total + getVisibleShopItemsByCategory(category.id, state.ownedItemIds).length
+			total + (category.id === "chests" ? 0 : getVisibleShopItemsByCategory(category.id, state.ownedItemIds).length)
 		), 0),
 		[state.ownedItemIds]
 	);
@@ -59,9 +64,9 @@ export default function ShopMenu() {
 
 	useEscapeKey(close);
 
-	const handleSelectCategory = (category: ShopCategory) => {
+	const handleSelectCategory = (category: ShopTab) => {
 		playSfx("menuClick");
-		setActiveCategory(category);
+		setActiveTab(category);
 	};
 
 	const handleItemPress = async (item: ShopItem) => {
@@ -101,11 +106,12 @@ export default function ShopMenu() {
 
 			<SegmentedControl
 				items={CATEGORIES.map((category) => ({ key: category.id, label: t(category.labelKey) }))}
-				value={activeCategory}
+				value={activeTab}
 				onChange={handleSelectCategory}
 				small
 			/>
 
+			{activeTab === "chests" ? <ChestShop /> : (<>
 			<View style={styles.equippedRow}>
 				<Text style={[styles.equippedLabel, { color: currentTheme.textSecondary }]}>{t("shop.equipped")}</Text>
 				<Text style={[styles.equippedValue, { color: currentTheme.textPrimary }]} numberOfLines={1}>
@@ -127,6 +133,7 @@ export default function ShopMenu() {
 					</FadeInView>
 				))}
 			</View>
+			</>)}
 
 			<ShopPreviewModal
 				item={previewItem}

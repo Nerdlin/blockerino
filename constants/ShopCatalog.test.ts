@@ -28,6 +28,11 @@ function readServerCatalog(): Map<string, CatalogRow> {
 		for (const del of later.matchAll(/DELETE FROM public\.shop_catalog WHERE item_id IN \(([^)]*)\)/g)) {
 			for (const id of del[1].matchAll(/'([a-z0-9_]+)'/g)) rows.delete(id[1]);
 		}
+		// prices changed later: UPDATE public.shop_catalog SET price = 1400 WHERE item_id = 'a';
+		for (const upd of later.matchAll(/UPDATE public\.shop_catalog SET price = (\d+) WHERE item_id = '([a-z0-9_]+)'/g)) {
+			const row = rows.get(upd[2]);
+			if (row) rows.set(upd[2], { ...row, price: Number(upd[1]) });
+		}
 	}
 	return rows;
 }

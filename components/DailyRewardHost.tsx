@@ -12,18 +12,15 @@ import { loadShopState, useShopState } from "@/constants/Shop";
 import { MenuStateType, useAppStateValue } from "@/hooks/useAppState";
 import { track } from "@/constants/Analytics";
 import { enablePush, markPushOffered, shouldOfferPush } from "@/constants/Notifications";
-import DailyCalendar, { PixelChest } from "./DailyCalendar";
-import CosmeticPreview from "./CosmeticPreview";
-import { getShopItem } from "@/constants/Shop";
-import { shopItemText } from "@/constants/i18n/shopItems";
-import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import DailyCalendar from "./DailyCalendar";
+import ChestRoulette from "./ChestRoulette";
+import { ChestOdds, ChestPrizeCard, LuckyHourNote, useLuckyHour } from "./ChestParts";
 import {
 	claimDailyReward,
 	dailyRewardOpenAtom,
 	dailyRewardStatusAtom,
 	fetchDailyRewardStatus,
 	type DailyRewardClaim,
-	RARITY_COLORS,
 } from "@/constants/DailyReward";
 
 function utcDay(): string {
@@ -34,14 +31,12 @@ function utcDay(): string {
 // and reopened from the streak chip. The server keeps the streak and pays the coins; the wallet then
 // adopts the balance the server answers with.
 export default function DailyRewardHost() {
-	const { t, language } = useLanguage();
+	const { t } = useLanguage();
 	const { currentTheme } = useTheme();
 	const { commit } = useShopState();
-	const chestShake = useSharedValue(0);
-	const chestScale = useSharedValue(1);
-	const prizeIn = useSharedValue(0);
-	const chestStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${chestShake.value}deg` }, { scale: chestScale.value }] }));
-	const prizeStyle = useAnimatedStyle(() => ({ opacity: prizeIn.value, transform: [{ scale: 0.6 + 0.4 * prizeIn.value }] }));
+	const lucky = useLuckyHour();
+	// the chest's roulette has stopped: the prize card shows
+	const [chestDone, setChestDone] = useState(false);
 	const appState = useAppStateValue();
 	const [status, setStatus] = useAtom(dailyRewardStatusAtom);
 	const [open, setOpen] = useAtom(dailyRewardOpenAtom);
@@ -90,6 +85,7 @@ export default function DailyRewardHost() {
 	const close = () => {
 		setOpen(false);
 		setClaim(null);
+		setChestDone(false);
 		setFailed(false);
 		setOfferPush(false);
 		setPushNote(null);
@@ -130,13 +126,7 @@ export default function DailyRewardHost() {
 		}
 		setClaim(won);
 		setStatus({ ...status!, streak: won.streak, best: won.best, claimedToday: true, nextStreak: won.streak + 1, nextReward: won.nextReward });
-		if (won.chest) {
-			// the chest shakes, swells and pops open, then the prize grows out of it
-			chestShake.value = withSequence(withTiming(-12, { duration: 70 }), withTiming(12, { duration: 70 }), withTiming(-10, { duration: 70 }), withTiming(10, { duration: 70 }), withTiming(0, { duration: 70 }));
-			chestScale.value = withSequence(withDelay(350, withTiming(1.25, { duration: 160 })), withSpring(1));
-			prizeIn.value = 0;
-			prizeIn.value = withDelay(650, withTiming(1, { duration: 320 }));
-		}
+		setChestDone(false);
 		if (result.state === "claimed") {
 			track("streak_claim", { streak: won.streak, reward: won.reward });
 			if (await shouldOfferPush()) setOfferPush(true);
@@ -151,7 +141,6 @@ export default function DailyRewardHost() {
 	const collected = claimedNow || alreadyClaimed ? shownStreak : status.streak;
 	const weekdays = t("daily.weekdays").split(",");
 	const chest = claim?.chest ?? null;
-	const chestItem = chest?.kind === "item" ? getShopItem(chest.itemId) : undefined;
 	const daysToChest = (() => {
 		const next = status.calendar.find((entry) => entry.chest && entry.day >= (claimedNow || alreadyClaimed ? shownStreak + 1 : status.nextStreak));
 		return next ? next.day - (claimedNow || alreadyClaimed ? shownStreak : status.nextStreak - 1) : null;
@@ -166,28 +155,22 @@ export default function DailyRewardHost() {
 			<Text style={[styles.note, { color: currentTheme.textSecondary, marginBottom: 10 }]}>{t("daily.rules")}</Text>
 
 			{chest ? (
+				// the server already rolled the prize: the roulette stops on it, then the prize card shows
 				<View style={styles.chestReveal}>
-					<Animated.View style={[styles.burst, { backgroundColor: RARITY_COLORS[chest.rarity] }, prizeStyle]} />
-					<Animated.View style={chestStyle}>
-						<PixelChest size={chest.size === "big" ? 96 : 72} kind={chest.size} open />
-					</Animated.View>
-					<Animated.View style={[styles.prize, prizeStyle]}>
-						{chest.kind === "item" && (
-							<Text style={[styles.rarity, { color: RARITY_COLORS[chest.rarity] }]}>{t(`daily.rarity.${chest.rarity}`)}</Text>
-						)}
-						{chestItem ? (
-							<>
-								<CosmeticPreview item={chestItem} />
-								<Text style={[styles.reward, { color: "#FFD700" }]}>{t("daily.chestItem", { name: shopItemText(chestItem, language).title })}</Text>
-								{chest.coins > 0 && <Text style={[styles.line, { color: "#FFD700" }]}>{t("daily.reward", { coins: chest.coins })}</Text>}
-							</>
-						) : (
-							<Text style={[styles.reward, { color: "#FFD700" }]}>{t("daily.chestCoins", { coins: chest.coins })}</Text>
-						)}
-					</Animated.View>
+					<ChestRoulette prize={chest} onDone={() => setChestDone(true)} />
+					{chestDone && <ChestPrizeCard prize={chest} />}
 				</View>
 			) : (
-				<DailyCalendar calendar={status.calendar} collected={collected} today={today} weekdays={weekdays} />
+				<>
+					<DailyCalendar calendar={status.calendar} collected={collected} today={today} weekdays={weekdays} />
+					{!claimedNow && !alreadyClaimed && status.nextChest && (
+						<View style={styles.chestOdds}>
+							<Text style={[styles.oddsTitle, { color: currentTheme.textSecondary }]}>{t("chest.odds")}</Text>
+							<ChestOdds size={status.nextChest} lucky={lucky} />
+							<LuckyHourNote />
+						</View>
+					)}
+				</>
 			)}
 
 			<View style={styles.block}>
@@ -223,7 +206,7 @@ export default function DailyRewardHost() {
 						<StylizedButton text={t("notif.pushYes")} onClick={() => void onPushYes()} backgroundColor={currentTheme.buttonPrimary} />
 						<StylizedButton text={t("notif.pushNo")} onClick={onPushNo} backgroundColor={currentTheme.buttonSecondary} />
 					</>
-				) : (
+				) : chest && !chestDone ? null : (
 					<StylizedButton text={t("daily.ok")} onClick={close} backgroundColor={currentTheme.buttonPrimary} />
 				)}
 			</View>
@@ -263,25 +246,19 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 	},
 	chestReveal: {
+		alignSelf: "stretch",
 		alignItems: "center",
-		gap: 10,
+		gap: 12,
 		marginVertical: 8,
 	},
-	prize: {
-		alignItems: "center",
-		gap: 6,
+	chestOdds: {
+		alignSelf: "stretch",
+		gap: 8,
+		marginTop: 12,
 	},
-	burst: {
-		position: "absolute",
-		top: -10,
-		width: 150,
-		height: 150,
-		borderRadius: 75,
-		opacity: 0.25,
-	},
-	rarity: {
+	oddsTitle: {
 		fontFamily: "Silkscreen",
-		fontSize: 16,
+		fontSize: 12,
 		textAlign: "center",
 	},
 	buttons: {

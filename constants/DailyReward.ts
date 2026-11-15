@@ -93,7 +93,7 @@ function parseCalendar(value: unknown): CalendarDay[] {
 	return days.length > 0 ? days : fallbackCalendar();
 }
 
-function parseChest(value: unknown): ChestPrize | null {
+export function parseChest(value: unknown): ChestPrize | null {
 	if (!value || typeof value !== "object") return null;
 	const row = value as Record<string, unknown>;
 	const size = asChestSize(row.size) ?? "small";
