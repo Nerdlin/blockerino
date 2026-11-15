@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS public.profile_match_offsets (
 ALTER TABLE public.profile_match_offsets ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.profile_match_offsets FROM anon, authenticated;
 
--- Matches of a player (by account id, as match_history stores them): history rows plus the admin's offset.
+-- Matches of a player (by account id; match_history keeps ids as text): history rows plus the admin's offset.
 CREATE OR REPLACE FUNCTION public.player_matches(p_user uuid)
 RETURNS integer
 LANGUAGE sql
@@ -89,7 +89,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
   SELECT GREATEST(0,
-    (SELECT count(*)::integer FROM public.match_history WHERE player1_id = p_user OR player2_id = p_user)
+    (SELECT count(*)::integer FROM public.match_history WHERE player1_id::text = p_user::text OR player2_id::text = p_user::text)
     + COALESCE((SELECT o.matches_offset FROM public.profile_match_offsets o
                   JOIN public.profiles p ON p.id = o.profile_id
                  WHERE p.auth_user_id = p_user), 0));
@@ -164,7 +164,7 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'No such player'; END IF;
   IF v_user IS NULL THEN RAISE EXCEPTION 'Player has no account'; END IF;
   v_before := public.player_matches(v_user);
-  SELECT count(*)::integer INTO v_history FROM public.match_history WHERE player1_id = v_user OR player2_id = v_user;
+  SELECT count(*)::integer INTO v_history FROM public.match_history WHERE player1_id::text = v_user::text OR player2_id::text = v_user::text;
   INSERT INTO public.profile_match_offsets (profile_id, matches_offset, updated_at)
   VALUES (p_profile_id, p_matches - v_history, now())
   ON CONFLICT (profile_id) DO UPDATE SET matches_offset = EXCLUDED.matches_offset, updated_at = now();
