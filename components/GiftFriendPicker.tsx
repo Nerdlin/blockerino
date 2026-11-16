@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import StylizedButton from "./StylizedButton";
-import { useTheme } from "@/constants/Theme";
+import { opaqueColor, useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { loadShopState, useShopState, type ShopItem } from "@/constants/Shop";
 import { shopItemText } from "@/constants/i18n/shopItems";
@@ -75,7 +75,7 @@ export default function GiftFriendPicker({ gift, onClose, friend }: { gift: Gift
 	return (
 		<Modal transparent animationType="fade" visible onRequestClose={onClose}>
 			<Pressable style={styles.backdrop} onPress={onClose}>
-				<Pressable style={[styles.card, { backgroundColor: currentTheme.menuBackground }]} onPress={() => undefined}>
+				<Pressable style={[styles.card, { backgroundColor: opaqueColor(currentTheme.menuBackground) }]} onPress={() => undefined}>
 					<Text style={[styles.title, { color: currentTheme.textPrimary }]}>{t("gift.pickFriend")}</Text>
 					<Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("gift.pickNote", { gift: giftName, price })}</Text>
 					{friends === null ? (

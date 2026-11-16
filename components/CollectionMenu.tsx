@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import Animated, { FadeInDown } from "react-native-reanimated";
 import StylizedButton from "./StylizedButton";
 import UiIcon from "./UiIcon";
-import { useTheme } from "@/constants/Theme";
+import { opaqueColor, useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { useShopState } from "@/constants/Shop";
 import { useSoundSettings } from "@/constants/Sound";
@@ -34,7 +34,7 @@ export default function CollectionMenu({ onClose }: { onClose: () => void }) {
 	}, [state.ownedItemIds, chestState]);
 
 	const setName = (set: CollectionSet) =>
-		set.id === EXCLUSIVE_SET ? t("collection.exclusive") : `${t(`collection.category.${set.category}`)} · ${t(`daily.rarity.${set.rarity}`)}`;
+		set.id === EXCLUSIVE_SET ? t("collection.exclusive") : `${t(`collection.category.${set.category}`)} · ${t(`chest.kind.${set.rarity}`)}`;
 
 	const claim = async (set: CollectionSet) => {
 		if (claiming) return;
@@ -53,7 +53,7 @@ export default function CollectionMenu({ onClose }: { onClose: () => void }) {
 	return (
 		<Modal transparent animationType="fade" visible onRequestClose={onClose}>
 			<Pressable style={styles.backdrop} onPress={onClose}>
-				<Pressable style={[styles.card, { backgroundColor: currentTheme.menuBackground }]} onPress={() => undefined}>
+				<Pressable style={[styles.card, { backgroundColor: opaqueColor(currentTheme.menuBackground) }]} onPress={() => undefined}>
 					<Text style={[styles.title, { color: currentTheme.textPrimary }]}>{t("collection.title")}</Text>
 					<Text style={[styles.total, { color: currentTheme.accent }]}>{t("collection.total", { owned: summary.owned, total: summary.total })}</Text>
 					<View style={styles.rarities}>
@@ -61,7 +61,7 @@ export default function CollectionMenu({ onClose }: { onClose: () => void }) {
 							const entry = summary.byRarity[rarity];
 							return (
 								<View key={rarity} style={styles.rarity}>
-									<Text style={[styles.rarityName, { color: RARITY_COLORS[rarity] }]} numberOfLines={1}>{t(`daily.rarity.${rarity}`)}</Text>
+									<Text style={[styles.rarityName, { color: RARITY_COLORS[rarity] }]} numberOfLines={1}>{t(`chest.kind.${rarity}`)}</Text>
 									<View style={styles.bar}>
 										<View style={[styles.barFill, { backgroundColor: RARITY_COLORS[rarity], width: `${entry.total ? (entry.owned / entry.total) * 100 : 0}%` }]} />
 									</View>
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
 		fontSize: 11,
 	},
 	rarityCount: {
-		width: 48,
+		width: 58,
 		textAlign: "right",
 		fontFamily: "Silkscreen",
 		fontSize: 11,
