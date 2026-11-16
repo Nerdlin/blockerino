@@ -45,7 +45,6 @@ export default function GiftFriendPicker({ gift, onClose, friend }: { gift: Gift
 		if (result.status === "ok") {
 			playSfx("menuClick");
 			track("gift_send", { kind: gift.kind });
-			onClose();
 			gameAlert(t("gift.sentTitle"), t("gift.sent", { gift: giftName, name: to.name }));
 			return;
 		}
@@ -55,6 +54,8 @@ export default function GiftFriendPicker({ gift, onClose, friend }: { gift: Gift
 
 	const confirm = (to: GiftFriend) => {
 		playSfx("menuClick");
+		// the list closes first: a game dialog would open behind this modal
+		if (!friend) onClose();
 		gameAlert(t("gift.confirmTitle"), t("gift.confirm", { gift: giftName, name: to.name, price }), [
 			{ text: t("gift.cancel"), style: "cancel" },
 			{ text: t("gift.send"), onPress: () => void send(to) },

@@ -39,18 +39,21 @@ export default function ChestRoulette({ prize, onDone }: { prize: ChestPrize; on
 	const doneRef = useRef(onDone);
 	doneRef.current = onDone;
 
+	// kept in a ref: playSfx changes identity when a sound plays, and the spin below must start only once
+	const sfxRef = useRef(playSfx);
+	sfxRef.current = playSfx;
 	const tick = useCallback(() => {
 		const now = Date.now();
 		if (now - lastTick.current < 40) return;
 		lastTick.current = now;
-		void playSfx("buttonHover");
-	}, [playSfx]);
+		void sfxRef.current("buttonHover");
+	}, []);
 
 	const finish = useCallback(() => {
 		setStopped(true);
-		void playSfx("menuClick");
+		void sfxRef.current("menuClick");
 		doneRef.current();
-	}, [playSfx]);
+	}, []);
 
 	useEffect(() => {
 		if (width === 0) return;

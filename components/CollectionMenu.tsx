@@ -7,7 +7,6 @@ import { opaqueColor, useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { useShopState } from "@/constants/Shop";
 import { useSoundSettings } from "@/constants/Sound";
-import { gameAlert } from "@/constants/GameDialog";
 import { useChestState } from "@/constants/Chests";
 import { RARITY_COLORS } from "@/constants/DailyReward";
 import { EXCLUSIVE_SET, RARITY_ORDER, buildCollectionSets, claimCollectionSet, summarizeCollection, type CollectionSet } from "@/constants/Collection";
@@ -22,6 +21,8 @@ export default function CollectionMenu({ onClose }: { onClose: () => void }) {
 	const { playSfx } = useSoundSettings();
 	const { chestState } = useChestState();
 	const [claiming, setClaiming] = useState<string | null>(null);
+	// shown inside this window: a game dialog would open behind the modal
+	const [note, setNote] = useState<{ text: string; ok: boolean } | null>(null);
 
 	const summary = useMemo(() => summarizeCollection(state.ownedItemIds, chestState), [state.ownedItemIds, chestState]);
 	const sets = useMemo(() => {
@@ -43,11 +44,11 @@ export default function CollectionMenu({ onClose }: { onClose: () => void }) {
 		setClaiming(null);
 		if (result.status === "ok") {
 			playSfx("menuClick");
-			gameAlert(t("collection.claimedTitle"), t("collection.claimed", { name: setName(set), keys: result.keys }));
+			setNote({ text: t("collection.claimed", { name: setName(set), keys: result.keys }), ok: true });
 			return;
 		}
 		playSfx("invalidPlacement");
-		gameAlert(t("collection.title"), t(result.status === "no_account" ? "chest.needAccount" : "chest.failed"));
+		setNote({ text: t(result.status === "no_account" ? "chest.needAccount" : "collection.failed"), ok: false });
 	};
 
 	return (
@@ -70,7 +71,7 @@ export default function CollectionMenu({ onClose }: { onClose: () => void }) {
 							);
 						})}
 					</View>
-					<Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("collection.note")}</Text>
+					<Text style={[styles.note, { color: note ? (note.ok ? "#4ADE80" : "#F87171") : currentTheme.textSecondary }]}>{note ? note.text : t("collection.note")}</Text>
 					<ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
 						{sets.map((set, index) => {
 							const color = set.rarity ? RARITY_COLORS[set.rarity] : "#FFC93C";
