@@ -25,8 +25,8 @@ describe("shop catalog and wallet", () => {
 	it("offers expanded cosmetic variants without duplicate ids", () => {
 		const ids = SHOP_ITEMS.map((item) => item.id);
 		expect(new Set(ids).size).toBe(ids.length);
-		expect(getShopItemsByCategory("piece_skin").filter((item) => !item.secret)).toHaveLength(55);
-		expect(getShopItemsByCategory("background").filter((item) => !item.secret)).toHaveLength(55);
+		expect(getShopItemsByCategory("piece_skin").filter((item) => !item.secret)).toHaveLength(61);
+		expect(getShopItemsByCategory("background").filter((item) => !item.secret)).toHaveLength(61);
 		expect(getShopItemsByCategory("music").filter((item) => !item.secret)).toHaveLength(55);
 		expect(getShopItemsByCategory("sfx").filter((item) => !item.secret)).toHaveLength(55);
 	});

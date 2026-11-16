@@ -919,6 +919,60 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 				{ r: 125, g: 211, b: 252 },
 				{ r: 216, g: 180, b: 254 },
 			];
+		case "piece_chest_aurora":
+			return [
+				{ r: 20, g: 184, b: 166 },
+				{ r: 94, g: 234, b: 212 },
+				{ r: 167, g: 139, b: 250 },
+				{ r: 52, g: 211, b: 153 },
+				{ r: 103, g: 232, b: 249 },
+				{ r: 196, g: 181, b: 253 },
+			];
+		case "piece_chest_cosmic":
+			return [
+				{ r: 99, g: 102, b: 241 },
+				{ r: 129, g: 140, b: 248 },
+				{ r: 240, g: 171, b: 252 },
+				{ r: 79, g: 70, b: 229 },
+				{ r: 165, g: 180, b: 252 },
+				{ r: 232, g: 121, b: 249 },
+			];
+		case "piece_chest_toxic":
+			return [
+				{ r: 101, g: 163, b: 13 },
+				{ r: 132, g: 204, b: 22 },
+				{ r: 236, g: 252, b: 203 },
+				{ r: 77, g: 124, b: 15 },
+				{ r: 163, g: 230, b: 53 },
+				{ r: 34, g: 197, b: 94 },
+			];
+		case "piece_chest_dragon":
+			return [
+				{ r: 185, g: 28, b: 28 },
+				{ r: 220, g: 38, b: 38 },
+				{ r: 251, g: 191, b: 36 },
+				{ r: 234, g: 88, b: 12 },
+				{ r: 249, g: 115, b: 22 },
+				{ r: 253, g: 224, b: 71 },
+			];
+		case "piece_chest_prism":
+			return [
+				{ r: 244, g: 114, b: 182 },
+				{ r: 96, g: 165, b: 250 },
+				{ r: 253, g: 224, b: 71 },
+				{ r: 52, g: 211, b: 153 },
+				{ r: 192, g: 132, b: 252 },
+				{ r: 251, g: 146, b: 60 },
+			];
+		case "piece_chest_relic":
+			return [
+				{ r: 202, g: 138, b: 4 },
+				{ r: 234, g: 179, b: 8 },
+				{ r: 254, g: 249, b: 195 },
+				{ r: 161, g: 98, b: 7 },
+				{ r: 250, g: 204, b: 21 },
+				{ r: 253, g: 230, b: 138 },
+			];
 		case "piece_moonstone":
 			return [
 				{ r: 82, g: 96, b: 125 },

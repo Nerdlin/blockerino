@@ -43,6 +43,12 @@ const EXTRA: Record<string, SkinKind> = {
 	piece_arcade_gum: "liquid",
 	piece_storm_cloud: "liquid",
 	piece_royal_velvet: "liquid",
+	piece_chest_aurora: "liquid",
+	piece_chest_cosmic: "crystal",
+	piece_chest_toxic: "neon",
+	piece_chest_dragon: "lava",
+	piece_chest_prism: "crystal",
+	piece_chest_relic: "crystal",
 };
 
 export function getSkinKind(pieceSkinId: string = "piece_classic"): SkinKind {

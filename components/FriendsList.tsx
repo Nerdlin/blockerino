@@ -11,6 +11,9 @@ import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
 import { useFriendInvite } from "@/hooks/useFriendInvite";
 import { fetchFriendsOnline } from "@/constants/Invites";
 import { nameFontFamily } from "@/constants/NameFont";
+import GiftFriendPicker from "./GiftFriendPicker";
+import { CHEST_PRICES } from "@/constants/Chests";
+import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
 
 function escapeIlikePattern(value: string): string {
     return value.replace(/[\\%_]/g, "\\$&");
@@ -43,6 +46,17 @@ export default function FriendsList({ userId }: { userId: string }) {
     const [suggestions, setSuggestions] = useState<FriendProfile[]>([]);
     const openProfile = useOpenPlayerProfile();
     const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
+    const [giftFriend, setGiftFriend] = useState<{ id: string; name: string } | null>(null);
+    const [setAppState] = useSetAppState();
+
+    // A chest goes straight from here; a skin is picked in the shop (its preview has the gift button).
+    const offerGift = (id: string, name: string) => {
+        gameAlert(t("gift.title"), t("gift.choose", { name }), [
+            { text: t("gift.cancel"), style: "cancel" },
+            { text: t("gift.skin"), onPress: () => setAppState(MenuStateType.SHOP) },
+            { text: t("gift.chest", { price: CHEST_PRICES.small }), onPress: () => setGiftFriend({ id, name }) },
+        ]);
+    };
 
     // Friends seen in the last two minutes get a green dot; asked again every 30 seconds while this list is open.
     useEffect(() => {
@@ -341,12 +355,14 @@ export default function FriendsList({ userId }: { userId: string }) {
                             </View>
                             <View style={styles.actionsRow}>
                                 <StylizedButton text={t("friends.invite1v1")} onClick={() => handleInvite1v1(f.user_id_1 === userId ? f.user_id_2 : f.user_id_1, getFriendName(f))} backgroundColor={currentTheme.accent} style={styles.inviteBtn} textStyle={styles.actionBtnText}/>
+                                <StylizedButton text={t("gift.short")} onClick={() => offerGift(f.user_id_1 === userId ? f.user_id_2 : f.user_id_1, getFriendName(f))} backgroundColor="#7C3AED" style={styles.inviteBtn} textStyle={styles.actionBtnText}/>
                                 <StylizedButton text={t("friends.remove")} onClick={() => handleDeleteOrCancel(f.id)} backgroundColor="rgb(200,50,50)" style={styles.cancelBtn} textStyle={styles.actionBtnText}/>
                             </View>
                         </View>
                     ))
                 )}
             </View>
+            <GiftFriendPicker gift={giftFriend ? { kind: "chest" } : null} friend={giftFriend ?? undefined} onClose={() => setGiftFriend(null)} />
         </ScrollView>
     );
 }

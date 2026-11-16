@@ -15,6 +15,7 @@ export default function ShopPreviewModal({
 	equipped,
 	canAfford,
 	onConfirm,
+	onGift,
 	onClose,
 }: {
 	item: ShopItem | null;
@@ -22,6 +23,8 @@ export default function ShopPreviewModal({
 	equipped: boolean;
 	canAfford: boolean;
 	onConfirm: (item: ShopItem) => void;
+	/** Sending the item to a friend; only items sold for coins can be gifts. */
+	onGift?: (item: ShopItem) => void;
 	onClose: () => void;
 }) {
 	const { currentTheme } = useTheme();
@@ -29,8 +32,10 @@ export default function ShopPreviewModal({
 	if (!item) return null;
 
 	const free = item.price === 0;
-	const actionText = equipped ? t("shop.equipped") : owned || free ? t("shop.equip") : t("shop.buy", { price: item.price });
-	const disabled = equipped || (!owned && !free && !canAfford);
+	const chestOnly = item.chestOnly === true && !owned;
+	const actionText = equipped ? t("shop.equipped") : owned || free ? t("shop.equip") : chestOnly ? t("shop.toChests") : t("shop.buy", { price: item.price });
+	const disabled = equipped || (!owned && !free && !chestOnly && !canAfford);
+	const giftable = onGift && !free && !item.chestOnly && !item.secret;
 
 	return (
 		<Modal transparent animationType="fade" visible onRequestClose={onClose}>
@@ -42,20 +47,30 @@ export default function ShopPreviewModal({
 					</View>
 					<Text style={[styles.description, { color: currentTheme.textSecondary }]}>{shopItemText(item, language).description}</Text>
 					<Text style={[styles.status, { color: owned ? item.accent : currentTheme.accent }]}>
-						{owned ? t("shop.owned") : free ? t("shop.price", { price: 0 }) : t("shop.price", { price: item.price })}
+						{owned ? t("shop.owned") : free ? t("shop.price", { price: 0 }) : chestOnly ? t("shop.chestOnly") : t("shop.price", { price: item.price })}
 					</Text>
-					{!owned && !free && !canAfford && (
+					{chestOnly && <Text style={[styles.hint, { color: "#FFC93C" }]}>{t("shop.chestOnlyHint")}</Text>}
+					{!owned && !free && !chestOnly && !canAfford && (
 						<Text style={[styles.hint, { color: "#F87171" }]}>{t("shop.notEnough")}</Text>
 					)}
 					<View style={styles.buttons}>
 						<StylizedButton
 							text={actionText}
 							onClick={() => onConfirm(item)}
-							backgroundColor={owned || free ? item.accent : currentTheme.buttonPrimary}
+							backgroundColor={owned || free ? item.accent : chestOnly ? "#B8860B" : currentTheme.buttonPrimary}
 							disabled={disabled}
 							style={styles.button}
 							textStyle={styles.buttonText}
 						/>
+						{giftable && (
+							<StylizedButton
+								text={t("gift.button", { price: item.price })}
+								onClick={() => onGift(item)}
+								backgroundColor="#7C3AED"
+								style={styles.button}
+								textStyle={styles.buttonText}
+							/>
+						)}
 						<StylizedButton
 							text={t("shop.close")}
 							onClick={onClose}

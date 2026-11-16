@@ -10,16 +10,24 @@ export type SeasonResultBoard = "classic" | "chaos" | "elo";
 
 export const SEASON_RESULT_BOARDS: SeasonResultBoard[] = ["classic", "chaos", "elo"];
 
+/** Boards that pay at a season close: the season boards and the top 3 of the all-time challenge boards. */
+export type SeasonRewardBoard = SeasonResultBoard | "time_attack" | "daily" | "move_limit" | "rescue" | "combo_trial";
+
+const REWARD_BOARDS: SeasonRewardBoard[] = ["classic", "chaos", "elo", "time_attack", "daily", "move_limit", "rescue", "combo_trial"];
+
 export interface SeasonRewardEntry {
 	seasonKey: string;
-	board: SeasonResultBoard;
+	board: SeasonRewardBoard;
 	rank: number;
 	coins: number;
+	/** Chest keys. */
+	keys: number;
 	itemId: string | null;
 }
 
 export interface SeasonRewardSummary {
 	coins: number;
+	keys: number;
 	itemIds: string[];
 	entries: SeasonRewardEntry[];
 }
@@ -69,13 +77,15 @@ export function parseRewardEntries(raw: unknown): SeasonRewardEntry[] {
 		const itemId = row.itemId ?? row.item_id;
 		const rank = Number(row.rank);
 		const coins = Number(row.coins);
-		if (typeof seasonKey !== "string" || !isBoard(row.board)) continue;
+		if (typeof seasonKey !== "string" || !REWARD_BOARDS.includes(row.board as SeasonRewardBoard)) continue;
+		const keys = Number(row.keys);
 		if (!Number.isInteger(rank) || rank < 1 || !Number.isFinite(coins) || coins < 0) continue;
 		entries.push({
 			seasonKey,
-			board: row.board,
+			board: row.board as SeasonRewardBoard,
 			rank,
 			coins: Math.floor(coins),
+			keys: Number.isFinite(keys) && keys > 0 ? Math.floor(keys) : 0,
 			itemId: typeof itemId === "string" && itemId.length > 0 ? itemId : null,
 		});
 	}
@@ -86,11 +96,13 @@ export function parseRewardEntries(raw: unknown): SeasonRewardEntry[] {
 export function summarizeSeasonRewards(entries: SeasonRewardEntry[]): SeasonRewardSummary {
 	const itemIds = new Set<string>();
 	let coins = 0;
+	let keys = 0;
 	for (const entry of entries) {
 		coins += entry.coins;
+		keys += entry.keys;
 		if (entry.itemId && getShopItem(entry.itemId)) itemIds.add(entry.itemId);
 	}
-	return { coins, itemIds: [...itemIds], entries };
+	return { coins, keys, itemIds: [...itemIds], entries };
 }
 
 export function getBestRewardRank(entries: SeasonRewardEntry[]): number | null {

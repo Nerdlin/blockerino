@@ -78,13 +78,15 @@ export function LuckyHourNote() {
 }
 
 /** The prize after the roulette stopped. */
-export function ChestPrizeCard({ prize }: { prize: ChestPrize }) {
+export function ChestPrizeCard({ prize, exclusive, pity }: { prize: ChestPrize; exclusive?: boolean; pity?: boolean }) {
 	const { t, language } = useLanguage();
 	const item = prize.kind === "item" ? getShopItem(prize.itemId) : undefined;
 	const color = RARITY_COLORS[prize.rarity];
 	return (
 		<Animated.View entering={ZoomIn.springify().damping(18).stiffness(180)} style={[styles.prize, { borderColor: color, backgroundColor: `${color}14` }]}>
 			<Text style={[styles.prizeRarity, { color }]}>{t(`daily.rarity.${prize.rarity}`)}</Text>
+			{(exclusive || item?.chestOnly) && <Text style={styles.prizeTag}>{t("chest.exclusiveTag")}</Text>}
+			{pity && <Text style={styles.prizeTag}>{t("chest.pityTag")}</Text>}
 			{item ? (
 				<>
 					<View style={styles.prizePreview}><CosmeticPreview item={item} large /></View>
@@ -169,6 +171,11 @@ const styles = StyleSheet.create({
 	prizeRarity: {
 		fontFamily: "Silkscreen",
 		fontSize: 16,
+	},
+	prizeTag: {
+		fontFamily: "Silkscreen",
+		fontSize: 11,
+		color: "#FFD700",
 	},
 	prizePreview: {
 		width: 200,

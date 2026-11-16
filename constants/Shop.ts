@@ -20,6 +20,8 @@ export interface ShopItem {
 	gradient?: [string, string, string];
 	scene?: BackgroundScene;
 	secret?: boolean;
+	/** Only chests give it (server catalog kind 'server_only' with a price that sets its rarity); never sold. */
+	chestOnly?: boolean;
 }
 
 export interface EquippedCosmetics {
@@ -692,6 +694,46 @@ const EXTRA_SFX_WAVE_2: ShopItem[] = [
 	previewColors: previewColors as string[],
 }));
 
+// Chest exclusives: never sold, only chests give them (open_chest, migration 20261116120000_chest_keys_gifts).
+// The price is not a price: it only sets the rarity (epic up to 900, legendary above).
+const CHEST_EXCLUSIVE_PIECES: ShopItem[] = [
+	["piece_chest_aurora", "Aurora Core", "Northern light trapped inside every block.", 820, "#5EEAD4", ["#0F766E", "#5EEAD4", "#A78BFA"]],
+	["piece_chest_cosmic", "Cosmic Dust", "Deep space blocks sprinkled with stardust.", 860, "#818CF8", ["#1E1B4B", "#6366F1", "#F0ABFC"]],
+	["piece_chest_toxic", "Toxic Glow", "Radioactive green blocks that never stop glowing.", 880, "#A3E635", ["#1A2E05", "#84CC16", "#ECFCCB"]],
+	["piece_chest_dragon", "Dragon Scale", "Red and gold scales of an ancient dragon.", 1700, "#F97316", ["#450A0A", "#DC2626", "#FBBF24"]],
+	["piece_chest_prism", "Prism Heart", "Every block splits light into a rainbow.", 1800, "#F0ABFC", ["#F472B6", "#60A5FA", "#FDE047"]],
+	["piece_chest_relic", "Golden Relic", "Pure gold blocks from a forgotten treasury.", 2000, "#FFD700", ["#78350F", "#EAB308", "#FEF9C3"]],
+].map(([id, title, description, price, accent, previewColors]) => ({
+	id: id as string,
+	category: "piece_skin" as const,
+	title: title as string,
+	description: description as string,
+	price: price as number,
+	accent: accent as string,
+	previewColors: previewColors as string[],
+	chestOnly: true,
+}));
+
+const CHEST_EXCLUSIVE_BACKGROUNDS: ShopItem[] = [
+	["background_chest_northern", "Northern Vault", "Green aurora over a frozen vault.", 820, "#5EEAD4", ["#020617", "#0F766E", "#A78BFA"], ["rgb(2, 6, 23)", "rgb(15, 118, 110)", "rgb(167, 139, 250)"], "ice"],
+	["background_chest_sunken", "Sunken City", "Blue ruins deep under the sea.", 860, "#38BDF8", ["#020B1A", "#0C4A6E", "#38BDF8"], ["rgb(2, 11, 26)", "rgb(12, 74, 110)", "rgb(56, 189, 248)"], "ice"],
+	["background_chest_galaxy", "Pixel Galaxy", "A spiral galaxy drawn pixel by pixel.", 900, "#C084FC", ["#05010F", "#4C1D95", "#F0ABFC"], ["rgb(5, 1, 15)", "rgb(76, 29, 149)", "rgb(240, 171, 252)"], "ender"],
+	["background_chest_dragon", "Dragon Lair", "Embers and gold in a dragon's cave.", 1700, "#F97316", ["#1A0500", "#991B1B", "#FBBF24"], ["rgb(26, 5, 0)", "rgb(153, 27, 27)", "rgb(251, 191, 36)"], "sunset"],
+	["background_chest_crystal", "Crystal Cave", "Glowing crystals of every colour.", 1800, "#F0ABFC", ["#0B0420", "#7E22CE", "#67E8F9"], ["rgb(11, 4, 32)", "rgb(126, 34, 206)", "rgb(103, 232, 249)"], "cyber"],
+	["background_chest_treasure", "Treasure Hall", "A hall of gold for the luckiest players.", 2000, "#FFD700", ["#1C1002", "#A16207", "#FFD700"], ["rgb(28, 16, 2)", "rgb(161, 98, 7)", "rgb(255, 215, 0)"], "sunset"],
+].map(([id, title, description, price, accent, previewColors, gradient, scene]) => ({
+	id: id as string,
+	category: "background" as const,
+	title: title as string,
+	description: description as string,
+	price: price as number,
+	accent: accent as string,
+	previewColors: previewColors as string[],
+	gradient: gradient as [string, string, string],
+	scene: scene as BackgroundScene,
+	chestOnly: true,
+}));
+
 function dedupeShopItems(items: ShopItem[]): ShopItem[] {
 	const itemMap = new Map<string, ShopItem>();
 	for (const item of items) {
@@ -712,6 +754,8 @@ export const SHOP_ITEMS: ShopItem[] = dedupeShopItems([
 	...EXTRA_MUSIC_WAVE_2,
 	...EXTRA_SFX,
 	...EXTRA_SFX_WAVE_2,
+	...CHEST_EXCLUSIVE_PIECES,
+	...CHEST_EXCLUSIVE_BACKGROUNDS,
 ]);
 
 const SHOP_ITEM_MAP = new Map(SHOP_ITEMS.map((item) => [item.id, item]));
@@ -830,6 +874,10 @@ export function purchaseShopItem(state: ShopState, itemId: string): { ok: boolea
 
 	if (item.secret) {
 		return { ok: false, state: current, error: "Find this secret first." };
+	}
+
+	if (item.chestOnly) {
+		return { ok: false, state: current, error: "Only chests give this item." };
 	}
 
 	if (current.balance < item.price) {

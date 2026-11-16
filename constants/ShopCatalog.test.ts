@@ -19,8 +19,17 @@ function readServerCatalog(): Map<string, CatalogRow> {
 	if (!file) throw new Error("shop_catalog migration not found");
 	const sql = fs.readFileSync(path.join(dir, file), "utf8");
 	const rows = new Map<string, CatalogRow>();
-	for (const match of sql.matchAll(/^\s*\('([a-z0-9_]+)', (\d+), '(free|paid|client_secret|server_only)'\)/gm)) {
+	const rowPattern = /^\s*\('([a-z0-9_]+)', (\d+), '(free|paid|client_secret|server_only)'\)/gm;
+	for (const match of sql.matchAll(rowPattern)) {
 		rows.set(match[1], { price: Number(match[2]), kind: match[3] });
+	}
+	// items added later (chest exclusives): the same rows in an INSERT INTO public.shop_catalog of a later migration
+	for (const name of fs.readdirSync(dir).sort()) {
+		if (name === file) continue;
+		const later = fs.readFileSync(path.join(dir, name), "utf8");
+		for (const block of later.matchAll(/INSERT INTO public\.shop_catalog[^;]*;/g)) {
+			for (const match of block[0].matchAll(rowPattern)) rows.set(match[1], { price: Number(match[2]), kind: match[3] });
+		}
 	}
 	// items removed from the game later: DELETE FROM public.shop_catalog WHERE item_id IN ('a', 'b');
 	for (const name of fs.readdirSync(dir).sort()) {
@@ -38,6 +47,7 @@ function readServerCatalog(): Map<string, CatalogRow> {
 }
 
 function expectedKind(item: (typeof SHOP_ITEMS)[number]): string {
+	if (item.chestOnly) return "server_only";
 	if (item.secret) return item.id.startsWith("background_season_") ? "server_only" : "client_secret";
 	return item.price > 0 ? "paid" : "free";
 }

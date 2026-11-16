@@ -81,7 +81,7 @@ export default function DailyQuestsCard() {
 			if (id === "bonus") return sum + BONUS_REWARD;
 			return sum + (view.quests.find((quest) => quest.id === id)?.reward ?? 0);
 		}, 0);
-		setNote({ text: t("ach.claimed", { coins: paid }), ok: true });
+		setNote({ text: t(result.keys !== null ? "quest.claimedKey" : "ach.claimed", { coins: paid }), ok: true });
 		void playSfx("achievement");
 		if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
 		await refresh();

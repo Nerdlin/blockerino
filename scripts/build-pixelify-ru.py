@@ -133,6 +133,12 @@ draw_rects(cmap[0x0442], [
     (242, -12, 343, 359),  # stem
 ])
 
+# К: the source font draws it with an acute accent on top (it is the glyph of Ќ). The Latin K is the same letter
+# without the accent.
+import copy
+glyf[cmap[0x041A]] = copy.deepcopy(glyf[cmap[0x004B]])
+hmtx[cmap[0x041A]] = hmtx[cmap[0x004B]]
+
 upm = font["head"].unitsPerEm
 add = round(upm * LETTER_SPACING_EM)
 for name, (advance, lsb) in list(hmtx.metrics.items()):

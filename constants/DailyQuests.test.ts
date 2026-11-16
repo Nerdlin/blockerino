@@ -128,7 +128,7 @@ describe("claimDailyQuests", () => {
 		mockRpc.mockResolvedValue({ data: { status: "ok", coins: 120, granted: ["lines_15"], claimed: ["lines_15"] }, error: null });
 		const result = await claimDailyQuests(day, ["lines_15"]);
 		expect(mockRpc).toHaveBeenCalledWith("claim_daily_quests", { p_day: day, p_ids: ["lines_15"] });
-		expect(result).toEqual({ coins: 120, granted: ["lines_15"], claimed: ["lines_15"] });
+		expect(result).toEqual({ coins: 120, keys: null, granted: ["lines_15"], claimed: ["lines_15"] });
 		expect(JSON.parse((await AsyncStorage.getItem("DAILY_QUESTS_STATE"))!).claimed).toEqual(["lines_15"]);
 	});
 

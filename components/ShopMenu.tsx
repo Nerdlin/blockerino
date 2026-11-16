@@ -8,6 +8,9 @@ import SegmentedControl from "./SegmentedControl";
 import CosmeticPreview from "./CosmeticPreview";
 import ShopPreviewModal from "./ShopPreviewModal";
 import ChestShop from "./ChestShop";
+import CollectionMenu from "./CollectionMenu";
+import GiftFriendPicker from "./GiftFriendPicker";
+import { useCollectionSummary } from "@/constants/Collection";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
 import {
@@ -44,6 +47,14 @@ export default function ShopMenu() {
 	const activeCategory: ShopCategory = activeTab === "chests" ? "piece_skin" : activeTab;
 	const [message, setMessage] = useState(t("shop.caption"));
 	const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
+	const [collectionOpen, setCollectionOpen] = useState(false);
+	const [giftItem, setGiftItem] = useState<ShopItem | null>(null);
+	const collection = useCollectionSummary(state.ownedItemIds);
+	const toChests = () => {
+		playSfx("menuClick");
+		setPreviewItem(null);
+		setActiveTab("chests");
+	};
 
 	const items = useMemo(
 		() => getVisibleShopItemsByCategory(activeCategory, state.ownedItemIds),
@@ -102,6 +113,16 @@ export default function ShopMenu() {
 					</View>
 				</View>
 				<Text style={[styles.caption, { color: currentTheme.textSecondary }]}>{message}</Text>
+				<Pressable
+					onPress={() => { playSfx("menuClick"); setCollectionOpen(true); }}
+					accessibilityRole="button"
+					style={[styles.collectionPill, collection.claimable > 0 && styles.collectionPillReady]}
+				>
+					<Text style={[styles.collectionText, collection.claimable > 0 && { color: "#FFD700" }]}>
+						{t("collection.pill", { owned: collection.owned, total: collection.total })}
+						{collection.claimable > 0 ? ` · ${t("collection.ready", { count: collection.claimable })}` : ""}
+					</Text>
+				</Pressable>
 			</View>
 
 			<SegmentedControl
@@ -127,7 +148,7 @@ export default function ShopMenu() {
 						isOwned={state.ownedItemIds.includes(item.id)}
 						isEquipped={state.equipped[item.category] === item.id}
 						canAfford={state.balance >= item.price}
-						onPress={() => handleItemPress(item)}
+						onPress={() => (item.chestOnly && !state.ownedItemIds.includes(item.id) ? toChests() : handleItemPress(item))}
 						onPreview={() => setPreviewItem(item)}
 					/>
 					</FadeInView>
@@ -140,9 +161,17 @@ export default function ShopMenu() {
 				owned={previewItem ? state.ownedItemIds.includes(previewItem.id) : false}
 				equipped={previewItem ? state.equipped[previewItem.category] === previewItem.id : false}
 				canAfford={previewItem ? state.balance >= previewItem.price : false}
-				onConfirm={async (item) => { await handleItemPress(item); setPreviewItem(null); }}
+				onConfirm={async (item) => {
+					if (item.chestOnly && !state.ownedItemIds.includes(item.id)) return toChests();
+					await handleItemPress(item);
+					setPreviewItem(null);
+				}}
+				onGift={(item) => { playSfx("menuClick"); setPreviewItem(null); setGiftItem(item); }}
 				onClose={() => setPreviewItem(null)}
 			/>
+
+			<GiftFriendPicker gift={giftItem ? { kind: "item", item: giftItem } : null} onClose={() => setGiftItem(null)} />
+			{collectionOpen && <CollectionMenu onClose={() => setCollectionOpen(false)} />}
 
 			<Text style={[styles.catalogCount, { color: currentTheme.textSecondary }]}>
 				{t("shop.catalogCount", { count: visibleCatalogCount })}
@@ -169,18 +198,21 @@ function ShopItemCard({
 }) {
 	const { currentTheme } = useTheme();
 	const { t, language } = useLanguage();
+	const chestOnly = item.chestOnly === true && !isOwned;
 	const buttonText = isEquipped
 		? t("shop.equipped")
 		: isOwned || item.price === 0
 			? t("shop.equip")
-			: t("shop.buy", { price: item.price });
-	const disabled = isEquipped || (!isOwned && !canAfford);
+			: chestOnly
+				? t("shop.toChests")
+				: t("shop.buy", { price: item.price });
+	const disabled = isEquipped || (!isOwned && !chestOnly && !canAfford);
 
 	return (
 		<View style={[
 			styles.card,
 			{
-				borderColor: isEquipped ? item.accent : "rgba(255,255,255,0.12)",
+				borderColor: isEquipped ? item.accent : item.chestOnly ? "rgba(255,201,60,0.45)" : "rgba(255,255,255,0.12)",
 				backgroundColor: "rgba(0, 0, 0, 0.38)",
 			},
 		]}>
@@ -193,13 +225,13 @@ function ShopItemCard({
 			<Text style={[styles.itemDescription, { color: currentTheme.textSecondary }]} numberOfLines={2}>
 				{shopItemText(item, language).description}
 			</Text>
-			<Text style={[styles.itemStatus, { color: isOwned ? item.accent : currentTheme.textSecondary }]}>
-				{isOwned ? t("shop.owned") : t("shop.price", { price: item.price })}
+			<Text style={[styles.itemStatus, { color: isOwned ? item.accent : chestOnly ? "#FFC93C" : currentTheme.textSecondary }]}>
+				{isOwned ? t("shop.owned") : chestOnly ? t("shop.chestOnly") : t("shop.price", { price: item.price })}
 			</Text>
 			<StylizedButton
 				text={buttonText}
 				onClick={onPress}
-				backgroundColor={isOwned ? item.accent : currentTheme.buttonPrimary}
+				backgroundColor={isOwned ? item.accent : chestOnly ? "#B8860B" : currentTheme.buttonPrimary}
 				disabled={disabled}
 				style={styles.cardButton}
 				textStyle={styles.cardButtonText}
@@ -209,6 +241,23 @@ function ShopItemCard({
 }
 
 const styles = StyleSheet.create({
+	collectionPill: {
+		paddingHorizontal: 12,
+		paddingVertical: 5,
+		borderRadius: 999,
+		borderWidth: 1,
+		borderColor: "rgba(255,255,255,0.16)",
+		backgroundColor: "rgba(255,255,255,0.05)",
+	},
+	collectionPillReady: {
+		borderColor: "rgba(255,215,0,0.7)",
+		backgroundColor: "rgba(255,215,0,0.1)",
+	},
+	collectionText: {
+		fontFamily: "Silkscreen",
+		fontSize: 11,
+		color: "#D4D4D8",
+	},
 	header: {
 		width: "100%",
 		alignItems: "center",

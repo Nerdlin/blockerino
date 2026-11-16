@@ -34,8 +34,8 @@ describe("season reward claims", () => {
 		});
 
 		expect(entries).toEqual([
-			{ seasonKey: "2026-09", board: "classic", rank: 1, coins: 1000, itemId: "background_season_gold" },
-			{ seasonKey: "2026-09", board: "elo", rank: 4, coins: 300, itemId: null },
+			{ seasonKey: "2026-09", board: "classic", rank: 1, coins: 1000, itemId: "background_season_gold", keys: 0 },
+			{ seasonKey: "2026-09", board: "elo", rank: 4, coins: 300, itemId: null, keys: 0 },
 		]);
 		expect(parseRewardEntries(null)).toEqual([]);
 		expect(parseRewardEntries("nope")).toEqual([]);

@@ -243,6 +243,8 @@ export async function flushQuestProgress(): Promise<void> {
 
 export interface QuestClaimResult {
 	coins: number | null;
+	/** The player's keys after the claim, when the bonus for all three quests gave one; null otherwise. */
+	keys: number | null;
 	granted: string[];
 	claimed: string[];
 }
@@ -254,6 +256,7 @@ export function parseQuestClaim(data: unknown): QuestClaimResult | null {
 	const list = (value: unknown) => (Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);
 	return {
 		coins: typeof row.coins === "number" && Number.isFinite(row.coins) ? row.coins : null,
+		keys: typeof row.keys === "number" && Number.isFinite(row.keys) ? row.keys : null,
 		granted: list(row.granted),
 		claimed: list(row.claimed),
 	};

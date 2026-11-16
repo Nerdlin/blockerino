@@ -285,6 +285,34 @@ export const UI_GLYPHS = {
 		],
 	},
 	// a locked level
+	key: {
+		palette: { a: "#F5B50C", b: "#B87608", c: "#FFE680", d: "#B87608" },
+		rows: [
+			".........",
+			".aaa.....",
+			"ac.ab....",
+			"a...aaaaa",
+			"ab.bb.b.b",
+			".bbb..b.b",
+			".........",
+			".........",
+			".........",
+		],
+	},
+	gift: {
+		palette: { a: "#A78BFA", b: "#FDE047", c: "#7C3AED", d: "#4C1D95" },
+		rows: [
+			"..b...b..",
+			"...bbb...",
+			"aaaabaaaa",
+			"aaaabaaaa",
+			".cccbccc.",
+			".cccbccc.",
+			".cccbccc.",
+			".cccbccc.",
+			".ddddddd.",
+		],
+	},
 	lock: {
 		palette: { a: "#94A3B8", b: "#334155", c: "#CBD5E1", d: "#0F172A" },
 		rows: [

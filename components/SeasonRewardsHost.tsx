@@ -109,6 +109,9 @@ export default function SeasonRewardsHost() {
 					{rewards.coins > 0 && (
 						<Text style={[styles.reward, { color: "#FFD700" }]}>{t("season.rewardCoins", { coins: rewards.coins })}</Text>
 					)}
+					{rewards.keys > 0 && (
+						<Text style={[styles.reward, { color: "#FFD700" }]}>{t("season.rewardKeys", { keys: rewards.keys })}</Text>
+					)}
 					{rewards.itemIds.map((id) => (
 						<Text key={id} style={[styles.reward, { color: currentTheme.accent }]}>
 							{t("season.rewardItem", { name: getShopItem(id)?.title ?? id })}
