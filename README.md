@@ -1,10 +1,6 @@
 <div align="center">
 
-# 🧩 BLOCKERINO: PIXEL DUELS
-
-### Пиксельная головоломка с блоками: ставь фигуры, рви линии, лови комбо.
-
-*Классика 8×8, хаос 10×10, дуэли 1 на 1, мини-игры и сезонные рейтинги, везде и со всеми.*
+<a href="https://blockerino.aionerdlin.me"><img src="./docs/readme/hero.svg" width="100%" alt="Blockerino: Pixel Duels. Ставь фигуры, рви линии, лови комбо." /></a>
 
 <br />
 
@@ -14,31 +10,68 @@
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-FF5E5B?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/nerdlin)
 [![Boosty](https://img.shields.io/badge/Boosty-F15F2C?style=for-the-badge&logo=boosty&logoColor=white)](https://boosty.to/nerdlin_souls)
 
-[![React Native](https://img.shields.io/badge/React_Native-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://reactnative.dev/)
-[![Expo](https://img.shields.io/badge/Expo-1B1F23?style=flat-square&logo=expo&logoColor=white)](https://expo.dev/)
-[![Supabase](https://img.shields.io/badge/Supabase-181818?style=flat-square&logo=supabase&logoColor=3ECF8E)](https://supabase.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+### [▶ Играть в браузере](https://blockerino.aionerdlin.me) &nbsp;·&nbsp; [📥 Скачать APK](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9.apk) &nbsp;·&nbsp; [🪟 Windows](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9-windows-setup.exe) &nbsp;·&nbsp; [📖 Что нового](./docs/release-2.0.9.md)
 
-<br />
+[Как играть](#-как-играть) · [Сундуки](#-сундуки-ключи-и-коллекция) · [Что внутри](#-что-внутри) · [Скачать](#-скачать-android) · [Быстрый старт](#-быстрый-старт) · [Технологии](#-технологии)
 
-**[▶ Играть в браузере](https://blockerino.aionerdlin.me)** &nbsp;·&nbsp; **[📥 Скачать APK](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9.apk)** &nbsp;·&nbsp; **[🪟 Windows](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9-windows-setup.exe)** &nbsp;·&nbsp; **[📖 Что нового](./docs/release-2.0.9.md)**
+</div>
 
-<br />
+<img src="./docs/readme/divider.svg" width="100%" alt="" />
+
+## 🎮 Как играть
 
 <table>
   <tr>
-    <td align="center"><img src="./docs/screenshots/menu.png" width="210" alt="Главное меню" /><br /><sub><b>Главное меню</b></sub></td>
-    <td align="center"><img src="./docs/screenshots/versus.png" width="210" alt="Versus 1v1" /><br /><sub><b>Versus 1v1</b></sub></td>
-    <td align="center"><img src="./docs/screenshots/challenges.png" width="210" alt="Челленджи" /><br /><sub><b>Челленджи</b></sub></td>
-    <td align="center"><img src="./docs/screenshots/more-games.png" width="210" alt="More Games" /><br /><sub><b>More Games</b></sub></td>
+    <td width="42%" align="center" valign="middle">
+      <img src="./docs/readme/gameplay.svg" width="340" alt="Фигура встаёт на место, две линии сгорают, счёт растёт" />
+    </td>
+    <td width="58%" valign="middle">
+
+**Три фигуры в руке. Поле 8×8. Ни одного таймера.**
+
+1. Перетащите фигуру на поле. Тень покажет, куда она встанет и какие линии сгорят.
+2. Соберите полную строку или столбец, и она исчезнет.
+3. Сжигайте линии подряд, чтобы росло **комбо** и множитель очков.
+4. Партия идёт, пока хотя бы одной фигуре есть место.
+
+Дальше становится интереснее: **Chaos 10×10** с пятью фигурами в руке, **50 уровней** с кристаллами и сундуками, ежедневная головоломка и **дуэли 1 на 1** с рейтингом.
+
+  </td>
   </tr>
 </table>
 
+<div align="center">
+<table>
+  <tr>
+    <td align="center"><img src="./docs/screenshots/menu.png" width="205" alt="Главное меню" /><br /><sub><b>Главное меню</b></sub></td>
+    <td align="center"><img src="./docs/screenshots/versus.png" width="205" alt="Versus 1v1" /><br /><sub><b>Versus 1v1</b></sub></td>
+    <td align="center"><img src="./docs/screenshots/challenges.png" width="205" alt="Челленджи" /><br /><sub><b>Испытания</b></sub></td>
+    <td align="center"><img src="./docs/screenshots/more-games.png" width="205" alt="More Games" /><br /><sub><b>Ещё игры</b></sub></td>
+  </tr>
+</table>
+</div>
+
+## 🎁 Сундуки, ключи и коллекция
+
+<img src="./docs/readme/chest.svg" width="100%" alt="Рулетка сундука останавливается на легендарном призе" />
+
+| | |
+| --- | --- |
+| 🎰 **Рулетка** | Сундук открывается лентой призов. Приз выбирает сервер, шансы написаны прямо на экране. |
+| 💎 **Эксклюзивы** | 12 скинов, которые не продаются: они выпадают только из сундуков. |
+| 🛡️ **Гарантия** | Десятый сундук подряд без легендарного приза даёт его точно. Повторов не бывает. |
+| 🗝️ **Ключи** | Открывают сундук бесплатно. Их дают задания дня, каждые 5 побед в дуэлях, наборы коллекции и места в сезоне. |
+| 🎀 **Подарки** | Сундук или скин можно подарить другу. |
+| ⏰ **Счастливый час** | Каждый день с 20:00 до 21:00 по Москве редкие призы выпадают чаще. |
+
+<details>
+<summary><b>🆕 Что нового в 2.0.x</b> (нажмите, чтобы раскрыть)</summary>
+
 <br />
 
-<details open>
-<summary><b>🆕 Что нового в 2.0.x</b></summary>
-
+- 🎁 **Сундуки с рулеткой, ключи, подарки друзьям и коллекция с наградами за наборы**
+- 🏅 **Достижимые ранги в дуэлях:** победа даёт +25, поражение отнимает 15
+- 🔤 **Более читаемый русский шрифт** и окна сообщений в стиле игры
 <br />
 
 - 👤 **Профили игроков:** рекорды, записи против людей и ботов, самые редкие достижения; вы решаете, кто видит ваш профиль
@@ -67,9 +100,7 @@
 
 </details>
 
-</div>
-
-<br />
+<img src="./docs/readme/divider.svg" width="100%" alt="" />
 
 ## 📲 Скачать (Android)
 
@@ -211,6 +242,8 @@ npm install
 Код остаётся собственностью автора и не является open source: форк разрешён только для вклада в этот репозиторий, а публиковать и деплоить свою версию игры без разрешения нельзя. Подробнее в [LICENSE](./LICENSE) и [CLA](./CLA.md).
 
 ---
+
+<img src="./docs/readme/divider.svg" width="100%" alt="" />
 
 <div align="center">
 

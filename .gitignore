@@ -72,3 +72,7 @@ desktop/icon.png
 builds/desktop/
 docs/tiktok/*.mp4
 public/site-info.json
+
+# Gradle caches of the local Expo modules
+modules/*/android/.gradle/
+modules/*/android/build/
