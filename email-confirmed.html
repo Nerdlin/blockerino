@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Blockerino</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #050510;
+        --panel: #0b0b16;
+        --line: rgba(255, 255, 255, 0.18);
+        --red: #ff3333;
+        --green: #22c55e;
+        --gold: #ffd700;
+        --text: #ffffff;
+        --muted: #a5adbd;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      html, body {
+        width: 100%;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Pixelify Sans", monospace, sans-serif;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 16px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      /* Blocks drifting down behind the card, like the game's menu background. */
+      .rain { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+      .rain i {
+        position: absolute;
+        top: -40px;
+        width: 22px;
+        height: 22px;
+        border: 3px solid rgba(255, 255, 255, 0.22);
+        opacity: 0.35;
+        animation: fall linear infinite;
+      }
+      @keyframes fall { to { transform: translateY(calc(100vh + 80px)); } }
+      @media (prefers-reduced-motion: reduce) { .rain { display: none; } .mark { animation: none !important; } }
+
+      main {
+        width: min(440px, 100%);
+        border: 1.5px solid var(--line);
+        border-radius: 14px;
+        background: var(--panel);
+        padding: 28px 22px 24px;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .logo { width: 56px; height: 56px; border-radius: 12px; display: block; margin: 0 auto 18px; }
+
+      /* A pixel check mark (or cross) drawn from blocks. */
+      .mark {
+        display: grid;
+        grid-template-columns: repeat(7, 14px);
+        gap: 3px;
+        justify-content: center;
+        margin: 0 auto 20px;
+        animation: pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+      }
+      .mark i { width: 14px; height: 14px; border-radius: 2px; }
+      .mark i.on { background: var(--green); box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.25), inset 3px 3px 0 rgba(255, 255, 255, 0.25); }
+      .failed .mark i.on { background: var(--red); }
+      @keyframes pop { from { transform: scale(0.6); opacity: 0; } }
+
+      h1 { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+      .failed h1 { color: #fca5a5; }
+
+      p { max-width: 340px; margin: 0 auto 22px; color: var(--muted); font-size: 15px; line-height: 1.55; }
+
+      .btn {
+        display: block;
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid rgba(255, 255, 255, 0.35);
+        border-radius: 10px;
+        background: var(--red);
+        color: #fff;
+        text-decoration: none;
+        font-family: inherit;
+        font-size: 17px;
+        font-weight: 700;
+        transition: opacity 0.15s ease;
+      }
+      .btn:hover { opacity: 0.88; }
+      .btn:active { opacity: 0.7; }
+      .btn.quiet { margin-top: 10px; background: transparent; border-color: var(--line); color: var(--muted); font-size: 14px; font-weight: 400; padding: 11px 16px; }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div class="rain" aria-hidden="true" id="rain"></div>
+    <main id="card">
+      <img class="logo" src="/icon.png" alt="Blockerino" />
+      <div class="mark" id="mark" aria-hidden="true"></div>
+      <h1 id="title"></h1>
+      <p id="text"></p>
+      <a class="btn" id="primary" href="/"></a>
+      <a class="btn quiet" id="secondary" href="/" hidden></a>
+    </main>
+    <script>
+      // The page the "confirm email" link of the sign-up letter lands on. Supabase has already confirmed the address
+      // (or says why not, in error / error_description); the button takes the player back to where they play:
+      // ?from=android opens the app, anything else the web game. The one-time code goes along, so the game signs
+      // the player in when it is the same device.
+      (function () {
+        var query = new URLSearchParams(location.search);
+        var hash = new URLSearchParams(location.hash.replace(/^#/, ""));
+        var get = function (name) { return query.get(name) || hash.get(name) || ""; };
+
+        var lang = (get("lang") || navigator.language || "en").toLowerCase().indexOf("ru") === 0 ? "ru" : "en";
+        var failed = Boolean(get("error") || get("error_code") || get("error_description"));
+        var isAndroid = /android/i.test(navigator.userAgent);
+        var from = get("from") || (isAndroid ? "android" : "web");
+        var code = get("code");
+
+        var text = {
+          en: {
+            okTitle: "Email confirmed",
+            okText: "Your Blockerino account is ready. Go back to the game and keep playing.",
+            badTitle: "The link did not work",
+            badText: "It has expired or was already used. Open the game and sign in; if it asks, request a new letter.",
+            app: "Back to the game",
+            web: "Play in the browser",
+            openApp: "Open the app",
+          },
+          ru: {
+            okTitle: "Почта подтверждена",
+            okText: "Аккаунт Blockerino готов. Вернитесь в игру и продолжайте играть.",
+            badTitle: "Ссылка не сработала",
+            badText: "Она устарела или уже была использована. Откройте игру и войдите; если попросит, запросите письмо ещё раз.",
+            app: "Вернуться в игру",
+            web: "Играть в браузере",
+            openApp: "Открыть приложение",
+          },
+        }[lang];
+
+        document.documentElement.lang = lang;
+        document.title = "Blockerino: " + (failed ? text.badTitle : text.okTitle);
+        if (failed) document.getElementById("card").className = "failed";
+        document.getElementById("title").textContent = failed ? text.badTitle : text.okTitle;
+        document.getElementById("text").textContent = failed ? text.badText : text.okText;
+
+        var suffix = code && !failed ? "?code=" + encodeURIComponent(code) : "";
+        var appUrl = "com.nerdlin.blockerino://email-confirmed" + suffix;
+        var webUrl = "/" + suffix;
+        var primary = document.getElementById("primary");
+        var secondary = document.getElementById("secondary");
+
+        if (from === "android") {
+          primary.href = appUrl;
+          primary.textContent = text.app;
+          secondary.href = webUrl;
+          secondary.textContent = text.web;
+          secondary.hidden = false;
+        } else {
+          primary.href = webUrl;
+          primary.textContent = text.app;
+          if (isAndroid) {
+            secondary.href = appUrl;
+            secondary.textContent = text.openApp;
+            secondary.hidden = false;
+          }
+        }
+
+        // the code is single use: keep it out of the address bar and the history
+        if (history.replaceState) history.replaceState(null, "", location.pathname);
+
+        var shape = failed
+          ? ["x.....x", ".x...x.", "..x.x..", "...x...", "..x.x..", ".x...x.", "x.....x"]
+          : [".......", "......x", ".....x.", "x...x..", ".x.x...", "..x....", "......."];
+        var mark = document.getElementById("mark");
+        shape.join("").split("").forEach(function (cell) {
+          var block = document.createElement("i");
+          if (cell === "x") block.className = "on";
+          mark.appendChild(block);
+        });
+
+        var rain = document.getElementById("rain");
+        var colors = ["#ff3333", "#7c3aed", "#1fa4e0", "#ffd700", "#22c55e"];
+        for (var n = 0; n < 14; n++) {
+          var drop = document.createElement("i");
+          drop.style.left = Math.round(Math.random() * 100) + "%";
+          drop.style.borderColor = colors[n % colors.length];
+          drop.style.animationDuration = 7 + Math.random() * 9 + "s";
+          drop.style.animationDelay = -Math.random() * 12 + "s";
+          rain.appendChild(drop);
+        }
+      })();
+    </script>
+  </body>
+</html>
