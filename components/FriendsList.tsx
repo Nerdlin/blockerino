@@ -13,7 +13,7 @@ import { fetchFriendsOnline } from "@/constants/Invites";
 import { nameFontFamily } from "@/constants/NameFont";
 import GiftFriendPicker from "./GiftFriendPicker";
 import { CHEST_PRICES } from "@/constants/Chests";
-import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
+import { AppState, MenuStateType, useSetAppState } from "@/hooks/useAppState";
 
 function escapeIlikePattern(value: string): string {
     return value.replace(/[\\%_]/g, "\\$&");
@@ -53,7 +53,7 @@ export default function FriendsList({ userId }: { userId: string }) {
     const offerGift = (id: string, name: string) => {
         gameAlert(t("gift.title"), t("gift.choose", { name }), [
             { text: t("gift.cancel"), style: "cancel" },
-            { text: t("gift.skin"), onPress: () => setAppState(MenuStateType.SHOP) },
+            { text: t("gift.skin"), onPress: () => setAppState(new AppState(MenuStateType.SHOP, new AppState(MenuStateType.MENU))) },
             { text: t("gift.chest", { price: CHEST_PRICES.small }), onPress: () => setGiftFriend({ id, name }) },
         ]);
     };

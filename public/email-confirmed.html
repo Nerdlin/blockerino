@@ -6,10 +6,14 @@
     <meta name="robots" content="noindex" />
     <title>Blockerino</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;700&display=swap" rel="stylesheet">
     <style>
+      /* the game's own face: its Russian letters are redrawn to be readable (scripts/build-pixelify-ru.py) */
+      @font-face {
+        font-family: "Pixelify Ru";
+        src: url("/fonts/PixelifySans-Ru.ttf") format("truetype");
+        font-display: swap;
+      }
+
       :root {
         color-scheme: dark;
         --bg: #050510;
@@ -29,7 +33,7 @@
         min-height: 100%;
         background: var(--bg);
         color: var(--text);
-        font-family: "Pixelify Sans", monospace, sans-serif;
+        font-family: "Pixelify Ru", monospace, sans-serif;
       }
 
       body {
@@ -83,7 +87,7 @@
       .failed .mark i.on { background: var(--red); }
       @keyframes pop { from { transform: scale(0.6); opacity: 0; } }
 
-      h1 { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+      h1 { font-size: 24px; font-weight: 400; margin-bottom: 10px; }
       .failed h1 { color: #fca5a5; }
 
       p { max-width: 340px; margin: 0 auto 22px; color: var(--muted); font-size: 15px; line-height: 1.55; }
@@ -99,7 +103,7 @@
         text-decoration: none;
         font-family: inherit;
         font-size: 17px;
-        font-weight: 700;
+        font-weight: 400;
         transition: opacity 0.15s ease;
       }
       .btn:hover { opacity: 0.88; }
@@ -111,7 +115,7 @@
   <body>
     <div class="rain" aria-hidden="true" id="rain"></div>
     <main id="card">
-      <img class="logo" src="/icon.png" alt="Blockerino" />
+      <img class="logo" src="/icon.png?v=2" alt="Blockerino" />
       <div class="mark" id="mark" aria-hidden="true"></div>
       <h1 id="title"></h1>
       <p id="text"></p>
