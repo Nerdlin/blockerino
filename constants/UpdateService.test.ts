@@ -11,6 +11,7 @@ jest.mock("react-native", () => ({
 	Linking: { openURL: (...a: unknown[]) => (mockOpenURL as any)(...a) },
 }));
 jest.mock("expo-application", () => ({ nativeApplicationVersion: "2.0.9", nativeBuildVersion: "22", applicationId: "com.nerdlin.blockerino" }));
+jest.mock("./GameDialog", () => ({ gameAlert: (...a: unknown[]) => mockAlert(...a) }));
 jest.mock("./Supabase", () => ({ supabase: { from: (...a: unknown[]) => mockFrom(...a) } }));
 jest.mock("./Localization", () => ({ loadStoredLanguage: async () => "en", translate: (_l: string, key: string) => key }));
 jest.mock("@/modules/install-source", () => ({
