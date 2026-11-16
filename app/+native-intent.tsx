@@ -4,6 +4,8 @@
 export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
 	try {
 		if (path.includes("discord-auth")) return "/";
+		// the "back to the game" button of the email-confirmed page; EmailConfirmHost reads the code from the URL
+		if (path.includes("email-confirmed")) return "/";
 	} catch {
 		// fall through to the original path
 	}

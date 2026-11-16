@@ -57,6 +57,7 @@ import AccountDeleteHost from "@/components/AccountDeleteHost";
 import GameDialogHost from "@/components/GameDialogHost";
 import OtaUpdateHost from "@/components/OtaUpdateHost";
 import GiftHost from "@/components/GiftHost";
+import EmailConfirmHost from "@/components/EmailConfirmHost";
 import ProfileMenu from "@/components/ProfileMenu";
 import MoreGamesMenu from "@/components/MoreGamesMenu";
 import { getBackgroundParticleConfig, getShopItem, shopStateAtom, useShopBootstrap } from "@/constants/Shop";
@@ -327,6 +328,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 			<AccountDeleteHost />
 			<OtaUpdateHost />
 			<GiftHost />
+			<EmailConfirmHost />
 			{/* last: message windows sit above every other popup */}
 			<GameDialogHost />
 		</Animated.View>

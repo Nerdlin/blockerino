@@ -17,6 +17,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSoundSettings } from "@/constants/Sound";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
+import { emailConfirmRedirect } from "@/constants/EmailConfirm";
 import { supabase, renamePlayer } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import PixelIcon from "@/components/PixelIcon";
@@ -130,7 +131,7 @@ export default function ProfileMenu() {
 	const isMobile = width < 600;
 	const { playSfx } = useSoundSettings();
 	const { currentTheme } = useTheme();
-	const { t } = useLanguage();
+	const { t, language } = useLanguage();
 
 	const [session, setSession] = useState<Session | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -356,8 +357,12 @@ export default function ProfileMenu() {
 					email,
 					password,
 					options: {
+						// the letter's link lands on a page that says "confirmed" and leads back to where the player plays
+						emailRedirectTo: emailConfirmRedirect(language),
 						data: {
-							player_name: chosenName
+							player_name: chosenName,
+							// picks the language of the letter (docs/email/confirm-signup.html)
+							lang: language === "ru" ? "ru" : "en"
 						}
 					}
 				});

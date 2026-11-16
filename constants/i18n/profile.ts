@@ -61,7 +61,10 @@ export const profile: ScreenDictionary = {
 		// Status / error messages
 		"profile.fillAllFields": "Please fill all fields",
 		"profile.enterPlayerName": "Please enter a player name",
-		"profile.signUpSuccess": "Success! Check your email to verify (if required), or you are logged in.",
+		"profile.signUpSuccess": "Done! We sent a letter to your email. Open it and tap \"Confirm email\".",
+		"profile.emailConfirmedTitle": "Email confirmed",
+		"profile.emailConfirmedIn": "Your account is ready and you are signed in.",
+		"profile.emailConfirmedSignIn": "Your account is ready. Sign in with your email and password.",
 		"profile.authFailed": "Authentication failed",
 		"profile.googleUnavailable": "Google OAuth is unavailable in this environment.",
 		"profile.discordActivityAuthHint": "In Discord you are signed in automatically when the activity starts. Google sign-in works on the website and in the app.",
@@ -131,7 +134,10 @@ export const profile: ScreenDictionary = {
 		// Status / error messages
 		"profile.fillAllFields": "Заполните все поля",
 		"profile.enterPlayerName": "Введите имя игрока",
-		"profile.signUpSuccess": "Готово! Проверьте почту для подтверждения (если требуется), или вы уже вошли.",
+		"profile.signUpSuccess": "Готово! Мы отправили письмо на вашу почту. Откройте его и нажмите «Подтвердить почту».",
+		"profile.emailConfirmedTitle": "Почта подтверждена",
+		"profile.emailConfirmedIn": "Аккаунт готов, вы вошли.",
+		"profile.emailConfirmedSignIn": "Аккаунт готов. Войдите с почтой и паролем.",
 		"profile.authFailed": "Ошибка авторизации",
 		"profile.googleUnavailable": "Google OAuth недоступен в этой среде.",
 		"profile.discordActivityAuthHint": "В Discord вход выполняется автоматически при запуске активности. Вход через Google доступен на сайте и в приложении.",
