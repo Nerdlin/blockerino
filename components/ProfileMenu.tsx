@@ -23,7 +23,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import PixelIcon from "@/components/PixelIcon";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { Session, User } from "@supabase/supabase-js";
-import { loadShopState, syncShopStateWithProfile, useShopState } from "@/constants/Shop";
+import { createDefaultShopState, loadShopState, saveShopState, syncShopStateWithProfile, useShopState } from "@/constants/Shop";
 import { PlayerProfile, getPlayerElo, getPlayerGlobalHighScore, upsertAuthenticatedProfile, updateProfileAvatar } from "@/constants/Supabase";
 import { getHighScores, createHighScore } from "@/constants/Storage";
 import { pickAndUploadAvatar, removeAvatarFiles } from "@/constants/AvatarUpload";
@@ -138,6 +138,10 @@ export default function ProfileMenu() {
 	const [authMode, setAuthMode] = useState<"login" | "register">(() => consumeProfileAuthIntent() ?? "login");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
+	// The email of a sign-up that still waits for the letter's link. Until then there is no account to show:
+	// the form stays, says so, and offers to send the letter again.
+	const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+	const [resendNote, setResendNote] = useState<string | null>(null);
 	const [playerName, setPlayerName] = useState("");
 	// A guest's name is changed here and nowhere else (More Games, high scores and Versus only show it).
 	const [editingName, setEditingName] = useState(false);
@@ -371,16 +375,26 @@ export default function ProfileMenu() {
 				if (data.session) {
 					await hydrateSession(data.session, { force: true });
 				} else if (data.user) {
-					const profile = await upsertAuthenticatedProfile(data.user, chosenName);
-					await applyProfile(profile, data.user);
-					setErrorMessage(t("profile.signUpSuccess"));
+					// no session yet: the email has to be confirmed first, then the player signs in
+					setPendingEmail(email);
+					setResendNote(null);
+					setAuthMode("login");
+					setErrorMessage("");
 				}
 			} else {
 				const { error, data } = await supabase.auth.signInWithPassword({
 					email,
 					password,
 				});
-				if (error) throw error;
+				if (error) {
+					if (/not confirmed/i.test(error.message)) {
+						setPendingEmail(email);
+						setErrorMessage(t("profile.confirmFirst"));
+						return;
+					}
+					throw error;
+				}
+				setPendingEmail(null);
 				track("login", { method: "password" });
 				if (data.session) {
 					await hydrateSession(data.session, { force: true });
@@ -394,6 +408,19 @@ export default function ProfileMenu() {
 		} finally {
 			setAuthLoading(false);
 		}
+	};
+
+	const resendConfirmation = async () => {
+		if (!pendingEmail || authLoading) return;
+		playSfx('menuClick');
+		setAuthLoading(true);
+		const { error } = await supabase.auth.resend({
+			type: "signup",
+			email: pendingEmail,
+			options: { emailRedirectTo: emailConfirmRedirect(language) },
+		});
+		setAuthLoading(false);
+		setResendNote(t(error ? "profile.confirmResendFailed" : "profile.confirmResent"));
 	};
 
 	const handleGoogleSignIn = async () => {
@@ -492,7 +519,16 @@ export default function ProfileMenu() {
 	const handleLogout = async () => {
 		playSfx('menuClick');
 		setAuthLoading(true);
+		// The wallet on the device is the account's: push what is not saved yet, and after signing out start a clean
+		// one, so the next account made on this device does not inherit the coins of the previous one.
+		try {
+			await syncShopStateWithProfile(await loadShopState());
+		} catch {
+			// offline: what was not synced stays on the server as it was
+		}
 		await supabase.auth.signOut();
+		await saveShopState(createDefaultShopState());
+		await reloadShopState();
 		track("logout");
 		await AsyncStorage.removeItem(PLAYER_ID_KEY);
 		await AsyncStorage.removeItem(PLAYER_NAME_KEY);
@@ -640,6 +676,14 @@ export default function ProfileMenu() {
 							{authMode === "login" ? t("profile.loginTitle") : t("profile.createAccountTitle")}
 						</Text>
 
+						{pendingEmail && authMode === "login" && (
+							<View style={styles.confirmBox}>
+								<Text style={styles.confirmTitle}>{t("profile.confirmTitle")}</Text>
+								<Text style={[styles.confirmText, { color: currentTheme.textSecondary }]}>{t("profile.confirmText", { email: pendingEmail })}</Text>
+								<Text style={styles.confirmLink} onPress={() => void resendConfirmation()}>{resendNote ?? t("profile.confirmResend")}</Text>
+							</View>
+						)}
+
 						{authMode === "register" && (
 							<TextInput
 								style={[styles.input, { color: currentTheme.textPrimary, borderColor: currentTheme.gridBorder }]}
@@ -775,6 +819,35 @@ export default function ProfileMenu() {
 }
 
 const styles = StyleSheet.create({
+	confirmBox: {
+		alignSelf: "stretch",
+		gap: 6,
+		padding: 12,
+		marginBottom: 10,
+		borderRadius: 12,
+		borderWidth: 1,
+		borderColor: "rgba(255,215,0,0.6)",
+		backgroundColor: "rgba(255,215,0,0.08)",
+	},
+	confirmTitle: {
+		fontFamily: "Silkscreen",
+		fontSize: 14,
+		color: "#FFD700",
+		textAlign: "center",
+	},
+	confirmText: {
+		fontFamily: "Silkscreen",
+		fontSize: 12,
+		lineHeight: 17,
+		textAlign: "center",
+	},
+	confirmLink: {
+		fontFamily: "Silkscreen",
+		fontSize: 12,
+		color: "#93C5FD",
+		textAlign: "center",
+		paddingVertical: 4,
+	},
 	inputLabel: { fontSize: 14, marginBottom: 8 },
 	topBar: {
 		width: '100%',
