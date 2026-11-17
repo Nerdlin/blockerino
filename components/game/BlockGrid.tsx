@@ -178,7 +178,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 	useAnimatedReaction(() => {
 		return board.value[y][x].blockType;
 	}, (cur, prev) => {
-		if (skinKind === SKIN_NEON) {
+		if ((skinKind & 15) === SKIN_NEON) {
 			if (cur === BoardBlockType.HOVERED || cur === BoardBlockType.FILLED) {
 				trailColor.value = colorToHex(board.value[y][x].color);
 				trail.value = 0;
