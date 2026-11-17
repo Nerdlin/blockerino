@@ -137,6 +137,7 @@ serve(async (req) => {
             player_id: userId,
             player_name: playerName,
             avatar_url: avatarUrl,
+            discord_id: discordId,
             last_login_at: new Date().toISOString(),
           },
           { onConflict: 'auth_user_id' }
@@ -146,7 +147,8 @@ serve(async (req) => {
           break;
         }
 
-        if (profileError.code === '23505' || profileError.message?.includes('profiles_player_name_key')) {
+        // only a taken nickname is retried with a suffix; anything else is a real failure worth seeing
+        if (profileError.code === '23505' && profileError.message?.includes('player_name')) {
           playerName = `${basePlayerName.slice(0, 12)}_${Math.floor(1000 + Math.random() * 9000)}`;
           attempts++;
         } else {
