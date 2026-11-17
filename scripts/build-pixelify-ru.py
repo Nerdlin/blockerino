@@ -106,12 +106,24 @@ dots = contours_above(cmap[0x0451], 451)  # ё keeps its own dots
 draw_rects(cmap[0x0435], E_RECTS)
 draw_rects(cmap[0x0451], E_RECTS, keep=dots)
 
-# Э: the same outline as З in the original font. Now a solid right side and a short middle bar, as on э.
+# Э: the same outline as З in the original font. Now a solid right side and a long middle bar.
 draw_rects(cmap[0x042D], [
     (151, 540, 433, 631),  # top
     (60, 440, 161, 540),   # upper left end
     (433, 78, 525, 540),   # right side
-    (241, 270, 433, 359),  # middle bar
+    (151, 270, 433, 359),  # middle bar, long: it meets the right side (a short one read as З, players saw "Зло")
+    (60, 78, 161, 179),    # lower left end
+    (151, -12, 433, 78),   # bottom
+])
+
+# З: the source draws its middle bar as long as Э's, so the two were told apart by one pixel. A short bar
+# (and the notch on the right) makes it a clear 3.
+draw_rects(cmap[0x0417], [
+    (151, 540, 433, 631),  # top
+    (60, 440, 161, 540),   # upper left end
+    (433, 359, 525, 540),  # right side, upper bowl
+    (241, 270, 433, 359),  # middle bar, short
+    (433, 78, 525, 270),   # right side, lower bowl
     (60, 78, 161, 179),    # lower left end
     (151, -12, 433, 78),   # bottom
 ])

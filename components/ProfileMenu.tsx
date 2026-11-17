@@ -141,6 +141,8 @@ export default function ProfileMenu() {
 	// The email of a sign-up that still waits for the letter's link. Until then there is no account to show:
 	// the form stays, says so, and offers to send the letter again.
 	const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+	// a guest with a name sees their local profile; "Sign in" there opens the form
+	const [showAuth, setShowAuth] = useState(false);
 	const [resendNote, setResendNote] = useState<string | null>(null);
 	const [playerName, setPlayerName] = useState("");
 	// A guest's name is changed here and nowhere else (More Games, high scores and Versus only show it).
@@ -563,7 +565,7 @@ export default function ProfileMenu() {
 			<ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
 				{loading ? (
 					<PixelLoader size="large" color={currentTheme.accent} />
-				) : (session || playerName) ? (
+				) : (session || (playerName && !showAuth)) ? (
 					<View style={[styles.profileContainer, isMobile && styles.mobileProfileContainer]}>
 						<FadeInView pop>
 						<Pressable onPress={() => setShowAvatarPopup(true)} style={{ position: "relative" }}>
@@ -655,20 +657,32 @@ export default function ProfileMenu() {
 							</FadeInView>
 						)}
 
-						<StylizedButton 
-							onClick={handleLogout}
-							text={t("profile.logOut")}
-							backgroundColor="rgb(204, 51, 0)"
-							style={{ marginTop: 20 }}
-						/>
+						{session ? (
+							<>
+								<StylizedButton 
+									onClick={handleLogout}
+									text={t("profile.logOut")}
+									backgroundColor="rgb(204, 51, 0)"
+									style={{ marginTop: 20 }}
+								/>
 
-						<StylizedButton
-							onClick={() => { playSfx('menuClick'); setDeleteAccountOpen(true); }}
-							text={t("acct.open")}
-							backgroundColor="rgb(90, 30, 30)"
-							style={{ marginTop: 6, minHeight: 36 }}
-							textStyle={{ fontSize: 11 }}
-						/>
+								<StylizedButton
+									onClick={() => { playSfx('menuClick'); setDeleteAccountOpen(true); }}
+									text={t("acct.open")}
+									backgroundColor="rgb(90, 30, 30)"
+									style={{ marginTop: 6, minHeight: 36 }}
+									textStyle={{ fontSize: 11 }}
+								/>
+							</>
+						) : (
+							// a guest has nothing to sign out of: the button leads to the sign-in form
+							<StylizedButton
+								onClick={() => { playSfx('menuClick'); setShowAuth(true); }}
+								text={t("profile.logIn")}
+								backgroundColor={currentTheme.buttonPrimary}
+								style={{ marginTop: 20 }}
+							/>
+						)}
 					</View>
 				) : (
 					<View style={[styles.authContainer, isMobile && styles.mobileAuthContainer]}>

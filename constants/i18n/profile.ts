@@ -102,7 +102,7 @@ export const profile: ScreenDictionary = {
 
 		// Stat labels
 		"profile.coins": "Монеты",
-		"profile.elo": "Эло",
+		"profile.elo": "ELO",
 		"profile.classic": "Классика",
 		"profile.chaos": "Хаос",
 		"record.title": "Мои результаты",

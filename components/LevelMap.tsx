@@ -126,7 +126,7 @@ export default function LevelMap() {
 						<View style={styles.chapterHead}>
 							<View style={{ flex: 1 }}>
 								<Text style={[styles.chapterTitle, { color }]}>{t(`levels.chapter.${chapter}`)}</Text>
-								<Text style={[styles.chapterSub, { color: currentTheme.textSecondary }]}>{t(`levels.chapterHint.${chapter}`)} · ★ {summary.stars}/30</Text>
+								<Text style={[styles.chapterSub, { color: currentTheme.textSecondary }]}>{t(`levels.chapterHint.${chapter}`)} · ★{" "}{summary.stars}/30</Text>
 							</View>
 							{chest("complete", "small", summary.won >= LEVELS_PER_CHAPTER)}
 							{chest("perfect", "big", summary.perfect >= LEVELS_PER_CHAPTER)}
