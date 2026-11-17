@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 import type { ShopItem } from "@/constants/Shop";
 import {
 	CARD_SKINS,
+	CHECKERS_SKINS,
 	CHESS_BOARD_COLORS,
 	CHESS_PIECE_COLORS,
 	MAHJONG_THEMES,
@@ -38,6 +39,8 @@ export default function CosmeticPreview({ item, large = false }: { item: ShopIte
 			return <SudokuPreview item={item} u={u} />;
 		case "mahjong_theme":
 			return <MahjongPreview item={item} u={u} />;
+		case "checkers_skin":
+			return <CheckersPreview item={item} u={u} />;
 		default:
 			return <BlockerinoPreview item={item} u={u} />;
 	}
@@ -83,6 +86,35 @@ function ChessPiecePreview({ item, u }: { item: ShopItem; u: number }) {
 				<View style={[styles.cellCenter, { width: cell, height: cell, backgroundColor: board.dark }]}>
 					<Text style={[glyph, { color: colors.white, textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 1 }]}>{"♞"}</Text>
 				</View>
+			</View>
+		</Frame>
+	);
+}
+
+function CheckersPreview({ item, u }: { item: ShopItem; u: number }) {
+	const skin = pick(CHECKERS_SKINS, keyOf(item));
+	const cell = 13 * u;
+	const piece = (white: boolean) => {
+		const colors = white ? skin.white : skin.black;
+		return (
+			<View style={{ width: cell * 0.8, height: cell * 0.8, borderRadius: cell, backgroundColor: colors.fill, borderWidth: Math.max(1, u * 1.5), borderColor: colors.rim }} />
+		);
+	};
+	return (
+		<Frame u={u}>
+			<View style={styles.boardBorder}>
+				{[0, 1, 2].map((row) => (
+					<View key={row} style={{ flexDirection: "row" }}>
+						{[0, 1, 2, 3, 4, 5].map((col) => {
+							const dark = (row + col) % 2 === 1;
+							return (
+								<View key={col} style={[styles.cellCenter, { width: cell, height: cell, backgroundColor: dark ? skin.dark : skin.light }]}>
+									{dark && row !== 1 ? piece(row === 2) : null}
+								</View>
+							);
+						})}
+					</View>
+				))}
 			</View>
 		</Frame>
 	);

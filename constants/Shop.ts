@@ -6,7 +6,7 @@ import { track } from "./Analytics";
 import { noteCoinBalance } from "./Achievements";
 import { getAccountSession } from './AccountSession';
 
-export type ShopCategory = "piece_skin" | "background" | "music" | "sfx" | "chess_piece" | "chess_board" | "sea_skin" | "card_skin" | "sudoku_theme" | "mahjong_theme";
+export type ShopCategory = "piece_skin" | "background" | "music" | "sfx" | "chess_piece" | "chess_board" | "sea_skin" | "card_skin" | "sudoku_theme" | "mahjong_theme" | "checkers_skin";
 export type BackgroundScene = "classic" | "ender" | "sunset" | "ice" | "cyber";
 
 export interface ShopItem {
@@ -35,6 +35,7 @@ export interface EquippedCosmetics {
 	card_skin: string;
 	sudoku_theme: string;
 	mahjong_theme: string;
+	checkers_skin: string;
 }
 
 export type ShopProfileField = "coins" | "owned_item_ids" | "equipped";
@@ -65,6 +66,7 @@ export const DEFAULT_EQUIPPED_COSMETICS: EquippedCosmetics = {
 	card_skin: "card_skin_classic",
 	sudoku_theme: "sudoku_theme_wood",
 	mahjong_theme: "mahjong_theme_jade",
+	checkers_skin: "checkers_skin_classic",
 };
 
 export const FREE_SHOP_ITEM_IDS = Object.values(DEFAULT_EQUIPPED_COSMETICS);
@@ -108,6 +110,13 @@ const BASE_SHOP_ITEMS: ShopItem[] = [
 	{ id: "mahjong_theme_onyx", category: "mahjong_theme", title: "Onyx Tiles", description: "Black tiles with gold symbols.", price: 600, accent: "#2DD4BF", previewColors: ["#1F2937"] },
 	{ id: "mahjong_theme_ruby", category: "mahjong_theme", title: "Ruby Tiles", description: "Pale tiles carved in ruby red.", price: 650, accent: "#2DD4BF", previewColors: ["#FEF2F2"] },
 	{ id: "mahjong_theme_sakura", category: "mahjong_theme", title: "Sakura Tiles", description: "Blossom pink tiles on a plum table.", price: 750, accent: "#2DD4BF", previewColors: ["#FDF2F8"] },
+
+	{ id: "checkers_skin_classic", category: "checkers_skin", title: "Wooden Board", description: "Light and dark wood with ivory and ebony pieces.", price: 0, accent: "#FACC15", previewColors: ["#E8D2A6", "#8B5A2B"] },
+	{ id: "checkers_skin_marble", category: "checkers_skin", title: "Marble Hall", description: "Cool marble squares with pearl and slate pieces.", price: 450, accent: "#FACC15", previewColors: ["#F1F5F9", "#64748B"] },
+	{ id: "checkers_skin_tournament", category: "checkers_skin", title: "Tournament Green", description: "The green and cream of a club table.", price: 550, accent: "#FACC15", previewColors: ["#EEEED2", "#769656"] },
+	{ id: "checkers_skin_candy", category: "checkers_skin", title: "Candy Shop", description: "Pink squares with sugar and berry pieces.", price: 650, accent: "#FACC15", previewColors: ["#FCE7F3", "#DB2777"] },
+	{ id: "checkers_skin_neon", category: "checkers_skin", title: "Neon Night", description: "A dark board with glowing cyan and pink pieces.", price: 820, accent: "#FACC15", previewColors: ["#1E1B4B", "#0F172A"] },
+	{ id: "checkers_skin_gold", category: "checkers_skin", title: "Royal Gold", description: "Gold and onyx for players who never lose.", price: 1500, accent: "#FACC15", previewColors: ["#FEF3C7", "#92400E"] },
 
 	// ORIGINAL BLOCKERINO
 	{

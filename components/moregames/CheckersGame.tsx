@@ -16,13 +16,11 @@ import { HintButton } from "./HintButton";
 import { OnlineRole } from "./types";
 import { OnlineRoomControls, isDuelRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
 import { styles } from "./styles";
+import { CHECKERS_SKINS, type ExtraGameCosmetics } from "./cosmetics";
 import { useIncomingGameInvite } from "@/constants/GameInvite";
 import { buzz, useGameSfx, useOutcomeSound } from "./feedback";
 
-const LIGHT_SQUARE = "#E8D2A6";
-const DARK_SQUARE = "#8B5A2B";
-const WHITE_PIECE = { fill: "#F5F1E6", rim: "#B9AE97" };
-const BLACK_PIECE = { fill: "#2B2B2E", rim: "#0E0E10" };
+type CheckersSkin = (typeof CHECKERS_SKINS)[keyof typeof CHECKERS_SKINS];
 
 // The host (player1) plays white and moves first; against the computer the player is white.
 const sideOfRole = (role: OnlineRole | null): Side => (role === "player2" ? "b" : "w");
@@ -39,8 +37,9 @@ interface MoveAnimation {
 	taken: { square: number; piece: Piece }[];
 }
 
-function PieceView({ piece, cell, borderColor, borderWidth = 2 }: { piece: Piece; cell: number; borderColor?: string; borderWidth?: number }) {
+function PieceView({ piece, cell, skin, borderColor, borderWidth = 2 }: { piece: Piece; cell: number; skin: CheckersSkin; borderColor?: string; borderWidth?: number }) {
 	const white = sideOf(piece) === "w";
+	const colors = white ? skin.white : skin.black;
 	return (
 		<View style={[
 			local.piece,
@@ -48,12 +47,13 @@ function PieceView({ piece, cell, borderColor, borderWidth = 2 }: { piece: Piece
 				width: cell * 0.78,
 				height: cell * 0.78,
 				borderRadius: cell * 0.39,
-				backgroundColor: white ? WHITE_PIECE.fill : BLACK_PIECE.fill,
-				borderColor: borderColor ?? (white ? WHITE_PIECE.rim : BLACK_PIECE.rim),
+				backgroundColor: colors.fill,
+				borderColor: borderColor ?? colors.rim,
 				borderWidth,
 			},
+			skin.glow && { shadowColor: colors.fill, shadowOpacity: 0.9, shadowRadius: cell * 0.18, elevation: 6 },
 		]}>
-			<View style={[local.pieceInner, { width: cell * 0.5, height: cell * 0.5, borderRadius: cell * 0.25, borderColor: white ? WHITE_PIECE.rim : "#3F3F46" }]}>
+			<View style={[local.pieceInner, { width: cell * 0.5, height: cell * 0.5, borderRadius: cell * 0.25, borderColor: colors.rim }]}>
 				{isKing(piece) ? <UiIcon name="crown" size={Math.max(9, Math.floor(cell * 0.4 / 9) * 9)} /> : null}
 			</View>
 		</View>
@@ -61,7 +61,7 @@ function PieceView({ piece, cell, borderColor, borderWidth = 2 }: { piece: Piece
 }
 
 /** The moving piece and the taken ones, drawn over the board while a move is shown. */
-function MoveOverlay({ animation, cell, flipped, onLeg, onDone }: { animation: MoveAnimation; cell: number; flipped: boolean; onLeg: (leg: number) => void; onDone: () => void }) {
+function MoveOverlay({ animation, cell, flipped, skin, onLeg, onDone }: { animation: MoveAnimation; cell: number; flipped: boolean; skin: CheckersSkin; onLeg: (leg: number) => void; onDone: () => void }) {
 	const at = (square: number) => {
 		const index = flipped ? 63 - square : square;
 		return { x: (index % 8) * cell, y: Math.floor(index / 8) * cell };
@@ -99,17 +99,18 @@ function MoveOverlay({ animation, cell, flipped, onLeg, onDone }: { animation: M
 		<>
 			{animation.taken.map(({ square, piece }, index) => (
 				<Animated.View key={square} pointerEvents="none" style={[box, { left: at(square).x, top: at(square).y, opacity: fades[index] }]}>
-					<PieceView piece={piece} cell={cell} />
+					<PieceView piece={piece} cell={cell} skin={skin} />
 				</Animated.View>
 			))}
 			<Animated.View pointerEvents="none" style={[box, { left: position.x, top: position.y, zIndex: 5 }]}>
-				<PieceView piece={animation.piece} cell={cell} />
+				<PieceView piece={animation.piece} cell={cell} skin={skin} />
 			</Animated.View>
 		</>
 	);
 }
 
-export function CheckersGame({ playerName, onRatingChange }: { playerName: string; onRatingChange: () => void }) {
+export function CheckersGame({ cosmetics, playerName, onRatingChange }: { cosmetics: ExtraGameCosmetics; playerName: string; onRatingChange: () => void }) {
+	const skin = CHECKERS_SKINS[cosmetics.checkersSkin] ?? CHECKERS_SKINS.classic;
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
 	const { width } = useWindowDimensions();
@@ -388,13 +389,13 @@ export function CheckersGame({ playerName, onRatingChange }: { playerName: strin
 							disabled={!dark}
 							style={[
 								local.square,
-								{ width: cell, height: cell, backgroundColor: dark ? DARK_SQUARE : LIGHT_SQUARE },
+								{ width: cell, height: cell, backgroundColor: dark ? skin.dark : skin.light },
 								dark && lastSquares.has(square) && { backgroundColor: "#A0723F" },
 								dark && hintSquares.has(square) && { backgroundColor: "#3F8F4F" },
 							]}
 						>
 							{piece ? (
-								<PieceView piece={piece} cell={cell} borderColor={selected ? "#FACC15" : canMove ? "#4ADE80" : undefined} borderWidth={selected || canMove ? 3 : 2} />
+								<PieceView piece={piece} cell={cell} skin={skin} borderColor={selected ? "#FACC15" : canMove ? "#4ADE80" : undefined} borderWidth={selected || canMove ? 3 : 2} />
 							) : selected ? (
 								<View style={[local.trail, { width: cell * 0.3, height: cell * 0.3, borderRadius: cell * 0.15 }]} />
 							) : null}
@@ -402,7 +403,7 @@ export function CheckersGame({ playerName, onRatingChange }: { playerName: strin
 						</Pressable>
 					);
 				})}
-				{animation ? <MoveOverlay key={animation.id} animation={animation} cell={cell} flipped={flipped} onLeg={onLeg} onDone={onAnimationDone} /> : null}
+				{animation ? <MoveOverlay skin={skin} key={animation.id} animation={animation} cell={cell} flipped={flipped} onLeg={onLeg} onDone={onAnimationDone} /> : null}
 			</View>
 			<View style={{ flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
 				<StylizedButton text={gameFinished ? t(room.role ? "moregames.rematch" : "bot.newGame") : t("moregames.reset")} onClick={reset} backgroundColor={gameFinished ? "#16A34A" : currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />

@@ -23,7 +23,7 @@ import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { MoreGameId, RatedMoreGameId } from "./moregames/types";
-import { CARD_SKINS, CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics, MAHJONG_THEMES, SEA_SKINS, SUDOKU_THEMES, pickCosmetic } from "./moregames/cosmetics";
+import { CARD_SKINS, CHECKERS_SKINS, CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics, MAHJONG_THEMES, SEA_SKINS, SUDOKU_THEMES, pickCosmetic } from "./moregames/cosmetics";
 import { DEFAULT_MORE_GAME_PLAYER_NAME, MORE_GAME_CARDS, PLAYER_NAME_KEY, RATED_MORE_GAME_CARDS, getReadableButtonTextColor, normalizeStoredPlayerName } from "./moregames/shared";
 import { styles } from "./moregames/styles";
 import { MoreGameLeaderboardPanel } from "./moregames/Ratings";
@@ -85,6 +85,7 @@ export default function MoreGamesMenu() {
 		mahjongTheme: pickCosmetic(MAHJONG_THEMES, shopState.equipped.mahjong_theme, "mahjong_theme_", "jade"),
 		cardSkin: pickCosmetic(CARD_SKINS, shopState.equipped.card_skin, "card_skin_", "classic"),
 		seaSkin: pickCosmetic(SEA_SKINS, shopState.equipped.sea_skin, "sea_skin_", "navy"),
+		checkersSkin: pickCosmetic(CHECKERS_SKINS, shopState.equipped.checkers_skin, "checkers_skin_", "classic"),
 	}), [shopState.equipped]);
 
 	const [playerName, setPlayerName] = useState(DEFAULT_MORE_GAME_PLAYER_NAME);
@@ -294,7 +295,7 @@ export default function MoreGamesMenu() {
 			) : (
 				<View style={styles.gameSurface}>
 					{activeGame === "shop" && <ExtraGameShop />}
-					{activeGame === "checkers" && <CheckersGame playerName={playerName} onRatingChange={() => loadRatings("checkers")} />}
+					{activeGame === "checkers" && <CheckersGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("checkers")} />}
 					{activeGame === "tictactoe" && <TicTacToeGame playerName={playerName} onRatingChange={() => loadRatings("tictactoe")} />}
 					{activeGame === "sudoku" && <SudokuGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("sudoku")} />}
 					{activeGame === "mahjong" && <MahjongGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("mahjong")} />}

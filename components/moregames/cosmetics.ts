@@ -87,6 +87,16 @@ export const SUDOKU_THEMES = {
 	},
 } as const satisfies Record<string, SudokuPalette>;
 
+/** Checkers: the board's squares and the two sides' pieces. */
+export const CHECKERS_SKINS = {
+	classic: { light: "#E8D2A6", dark: "#8B5A2B", white: { fill: "#F5F1E6", rim: "#B9AE97" }, black: { fill: "#2B2B2E", rim: "#0E0E10" }, glow: false },
+	marble: { light: "#F1F5F9", dark: "#64748B", white: { fill: "#FFFFFF", rim: "#CBD5E1" }, black: { fill: "#1E293B", rim: "#0F172A" }, glow: false },
+	tournament: { light: "#EEEED2", dark: "#769656", white: { fill: "#FFFDF5", rim: "#D6CFB4" }, black: { fill: "#7F1D1D", rim: "#450A0A" }, glow: false },
+	candy: { light: "#FCE7F3", dark: "#DB2777", white: { fill: "#FFFFFF", rim: "#F9A8D4" }, black: { fill: "#831843", rim: "#500724" }, glow: false },
+	neon: { light: "#1E1B4B", dark: "#0F172A", white: { fill: "#22D3EE", rim: "#A5F3FC" }, black: { fill: "#F472B6", rim: "#FBCFE8" }, glow: true },
+	gold: { light: "#FEF3C7", dark: "#92400E", white: { fill: "#FACC15", rim: "#FEF08A" }, black: { fill: "#1C1917", rim: "#A16207" }, glow: true },
+} as const satisfies Record<string, { light: string; dark: string; white: { fill: string; rim: string }; black: { fill: string; rim: string }; glow: boolean }>;
+
 export interface ExtraGameCosmetics {
 	chessPieces: keyof typeof CHESS_PIECE_COLORS;
 	chessBoard: keyof typeof CHESS_BOARD_COLORS;
@@ -94,6 +104,7 @@ export interface ExtraGameCosmetics {
 	mahjongTheme: keyof typeof MAHJONG_THEMES;
 	cardSkin: keyof typeof CARD_SKINS;
 	seaSkin: keyof typeof SEA_SKINS;
+	checkersSkin: keyof typeof CHECKERS_SKINS;
 }
 
 /** Resolves an equipped shop item id to a palette key, falling back when the id is missing or unknown. */
@@ -109,4 +120,5 @@ export const DEFAULT_EXTRA_COSMETICS: ExtraGameCosmetics = {
 	mahjongTheme: "jade",
 	cardSkin: "classic",
 	seaSkin: "paper",
+	checkersSkin: "classic",
 };
