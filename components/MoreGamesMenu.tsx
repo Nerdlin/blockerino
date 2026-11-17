@@ -192,7 +192,7 @@ export default function MoreGamesMenu() {
 		>
 			<View style={styles.moreHeaderRow}>
 				<StylizedButton text={t("common.back")} onClick={() => { if (!runClaimedBack(backStack)) handleBack(); }} backgroundColor={cssColors.spaceGray} style={styles.topBackButton} textStyle={styles.smallButtonText} />
-				<Text style={[styles.header, { color: currentTheme.textPrimary, flex: 1, fontSize: 16 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+				<Text style={[styles.header, { color: currentTheme.textPrimary, flex: 1, fontSize: 16 }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>
 					{activeCard ? t(`moregames.card.${activeCard.id}.title`) : (ratingPanel === "leaderboard" ? t("moregames.leaderboardTitle") : t("moregames.title"))}
 				</Text>
 				{/* Settings (sound, language) without leaving the game; the options screen opens on top */}

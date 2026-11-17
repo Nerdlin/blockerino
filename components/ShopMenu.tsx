@@ -9,7 +9,6 @@ import CosmeticPreview from "./CosmeticPreview";
 import ShopPreviewModal from "./ShopPreviewModal";
 import ChestShop from "./ChestShop";
 import CollectionMenu from "./CollectionMenu";
-import GiftFriendPicker from "./GiftFriendPicker";
 import { useCollectionSummary } from "@/constants/Collection";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
@@ -48,7 +47,6 @@ export default function ShopMenu() {
 	const [message, setMessage] = useState(t("shop.caption"));
 	const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
 	const [collectionOpen, setCollectionOpen] = useState(false);
-	const [giftItem, setGiftItem] = useState<ShopItem | null>(null);
 	const collection = useCollectionSummary(state.ownedItemIds);
 	const toChests = () => {
 		playSfx("menuClick");
@@ -166,11 +164,9 @@ export default function ShopMenu() {
 					await handleItemPress(item);
 					setPreviewItem(null);
 				}}
-				onGift={(item) => { playSfx("menuClick"); setPreviewItem(null); setGiftItem(item); }}
 				onClose={() => setPreviewItem(null)}
 			/>
 
-			<GiftFriendPicker gift={giftItem ? { kind: "item", item: giftItem } : null} onClose={() => setGiftItem(null)} />
 			{collectionOpen && <CollectionMenu onClose={() => setCollectionOpen(false)} />}
 
 			<Text style={[styles.catalogCount, { color: currentTheme.textSecondary }]}>

@@ -28,11 +28,11 @@ export default function GlobalScoreRow({ score, rank, highlightTop, hideTime, is
                 <Text style={[styles.name, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(score.player_name, isMe ? 'SilkscreenBold' : 'Silkscreen') }]} numberOfLines={1}>
                     {score.player_name}
                 </Text>
-                {!hideTime && (
+                {!hideTime && score.created_at ? (
                     <Text style={[styles.time, { color: currentTheme.textSecondary }]} numberOfLines={1}>
-                        {score.created_at ? createTimeAgoString(new Date(score.created_at).getTime(), t) : t("hs.unknownTime")}
+                        {createTimeAgoString(new Date(score.created_at).getTime(), t)}
                     </Text>
-                )}
+                ) : null}
             </View>
             <Text style={[styles.score, { color: tier?.color && tier.borderWidth > 0 ? tier.color : currentTheme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
                 {score.score}

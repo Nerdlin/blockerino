@@ -39,7 +39,7 @@ export default function SegmentedControl<T extends string>({
 							selected && { backgroundColor: item.color ?? currentTheme.buttonPrimary },
 						]}
 					>
-						<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[styles.label, small ? styles.labelSmall : styles.labelLarge, selected ? styles.labelSelected : styles.labelIdle]}>
+						<Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85} style={[styles.label, small ? styles.labelSmall : styles.labelLarge, selected ? styles.labelSelected : styles.labelIdle]}>
 							{item.label}
 						</Text>
 					</Pressable>
@@ -66,10 +66,12 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 4,
 	},
 	segmentLarge: {
-		height: 44,
+		minHeight: 44,
+		paddingVertical: 4,
 	},
 	segmentSmall: {
-		height: 34,
+		minHeight: 34,
+		paddingVertical: 3,
 	},
 	divider: {
 		borderLeftWidth: 1,

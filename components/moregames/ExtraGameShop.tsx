@@ -46,7 +46,7 @@ export function ExtraGameShop() {
 					<View style={[styles.refreshIconButton, { width: undefined, minWidth: 74, paddingHorizontal: 10, borderColor: currentTheme.accent }]}>
 						<Text style={[styles.shopHint, { color: currentTheme.accent, fontSize: 14 }]}>{state.balance}</Text>
 					</View>
-					<Text style={[styles.shopHint, { color: currentTheme.textSecondary }]}>{message}</Text>
+					<Text style={[styles.shopHint, { color: currentTheme.textSecondary, alignSelf: "stretch", textAlign: "center", paddingHorizontal: 8 }]}>{message}</Text>
 				</View>
 
 				<SegmentedControl

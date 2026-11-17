@@ -12,8 +12,6 @@ import { useFriendInvite } from "@/hooks/useFriendInvite";
 import { fetchFriendsOnline } from "@/constants/Invites";
 import { nameFontFamily } from "@/constants/NameFont";
 import GiftFriendPicker from "./GiftFriendPicker";
-import { CHEST_PRICES } from "@/constants/Chests";
-import { AppState, MenuStateType, useSetAppState } from "@/hooks/useAppState";
 
 function escapeIlikePattern(value: string): string {
     return value.replace(/[\\%_]/g, "\\$&");
@@ -47,16 +45,10 @@ export default function FriendsList({ userId }: { userId: string }) {
     const openProfile = useOpenPlayerProfile();
     const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
     const [giftFriend, setGiftFriend] = useState<{ id: string; name: string } | null>(null);
-    const [setAppState] = useSetAppState();
 
     // A chest goes straight from here; a skin is picked in the shop (its preview has the gift button).
-    const offerGift = (id: string, name: string) => {
-        gameAlert(t("gift.title"), t("gift.choose", { name }), [
-            { text: t("gift.cancel"), style: "cancel" },
-            { text: t("gift.skin"), onPress: () => setAppState(new AppState(MenuStateType.SHOP, new AppState(MenuStateType.MENU))) },
-            { text: t("gift.chest", { price: CHEST_PRICES.small }), onPress: () => setGiftFriend({ id, name }) },
-        ]);
-    };
+    // A gift from the friends list is a chest; the confirmation names the friend and the price.
+    const offerGift = (id: string, name: string) => setGiftFriend({ id, name });
 
     // Friends seen in the last two minutes get a green dot; asked again every 30 seconds while this list is open.
     useEffect(() => {
@@ -318,7 +310,7 @@ export default function FriendsList({ userId }: { userId: string }) {
                     <Text style={[styles.sectionTitle, { color: currentTheme.textSecondary }]}>{t("friends.requestsTitle")}</Text>
                     {incomingRequests.map(f => (
                         <View key={f.id} style={[styles.friendRow, { backgroundColor: currentTheme.emptyBlockBorder }]}>
-                            <Text style={[styles.friendName, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(getFriendName(f)) }]} onPress={() => openProfile(getFriendName(f))}>{getFriendName(f)}</Text>
+                            <Text style={[styles.friendName, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(getFriendName(f)) }]} numberOfLines={1} onPress={() => openProfile(getFriendName(f))}>{getFriendName(f)}</Text>
                             <View style={styles.actionsRow}>
                                 <StylizedButton text="V" onClick={() => handleAcceptRequest(f.id)} backgroundColor="rgb(50,200,50)" style={styles.actionBtn} textStyle={styles.actionBtnText}/>
                                 <StylizedButton text="X" onClick={() => handleDeleteOrCancel(f.id)} backgroundColor="rgb(200,50,50)" style={styles.actionBtn} textStyle={styles.actionBtnText}/>
@@ -349,11 +341,11 @@ export default function FriendsList({ userId }: { userId: string }) {
                 ) : (
                     acceptedFriends.map(f => (
                         <View key={f.id} style={[styles.friendRow, { backgroundColor: currentTheme.emptyBlockBorder }]}>
-                            <View style={styles.nameWithDot}>
+                            <View style={styles.friendNameRow}>
                                 <View style={[styles.onlineDot, onlineIds.has(f.user_id_1 === userId ? f.user_id_2 : f.user_id_1) ? styles.onlineDotOn : styles.onlineDotOff]} />
                                 <Text style={[styles.friendName, { color: currentTheme.textPrimary, fontFamily: nameFontFamily(getFriendName(f)) }]} onPress={() => openProfile(getFriendName(f))}>{getFriendName(f)}</Text>
                             </View>
-                            <View style={styles.actionsRow}>
+                            <View style={styles.friendActions}>
                                 <StylizedButton text={t("friends.invite1v1")} onClick={() => handleInvite1v1(f.user_id_1 === userId ? f.user_id_2 : f.user_id_1, getFriendName(f))} backgroundColor={currentTheme.accent} style={styles.inviteBtn} textStyle={styles.actionBtnText}/>
                                 <StylizedButton text={t("gift.short")} onClick={() => offerGift(f.user_id_1 === userId ? f.user_id_2 : f.user_id_1, getFriendName(f))} backgroundColor="#7C3AED" style={styles.inviteBtn} textStyle={styles.actionBtnText}/>
                                 <StylizedButton text={t("friends.remove")} onClick={() => handleDeleteOrCancel(f.id)} backgroundColor="rgb(200,50,50)" style={styles.cancelBtn} textStyle={styles.actionBtnText}/>
@@ -446,12 +438,19 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     friendRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        gap: 8,
         padding: 10,
         borderRadius: 6,
         marginBottom: 6,
+    },
+    friendNameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    friendActions: {
+        flexDirection: 'row',
+        gap: 6,
     },
     friendName: {
         fontFamily: 'Silkscreen',
