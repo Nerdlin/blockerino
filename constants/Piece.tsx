@@ -1158,12 +1158,26 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 	}
 }
 
+/**
+ * Skin blocks stay bright enough to read on the dark board: a color darker than the floor is lifted to it, keeping
+ * its hue (near-black palette entries become deep, saturated tones).
+ */
+function liftDark(c: Color): Color {
+	"worklet";
+	const lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+	const floor = 96;
+	if (lum >= floor) return c;
+	const k = floor / Math.max(lum, 12);
+	const lift = (v: number) => Math.min(255, Math.round(v * k + 18));
+	return { r: lift(c.r), g: lift(c.g), b: lift(c.b) };
+}
+
 export function getPieceSkinColor(color: Color, pieceSkinId: string = "piece_classic"): Color {
 	"worklet";
 	const exactPalette = getExactPieceSkinPalette(pieceSkinId);
 	if (exactPalette) {
 		const index = getPieceColorPaletteIndex(color);
-		return exactPalette[index % exactPalette.length];
+		return liftDark(exactPalette[index % exactPalette.length]);
 	}
 
 	const skinFamily = getPieceSkinFamily(pieceSkinId);
@@ -1211,7 +1225,7 @@ export function getPieceSkinColor(color: Color, pieceSkinId: string = "piece_cla
 	if (!palette) {
 		return color;
 	}
-	return palette[index % palette.length];
+	return liftDark(palette[index % palette.length]);
 }
 
 function getBorderColors(backgroundColor: Color) {

@@ -19,7 +19,7 @@ describe("piece skin rendering", () => {
 		const shadowGoldStyle = createFilledBlockStyle(pieceColors[0], 7, "piece_shadow_gold") as { backgroundColor?: string };
 		const forestStyle = createFilledBlockStyle(pieceColors[1], 7, "piece_forest_mushroom") as { backgroundColor?: string };
 
-		expect(shadowGoldStyle.backgroundColor).toBe("#515b85");
+		expect(shadowGoldStyle.backgroundColor).toBe("#67719d");
 		expect(forestStyle.backgroundColor).toBe("#a3e635");
 		expect(shadowGoldStyle.backgroundColor).not.toBe(classicStyle.backgroundColor);
 	});
