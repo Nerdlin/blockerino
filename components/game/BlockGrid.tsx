@@ -1,6 +1,7 @@
 import { isGemColor } from "@/constants/Levels";
-import { SKIN_NEON, getSkinKindId, glyphOf, skinAppear, skinBlockShape, skinClear } from "@/constants/SkinFx";
-import SkinGlyph from "../SkinGlyph";
+import { SKIN_NEON, getSkinKindId, skinAppear, skinBlockShape, skinClear, skinCorners } from "@/constants/SkinFx";
+import { textureOf } from "@/constants/SkinTextures";
+import SkinTexture from "../SkinTexture";
 
 /** A gem cell of a level: a cut cyan stone turned on its corner. */
 function gemBlockStyle(size: number): object {
@@ -32,6 +33,7 @@ import {
 	createEmptyBlockStyle,
 	createFilledBlockStyle,
 	filledBlockBorderWidth,
+	getPieceSkinColor,
 } from "@/constants/Piece";
 import { shopStateAtom } from "@/constants/Shop";
 import { Theme, useTheme } from "@/constants/Theme";
@@ -254,7 +256,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 		// across runtimes for every cell, so that run draws the cell from its props and the UI thread takes over.
 		if (isJsFirstRun()) {
 			if (!startsEmpty && isGemColor(startColor)) return { ...CELL_RESET, ...gemBlockStyle(gridBlockSize) };
-			return startsEmpty ? { ...CELL_RESET, ...createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) } : { ...CELL_RESET, ...createFilledBlockStyle(startColor, 7, pieceSkinId), ...skinBlockShape(skinKind, gridBlockSize, colorToHex(startColor)), opacity: 1, transform: [] };
+			return startsEmpty ? { ...CELL_RESET, ...createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) } : { ...CELL_RESET, ...createFilledBlockStyle(startColor, 7, pieceSkinId), ...skinBlockShape(skinKind, gridBlockSize, colorToHex(getPieceSkinColor(startColor, pieceSkinId))), opacity: 1, transform: [] };
 		}
 		const block = board.value[y][x];
 
@@ -285,7 +287,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 			style = {
 				...CELL_RESET,
 				...createFilledBlockStyle(block.color, 7, pieceSkinId),
-				...skinBlockShape(skinKind, gridBlockSize, colorToHex(block.color)),
+				...skinBlockShape(skinKind, gridBlockSize, colorToHex(getPieceSkinColor(block.color, pieceSkinId))),
 				opacity: block.blockType === BoardBlockType.HOVERED ? 0.45 : 1,
 				transform: []
 			};
@@ -324,7 +326,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 			const block = board.value[y][x];
 			return {
 				...createFilledBlockStyle(block.color, 7, pieceSkinId),
-				...skinBlockShape(skinKind, gridBlockSize, colorToHex(block.color)),
+				...skinBlockShape(skinKind, gridBlockSize, colorToHex(getPieceSkinColor(block.color, pieceSkinId))),
 				...skinClear(skinKind, placedBlockFall.value, gridBlockSize, fallDirectionX, fallDirectionY, fallRotation),
 				position: 'absolute',
 				top: 0,
@@ -351,15 +353,15 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 		}
 		return { opacity: 1, transform: [] };
 	});
-	const decor = skinKind !== 0 && glyphOf(skinKind) !== null;
-	const decorFrame = { position: 'absolute' as const, left: 0, top: 0, width: gridBlockSize, height: gridBlockSize, borderWidth: filledBlockBorderWidth(7, pieceSkinId), borderColor: 'transparent' };
+	const decor = skinKind !== 0 && textureOf(pieceSkinId) !== null;
+	const decorFrame = { position: 'absolute' as const, left: 0, top: 0, width: gridBlockSize, height: gridBlockSize, borderWidth: filledBlockBorderWidth(7, pieceSkinId), borderColor: 'transparent', overflow: 'hidden' as const, ...skinCorners(skinKind, gridBlockSize) };
 
 	return (
 		<>
 			<Animated.View style={[staticStyle, { width: gridBlockSize, height: gridBlockSize, justifyContent: 'center', alignItems: 'center' }]} />
 			{decor && (
 				<Animated.View pointerEvents="none" style={[decorFrame, decorFrameStyle]}>
-					<SkinGlyph code={skinKind} size={gridBlockSize} />
+					<SkinTexture skinId={pieceSkinId} />
 				</Animated.View>
 			)}
 			<Animated.View style={fallingStyle} />

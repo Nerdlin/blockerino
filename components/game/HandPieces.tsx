@@ -1,11 +1,12 @@
 import React from "react";
 import { useGameSizes } from "@/constants/Board";
 import { Hand } from "@/constants/Hand";
-import { createFilledBlockStyle } from "@/constants/Piece";
+import { createFilledBlockStyle, getPieceSkinColor } from "@/constants/Piece";
 import SkinnedBlock from "../SkinnedBlock";
 import { colorToHex } from "@/constants/Color";
-import { getSkinKindId, glyphOf, skinBlockShape } from "@/constants/SkinFx";
-import SkinGlyph from "../SkinGlyph";
+import { getSkinKindId, skinBlockShape, skinCorners } from "@/constants/SkinFx";
+import { textureOf } from "@/constants/SkinTextures";
+import SkinTexture from "../SkinTexture";
 import { shopStateAtom } from "@/constants/Shop";
 import { SharedPoint, useDraggable } from "@mgcrea/react-native-dnd";
 import { useAtomValue } from "jotai";
@@ -56,7 +57,7 @@ function HandBlock({
 				width: GRID_BLOCK_SIZE,
 				height: GRID_BLOCK_SIZE,
 				...createFilledBlockStyle(piece.color, 7, pieceSkinId),
-				...skinBlockShape(skinKind, GRID_BLOCK_SIZE, colorToHex(piece.color)),
+				...skinBlockShape(skinKind, GRID_BLOCK_SIZE, colorToHex(getPieceSkinColor(piece.color, pieceSkinId))),
 				opacity: 1,
 			};
 		}
@@ -82,9 +83,9 @@ function HandBlock({
 				animatedStyle,
 			]}
 		>
-			{skinKind !== 0 && glyphOf(skinKind) && (
-				<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, decorStyle]}>
-					<SkinGlyph code={skinKind} size={GRID_BLOCK_SIZE} />
+			{skinKind !== 0 && textureOf(pieceSkinId) && (
+				<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { overflow: "hidden" }, skinCorners(skinKind, GRID_BLOCK_SIZE), decorStyle]}>
+					<SkinTexture skinId={pieceSkinId} />
 				</Animated.View>
 			)}
 		</Animated.View>

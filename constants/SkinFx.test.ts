@@ -1,5 +1,5 @@
-import { SKIN_BEVEL, SKIN_CANDY, SKIN_CRYSTAL, SKIN_GLASS, SKIN_LAVA, SKIN_LIQUID, SKIN_METAL, SKIN_NEON, SKIN_ORB, SKIN_PIXEL, SKIN_STONE, SKIN_WOOD, getSkinKind, getSkinKindId, glyphOf, kindOf, skinAppear, skinClear } from "./SkinFx";
-import { SKIN_GLYPHS } from "./SkinGlyphs";
+import { SKIN_BEVEL, SKIN_CANDY, SKIN_CRYSTAL, SKIN_GLASS, SKIN_LAVA, SKIN_LIQUID, SKIN_METAL, SKIN_NEON, SKIN_ORB, SKIN_PIXEL, SKIN_STONE, SKIN_WOOD, getSkinKind, getSkinKindId, kindOf, skinAppear, skinClear } from "./SkinFx";
+import { SKIN_TEXTURES, TEX, textureKey, textureOf } from "./SkinTextures";
 import { SHOP_ITEMS } from "./Shop";
 
 jest.mock("@react-native-async-storage/async-storage", () => require("@react-native-async-storage/async-storage/jest/async-storage-mock"));
@@ -31,23 +31,23 @@ describe("skin families", () => {
 describe("one look per skin", () => {
 	const codes = skins.map((skin) => getSkinKindId(skin.id));
 
-	it("leaves only the classic block plain and gives every other skin a badge no other skin has", () => {
+	it("leaves only the classic block plain and gives every other skin a themed surface no other skin has", () => {
 		expect(getSkinKindId("piece_classic")).toBe(0);
-		const badges = skins.filter((skin) => skin.id !== "piece_classic").map((skin) => glyphOf(getSkinKindId(skin.id)));
-		expect(badges.every((rows) => rows !== null)).toBe(true);
-		expect(new Set(badges.map((rows) => rows!.join("/"))).size).toBe(badges.length);
+		expect(textureOf("piece_classic")).toBeNull();
+		const others = skins.filter((skin) => skin.id !== "piece_classic");
+		for (const skin of others) expect(textureOf(skin.id)?.length ?? 0).toBeGreaterThan(0);
+		const keys = others.map((skin) => textureKey(skin.id));
+		expect(new Set(keys).size).toBe(others.length);
+	});
+
+	it("draws only skins that exist, inside the 16x16 picture", () => {
+		const ids = new Set(skins.map((skin) => skin.id));
+		for (const id of Object.keys(SKIN_TEXTURES)) expect(ids.has(id)).toBe(true);
+		for (const id of Object.keys(SKIN_TEXTURES)) for (const layer of textureOf(id)!) expect(layer.d).toMatch(/^(M\d+ \d+h\d+v1h-\d+z)+$/);
+		expect(TEX).toBe(16);
 	});
 
 	it("keeps each skin's family in its code", () => {
 		skins.forEach((skin, index) => expect(kindOf(codes[index])).toBe(KINDS.indexOf(kindOf(getSkinKindId(skin.id)))));
-	});
-
-	it("has spare badges for new skins, all of them different and 5x5", () => {
-		expect(SKIN_GLYPHS.length).toBeGreaterThanOrEqual(skins.length + 5);
-		expect(new Set(SKIN_GLYPHS.map((rows) => rows.join("/"))).size).toBe(SKIN_GLYPHS.length);
-		for (const rows of SKIN_GLYPHS) {
-			expect(rows).toHaveLength(5);
-			for (const row of rows) expect(row).toMatch(/^[.#]{5}$/);
-		}
 	});
 });

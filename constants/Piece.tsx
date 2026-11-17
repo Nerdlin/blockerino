@@ -1158,7 +1158,7 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 	}
 }
 
-function getPieceSkinColor(color: Color, pieceSkinId: string = "piece_classic"): Color {
+export function getPieceSkinColor(color: Color, pieceSkinId: string = "piece_classic"): Color {
 	"worklet";
 	const exactPalette = getExactPieceSkinPalette(pieceSkinId);
 	if (exactPalette) {

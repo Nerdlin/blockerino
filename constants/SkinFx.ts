@@ -1,11 +1,11 @@
 import { SHOP_ITEMS } from "./Shop";
-import { SKIN_GLYPHS } from "./SkinGlyphs";
+import { textureShape } from "./SkinTextures";
 
 // How a piece skin looks and moves beyond its colors: the block's surface, how a placed block appears and how a
 // cleared block goes. Runs in worklets too (plain values only).
 //
-// Every skin has its own style: a kind (the family: how it appears and clears), a block shape and its own pixel badge
-// on every block (constants/SkinGlyphs.ts, components/SkinGlyph.tsx). No two skins share a badge (SkinFx.test.ts).
+// Every skin has its own style: a kind (the family: how it appears and clears), a block shape that suits its theme and
+// its own themed surface (constants/SkinTextures.ts, components/SkinTexture.tsx). No two skins share a surface.
 
 export type SkinKind = "bevel" | "stone" | "crystal" | "lava" | "neon" | "liquid" | "pixel" | "glass" | "metal" | "wood" | "candy" | "orb";
 
@@ -97,28 +97,25 @@ const SHAPE_ORDER: Record<SkinKind, number[]> = {
 let styleCodes: Map<string, number> | null = null;
 
 /**
- * Each piece skin of the catalog, in catalog order, gets the next pixel badge (no two skins share one) and the next
- * shape of its family. The code packs kind | shape << 8 | (badge + 1) << 12; 0 is the plain classic block.
+ * Each piece skin gets its kind and the shape its theme asks for (SkinTextures), else the next shape of its family. The
+ * code packs kind | shape << 8; 0 is the plain classic block.
  */
 function buildStyleCodes(): Map<string, number> {
 	const codes = new Map<string, number>([["piece_classic", 0]]);
 	const perKind = new Map<SkinKind, number>();
-	let badge = 0;
 	for (const item of SHOP_ITEMS) {
 		if (item.category !== "piece_skin" || codes.has(item.id)) continue;
 		const kindName = getSkinKind(item.id);
 		const nth = perKind.get(kindName) ?? 0;
 		perKind.set(kindName, nth + 1);
 		const shapes = SHAPE_ORDER[kindName];
-		const shape = shapes[nth % shapes.length];
-		const glyph = badge < SKIN_GLYPHS.length ? badge + 1 : 0;
-		badge++;
-		codes.set(item.id, KIND_IDS[kindName] | (shape << 8) | (glyph << 12));
+		const shape = textureShape(item.id) || shapes[nth % shapes.length];
+		codes.set(item.id, KIND_IDS[kindName] | (shape << 8));
 	}
 	return codes;
 }
 
-/** The skin's style packed in one number (kind, shape, badge); 0 is the plain classic block. */
+/** The skin's style packed in one number (kind and shape); 0 is the plain classic block. */
 export function getSkinKindId(pieceSkinId: string = "piece_classic"): number {
 	if (!styleCodes) styleCodes = buildStyleCodes();
 	return styleCodes.get(pieceSkinId) ?? KIND_IDS[getSkinKind(pieceSkinId)];
@@ -130,10 +127,11 @@ export function kindOf(code: number): number {
 	return code & 15;
 }
 
-/** The skin's pixel badge (rows of SKIN_GLYPHS), or null for none. */
-export function glyphOf(code: number): string[] | null {
-	const index = (code >> 12) & 127;
-	return index > 0 ? SKIN_GLYPHS[index - 1] ?? null : null;
+/** Only the corner rounding of the skin's block, for layers that must follow its outline. */
+export function skinCorners(code: number, size: number): Record<string, unknown> {
+	const out: Record<string, unknown> = {};
+	for (const [key, value] of Object.entries(skinBlockShape(code, size, "#000"))) if (/Radius$/.test(key)) out[key] = value;
+	return out;
 }
 
 /** The block's corners for a shape other than the kind's own. */
