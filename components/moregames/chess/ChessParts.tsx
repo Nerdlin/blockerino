@@ -16,7 +16,8 @@ import Animated, {
 import { useTheme } from "@/constants/Theme";
 import { BotLook } from "@/constants/chess/BotSprites";
 import { TrackedPiece, livePieces, trackPieces } from "@/constants/chess/PieceTracker";
-import { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics, pixelTile } from "../cosmetics";
+import { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics, isPixelPieceSet, pixelTile } from "../cosmetics";
+import PixelChessPiece from "./PixelChessPiece";
 import { styles as gameStyles } from "../styles";
 import { BotAvatar } from "./BotAvatar";
 import { usePlayerAvatar } from "@/constants/PlayerAvatars";
@@ -75,6 +76,7 @@ function AnimatedPiece({
 	color,
 	heavy,
 	settled,
+	pixel,
 }: {
 	x: number;
 	y: number;
@@ -82,6 +84,8 @@ function AnimatedPiece({
 	glyph: string;
 	color: string;
 	heavy: boolean;
+	/** Set when a pixel set is equipped: the piece is drawn as pixel art instead of the glyph. */
+	pixel?: { type: "p" | "n" | "b" | "r" | "q" | "k"; side: "w" | "b" };
 	/** False while the board is first drawn, so the opening position does not fly in. */
 	settled: boolean;
 }) {
@@ -115,7 +119,11 @@ function AnimatedPiece({
 			exiting={ZoomOut.duration(200)}
 			style={[local.piece, { width: size, height: size }, style]}
 		>
-			<Text style={[gameStyles.chessPiece, heavy && gameStyles.chessPieceClub, { color }]}>{glyph}</Text>
+			{pixel ? (
+				<PixelChessPiece type={pixel.type} side={pixel.side} fill={color} size={size * 0.86} />
+			) : (
+				<Text style={[gameStyles.chessPiece, heavy && gameStyles.chessPieceClub, { color }]}>{glyph}</Text>
+			)}
 		</Animated.View>
 	);
 }
@@ -216,6 +224,7 @@ export function ChessBoard({
 					color={piece.color === "b" ? palette.black : palette.white}
 					heavy={palette.heavy}
 					settled={settled}
+					pixel={isPixelPieceSet(cosmetics.chessPieces) ? { type: piece.type as "p" | "n" | "b" | "r" | "q" | "k", side: piece.color as "w" | "b" } : undefined}
 				/>
 			))}
 		</View>
@@ -240,9 +249,13 @@ export function PromotionPicker({ color, cosmetics, label, onPick }: { color: "w
 						onPress={() => onPick(piece)}
 						style={[local.promotionButton, { borderColor: currentTheme.accent }]}
 					>
-						<Text style={[gameStyles.chessPiece, { color: color === "b" ? palette.black : palette.white, backgroundColor: color === "w" ? "rgba(15,23,42,0.55)" : "rgba(255,255,255,0.7)", borderRadius: 6 }]}>
-							{UNICODE_PIECES[`${color}${piece}`]}
-						</Text>
+						{isPixelPieceSet(cosmetics.chessPieces) ? (
+							<PixelChessPiece type={piece} side={color} fill={color === "b" ? palette.black : palette.white} size={40} />
+						) : (
+							<Text style={[gameStyles.chessPiece, { color: color === "b" ? palette.black : palette.white, backgroundColor: color === "w" ? "rgba(15,23,42,0.55)" : "rgba(255,255,255,0.7)", borderRadius: 6 }]}>
+								{UNICODE_PIECES[`${color}${piece}`]}
+							</Text>
+						)}
 					</Pressable>
 				))}
 			</View>

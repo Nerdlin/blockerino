@@ -50,7 +50,16 @@ export const CHESS_PIECE_COLORS = {
 	sunset: { white: "#FDBA74", black: "#581C87", heavy: false },
 	toxic: { white: "#A3E635", black: "#0A0A0A", heavy: true },
 	gold: { white: "#FACC15", black: "#475569", heavy: true },
-} as const satisfies Record<string, { white: string; black: string; heavy: boolean }>;
+	// pixel sets: chunky pixel-art pieces (PixelChessPiece) instead of the font glyphs
+	pixel: { white: "#F8FAFC", black: "#312E81", heavy: false, pixel: true },
+	pixel_neon: { white: "#67E8F9", black: "#C026D3", heavy: false, pixel: true },
+	pixel_gold: { white: "#FDE047", black: "#9A3412", heavy: false, pixel: true },
+} as const satisfies Record<string, { white: string; black: string; heavy: boolean; pixel?: boolean }>;
+
+/** Whether a chess piece set draws pixel-art pieces. */
+export function isPixelPieceSet(key: keyof typeof CHESS_PIECE_COLORS): boolean {
+	return "pixel" in CHESS_PIECE_COLORS[key];
+}
 
 export const MAHJONG_THEMES = {
 	jade: { board: "#0F3A3E", boardBorder: "#2DD4BF", tile: "#ECFDF5", tileBorder: "#0F766E", text: "#047857" },

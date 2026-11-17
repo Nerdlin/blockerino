@@ -5,12 +5,14 @@ import {
 	CHECKERS_SKINS,
 	CHESS_BOARD_COLORS,
 	CHESS_PIECE_COLORS,
+	isPixelPieceSet,
 	MAHJONG_THEMES,
 	SEA_SKINS,
 	SUDOKU_THEMES,
 } from "./moregames/cosmetics";
 import { createFilledBlockStyle, pieceColors } from "@/constants/Piece";
 import SkinnedBlock from "./SkinnedBlock";
+import PixelChessPiece from "./moregames/chess/PixelChessPiece";
 
 // Little scenes that show a shop item the way it looks in its own game: the board and pieces for chess, a radar
 // grid for Sea Battle, a card back and face, a sudoku board and a mahjong table. `large` is the version shown in
@@ -77,14 +79,16 @@ function ChessPiecePreview({ item, u }: { item: ShopItem; u: number }) {
 	const board = CHESS_BOARD_COLORS.slate;
 	const cell = 30 * u;
 	const glyph = { fontSize: 24 * u, fontWeight: colors.heavy ? ("900" as const) : ("400" as const) };
+	const key = keyOf(item);
+	const pixel = key in CHESS_PIECE_COLORS && isPixelPieceSet(key as keyof typeof CHESS_PIECE_COLORS);
 	return (
 		<Frame u={u}>
 			<View style={{ flexDirection: "row" }}>
 				<View style={[styles.cellCenter, { width: cell, height: cell, backgroundColor: board.light }]}>
-					<Text style={[glyph, { color: colors.black, textShadowColor: "rgba(0,0,0,0.35)", textShadowRadius: 1 }]}>{"♞"}</Text>
+					{pixel ? <PixelChessPiece type="n" side="b" fill={colors.black} size={cell * 0.86} /> : <Text style={[glyph, { color: colors.black, textShadowColor: "rgba(0,0,0,0.35)", textShadowRadius: 1 }]}>{"♞"}</Text>}
 				</View>
 				<View style={[styles.cellCenter, { width: cell, height: cell, backgroundColor: board.dark }]}>
-					<Text style={[glyph, { color: colors.white, textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 1 }]}>{"♞"}</Text>
+					{pixel ? <PixelChessPiece type="n" side="w" fill={colors.white} size={cell * 0.86} /> : <Text style={[glyph, { color: colors.white, textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 1 }]}>{"♞"}</Text>}
 				</View>
 			</View>
 		</Frame>
