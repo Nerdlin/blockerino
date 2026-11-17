@@ -1,3 +1,29 @@
+-- Style shop, wave 2: 22 more skins for chess pieces and boards, Sea Battle, cards and Mahjong.
+INSERT INTO public.shop_catalog (item_id, price, kind) VALUES
+  ('chess_piece_marble', 600, 'paid'),
+  ('chess_piece_jade', 700, 'paid'),
+  ('chess_piece_sunset', 750, 'paid'),
+  ('chess_piece_toxic', 820, 'paid'),
+  ('chess_piece_gold', 1500, 'paid'),
+  ('chess_board_coral', 400, 'paid'),
+  ('chess_board_midnight', 650, 'paid'),
+  ('chess_board_sand', 500, 'paid'),
+  ('chess_board_mono', 800, 'paid'),
+  ('chess_board_royal', 1450, 'paid'),
+  ('sea_skin_arctic', 450, 'paid'),
+  ('sea_skin_toxic', 600, 'paid'),
+  ('sea_skin_night', 750, 'paid'),
+  ('sea_skin_gold', 1500, 'paid'),
+  ('card_skin_ocean', 600, 'paid'),
+  ('card_skin_noir', 700, 'paid'),
+  ('card_skin_sunset', 800, 'paid'),
+  ('card_skin_royal', 1450, 'paid'),
+  ('mahjong_theme_ocean', 550, 'paid'),
+  ('mahjong_theme_bamboo', 650, 'paid'),
+  ('mahjong_theme_neon', 850, 'paid'),
+  ('mahjong_theme_gold', 1500, 'paid')
+ON CONFLICT (item_id) DO UPDATE SET price = EXCLUDED.price, kind = EXCLUDED.kind;
+
 -- Checkers skins: the board's squares and both sides' pieces (components/moregames/cosmetics.ts, CHECKERS_SKINS).
 INSERT INTO public.shop_catalog (item_id, price, kind) VALUES
   ('checkers_skin_classic', 0, 'free'),

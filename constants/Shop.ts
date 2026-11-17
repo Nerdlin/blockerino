@@ -118,6 +118,30 @@ const BASE_SHOP_ITEMS: ShopItem[] = [
 	{ id: "checkers_skin_neon", category: "checkers_skin", title: "Neon Night", description: "A dark board with glowing cyan and pink pieces.", price: 820, accent: "#FACC15", previewColors: ["#1E1B4B", "#0F172A"] },
 	{ id: "checkers_skin_gold", category: "checkers_skin", title: "Royal Gold", description: "Gold and onyx for players who never lose.", price: 1500, accent: "#FACC15", previewColors: ["#FEF3C7", "#92400E"] },
 
+	// More Games, wave 2
+	{ id: "chess_piece_marble", category: "chess_piece", title: "Marble", description: "White marble and black obsidian pieces.", price: 600, accent: "#C4B5FD", previewColors: ["#F8FAFC", "#0F172A"] },
+	{ id: "chess_piece_jade", category: "chess_piece", title: "Jade Army", description: "Pale jade against deep green.", price: 700, accent: "#C4B5FD", previewColors: ["#A7F3D0", "#064E3B"] },
+	{ id: "chess_piece_sunset", category: "chess_piece", title: "Sunset Duel", description: "Peach and plum, like the sky at dusk.", price: 750, accent: "#C4B5FD", previewColors: ["#FDBA74", "#581C87"] },
+	{ id: "chess_piece_toxic", category: "chess_piece", title: "Toxic", description: "Acid green against black, heavy pieces.", price: 820, accent: "#C4B5FD", previewColors: ["#A3E635", "#0A0A0A"] },
+	{ id: "chess_piece_gold", category: "chess_piece", title: "Gold and Silver", description: "A royal set in gold and polished silver.", price: 1500, accent: "#C4B5FD", previewColors: ["#FACC15", "#94A3B8"] },
+	{ id: "chess_board_coral", category: "chess_board", title: "Coral Reef", description: "Sand and coral squares.", price: 400, accent: "#8B5CF6", previewColors: ["#FFE4D6", "#F97362"] },
+	{ id: "chess_board_midnight", category: "chess_board", title: "Midnight", description: "Deep navy with soft starlight squares.", price: 650, accent: "#8B5CF6", previewColors: ["#A5B4FC", "#1E1B4B"] },
+	{ id: "chess_board_sand", category: "chess_board", title: "Desert Sand", description: "Warm sand and terracotta.", price: 500, accent: "#8B5CF6", previewColors: ["#FDE68A", "#B45309"] },
+	{ id: "chess_board_mono", category: "chess_board", title: "Monochrome", description: "Plain black and white, nothing else.", price: 800, accent: "#8B5CF6", previewColors: ["#F5F5F5", "#262626"] },
+	{ id: "chess_board_royal", category: "chess_board", title: "Royal Velvet", description: "Purple velvet and gold squares.", price: 1450, accent: "#8B5CF6", previewColors: ["#FDE68A", "#6B21A8"] },
+	{ id: "sea_skin_arctic", category: "sea_skin", title: "Arctic Sea", description: "Ice floes and cold blue water.", price: 450, accent: "#38BDF8", previewColors: ["#E0F2FE"] },
+	{ id: "sea_skin_toxic", category: "sea_skin", title: "Toxic Bay", description: "Green glowing water of a strange bay.", price: 600, accent: "#38BDF8", previewColors: ["#1A2E05"] },
+	{ id: "sea_skin_night", category: "sea_skin", title: "Night Raid", description: "A dark sea under a violet sky.", price: 750, accent: "#38BDF8", previewColors: ["#1E1B4B"] },
+	{ id: "sea_skin_gold", category: "sea_skin", title: "Treasure Map", description: "An old map with gold ink.", price: 1500, accent: "#38BDF8", previewColors: ["#FEF3C7"] },
+	{ id: "card_skin_ocean", category: "card_skin", title: "Ocean Cards", description: "Teal backs with wave lines.", price: 600, accent: "#F97316", previewColors: ["#0E7490", "#67E8F9"] },
+	{ id: "card_skin_noir", category: "card_skin", title: "Noir Cards", description: "Black backs with a silver frame.", price: 700, accent: "#F97316", previewColors: ["#0A0A0A", "#D4D4D8"] },
+	{ id: "card_skin_sunset", category: "card_skin", title: "Sunset Cards", description: "Orange backs with a warm glow.", price: 800, accent: "#F97316", previewColors: ["#C2410C", "#FDBA74"] },
+	{ id: "card_skin_royal", category: "card_skin", title: "Royal Deck", description: "Purple and gold for a king's table.", price: 1450, accent: "#F97316", previewColors: ["#6B21A8", "#FACC15"] },
+	{ id: "mahjong_theme_ocean", category: "mahjong_theme", title: "Ocean Tiles", description: "Pale blue tiles on a deep sea table.", price: 550, accent: "#2DD4BF", previewColors: ["#EFF6FF"] },
+	{ id: "mahjong_theme_bamboo", category: "mahjong_theme", title: "Bamboo", description: "Green bamboo tiles with brown ink.", price: 650, accent: "#2DD4BF", previewColors: ["#ECFCCB"] },
+	{ id: "mahjong_theme_neon", category: "mahjong_theme", title: "Neon Tiles", description: "Dark tiles with glowing symbols.", price: 850, accent: "#2DD4BF", previewColors: ["#111827"] },
+	{ id: "mahjong_theme_gold", category: "mahjong_theme", title: "Golden Palace", description: "Gold tiles from an emperor's palace.", price: 1500, accent: "#2DD4BF", previewColors: ["#FEF3C7"] },
+
 	// ORIGINAL BLOCKERINO
 	{
 		id: "piece_classic",

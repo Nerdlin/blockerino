@@ -8,6 +8,11 @@ export const CHESS_BOARD_COLORS = {
 	emerald: { light: "#EEEED2", dark: "#769656" },
 	ice: { light: "#DEEAF6", dark: "#5B8DB8" },
 	candy: { light: "#FCE7F3", dark: "#D9619A" },
+	coral: { light: "#FFE4D6", dark: "#E8705F" },
+	midnight: { light: "#A5B4FC", dark: "#312E81" },
+	sand: { light: "#FDE68A", dark: "#B45309" },
+	mono: { light: "#F5F5F5", dark: "#404040" },
+	royal: { light: "#FDE68A", dark: "#6B21A8" },
 } as const satisfies Record<string, { light: string; dark: string }>;
 
 export const CHESS_PIECE_COLORS = {
@@ -17,6 +22,11 @@ export const CHESS_PIECE_COLORS = {
 	neon: { white: "#67E8F9", black: "#581C87", heavy: false },
 	ember: { white: "#FED7AA", black: "#7F1D1D", heavy: false },
 	frost: { white: "#E0F2FE", black: "#1E3A8A", heavy: false },
+	marble: { white: "#F8FAFC", black: "#0F172A", heavy: true },
+	jade: { white: "#A7F3D0", black: "#064E3B", heavy: false },
+	sunset: { white: "#FDBA74", black: "#581C87", heavy: false },
+	toxic: { white: "#A3E635", black: "#0A0A0A", heavy: true },
+	gold: { white: "#FACC15", black: "#475569", heavy: true },
 } as const satisfies Record<string, { white: string; black: string; heavy: boolean }>;
 
 export const MAHJONG_THEMES = {
@@ -25,6 +35,10 @@ export const MAHJONG_THEMES = {
 	onyx: { board: "#0B0B10", boardBorder: "#FACC15", tile: "#1F2937", tileBorder: "#6B7280", text: "#FACC15" },
 	ruby: { board: "#450A0A", boardBorder: "#F87171", tile: "#FEF2F2", tileBorder: "#B91C1C", text: "#B91C1C" },
 	sakura: { board: "#4A1D3A", boardBorder: "#F9A8D4", tile: "#FDF2F8", tileBorder: "#BE185D", text: "#9D174D" },
+	ocean: { board: "#0C4A6E", boardBorder: "#7DD3FC", tile: "#EFF6FF", tileBorder: "#0369A1", text: "#1D4ED8" },
+	bamboo: { board: "#365314", boardBorder: "#BEF264", tile: "#ECFCCB", tileBorder: "#4D7C0F", text: "#713F12" },
+	neon: { board: "#050816", boardBorder: "#22D3EE", tile: "#111827", tileBorder: "#0E7490", text: "#22D3EE" },
+	gold: { board: "#7C2D12", boardBorder: "#FACC15", tile: "#FEF3C7", tileBorder: "#CA8A04", text: "#991B1B" },
 } as const satisfies Record<string, { board: string; boardBorder: string; tile: string; tileBorder: string; text: string }>;
 
 export const CARD_SKINS = {
@@ -33,6 +47,10 @@ export const CARD_SKINS = {
 	midnight: { faceBg: "#F8FAFC", faceBorder: "#6366F1", backBg: "#111827", backBorder: "#6366F1", backGlyph: "#818CF8" },
 	forest: { faceBg: "#F7FEE7", faceBorder: "#16A34A", backBg: "#14532D", backBorder: "#86EFAC", backGlyph: "#4ADE80" },
 	sakura: { faceBg: "#FFF1F2", faceBorder: "#F472B6", backBg: "#BE185D", backBorder: "#FBCFE8", backGlyph: "#F9A8D4" },
+	ocean: { faceBg: "#F0FDFA", faceBorder: "#0E7490", backBg: "#0E7490", backBorder: "#67E8F9", backGlyph: "#22D3EE" },
+	noir: { faceBg: "#FAFAFA", faceBorder: "#52525B", backBg: "#0A0A0A", backBorder: "#D4D4D8", backGlyph: "#71717A" },
+	sunset: { faceBg: "#FFF7ED", faceBorder: "#EA580C", backBg: "#C2410C", backBorder: "#FDBA74", backGlyph: "#FB923C" },
+	royal: { faceBg: "#FEFCE8", faceBorder: "#CA8A04", backBg: "#6B21A8", backBorder: "#FACC15", backGlyph: "#C084FC" },
 } as const satisfies Record<string, { faceBg: string | null; faceBorder: string | null; backBg: string; backBorder: string; backGlyph: string }>;
 
 export const SEA_SKINS = {
@@ -41,6 +59,10 @@ export const SEA_SKINS = {
 	sonar: { paper: false, gridBg: "#022C22", gridBorder: "#34D399", water: "rgba(52,211,153,0.10)", miss: "#065F46", cellBorder: "rgba(52,211,153,0.35)" },
 	sunset: { paper: false, gridBg: "#431407", gridBorder: "#FB923C", water: "rgba(251,146,60,0.14)", miss: "#9A3412", cellBorder: "rgba(251,146,60,0.4)" },
 	blueprint: { paper: false, gridBg: "#1D4ED8", gridBorder: "#BFDBFE", water: "rgba(191,219,254,0.18)", miss: "#1E3A8A", cellBorder: "rgba(191,219,254,0.55)" },
+	arctic: { paper: false, gridBg: "#0C4A6E", gridBorder: "#E0F2FE", water: "rgba(224,242,254,0.14)", miss: "#7DD3FC", cellBorder: "rgba(224,242,254,0.35)" },
+	toxic: { paper: false, gridBg: "#1A2E05", gridBorder: "#A3E635", water: "rgba(163,230,53,0.12)", miss: "#3F6212", cellBorder: "rgba(163,230,53,0.35)" },
+	night: { paper: false, gridBg: "#1E1B4B", gridBorder: "#A78BFA", water: "rgba(167,139,250,0.12)", miss: "#4C1D95", cellBorder: "rgba(167,139,250,0.35)" },
+	gold: { paper: true, gridBg: "#FEF3C7", gridBorder: "#92400E", water: "rgba(146,64,14,0.06)", miss: "#D6B98C", cellBorder: "#B45309" },
 } as const satisfies Record<string, { paper: boolean; gridBg: string; gridBorder: string; water: string; miss: string; cellBorder: string | null }>;
 
 export interface SudokuPalette {
