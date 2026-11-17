@@ -301,14 +301,25 @@ export default function FriendsList({ userId }: { userId: string }) {
             {suggestions.length > 0 && (
                 <View style={[styles.suggestionList, { borderColor: currentTheme.gridBorder }]}>
                     {suggestions.map((profile) => (
-                        <Pressable
-                            key={profile.id}
-                            onPress={() => sendFriendRequest(profile)}
-                            style={({ pressed }) => [styles.suggestionRow, pressed && { backgroundColor: 'rgba(255,255,255,0.12)' }]}
-                        >
-                            <Text style={[styles.suggestionName, { color: currentTheme.textPrimary }]} numberOfLines={1}>{profile.player_name}</Text>
-                            <Text style={[styles.suggestionAdd, { color: currentTheme.textSecondary }]}>+ {t("friends.add")}</Text>
-                        </Pressable>
+                        // the name opens the player's profile; adding is its own button
+                        <View key={profile.id} style={styles.suggestionRow}>
+                            <Pressable
+                                onPress={() => openProfile(profile.player_name)}
+                                accessibilityRole="button"
+                                accessibilityLabel={t("friends.viewProfile", { name: profile.player_name })}
+                                style={({ pressed }) => [styles.suggestionNameButton, pressed && { opacity: 0.6 }]}
+                            >
+                                <Text style={[styles.suggestionName, { color: currentTheme.textPrimary }]} numberOfLines={1}>{profile.player_name}</Text>
+                                <Text style={[styles.suggestionHint, { color: currentTheme.textSecondary }]} numberOfLines={1}>{t("friends.viewProfileShort")}</Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={() => sendFriendRequest(profile)}
+                                accessibilityRole="button"
+                                style={({ pressed }) => [styles.suggestionAddButton, { borderColor: currentTheme.gridBorder }, pressed && { backgroundColor: 'rgba(255,255,255,0.12)' }]}
+                            >
+                                <Text style={[styles.suggestionAdd, { color: currentTheme.textPrimary }]}>+ {t("friends.add")}</Text>
+                            </Pressable>
+                        </View>
                     ))}
                 </View>
             )}
@@ -335,7 +346,7 @@ export default function FriendsList({ userId }: { userId: string }) {
                     <Text style={[styles.sectionTitle, { color: currentTheme.textSecondary }]}>{t("friends.sentTitle")}</Text>
                     {outgoingRequests.map(f => (
                         <View key={f.id} style={[styles.friendRow, { backgroundColor: currentTheme.emptyBlockBorder }]}>
-                            <Text style={[styles.friendName, { color: currentTheme.textSecondary }]}>{t("friends.pending", { name: getFriendName(f) })}</Text>
+                            <Text style={[styles.friendName, { color: currentTheme.textSecondary }]} onPress={() => openProfile(getFriendName(f))}>{t("friends.pending", { name: getFriendName(f) })}</Text>
                             <StylizedButton text={t("friends.cancel")} onClick={() => handleDeleteOrCancel(f.id)} backgroundColor="rgb(150,150,150)" style={styles.cancelBtn} textStyle={styles.actionBtnText}/>
                         </View>
                     ))}
@@ -404,6 +415,23 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 10,
         gap: 8,
+    },
+    suggestionNameButton: {
+        flex: 1,
+        minWidth: 0,
+        paddingVertical: 4,
+    },
+    suggestionHint: {
+        fontFamily: 'Silkscreen',
+        fontSize: 9,
+        marginTop: 2,
+    },
+    suggestionAddButton: {
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        marginLeft: 8,
     },
     suggestionName: {
         flex: 1,

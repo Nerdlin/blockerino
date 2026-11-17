@@ -4,6 +4,8 @@ export const friends: ScreenDictionary = {
 	en: {
 		"friends.searchPlaceholder": "Search by nickname...",
 		"friends.add": "Add",
+		"friends.viewProfile": "Open the profile of {name}",
+		"friends.viewProfileShort": "Tap to view profile",
 		"friends.requestsTitle": "Friend Requests",
 		"friends.sentTitle": "Sent Requests",
 		"friends.pending": "{name} (Pending)",
@@ -53,6 +55,8 @@ export const friends: ScreenDictionary = {
 	ru: {
 		"friends.searchPlaceholder": "Поиск по нику...",
 		"friends.add": "Добавить",
+		"friends.viewProfile": "Открыть профиль {name}",
+		"friends.viewProfileShort": "Нажми, чтобы открыть профиль",
 		"friends.requestsTitle": "Заявки в друзья",
 		"friends.sentTitle": "Отправленные заявки",
 		"friends.pending": "{name} (Ожидает)",
