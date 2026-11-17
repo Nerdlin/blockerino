@@ -11,14 +11,16 @@ import { styles } from "./styles";
 import { shopItemText } from "@/constants/i18n/shopItems";
 
 export const EXTRA_CATEGORIES: { id: ShopCategory; labelKey: string }[] = [
+	// first row: the board games, second row: the rest
 	{ id: "chess_piece", labelKey: "moregames.shop.chessPieces" },
 	{ id: "chess_board", labelKey: "moregames.shop.chessBoard" },
+	{ id: "checkers_skin", labelKey: "moregames.shop.checkersSkins" },
 	{ id: "sea_skin", labelKey: "moregames.shop.seaSkins" },
 	{ id: "card_skin", labelKey: "moregames.shop.cardSkins" },
 	{ id: "sudoku_theme", labelKey: "moregames.shop.sudokuThemes" },
 	{ id: "mahjong_theme", labelKey: "moregames.shop.mahjongThemes" },
-	{ id: "checkers_skin", labelKey: "moregames.shop.checkersSkins" },
 ];
+const FIRST_ROW = 4;
 
 export function ExtraGameShop() {
 	const { currentTheme } = useTheme();
@@ -43,7 +45,7 @@ export function ExtraGameShop() {
 
 	return (
 		<ScrollView style={styles.moreList} contentContainerStyle={styles.shopContent}>
-				<View style={{ alignItems: 'center', marginBottom: 12, gap: 6 }}>
+				<View style={{ width: '100%', alignItems: 'center', marginBottom: 12, gap: 6 }}>
 					<View style={[styles.refreshIconButton, { width: undefined, minWidth: 74, paddingHorizontal: 10, borderColor: currentTheme.accent }]}>
 						<Text style={[styles.shopHint, { color: currentTheme.accent, fontSize: 14 }]}>{state.balance}</Text>
 					</View>
@@ -52,14 +54,14 @@ export function ExtraGameShop() {
 
 				<SegmentedControl
 					small
-					items={EXTRA_CATEGORIES.slice(0, 3).map((cat) => ({ key: cat.id, label: t(cat.labelKey) }))}
+					items={EXTRA_CATEGORIES.slice(0, FIRST_ROW).map((cat) => ({ key: cat.id, label: t(cat.labelKey) }))}
 					value={activeCategory}
 					onChange={setActiveCategory}
 				/>
 				<View style={{ height: 6 }} />
 				<SegmentedControl
 					small
-					items={EXTRA_CATEGORIES.slice(3).map((cat) => ({ key: cat.id, label: t(cat.labelKey) }))}
+					items={EXTRA_CATEGORIES.slice(FIRST_ROW).map((cat) => ({ key: cat.id, label: t(cat.labelKey) }))}
 					value={activeCategory}
 					onChange={setActiveCategory}
 				/>

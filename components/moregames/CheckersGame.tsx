@@ -372,7 +372,7 @@ export function CheckersGame({ cosmetics, playerName, onRatingChange }: { cosmet
 			<Text style={[styles.gameStatus, { color: gameFinished ? currentTheme.accent : currentTheme.textPrimary }]}>{status}</Text>
 			{/* always takes its line, so the board does not jump when it shows */}
 			<Text style={[local.mustCapture, !mustCapture && { opacity: 0 }]}>{t("checkers.mustCapture")}</Text>
-			<View style={[local.board, { width: cell * 8 + BOARD_BORDER * 2, height: cell * 8 + BOARD_BORDER * 2, borderWidth: BOARD_BORDER }]}>
+			<View style={[local.board, { width: cell * 8 + BOARD_BORDER * 2, height: cell * 8 + BOARD_BORDER * 2, borderWidth: BOARD_BORDER, borderColor: skin.dark }]}>
 				{Array.from({ length: 64 }, (_, index) => {
 					const square = flipped ? 63 - index : index;
 					const dark = isDarkSquare(square);
