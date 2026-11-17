@@ -18,6 +18,7 @@ export const profile: ScreenDictionary = {
 
 		// Tabs
 		"profile.tabStats": "Stats",
+		"profile.tabGifts": "Gifts",
 		"profile.tabHistory": "History",
 		"profile.tabFriends": "Friends",
 
@@ -97,6 +98,7 @@ export const profile: ScreenDictionary = {
 
 		// Tabs
 		"profile.tabStats": "Статистика",
+		"profile.tabGifts": "Подарки",
 		"profile.tabHistory": "История",
 		"profile.tabFriends": "Друзья",
 

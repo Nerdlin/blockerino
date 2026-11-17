@@ -16,14 +16,14 @@ import type { ChestPrize } from "@/constants/DailyReward";
 
 /**
  * The chests friends gave, kept in the profile until the player opens them. Opening one spins the same roulette as
- * the shop. Hidden while there are none.
+ * the shop. With none it says so, so the player knows where gifts arrive.
  */
 export default function GiftChestsPanel() {
 	const { t } = useLanguage();
 	const { commit } = useShopState();
 	const { playSfx } = useSoundSettings();
 	const { refresh: refreshBadge } = useProfileBadge();
-	const [chests, setChests] = useState<GiftChest[]>([]);
+	const [chests, setChests] = useState<GiftChest[] | null>(null);
 	const [busy, setBusy] = useState<string | null>(null);
 	const [opening, setOpening] = useState<{ prize: ChestPrize; key: number; exclusive: boolean; pity: boolean; from: string } | null>(null);
 	const [revealed, setRevealed] = useState(false);
@@ -48,7 +48,7 @@ export default function GiftChestsPanel() {
 		const latest = await loadShopState();
 		await commit({ ...latest, balance: result.coins, ownedItemIds: Array.from(new Set([...latest.ownedItemIds, ...result.ownedItemIds])) }, []);
 		track("gift_chest_open", { rarity: result.chest.rarity });
-		setChests((list) => list.filter((entry) => entry.id !== gift.id));
+		setChests((list) => (list ?? []).filter((entry) => entry.id !== gift.id));
 		setRevealed(false);
 		setOpening({ prize: result.chest, key: Date.now(), exclusive: result.exclusive, pity: result.pity, from: gift.fromName });
 		void refreshBadge();
@@ -69,7 +69,20 @@ export default function GiftChestsPanel() {
 		);
 	}
 
-	if (chests.length === 0) return null;
+	// still loading: nothing yet, so the panel does not flash empty first
+	if (chests === null) return null;
+
+	if (chests.length === 0) {
+		return (
+			<Animated.View entering={FadeInDown.duration(320)} style={styles.box}>
+				<Text style={styles.title}>{t("gift.chestsTitle")}</Text>
+				<View style={styles.emptyRow}>
+					<PixelChest size={28} kind="small" />
+					<Text style={styles.empty}>{t("gift.chestsEmpty")}</Text>
+				</View>
+			</Animated.View>
+		);
+	}
 
 	return (
 		<Animated.View entering={FadeInDown.duration(320)} layout={LinearTransition.duration(220)} style={styles.box}>
@@ -113,6 +126,19 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 10,
+	},
+	emptyRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 10,
+		opacity: 0.75,
+	},
+	empty: {
+		flex: 1,
+		fontFamily: "Silkscreen",
+		fontSize: 11,
+		lineHeight: 16,
+		color: "#A1A1AA",
 	},
 	from: {
 		flex: 1,

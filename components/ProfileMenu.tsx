@@ -544,7 +544,7 @@ export default function ProfileMenu() {
 		setAuthLoading(false);
 	};
 
-	const [activeTab, setActiveTab] = useState<"stats" | "history" | "friends">("stats");
+	const [activeTab, setActiveTab] = useState<"stats" | "gifts" | "history" | "friends">("stats");
 	const { badge, refresh: refreshBadge } = useProfileBadge();
 
 	return (
@@ -615,6 +615,7 @@ export default function ProfileMenu() {
 							small
 							items={[
 								{ key: "stats", label: t("profile.tabStats") },
+								{ key: "gifts", label: badge.giftChests > 0 ? `${t("profile.tabGifts")} (${badgeLabel(badge.giftChests)})` : t("profile.tabGifts") },
 								{ key: "history", label: t("profile.tabHistory") },
 								{ key: "friends", label: badge.friendRequests > 0 ? `${t("profile.tabFriends")} (${badgeLabel(badge.friendRequests)})` : t("profile.tabFriends") },
 							]}
@@ -623,7 +624,11 @@ export default function ProfileMenu() {
 						/>
 						<View style={{ height: 12 }} />
 
-						{session && activeTab === "stats" && <GiftChestsPanel />}
+						{activeTab === "gifts" && (
+							<FadeInView key="gifts" style={styles.tabContentContainer}>
+								{session ? <GiftChestsPanel /> : <Text style={{ color: currentTheme.textSecondary, fontSize: 12, textAlign: "center", marginBottom: 12 }}>{t("chest.needAccount")}</Text>}
+							</FadeInView>
+						)}
 
 						{activeTab === "stats" && (
 							<View style={styles.statsContainer}>

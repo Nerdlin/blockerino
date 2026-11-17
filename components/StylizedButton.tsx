@@ -58,7 +58,14 @@ export default function StylizedButton({
                 style
             ]}
         >
-            <Text style={[styles.stylizedButtonText, textStyle]}>{text}</Text>
+            {/* one word never splits: it shrinks to fit the button; a phrase wraps between words */}
+            <Text
+                style={[styles.stylizedButtonText, textStyle]}
+                numberOfLines={/\s/.test(String(text).trim()) ? undefined : 1}
+                adjustsFontSizeToFit={!/\s/.test(String(text).trim())}
+                minimumFontScale={0.6}
+                android_hyphenationFrequency="none"
+            >{text}</Text>
         </Pressable>
     );
 }
