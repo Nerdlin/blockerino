@@ -51,8 +51,9 @@ export function MoreGameTabs({ selected, onChange }: { selected: RatedMoreGameId
 						style={[local.tab, { borderColor: active ? color : "rgba(255,255,255,0.12)", backgroundColor: active ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.25)" }]}
 					>
 						<PixelGlyphView glyph={GAME_GLYPHS[gameId]} size={18} dimmed={!active} />
-						<Text style={[local.tabText, { color: active ? color : "#9CA3AF" }]} numberOfLines={2}>
-							{t(`moregames.label.${gameId}`)}
+						<Text style={[local.tabText, { color: active ? color : "#9CA3AF" }]} numberOfLines={2} android_hyphenationFrequency="none">
+							{/* a long hyphenated name ("Крестики-нолики") breaks after its hyphen, not inside a word */}
+							{t(`moregames.label.${gameId}`).replace(/-(?=\S{5,})/, "-\n")}
 						</Text>
 					</Pressable>
 				);

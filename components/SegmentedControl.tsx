@@ -40,7 +40,7 @@ export default function SegmentedControl<T extends string>({
 							selected && { backgroundColor: item.color ?? currentTheme.buttonPrimary },
 						]}
 					>
-						<Text numberOfLines={item.label.includes(" ") ? 2 : 1} adjustsFontSizeToFit minimumFontScale={item.label.includes(" ") ? 0.85 : 0.7} style={[styles.label, small ? styles.labelSmall : styles.labelLarge, selected ? styles.labelSelected : styles.labelIdle]}>
+						<Text android_hyphenationFrequency="none" numberOfLines={item.label.includes(" ") ? 2 : 1} adjustsFontSizeToFit minimumFontScale={item.label.includes(" ") ? 0.85 : 0.7} style={[styles.label, small ? styles.labelSmall : styles.labelLarge, selected ? styles.labelSelected : styles.labelIdle]}>
 							{item.label}
 						</Text>
 					</Pressable>
