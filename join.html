@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta property="og:title" content="Blockerino: join my room" />
+    <meta property="og:description" content="Tap to play Blockerino with a friend." />
+    <meta property="og:image" content="https://blockerino.aionerdlin.me/social-preview.png" />
+    <title>Blockerino</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <style>
+      /* the game's own face: its Russian letters are redrawn to be readable (scripts/build-pixelify-ru.py) */
+      @font-face {
+        font-family: "Pixelify Ru";
+        src: url("/fonts/PixelifySans-Ru.ttf") format("truetype");
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: dark;
+        --bg: #050510;
+        --panel: #0b0b16;
+        --line: rgba(255, 255, 255, 0.18);
+        --red: #ff3333;
+        --green: #22c55e;
+        --gold: #ffd700;
+        --text: #ffffff;
+        --muted: #a5adbd;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      html, body {
+        width: 100%;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Pixelify Ru", monospace, sans-serif;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 16px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      /* Blocks drifting down behind the card, like the game's menu background. */
+      .rain { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+      .rain i {
+        position: absolute;
+        top: -40px;
+        width: 22px;
+        height: 22px;
+        border: 3px solid rgba(255, 255, 255, 0.22);
+        opacity: 0.35;
+        animation: fall linear infinite;
+      }
+      @keyframes fall { to { transform: translateY(calc(100vh + 80px)); } }
+      @media (prefers-reduced-motion: reduce) { .rain { display: none; } .mark { animation: none !important; } }
+
+      main {
+        width: min(440px, 100%);
+        border: 1.5px solid var(--line);
+        border-radius: 14px;
+        background: var(--panel);
+        padding: 28px 22px 24px;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .logo { width: 56px; height: 56px; border-radius: 12px; display: block; margin: 0 auto 18px; }
+
+      /* A pixel check mark (or cross) drawn from blocks. */
+      .mark {
+        display: grid;
+        grid-template-columns: repeat(7, 14px);
+        gap: 3px;
+        justify-content: center;
+        margin: 0 auto 20px;
+        animation: pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+      }
+      .mark i { width: 14px; height: 14px; border-radius: 2px; }
+      .mark i.on { background: var(--green); box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.25), inset 3px 3px 0 rgba(255, 255, 255, 0.25); }
+      .failed .mark i.on { background: var(--red); }
+      @keyframes pop { from { transform: scale(0.6); opacity: 0; } }
+
+      h1 { font-size: 24px; font-weight: 400; margin-bottom: 10px; }
+      .code { font-size: 30px; letter-spacing: 4px; color: var(--gold); margin: -8px auto 22px; }
+
+      p { max-width: 340px; margin: 0 auto 22px; color: var(--muted); font-size: 15px; line-height: 1.55; }
+
+      .btn {
+        display: block;
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid rgba(255, 255, 255, 0.35);
+        border-radius: 10px;
+        background: var(--red);
+        color: #fff;
+        text-decoration: none;
+        font-family: inherit;
+        font-size: 17px;
+        font-weight: 400;
+        transition: opacity 0.15s ease;
+      }
+      .btn:hover { opacity: 0.88; }
+      .btn:active { opacity: 0.7; }
+      .btn.quiet { margin-top: 10px; background: transparent; border-color: var(--line); color: var(--muted); font-size: 14px; font-weight: 400; padding: 11px 16px; }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div class="rain" aria-hidden="true" id="rain"></div>
+    <main id="card">
+      <img class="logo" src="/icon.png?v=2" alt="Blockerino" />
+      <h1 id="title"></h1>
+      <p id="text"></p>
+      <p class="code" id="code"></p>
+      <a class="btn" id="primary" href="/"></a>
+      <a class="btn quiet" id="secondary" href="/" hidden></a>
+    </main>
+    <script>
+      // A shared room link (constants/JoinLink.ts): ?g=game&c=CODE. An Android phone with the app opens the app on that
+      // room; without the app (or anywhere else) the web game opens and joins the room.
+      (function () {
+        var query = new URLSearchParams(location.search);
+        var game = (query.get("g") || "").toLowerCase();
+        var code = (query.get("c") || "").toUpperCase();
+        var games = ["versus", "durak", "battleship", "tictactoe", "checkers"];
+        var ok = games.indexOf(game) >= 0 && /^[A-Z0-9]{4,12}$/.test(code);
+        var lang = (navigator.language || "en").toLowerCase().indexOf("ru") === 0 ? "ru" : "en";
+        var names = {
+          en: { versus: "Versus 1v1", durak: "Durak", battleship: "Sea Battle", tictactoe: "Tic-Tac-Toe", checkers: "Checkers" },
+          ru: { versus: "Дуэль 1 на 1", durak: "Дурак", battleship: "Морской бой", tictactoe: "Крестики-нолики", checkers: "Шашки" },
+        }[lang];
+        var text = {
+          en: { title: "You are invited!", body: "A friend waits for you in ", app: "Open in the app", web: "Play in the browser", bad: "This link is broken", badBody: "Ask your friend for a new one, or open the game." },
+          ru: { title: "Вас зовут играть!", body: "Друг ждёт вас: ", app: "Открыть в приложении", web: "Играть в браузере", bad: "Ссылка не работает", badBody: "Попросите у друга новую или просто откройте игру." },
+        }[lang];
+        document.documentElement.lang = lang;
+        var webUrl = ok ? "/?join=" + encodeURIComponent(game + ":" + code) : "/";
+        var appUrl = "intent://join?g=" + encodeURIComponent(game) + "&c=" + encodeURIComponent(code) +
+          "#Intent;scheme=com.nerdlin.blockerino;package=com.nerdlin.blockerino;S.browser_fallback_url=" +
+          encodeURIComponent(location.origin + webUrl) + ";end";
+        var isAndroid = /android/i.test(navigator.userAgent);
+        var primary = document.getElementById("primary");
+        var secondary = document.getElementById("secondary");
+
+        document.getElementById("title").textContent = ok ? text.title : text.bad;
+        document.getElementById("text").textContent = ok ? text.body + names[game] : text.badBody;
+        document.getElementById("code").textContent = ok ? code : "";
+        document.title = "Blockerino: " + (ok ? text.title : text.bad);
+
+        if (ok && isAndroid) {
+          primary.href = appUrl;
+          primary.textContent = text.app;
+          secondary.href = webUrl;
+          secondary.textContent = text.web;
+          secondary.hidden = false;
+          // straight into the app when it is installed; the browser falls back to the web game when it is not
+          setTimeout(function () { location.href = appUrl; }, 250);
+        } else {
+          primary.href = webUrl;
+          primary.textContent = text.web;
+          if (ok) setTimeout(function () { location.replace(webUrl); }, 900);
+        }
+
+        var rain = document.getElementById("rain");
+        var colors = ["#ff3333", "#7c3aed", "#1fa4e0", "#ffd700", "#22c55e"];
+        for (var n = 0; n < 14; n++) {
+          var drop = document.createElement("i");
+          drop.style.left = Math.round(Math.random() * 100) + "%";
+          drop.style.borderColor = colors[n % colors.length];
+          drop.style.animationDuration = 7 + Math.random() * 9 + "s";
+          drop.style.animationDelay = -Math.random() * 12 + "s";
+          rain.appendChild(drop);
+        }
+      })();
+    </script>
+  </body>
+</html>
