@@ -45,11 +45,10 @@ Done on dev:
 - `workers/rooms` deployed as `blockerino-rooms` at `rooms.aionerdlin.me`. It checks the Supabase ES256 token against the project JWKS, relays broadcasts, and handles presence. A heartbeat alarm drops a socket that has been silent for 45 s. Deploy with `cd workers/rooms && npx wrangler deploy`.
 - `constants/RoomSocket.ts`: `realtime.channel` and `realtime.removeChannel`, with the backend picked from the app_config row `realtime` (`{"backend":"cloudflare"}`). Without that row it stays on Supabase. For testing on web, set `localStorage["blockerino.realtime"] = "cloudflare"`.
 - Moved to it: the Versus duel channel and the More Games rooms. Hover is now sent every 200 ms instead of 100 ms.
-- Tested on web: a tic-tac-toe room between two isolated guests (create, join, move, leave).
+- Tested on web: a tic-tac-toe room between two isolated guests (create, join, move, leave), and a Versus duel between two bots: moves both ways, opponent hand and score, and a closed tab ending as a win after ~14 s.
+- The Discord URL mapping `/rooms` → `rooms.aionerdlin.me` is set (2026-11-18).
 
 Still to do:
-- Versus duel test with the bot.
-- Discord Activity URL mapping: `/rooms` → `rooms.aionerdlin.me`, set in the Developer Portal.
 - Invites per user DO, which needs a friend check.
 - A "server busy" message when the room server cannot be reached.
 - Release (main + OTA), then insert the app_config row.
