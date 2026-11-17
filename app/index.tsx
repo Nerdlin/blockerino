@@ -57,6 +57,7 @@ import AccountDeleteHost from "@/components/AccountDeleteHost";
 import GameDialogHost from "@/components/GameDialogHost";
 import OtaUpdateHost from "@/components/OtaUpdateHost";
 import GiftHost from "@/components/GiftHost";
+import ScreenLayer from "@/components/ScreenLayer";
 import EmailConfirmHost from "@/components/EmailConfirmHost";
 import JoinLinkHost from "@/components/JoinLinkHost";
 import ProfileMenu from "@/components/ProfileMenu";
@@ -271,29 +272,29 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 
 			{ isMainMenuVisible && <MainMenu></MainMenu> }
 			{ gameMode && <Game gameMode={gameMode} initialState={savedGameForCurrentMode || undefined}></Game> }
-			{ appState.containsState(MenuStateType.HIGH_SCORES) && <HighScores></HighScores>}
-			{ appState.containsState(MenuStateType.ACHIEVEMENTS) && <AchievementsMenu />}
-			{ appState.containsState(MenuStateType.SHOP) && <ShopMenu />}
-			{ appState.containsState(MenuStateType.SEASON_RESULTS) && <SeasonResultsMenu />}
+			{ appState.containsState(MenuStateType.HIGH_SCORES) && <ScreenLayer><HighScores></HighScores></ScreenLayer>}
+			{ appState.containsState(MenuStateType.ACHIEVEMENTS) && <ScreenLayer><AchievementsMenu /></ScreenLayer>}
+			{ appState.containsState(MenuStateType.SHOP) && <ScreenLayer><ShopMenu /></ScreenLayer>}
+			{ appState.containsState(MenuStateType.SEASON_RESULTS) && <ScreenLayer><SeasonResultsMenu /></ScreenLayer>}
 			{ appState.containsState(MenuStateType.ADMIN) && <AdminPanel />}
 			
 			{ isMultiplayerMenuVisible && (
-				multiplayerConnectionReady ? (
+				<ScreenLayer>{multiplayerConnectionReady ? (
 					<MultiplayerMenu onStartGame={handleStartGame} />
 				) : (
 					<MultiplayerConnectionGate
 						onConnected={() => setMultiplayerConnectionReady(true)}
 						onBack={popAppState}
 					/>
-				)
+				)}</ScreenLayer>
 			)}
 
 			{ appState.containsState(MenuStateType.DAILY_CHALLENGES) && (
-				<DailyChallengesMenu />
+				<ScreenLayer><DailyChallengesMenu /></ScreenLayer>
 			)}
 
 			{ appState.containsState(MenuStateType.MORE_GAMES) && (
-				<MoreGamesMenu />
+				<ScreenLayer><MoreGamesMenu /></ScreenLayer>
 			)}
 
 			{ isMultiplayerGameVisible && (
@@ -308,8 +309,8 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 
 			{/* Options and the profile are drawn after every screen that can open them (game, More Games, Challenges,
 			    Versus), or they open hidden behind it. */}
-			{ appState.containsState(MenuStateType.OPTIONS) && !appState.containsState(MenuStateType.PROFILE) && !appState.containsState(MenuStateType.ADMIN) && <OptionsMenu></OptionsMenu> }
-			{ appState.containsState(MenuStateType.PROFILE) && <ProfileMenu />}
+			{ appState.containsState(MenuStateType.OPTIONS) && !appState.containsState(MenuStateType.PROFILE) && !appState.containsState(MenuStateType.ADMIN) && <ScreenLayer><OptionsMenu></OptionsMenu></ScreenLayer> }
+			{ appState.containsState(MenuStateType.PROFILE) && <ScreenLayer><ProfileMenu /></ScreenLayer>}
 
 			{ showContinueModal && savedGame && currentAppState === MenuStateType.MENU && (
 				<ContinueGameModal
