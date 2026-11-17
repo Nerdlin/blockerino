@@ -29,6 +29,7 @@ import { checkRankUp } from "@/constants/RankUp";
 import RankUpOverlay from "./RankUpOverlay";
 import type { UiGlyphName } from "@/constants/UiGlyphs";
 import { ensureOnlineIdentity, getAccountSession } from '@/constants/AccountSession';
+import { loadRealtimeBackend } from '@/constants/RoomSocket';
 
 interface MultiplayerMenuProps {
     onStartGame: (roomId: string, role: 'player1' | 'player2' | 'spectator', opponentName: string, gameMode: GameModeType, playerElo: number) => void;
@@ -101,6 +102,10 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     // a shared link brought a room code: fill it in and join once the code is in place
     const [linkCode, setLinkCode] = useAtom(versusJoinAtom);
     const [autoJoin, setAutoJoin] = useState<string | null>(null);
+    // the room server flag may have changed since launch
+    useEffect(() => {
+        void loadRealtimeBackend();
+    }, []);
     useEffect(() => {
         if (!linkCode) return;
         setLinkCode(null);

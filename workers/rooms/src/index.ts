@@ -116,6 +116,19 @@ export class Room extends DurableObject<Env> {
 		if (msg.t === "tr" && typeof msg.k === "string" && msg.k.length <= 96) {
 			const a = (ws.deserializeAttachment() as Attachment | null) || { user: "", at: Date.now() };
 			if (a.key && a.key !== msg.k) this.others(ws, JSON.stringify({ t: "pl", k: a.key, p: a.meta ?? {} }));
+			// One socket per presence key: a player who reconnects before the room noticed the old socket dropping
+			// takes the key over. The old socket goes quietly, so a late "leave" never follows the new "join".
+			for (const other of this.ctx.getWebSockets()) {
+				if (other === ws) continue;
+				const o = other.deserializeAttachment() as Attachment | null;
+				if (o?.key !== msg.k) continue;
+				other.serializeAttachment({ user: o.user, at: o.at } satisfies Attachment);
+				try {
+					other.close(4002, "replaced");
+				} catch {
+					// already gone
+				}
+			}
 			ws.serializeAttachment({ user: a.user, at: a.at, key: msg.k, meta: msg.p ?? {} } satisfies Attachment);
 			this.others(ws, JSON.stringify({ t: "pj", k: msg.k, p: msg.p ?? {} }));
 		}

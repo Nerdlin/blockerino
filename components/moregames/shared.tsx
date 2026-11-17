@@ -1,7 +1,7 @@
 import ShareRoomButton from "../ShareRoomButton";
 import { markOnlineRoom } from "@/constants/OutgoingInvite";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { realtime } from "@/constants/RoomSocket";
+import { loadRealtimeBackend, realtime } from "@/constants/RoomSocket";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { View, Text, Clipboard, TextInput, useWindowDimensions, Pressable } from "react-native";
@@ -160,6 +160,10 @@ export const ROOM_JOIN_TIMEOUT_MS = 12000;
 export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, payload: any, senderRole?: OnlineRole) => void, playerName: string = DEFAULT_MORE_GAME_PLAYER_NAME, avatarUrl?: string) {
 	// Durak and Sea Battle hand out seats: the host seats each guest and ignores everyone else.
 	const usesSeats = gameId === 'durak' || gameId === 'battleship';
+	// the room server flag may have changed since launch
+	useEffect(() => {
+		void loadRealtimeBackend();
+	}, []);
 	const [roomCode, setRoomCode] = useState("");
 	const [role, setRole] = useState<OnlineRole | null>(null);
 	const [status, setStatus] = useState<RoomStatus>("offline");

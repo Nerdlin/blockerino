@@ -22,6 +22,8 @@ const SLOW_RETRY_MS = 15_000;
 
 let backend: RealtimeBackend = "supabase";
 let loaded: Promise<void> | null = null;
+let loadedAt = 0;
+const REFRESH_MS = 30_000;
 
 function localOverride(): RealtimeBackend | null {
 	if (Platform.OS !== "web" || typeof window === "undefined") return null;
@@ -33,9 +35,15 @@ function localOverride(): RealtimeBackend | null {
 	}
 }
 
-/** Reads the backend flag once; rooms opened before it arrives use the previous value. */
+/**
+ * Reads the backend flag; rooms opened before it arrives use the previous value. Online menus call it again on
+ * entry (at most every 30 s), so when the flag is switched, players who are already in the app follow it too and
+ * the two sides of a new room land on the same backend.
+ */
 export function loadRealtimeBackend(): Promise<void> {
+	if (loaded && Date.now() - loadedAt > REFRESH_MS) loaded = null;
 	loaded ||= (async () => {
+		loadedAt = Date.now();
 		const override = localOverride() || (process.env.EXPO_PUBLIC_REALTIME_BACKEND as RealtimeBackend | undefined);
 		if (override === "cloudflare" || override === "supabase") {
 			backend = override;
@@ -226,20 +234,27 @@ export class RoomChannel {
 				}
 			} else if (msg.t === "ack") this.acks.get(msg.a)?.("ok"), this.acks.delete(msg.a);
 			else if (msg.t === "pj") {
-				(this.presence[msg.k] ||= []).push(msg.p || {});
+				// the room keeps one socket per key, so a join replaces whatever the key had
+				this.presence[msg.k] = [msg.p || {}];
 				this.emitPresence("join", msg.k, [msg.p || {}]);
 				this.emitPresence("sync");
 			} else if (msg.t === "pl") {
-				const list = this.presence[msg.k] || [];
-				list.pop();
-				if (!list.length) delete this.presence[msg.k];
+				delete this.presence[msg.k];
 				this.emitPresence("leave", msg.k, [msg.p || {}]);
 				this.emitPresence("sync");
 			}
 		};
-		ws.onclose = () => {
+		ws.onclose = (event) => {
 			clearTimeout(timeout);
 			if (this.ws !== ws || this.closed) return;
+			// The same player opened this room again somewhere else (another tab): that one keeps the seat.
+			if (event.code === 4002) {
+				this.closed = true;
+				this.ws = null;
+				if (this.ping) clearInterval(this.ping);
+				this.statusCb?.("CLOSED");
+				return;
+			}
 			if (this.ping) clearInterval(this.ping);
 			this.ping = null;
 			this.ws = null;
