@@ -18,6 +18,7 @@ import HandPieces, { ReadOnlyHandPieces } from '@/components/game/HandPieces';
 import { GameModeType, MenuStateType, useAppState, activeComboAtom } from '@/hooks/useAppState';
 import { supabase, getPlayerProfileData } from '@/constants/Supabase';
 import { realtime } from '@/constants/RoomSocket';
+import { getAccountSession } from '@/constants/AccountSession';
 import { gameAlert } from '@/constants/GameDialog';
 
 // A phone drops its socket a few seconds after it is switched away; this long it has to come back before the
@@ -315,7 +316,9 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 await recordLocalMatchHistory(historyEntry);
             }
 
-            if (myRole === 'player1') {
+            // the server keeps history for accounts only (a guest's anonymous session is refused by policy)
+            const { data: { session: accountSession } } = await getAccountSession();
+            if (myRole === 'player1' && accountSession) {
                 const { error: historyError } = await supabase.from('match_history').insert(historyEntry);
                 if (historyError) {
                     console.error('Error saving match history:', historyError);
