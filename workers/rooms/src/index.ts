@@ -157,7 +157,7 @@ export class Room extends DurableObject<Env> {
 		if (this.ctx.getWebSockets().length) await this.ctx.storage.setAlarm(now + SWEEP_MS);
 	}
 
-	async webSocketClose(ws: WebSocket, code: number): Promise<void> {
+	async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
 		this.left(ws);
 		try {
 			ws.close(code === 1005 || code === 1006 ? 1000 : code, "bye");

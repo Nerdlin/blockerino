@@ -19,6 +19,10 @@ import { GameModeType, MenuStateType, useAppState, activeComboAtom } from '@/hoo
 import { supabase, getPlayerProfileData } from '@/constants/Supabase';
 import { realtime } from '@/constants/RoomSocket';
 import { gameAlert } from '@/constants/GameDialog';
+
+// A phone drops its socket a few seconds after it is switched away; this long it has to come back before the
+// opponent is declared gone (the same grace the More Games rooms give).
+const OPPONENT_LEAVE_GRACE_MS = 10_000;
 import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
@@ -339,7 +343,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         disconnectGraceTimer.current = setTimeout(() => {
             disconnectGraceTimer.current = null;
             markOpponentDisconnected();
-        }, 2500);
+        }, OPPONENT_LEAVE_GRACE_MS);
     }, [markOpponentDisconnected]);
 
     const clearOpponentPresenceLeave = useCallback(() => {
