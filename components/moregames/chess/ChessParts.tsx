@@ -16,7 +16,7 @@ import Animated, {
 import { useTheme } from "@/constants/Theme";
 import { BotLook } from "@/constants/chess/BotSprites";
 import { TrackedPiece, livePieces, trackPieces } from "@/constants/chess/PieceTracker";
-import { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics } from "../cosmetics";
+import { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics, pixelTile } from "../cosmetics";
 import { styles as gameStyles } from "../styles";
 import { BotAvatar } from "./BotAvatar";
 import { usePlayerAvatar } from "@/constants/PlayerAvatars";
@@ -195,6 +195,7 @@ export function ChessBoard({
 										: hint?.to === square ? "#4ADE80"
 										: getChessBoardColors(cosmetics.chessBoard, dark),
 								},
+								pixelTile(getChessBoardColors(cosmetics.chessBoard, dark), cell),
 							]}
 						>
 							{marked && selected !== square ? (

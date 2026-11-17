@@ -8,7 +8,7 @@ import StylizedButton from "../StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { MahjongTile } from "./types";
 import { shuffleInPlace } from "./SudokuGame";
-import { ExtraGameCosmetics, MAHJONG_THEMES } from "./cosmetics";
+import { ExtraGameCosmetics, MAHJONG_THEMES, pixelTile } from "./cosmetics";
 import { styles } from "./styles";
 
 export const MAHJONG_SYMBOLS = ["四", "五", "六", "竹", "花", "中", "發", "東", "南", "北", "白", "九", "萬", "風", "春", "月", "山", "水"];
@@ -245,8 +245,8 @@ export function MahjongGame({ cosmetics, playerName, onRatingChange }: { cosmeti
 										left: 14 + tile.x * (MAHJONG_TILE_W + 2) + tile.z * 4,
 										top: 12 + tile.y * (MAHJONG_TILE_H + 2) - tile.z * 8,
 										zIndex: tile.z * 20 + tile.y,
-										borderColor: selected ? "#FACC15" : hinted ? "#22D3EE" : mahjong.tileBorder,
 										backgroundColor: mahjong.tile,
+										...(selected || hinted ? { borderColor: selected ? "#FACC15" : "#22D3EE" } : pixelTile(mahjong.tile, MAHJONG_TILE_W, mahjong.tileBorder)),
 										transform: [{ translateY: selected || hinted ? -4 : 0 }],
 									},
 									(selected || hinted) && { borderWidth: 3 },

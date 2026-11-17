@@ -1,4 +1,27 @@
+/** A #RRGGBB color moved toward white (amount > 0) or black (amount < 0). Other formats come back unchanged. */
+export function tone(hex: string, amount: number): string {
+	if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return hex;
+	const n = parseInt(hex.slice(1), 16);
+	const to = amount > 0 ? 255 : 0;
+	const k = Math.abs(amount);
+	const ch = (v: number) => Math.round(v + (to - v) * k).toString(16).padStart(2, "0");
+	return `#${ch((n >> 16) & 255)}${ch((n >> 8) & 255)}${ch(n & 255)}`;
+}
 
+/**
+ * The bevel of a Blockerino block for any square, tile or chip of the More Games boards: a lit top-left edge and a
+ * shaded bottom-right edge in the tile's own color, so every game reads like the block puzzle it lives in.
+ */
+export function pixelTile(color: string, size: number, edge?: string): Record<string, string | number> {
+	if (!/^#[0-9a-fA-F]{6}$/.test(color)) return {};
+	return {
+		borderWidth: Math.max(2, Math.round(size * 0.08)),
+		borderTopColor: tone(color, 0.38),
+		borderLeftColor: tone(color, 0.22),
+		borderBottomColor: edge ?? tone(color, -0.32),
+		borderRightColor: edge ?? tone(color, -0.2),
+	};
+}
 
 // Cosmetic palettes of the More Games shop. Every shop item id (without its category prefix) has an entry here.
 export const CHESS_BOARD_COLORS = {

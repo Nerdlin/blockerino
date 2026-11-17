@@ -7,7 +7,7 @@ import { recordGameOutcome } from "@/constants/GameStats";
 import { View, Text, Pressable, useWindowDimensions } from "react-native";
 import StylizedButton from "../StylizedButton";
 import { cssColors } from "@/constants/Color";
-import { ExtraGameCosmetics, SUDOKU_THEMES, SudokuPalette } from "./cosmetics";
+import { ExtraGameCosmetics, SUDOKU_THEMES, SudokuPalette, tone } from "./cosmetics";
 import { styles } from "./styles";
 
 export const SUDOKU_MAX_MISTAKES = 3;
@@ -213,6 +213,8 @@ export function SudokuGame({ cosmetics, playerName, onRatingChange }: { cosmetic
 								style={[
 									styles.sudokuCell,
 									{ borderColor: sudoku.cellBorder, backgroundColor: sudoku.cellBg },
+									// a lit top-left edge on every cell, like a game block
+									{ borderTopColor: tone(sudoku.cellBg, 0.4), borderLeftColor: tone(sudoku.cellBg, 0.25) },
 									sudoku.cellShadow ? { shadowColor: sudoku.cellShadow, shadowOpacity: 0.22, shadowRadius: 2 } : null,
 									related && !isSelected && { backgroundColor: sudoku.related },
 									isSelected && { backgroundColor: sudoku.selected },

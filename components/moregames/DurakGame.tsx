@@ -20,7 +20,7 @@ import { DurakBotView, chooseDurakAction, DURAK_CATCH_CHANCE } from "@/constants
 import { BotPanel, useBotSettings } from "./BotPanel";
 import { DurakBout, DurakState, DurakVariant, OnlineRole } from "./types";
 import { DURAK_DECK_SIZES, DURAK_EMOJIS, DurakModeToggleColumn, OnlineRoomControls, SegmentButton, createRoomCode, formatCoins, getActiveDurakRoles, getDurakNetPrize, getNextDurakRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
-import { CARD_SKINS, ExtraGameCosmetics } from "./cosmetics";
+import { CARD_SKINS, ExtraGameCosmetics, tone } from "./cosmetics";
 import { styles } from "./styles";
 import { measureScreenRect } from "./BattleshipGame";
 import { useIncomingGameInvite } from "@/constants/GameInvite";
@@ -1632,7 +1632,7 @@ export function DurakCardView({ card, trump, cosmetics, small = false }: { card:
 	if (card === "back") {
 		const isRed = trump === "D" || trump === "H";
 		return (
-			<View style={[styles.playingCard, small && styles.smallPlayingCard, { backgroundColor: skin.backBg, borderColor: skin.backBorder, alignItems: 'center', justifyContent: 'center' }]}>
+			<View style={[styles.playingCard, small && styles.smallPlayingCard, { backgroundColor: skin.backBg, borderColor: skin.backBorder, alignItems: 'center', justifyContent: 'center' }, { borderBottomColor: tone(skin.backBg, -0.35), borderRightColor: tone(skin.backBg, -0.2) }]}>
 								<DurakSuitIcon suit={trump} size={small ? 14 : 28} color={isRed ? '#DC2626' : '#111827'} />
 			</View>
 		);

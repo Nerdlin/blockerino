@@ -15,7 +15,7 @@ import { recordGameOutcome } from "@/constants/GameStats";
 import { chooseBattleshipShot } from "@/constants/bots/BattleshipBot";
 import { BotPanel, useBotSettings } from "./BotPanel";
 import { BattleShip, DuelRole, OnlineRole } from "./types";
-import { ExtraGameCosmetics, SEA_SKINS } from "./cosmetics";
+import { ExtraGameCosmetics, SEA_SKINS, pixelTile } from "./cosmetics";
 import { OnlineRoomControls, SHOT_RESEND_LIMIT, SHOT_RESEND_MS, getDuelOpponent, isDuelRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
 import { styles } from "./styles";
 import { useIncomingGameInvite } from "@/constants/GameInvite";
@@ -961,7 +961,7 @@ export function BattleGrid({
 	return (
 		<View style={styles.battleGridWrap}>
 			{title ? <Text style={[styles.gridLabel, { color: currentTheme.textSecondary }]}>{title}</Text> : null}
-			<View style={[styles.battleGrid, { width: gridSize, height: gridSize }, { backgroundColor: sea.gridBg, borderColor: sea.gridBorder }]}>
+			<View style={[styles.battleGrid, { width: gridSize, height: gridSize }, { backgroundColor: sea.gridBg, borderColor: sea.gridBorder }, pixelTile(sea.gridBg, 60, sea.gridBorder)]}>
 				{Array.from({ length: BATTLE_BOARD_SIZE }).map((_, rowIndex) => (
 					<View key={`row-${rowIndex}`} style={styles.battleRow}>
 						{Array.from({ length: BATTLE_BOARD_SIZE }).map((_, colIndex) => {

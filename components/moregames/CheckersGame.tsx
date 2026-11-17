@@ -16,7 +16,7 @@ import { HintButton } from "./HintButton";
 import { OnlineRole } from "./types";
 import { OnlineRoomControls, isDuelRole, normalizeStoredPlayerName, roleLabel, useMiniGameRoom } from "./shared";
 import { styles } from "./styles";
-import { CHECKERS_SKINS, type ExtraGameCosmetics } from "./cosmetics";
+import { CHECKERS_SKINS, pixelTile, tone, type ExtraGameCosmetics } from "./cosmetics";
 import { useIncomingGameInvite } from "@/constants/GameInvite";
 import { buzz, useGameSfx, useOutcomeSound } from "./feedback";
 
@@ -48,8 +48,9 @@ function PieceView({ piece, cell, skin, borderColor, borderWidth = 2 }: { piece:
 				height: cell * 0.78,
 				borderRadius: cell * 0.39,
 				backgroundColor: colors.fill,
-				borderColor: borderColor ?? colors.rim,
 				borderWidth,
+				// a lit top-left rim and a shaded bottom-right one, like a game block
+				...(borderColor ? { borderColor } : { borderTopColor: tone(colors.fill, 0.45), borderLeftColor: tone(colors.fill, 0.3), borderBottomColor: colors.rim, borderRightColor: colors.rim }),
 			},
 			skin.glow && { shadowColor: colors.fill, shadowOpacity: 0.9, shadowRadius: cell * 0.18, elevation: 6 },
 		]}>
@@ -390,6 +391,7 @@ export function CheckersGame({ cosmetics, playerName, onRatingChange }: { cosmet
 							style={[
 								local.square,
 								{ width: cell, height: cell, backgroundColor: dark ? skin.dark : skin.light },
+								pixelTile(dark ? skin.dark : skin.light, cell),
 								dark && lastSquares.has(square) && { backgroundColor: "#A0723F" },
 								dark && hintSquares.has(square) && { backgroundColor: "#3F8F4F" },
 							]}
