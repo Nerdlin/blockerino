@@ -1,0 +1,12 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "blockerino-rooms",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-11-01",
+	"workers_dev": true,
+	"routes": [{ "pattern": "rooms.aionerdlin.me", "custom_domain": true }],
+	"vars": { "SUPABASE_URL": "https://ptcglecvavdvpxadqfqd.supabase.co" },
+	"durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+	"observability": { "enabled": true }
+}

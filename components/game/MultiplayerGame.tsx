@@ -17,6 +17,7 @@ import { Hand, createRandomHand, createRandomHandWorklet } from '@/constants/Han
 import HandPieces, { ReadOnlyHandPieces } from '@/components/game/HandPieces';
 import { GameModeType, MenuStateType, useAppState, activeComboAtom } from '@/hooks/useAppState';
 import { supabase, getPlayerProfileData } from '@/constants/Supabase';
+import { realtime } from '@/constants/RoomSocket';
 import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
@@ -444,7 +445,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
             }
 
             const presenceKey = isActivePlayerRole(myRole) ? myRole : `spectator-${Date.now()}`;
-            const channel = supabase.channel(`room:${roomId}`, {
+            const channel = realtime.channel(`room:${roomId}`, {
                 config: {
                     presence: {
                         key: presenceKey,
@@ -589,7 +590,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                     applyForfeitPenalty();
                 }
                 if (channelToRemove) {
-                    supabase.removeChannel(channelToRemove);
+                    realtime.removeChannel(channelToRemove);
                 }
             })();
         };
@@ -650,7 +651,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                     lastSentHover.current = pendingHover.current;
                     pendingHover.current = null;
                 }
-            }, 100); // 100ms throttle
+            }, 200); // at most five hover updates a second, and only when it changed
         }
     };
 

@@ -27,7 +27,8 @@
       "/\\.claude/",
       "/android/",
       "/builds/",
-      "/dist/"
+      "/dist/",
+      "/workers/"
     ]
   },
   "dependencies": {

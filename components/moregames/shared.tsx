@@ -1,7 +1,7 @@
 import ShareRoomButton from "../ShareRoomButton";
 import { markOnlineRoom } from "@/constants/OutgoingInvite";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { supabase } from "@/constants/Supabase";
+import { realtime } from "@/constants/RoomSocket";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { View, Text, Clipboard, TextInput, useWindowDimensions, Pressable } from "react-native";
@@ -211,7 +211,7 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 		if (!channel) return;
 
 		const removeChannel = () => {
-			supabase.removeChannel(channel);
+			realtime.removeChannel(channel);
 		};
 
 		if (currentRole && hadSeat) {
@@ -250,7 +250,7 @@ export function useMiniGameRoom(gameId: MoreGameId, onEvent: (event: string, pay
 		tableStartedRef.current = false;
 		leftKeysRef.current = new Set();
 
-		const channel = supabase.channel(`more-games:${gameId}:${nextCode}`, {
+		const channel = realtime.channel(`more-games:${gameId}:${nextCode}`, {
 			config: { broadcast: { self: false, ack: true }, presence: { key: clientIdRef.current } },
 		});
 		const trackPresence = (seat: OnlineRole) => {
