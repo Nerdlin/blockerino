@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import FadeInView from "./FadeInView";
 import { Image, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import Animated, { BounceInUp, Easing, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { ZoomIn, BounceInUp, Easing, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
 import { cssColors } from "@/constants/Color";
 import { GameModeType } from '@/hooks/useAppState';
@@ -15,6 +15,7 @@ import { useLanguage } from "@/constants/Localization";
 import { getDailyQuests, subscribeToDailyQuests } from "@/constants/DailyQuests";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import AndroidTesterBanner from "./AndroidTesterBanner";
+import { badgeLabel, badgeTotal, useProfileBadge } from "@/constants/ProfileBadge";
 
 const CHAOS_VIOLET = "#7C3AED";
 
@@ -27,6 +28,7 @@ export function getMainMenuScale(width: number, height: number): number {
 
 export default function MainMenu() {
 	const { t } = useLanguage();
+	const { badge: profileBadge } = useProfileBadge();
 	const [ , appendAppState ] = useSetAppState();
 	const { width, height } = useWindowDimensions();
 	const menuScale = getMainMenuScale(width, height);
@@ -58,6 +60,8 @@ export default function MainMenu() {
 		appendAppState(mode);
 	};
 	
+	const profileCount = badgeTotal(profileBadge);
+
 	return <View style={styles.container}>
 
 		<Pressable
@@ -81,6 +85,11 @@ export default function MainMenu() {
 			accessibilityLabel={t("mainmenu.profile")}
 		>
 			<UiIcon name="people" size={27} />
+			{profileCount > 0 && (
+				<Animated.View entering={ZoomIn.springify().damping(14)} style={styles.countBadge}>
+					<Text style={styles.countText}>{badgeLabel(profileCount)}</Text>
+				</Animated.View>
+			)}
 		</Pressable>
 
 		<Pressable
@@ -378,6 +387,25 @@ const styles = StyleSheet.create({
 		color: "#555",
 		position: "absolute",
 		bottom: 20,
+	},
+	countBadge: {
+		position: "absolute",
+		top: -7,
+		right: -7,
+		minWidth: 22,
+		height: 22,
+		paddingHorizontal: 4,
+		borderRadius: 11,
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: "#EF4444",
+		borderWidth: 2,
+		borderColor: "#141414",
+	},
+	countText: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 11,
+		color: "#FFFFFF",
 	},
 	badgeDot: {
 		position: "absolute",

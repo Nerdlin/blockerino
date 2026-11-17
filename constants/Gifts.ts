@@ -1,6 +1,6 @@
 import { supabase } from "./Supabase";
 import { getAccountSession } from "./AccountSession";
-import { parseChestState, publishChestState, type ChestState } from "./Chests";
+import { parseChestState, parseOpenedChest, publishChestState, type BuyChestResult, type ChestState } from "./Chests";
 
 // Gifts between friends: an item from the shop or a chest (a key). The sender pays the shop price; the server
 // moves everything at once (send_gift) and the friend sees the gift on their next start (claim_gifts).
@@ -93,5 +93,46 @@ export async function fetchGiftFriends(): Promise<GiftFriend[]> {
 		return ids.map((id) => ({ id, name: names.get(id) ?? "?" })).sort((a, b) => a.name.localeCompare(b.name));
 	} catch {
 		return [];
+	}
+}
+
+export interface GiftChest {
+	id: string;
+	fromName: string;
+	createdAt: string;
+}
+
+export function parseGiftChests(data: unknown): GiftChest[] {
+	if (!Array.isArray(data)) return [];
+	return data.flatMap((entry): GiftChest[] => {
+		if (!entry || typeof entry !== "object") return [];
+		const row = entry as Record<string, unknown>;
+		if (typeof row.id !== "string") return [];
+		return [{ id: row.id, fromName: typeof row.from_name === "string" ? row.from_name : "?", createdAt: typeof row.created_at === "string" ? row.created_at : "" }];
+	});
+}
+
+/** The gift chests waiting in the profile; empty for guests and offline. */
+export async function fetchGiftChests(): Promise<GiftChest[]> {
+	try {
+		const { data: { session } } = await getAccountSession();
+		if (!session?.user) return [];
+		const { data, error } = await supabase.rpc("my_gift_chests");
+		return error ? [] : parseGiftChests(data);
+	} catch {
+		return [];
+	}
+}
+
+/** Opens a gift chest: the same answer as buying one. */
+export async function openGiftChest(giftId: string): Promise<BuyChestResult> {
+	try {
+		const { data: { session } } = await getAccountSession();
+		if (!session?.user) return { status: "no_account" };
+		const { data, error } = await supabase.rpc("open_gift_chest", { p_gift: giftId });
+		if (error) return { status: "failed" };
+		return parseOpenedChest(data);
+	} catch {
+		return { status: "failed" };
 	}
 }

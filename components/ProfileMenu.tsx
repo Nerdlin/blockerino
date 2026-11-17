@@ -18,6 +18,8 @@ import { useSoundSettings } from "@/constants/Sound";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { emailConfirmRedirect } from "@/constants/EmailConfirm";
+import GiftChestsPanel from "./GiftChestsPanel";
+import { badgeLabel, useProfileBadge } from "@/constants/ProfileBadge";
 import { supabase, renamePlayer } from "@/constants/Supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import PixelIcon from "@/components/PixelIcon";
@@ -543,6 +545,7 @@ export default function ProfileMenu() {
 	};
 
 	const [activeTab, setActiveTab] = useState<"stats" | "history" | "friends">("stats");
+	const { badge, refresh: refreshBadge } = useProfileBadge();
 
 	return (
 		<>
@@ -613,12 +616,14 @@ export default function ProfileMenu() {
 							items={[
 								{ key: "stats", label: t("profile.tabStats") },
 								{ key: "history", label: t("profile.tabHistory") },
-								{ key: "friends", label: t("profile.tabFriends") },
+								{ key: "friends", label: badge.friendRequests > 0 ? `${t("profile.tabFriends")} (${badgeLabel(badge.friendRequests)})` : t("profile.tabFriends") },
 							]}
 							value={activeTab}
-							onChange={(tab) => { playSfx('menuClick'); setActiveTab(tab); }}
+							onChange={(tab) => { playSfx('menuClick'); setActiveTab(tab); void refreshBadge(); }}
 						/>
 						<View style={{ height: 12 }} />
+
+						{session && activeTab === "stats" && <GiftChestsPanel />}
 
 						{activeTab === "stats" && (
 							<View style={styles.statsContainer}>

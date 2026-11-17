@@ -12,6 +12,8 @@ import { useFriendInvite } from "@/hooks/useFriendInvite";
 import { fetchFriendsOnline } from "@/constants/Invites";
 import { nameFontFamily } from "@/constants/NameFont";
 import GiftFriendPicker from "./GiftFriendPicker";
+import { useSetAtom } from "jotai";
+import { profileBadgeAtom } from "@/constants/ProfileBadge";
 
 function escapeIlikePattern(value: string): string {
     return value.replace(/[\\%_]/g, "\\$&");
@@ -256,6 +258,13 @@ export default function FriendsList({ userId }: { userId: string }) {
     };
 
     const { inviteFriend: handleInvite1v1 } = useFriendInvite(userId);
+
+    // the count on the profile button follows this list as soon as a request is answered
+    const setBadge = useSetAtom(profileBadgeAtom);
+    const incomingCount = friends.filter(f => f.status === 'pending' && f.user_id_2 === userId).length;
+    useEffect(() => {
+        if (!loading) setBadge((badge) => ({ ...badge, friendRequests: incomingCount }));
+    }, [loading, incomingCount, setBadge]);
 
     if (loading) {
         return <PixelLoader size="small" color={currentTheme.accent} />;
