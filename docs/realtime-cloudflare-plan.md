@@ -48,7 +48,8 @@ Done on dev:
 - Tested on web: a tic-tac-toe room between two isolated guests (create, join, move, leave), and a Versus duel between two bots: moves both ways, opponent hand and score, and a closed tab ending as a win after ~14 s.
 - The Discord URL mapping `/rooms` → `rooms.aionerdlin.me` is set (2026-11-18).
 
+- Invites: the inbox `invites:<user id>` on the worker; only the owner may open it. Senders POST `/send/invites:<id>`, and the worker checks for an accepted `friends` row using the sender's token (tested: a stranger gets 403, a friend reaches the inbox). Phones keep the inbox open only in the foreground. A sender on Cloudflare also delivers to the Supabase inbox while players are still on the old backend. The legacy public invite channel was removed.
+- Versus shows "Сервер занят" when the room server cannot be reached.
+
 Still to do:
-- Invites per user DO, which needs a friend check.
-- A "server busy" message when the room server cannot be reached.
 - Release (main + OTA), then insert the app_config row.

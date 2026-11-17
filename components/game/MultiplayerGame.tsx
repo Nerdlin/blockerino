@@ -18,6 +18,7 @@ import HandPieces, { ReadOnlyHandPieces } from '@/components/game/HandPieces';
 import { GameModeType, MenuStateType, useAppState, activeComboAtom } from '@/hooks/useAppState';
 import { supabase, getPlayerProfileData } from '@/constants/Supabase';
 import { realtime } from '@/constants/RoomSocket';
+import { gameAlert } from '@/constants/GameDialog';
 import { useTheme } from '@/constants/Theme';
 import StylizedButton from '../StylizedButton';
 import { cssColors } from '@/constants/Color';
@@ -546,7 +547,11 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                         scheduleOpponentPresenceLeave();
                     }
                 })
-                .subscribe((status) => {
+                .subscribe((status, err) => {
+                    // The room server could not be reached after the quick retries (it keeps trying in the background).
+                    if (status === 'CHANNEL_ERROR' && err?.message === 'rooms server unavailable') {
+                        gameAlert(t('mp.serverBusyTitle'), t('mp.serverBusy'));
+                    }
                     if (status === 'SUBSCRIBED') {
                         if (myRole !== 'spectator') {
                             channel.track({

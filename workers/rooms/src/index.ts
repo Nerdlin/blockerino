@@ -15,9 +15,14 @@ import { DurableObject } from "cloudflare:workers";
 export interface Env {
 	ROOMS: DurableObjectNamespace<Room>;
 	SUPABASE_URL: string;
+	SUPABASE_ANON_KEY: string;
 }
 
 const TOPIC = /^(room|more-games):[A-Za-z0-9_:-]{1,96}$/;
+// A player's invitation inbox: only the owner listens (any of their devices), only an accepted friend sends,
+// over HTTP POST /send/invites:<user id>. Inbox sockets cannot broadcast.
+const INBOX = /^invites:([0-9a-f-]{36})$/;
+const MAX_INVITE = 4 * 1024;
 const MAX_SOCKETS = 16; // two players plus spectators
 const MAX_FRAME = 64 * 1024;
 const MAX_PER_SECOND = 40;
@@ -41,11 +46,26 @@ export class Room extends DurableObject<Env> {
 		const user = request.headers.get("x-room-user") || "";
 		if (this.ctx.getWebSockets().length >= MAX_SOCKETS) return new Response("room full", { status: 429 });
 		const { 0: client, 1: server } = new WebSocketPair();
-		this.ctx.acceptWebSocket(server);
+		this.ctx.acceptWebSocket(server, [request.headers.get("x-room-kind") === "inbox" ? "inbox" : "room"]);
 		server.serializeAttachment({ user, at: Date.now() } satisfies Attachment);
 		if ((await this.ctx.storage.getAlarm()) === null) await this.ctx.storage.setAlarm(Date.now() + SWEEP_MS);
 		server.send(JSON.stringify({ t: "ps", s: this.presenceState() }));
 		return new Response(null, { status: 101, webSocket: client });
+	}
+
+	/** Hands an invitation to every open socket of the inbox; returns how many got it. */
+	async deliver(event: string, payload: unknown): Promise<number> {
+		const frame = JSON.stringify({ t: "b", e: event, p: payload ?? {} });
+		let n = 0;
+		for (const ws of this.ctx.getWebSockets()) {
+			try {
+				ws.send(frame);
+				n++;
+			} catch {
+				// closing
+			}
+		}
+		return n;
 	}
 
 	private presenceState(): Record<string, unknown[]> {
@@ -88,6 +108,7 @@ export class Room extends DurableObject<Env> {
 			return;
 		}
 		if (msg.t === "b" && typeof msg.e === "string") {
+			if (this.ctx.getTags(ws).includes("inbox")) return;
 			this.others(ws, JSON.stringify({ t: "b", e: msg.e, p: msg.p ?? {} }));
 			if (typeof msg.a === "number") ws.send(JSON.stringify({ t: "ack", a: msg.a }));
 			return;
@@ -186,20 +207,68 @@ export async function verifyToken(token: string, env: Env): Promise<string | nul
 	}
 }
 
+const CORS = {
+	"Access-Control-Allow-Origin": "*",
+	"Access-Control-Allow-Methods": "POST, OPTIONS",
+	"Access-Control-Allow-Headers": "authorization, content-type",
+	"Access-Control-Max-Age": "86400",
+};
+
+function reply(body: string, status: number): Response {
+	return new Response(body, { status, headers: CORS });
+}
+
+/** Whether sender and receiver are accepted friends, asked as the sender (friends RLS lets each side read the row). */
+async function areFriends(env: Env, token: string, sender: string, receiver: string): Promise<boolean> {
+	const q = `or=(and(user_id_1.eq.${sender},user_id_2.eq.${receiver}),and(user_id_1.eq.${receiver},user_id_2.eq.${sender}))`;
+	const res = await fetch(`${env.SUPABASE_URL}/rest/v1/friends?select=status&status=eq.accepted&limit=1&${q}`, {
+		headers: { apikey: env.SUPABASE_ANON_KEY, authorization: `Bearer ${token}` },
+	});
+	if (!res.ok) return false;
+	return ((await res.json()) as unknown[]).length > 0;
+}
+
+async function sendInvite(request: Request, env: Env, topic: string): Promise<Response> {
+	const inbox = topic.match(INBOX);
+	if (!inbox) return reply("bad topic", 400);
+	const token = (request.headers.get("authorization") || "").replace(/^Bearer /i, "");
+	const sender = await verifyToken(token, env);
+	if (!sender) return reply("unauthorized", 401);
+	const text = await request.text();
+	if (text.length > MAX_INVITE) return reply("too large", 413);
+	let body: { event?: unknown; payload?: unknown };
+	try {
+		body = JSON.parse(text);
+	} catch {
+		return reply("bad json", 400);
+	}
+	if (typeof body.event !== "string" || body.event.length > 40) return reply("bad event", 400);
+	if (sender === inbox[1] || !(await areFriends(env, token, sender, inbox[1]))) return reply("forbidden", 403);
+	const reached = await env.ROOMS.getByName(topic).deliver(body.event, body.payload ?? {});
+	return new Response(JSON.stringify({ ok: true, reached }), { headers: { ...CORS, "content-type": "application/json" } });
+}
+
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		const url = new URL(request.url);
-		if (url.pathname === "/health") return new Response("ok");
 		// Discord Activities reach the worker through the /rooms URL mapping, so accept that prefix too.
-		const match = url.pathname.match(/^(?:\/rooms)?\/room\/(.+)$/);
+		const path = url.pathname.replace(/^\/rooms(?=\/)/, "");
+		if (path === "/health") return new Response("ok");
+		if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+		const send = path.match(/^\/send\/(.+)$/);
+		if (send && request.method === "POST") return sendInvite(request, env, decodeURIComponent(send[1]));
+		const match = path.match(/^\/room\/(.+)$/);
 		if (!match) return new Response("not found", { status: 404 });
 		const topic = decodeURIComponent(match[1]);
-		if (!TOPIC.test(topic)) return new Response("bad topic", { status: 400 });
+		const inbox = topic.match(INBOX);
+		if (!inbox && !TOPIC.test(topic)) return new Response("bad topic", { status: 400 });
 		if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") return new Response("expected websocket", { status: 426 });
 		const user = await verifyToken(url.searchParams.get("token") || "", env);
 		if (!user) return new Response("unauthorized", { status: 401 });
+		if (inbox && inbox[1] !== user) return new Response("forbidden", { status: 403 });
 		const headers = new Headers(request.headers);
 		headers.set("x-room-user", user);
+		headers.set("x-room-kind", inbox ? "inbox" : "room");
 		return env.ROOMS.getByName(topic).fetch(new Request(request, { headers }));
 	},
 } satisfies ExportedHandler<Env>;

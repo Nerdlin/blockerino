@@ -2,9 +2,10 @@ import { gameAlert } from "@/constants/GameDialog";
 import { sendInviteBroadcast } from '@/constants/InviteChannel';
 import { isInOnlineRoom, outgoingInviteAtom } from '@/constants/OutgoingInvite';
 import { openInviteInbox } from '@/constants/InviteChannel';
+import { loadRealtimeBackend, realtime } from '@/constants/RoomSocket';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSetAtom } from 'jotai';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { supabase } from '@/constants/Supabase';
 import { useAppState, MenuStateType, GameModeType } from '@/hooks/useAppState';
 import { useLanguage } from '@/constants/Localization';
@@ -97,12 +98,20 @@ export function useInviteListener(
         });
     }, [userId, t, setIncomingInvite, setAppState, setMultiplayerRoomId, setMultiplayerRole, setMultiplayerGameMode, setMultiplayerOpponentName, setMultiplayerPlayerElo]);
 
+    // On a phone the inbox is open only while the app is in the foreground; in the background invites come as push
+    // notifications (and are asked for again when the app comes back, below). The web keeps it open.
+    const [foreground, setForeground] = useState(AppState.currentState !== 'background');
+    useEffect(() => {
+        if (Platform.OS === 'web') return;
+        const sub = AppState.addEventListener('change', (state) => setForeground(state === 'active'));
+        return () => sub.remove();
+    }, []);
+
     // Live invites while the app is open.
     useEffect(() => {
-        if (!userId) return;
+        if (!userId || !foreground) return;
 
-        // Private inbox: only this player can listen to it and only friends can send to it. Builds before 2.0.8
-        // still send on the old public channel of the same name, so it is heard too until they are gone.
+        // Private inbox: only this player can listen to it and only friends can send to it.
         const listen = (inbox: ReturnType<typeof openInviteInbox>) => inbox
             .on('broadcast', { event: '1v1_invite' }, (payload) => {
                 const { roomId, hostName, gameMode } = payload.payload;
@@ -152,14 +161,18 @@ export function useInviteListener(
                 });
             })
             .subscribe();
-        const inbox = listen(openInviteInbox(userId));
-        const legacyInbox = listen(supabase.channel(`invites:${userId}`));
+        // The backend flag decides where the inbox lives, so it is opened once the flag is known.
+        let inbox: ReturnType<typeof openInviteInbox> | null = null;
+        let cancelled = false;
+        void loadRealtimeBackend().then(() => {
+            if (!cancelled) inbox = listen(openInviteInbox(userId));
+        });
 
         return () => {
-            supabase.removeChannel(inbox);
-            supabase.removeChannel(legacyInbox);
+            cancelled = true;
+            if (inbox) realtime.removeChannel(inbox);
         };
-    }, [userId, presentInvite, setIncomingInvite, setChessInvite, setGameInvite, setAppState, setOutgoingInvite, t]);
+    }, [userId, foreground, presentInvite, setIncomingInvite, setChessInvite, setGameInvite, setAppState, setOutgoingInvite, t]);
 
     // Invites that came as a push while the app was closed: asked at launch and whenever the app comes back.
     useEffect(() => {

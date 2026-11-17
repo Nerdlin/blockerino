@@ -5,7 +5,11 @@
 	"compatibility_date": "2026-11-01",
 	"workers_dev": true,
 	"routes": [{ "pattern": "rooms.aionerdlin.me", "custom_domain": true }],
-	"vars": { "SUPABASE_URL": "https://ptcglecvavdvpxadqfqd.supabase.co" },
+	"vars": {
+		"SUPABASE_URL": "https://ptcglecvavdvpxadqfqd.supabase.co",
+		// the public anon key (it is in the app too); friend checks run with the sender's own token
+		"SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0Y2dsZWN2YXZkdnB4YWRxZnFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDExODAsImV4cCI6MjA5NTcxNzE4MH0.ZL-xsoBqBTbcgZ-ZETyKzFtrJad0QgiSftBuDV5s_fE"
+	},
 	"durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
 	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
 	"observability": { "enabled": true }

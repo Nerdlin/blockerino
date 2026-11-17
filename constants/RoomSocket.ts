@@ -18,6 +18,7 @@ const CONNECT_TIMEOUT_MS = 10_000;
 const ACK_TIMEOUT_MS = 5_000;
 const PING_MS = 15_000; // the room drops a socket silent for 45 s
 const RETRY_MS = [500, 1000, 2000, 4000, 8000, 8000];
+const SLOW_RETRY_MS = 15_000;
 
 let backend: RealtimeBackend = "supabase";
 let loaded: Promise<void> | null = null;
@@ -247,11 +248,11 @@ export class RoomChannel {
 			this.acks.forEach((done) => done("error"));
 			this.acks.clear();
 			if (wasJoined) this.statusCb?.("CHANNEL_ERROR", new Error("connection lost"));
-			if (this.attempt >= RETRY_MS.length) {
-				if (!wasJoined) this.statusCb?.("CHANNEL_ERROR", new Error("rooms server unavailable"));
-				return;
-			}
-			this.later(() => void this.open(), RETRY_MS[this.attempt++]);
+			// After the quick retries it keeps trying slowly: a room or an inbox lives until the caller removes it.
+			if (this.attempt === RETRY_MS.length && !wasJoined) this.statusCb?.("CHANNEL_ERROR", new Error("rooms server unavailable"));
+			const delay = this.attempt < RETRY_MS.length ? RETRY_MS[this.attempt] : SLOW_RETRY_MS;
+			this.attempt++;
+			this.later(() => void this.open(), delay);
 		};
 	}
 
@@ -268,6 +269,23 @@ export class RoomChannel {
 		for (const key of Object.keys(state)) if (!before[key]) this.emitPresence("join", key, state[key]);
 		this.emitPresence("sync");
 		this.statusCb?.("SUBSCRIBED");
+	}
+}
+
+/** Posts an event to a player's invitation inbox on the room worker; the worker checks the two are friends. */
+export async function sendToInbox(userId: string, event: string, payload: Record<string, unknown>): Promise<boolean> {
+	try {
+		const { data } = await supabase.auth.getSession();
+		const token = data.session?.access_token;
+		if (!token) return false;
+		const res = await fetch(`${roomsBase().replace(/^ws/, "http")}/send/${encodeURIComponent(`invites:${userId}`)}`, {
+			method: "POST",
+			headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+			body: JSON.stringify({ event, payload }),
+		});
+		return res.ok;
+	} catch {
+		return false;
 	}
 }
 
