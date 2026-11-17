@@ -1,3 +1,6 @@
+import ShareRoomButton from "./ShareRoomButton";
+import { useAtom } from "jotai";
+import { versusJoinAtom } from "@/constants/JoinLink";
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
 import { nameFontFamily } from "@/constants/NameFont";
@@ -95,6 +98,15 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
     const [gameMode, setGameMode] = useState<GameModeType>(GameModeType.Classic);
     const [roomCode, setRoomCode] = useState("");
     const [joinCode, setJoinCode] = useState("");
+    // a shared link brought a room code: fill it in and join once the code is in place
+    const [linkCode, setLinkCode] = useAtom(versusJoinAtom);
+    const [autoJoin, setAutoJoin] = useState<string | null>(null);
+    useEffect(() => {
+        if (!linkCode) return;
+        setLinkCode(null);
+        setJoinCode(linkCode);
+        setAutoJoin(linkCode);
+    }, [linkCode, setLinkCode]);
     const [matchError, setMatchError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
     const [showEloScreen, setShowEloScreen] = useState(false);
@@ -572,6 +584,15 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
         }
     };
 
+    useEffect(() => {
+        if (autoJoin && joinCode === autoJoin && lobbyState === 'idle') {
+            setAutoJoin(null);
+            void handleJoinRoom();
+        }
+        // handleJoinRoom reads the code and name of this render
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoJoin, joinCode, lobbyState]);
+
     const handleJoinSpecificRoom = async (room: any) => {
         const normalizedName = getRequiredPlayerName();
         if (!normalizedName) {
@@ -1041,6 +1062,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         <Text style={[styles.codeText, { color: currentTheme.accent }, isMobile && { fontSize: 24 }]} adjustsFontSizeToFit numberOfLines={1}>{roomCode}</Text>
                         <StylizedButton text={t("mp.copy")} onClick={copyToClipboard} backgroundColor={currentTheme.buttonPrimary} style={{ width: 100 }} />
                     </View>
+                    <ShareRoomButton game="versus" code={roomCode} />
 
                     <Text style={[styles.waitingStatus, { color: currentTheme.textSecondary }]}>{t("mp.waitingFriend")}</Text>
                     <PixelLoader size="large" color={currentTheme.accent} style={{ marginVertical: 20 }} />

@@ -1,3 +1,4 @@
+import ShareRoomButton from "../ShareRoomButton";
 import { markOnlineRoom } from "@/constants/OutgoingInvite";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/constants/Supabase";
@@ -426,6 +427,7 @@ export function OnlineRoomControls({
 							<Text style={[styles.codeText, { color: currentTheme.accent }, isMobile && { fontSize: 24 }]} adjustsFontSizeToFit numberOfLines={1}>{roomCode}</Text>
 							<StylizedButton text={t("mp.copy")} onClick={() => Clipboard.setString(roomCode)} backgroundColor={currentTheme.buttonPrimary} style={{ width: 100 }} />
 						</View>
+						{inviteGame && roomCode ? <ShareRoomButton game={inviteGame} code={roomCode} /> : null}
 	
 						<Text style={[styles.waitingStatus, { color: currentTheme.textSecondary }]}>
 							{playerCount && connectedPlayersCount ? `WAITING FOR PLAYERS (${connectedPlayersCount}/${playerCount})...` : t("mp.waitingFriend")}

@@ -6,6 +6,8 @@ export function redirectSystemPath({ path }: { path: string; initial: boolean })
 		if (path.includes("discord-auth")) return "/";
 		// the "back to the game" button of the email-confirmed page; EmailConfirmHost reads the code from the URL
 		if (path.includes("email-confirmed")) return "/";
+		// a shared room link; JoinLinkHost reads the game and code from the URL
+		if (/^\/?join\b/.test(path) || path.includes("://join")) return "/";
 	} catch {
 		// fall through to the original path
 	}
