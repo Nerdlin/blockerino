@@ -26,6 +26,7 @@ export default function SegmentedControl<T extends string>({
 		<View style={styles.bar}>
 			{items.map((item, index) => {
 				const selected = item.key === value;
+				// several words may take two lines; one word only shrinks a little (a word is never split)
 				return (
 					<Pressable
 						key={item.key}
@@ -39,7 +40,7 @@ export default function SegmentedControl<T extends string>({
 							selected && { backgroundColor: item.color ?? currentTheme.buttonPrimary },
 						]}
 					>
-						<Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85} style={[styles.label, small ? styles.labelSmall : styles.labelLarge, selected ? styles.labelSelected : styles.labelIdle]}>
+						<Text numberOfLines={item.label.includes(" ") ? 2 : 1} adjustsFontSizeToFit minimumFontScale={item.label.includes(" ") ? 0.85 : 0.7} style={[styles.label, small ? styles.labelSmall : styles.labelLarge, selected ? styles.labelSelected : styles.labelIdle]}>
 							{item.label}
 						</Text>
 					</Pressable>

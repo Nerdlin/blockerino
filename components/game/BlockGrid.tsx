@@ -1,5 +1,6 @@
 import { isGemColor } from "@/constants/Levels";
-import { SKIN_NEON, getSkinKindId, skinAppear, skinBlockShape, skinClear, skinDecorStyle } from "@/constants/SkinFx";
+import { SKIN_NEON, getSkinKindId, glyphOf, skinAppear, skinBlockShape, skinClear } from "@/constants/SkinFx";
+import SkinGlyph from "../SkinGlyph";
 
 /** A gem cell of a level: a cut cyan stone turned on its corner. */
 function gemBlockStyle(size: number): object {
@@ -350,7 +351,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 		}
 		return { opacity: 1, transform: [] };
 	});
-	const decor = skinKind === 0 ? null : skinDecorStyle(skinKind, gridBlockSize, "#ffffff");
+	const decor = skinKind !== 0 && glyphOf(skinKind) !== null;
 	const decorFrame = { position: 'absolute' as const, left: 0, top: 0, width: gridBlockSize, height: gridBlockSize, borderWidth: filledBlockBorderWidth(7, pieceSkinId), borderColor: 'transparent' };
 
 	return (
@@ -358,7 +359,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 			<Animated.View style={[staticStyle, { width: gridBlockSize, height: gridBlockSize, justifyContent: 'center', alignItems: 'center' }]} />
 			{decor && (
 				<Animated.View pointerEvents="none" style={[decorFrame, decorFrameStyle]}>
-					<View style={decor} />
+					<SkinGlyph code={skinKind} size={gridBlockSize} />
 				</Animated.View>
 			)}
 			<Animated.View style={fallingStyle} />

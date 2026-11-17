@@ -4,7 +4,8 @@ import { Hand } from "@/constants/Hand";
 import { createFilledBlockStyle } from "@/constants/Piece";
 import SkinnedBlock from "../SkinnedBlock";
 import { colorToHex } from "@/constants/Color";
-import { getSkinKindId, skinBlockShape, skinDecorStyle } from "@/constants/SkinFx";
+import { getSkinKindId, glyphOf, skinBlockShape } from "@/constants/SkinFx";
+import SkinGlyph from "../SkinGlyph";
 import { shopStateAtom } from "@/constants/Shop";
 import { SharedPoint, useDraggable } from "@mgcrea/react-native-dnd";
 import { useAtomValue } from "jotai";
@@ -67,7 +68,7 @@ function HandBlock({
 	const decorStyle = useAnimatedStyle(() => {
 		const piece = hand.value[i];
 		if (skinKind === 0 || piece == null || x > piece.matrix[0].length - 1 || y > piece.matrix.length - 1 || piece.matrix[y][x] === 0) return { opacity: 0 };
-		return { ...(skinDecorStyle(skinKind, GRID_BLOCK_SIZE, colorToHex(piece.color)) ?? {}), opacity: 1 };
+		return { opacity: 1 };
 	}, [skinKind]);
 
 	return (
@@ -81,7 +82,11 @@ function HandBlock({
 				animatedStyle,
 			]}
 		>
-			{skinKind !== 0 && <Animated.View pointerEvents="none" style={decorStyle} />}
+			{skinKind !== 0 && glyphOf(skinKind) && (
+				<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, decorStyle]}>
+					<SkinGlyph code={skinKind} size={GRID_BLOCK_SIZE} />
+				</Animated.View>
+			)}
 		</Animated.View>
 	);
 }
