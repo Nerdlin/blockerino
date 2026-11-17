@@ -1032,7 +1032,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                     </View>
                 </View>
                 <View style={{ marginTop: 10, alignItems: 'center' }}>
-                    <ReadOnlyHandPieces hand={handData} boardSize={boardLength} scale={isLargeScreen ? 0.65 : 0.5} />
+                    <ReadOnlyHandPieces hand={handData} pieceSkinId={roleKey === 'player1' ? player1Skin : player2Skin} boardSize={boardLength} scale={isLargeScreen ? 0.65 : 0.5} />
                 </View>
             </View>
         );
@@ -1110,7 +1110,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
                     <View style={styles.opponentWatchHand}>
                         <Text style={[styles.opponentHandLabel, { color: currentTheme.textSecondary }]}>Opponent's Hand:</Text>
-                        <ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} scale={isShortScreen ? 0.75 : 1} />
+                        <ReadOnlyHandPieces hand={opponentHand} pieceSkinId={opponentSkin} boardSize={boardLength} scale={isShortScreen ? 0.75 : 1} />
                     </View>
 
                     <StylizedButton
@@ -1222,7 +1222,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 									</View>
 
 									<View style={{ alignItems: 'center', marginTop: 8 }}>
-										<ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} scale={isShortScreen ? 0.45 : 0.8} />
+										<ReadOnlyHandPieces hand={opponentHand} pieceSkinId={opponentSkin} boardSize={boardLength} scale={isShortScreen ? 0.45 : 0.8} />
 									</View>
 								</View>
 							</View>
@@ -1354,7 +1354,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
 								<View style={{ marginTop: 20, alignItems: 'center' }}>
 									<Text style={{ fontFamily: 'Silkscreen', color: currentTheme.textSecondary, fontSize: 14, marginBottom: 5 }}>Opponent's Hand:</Text>
-									<ReadOnlyHandPieces hand={opponentHand} boardSize={boardLength} />
+									<ReadOnlyHandPieces hand={opponentHand} pieceSkinId={opponentSkin} boardSize={boardLength} />
 								</View>
 							</View>
 						)}

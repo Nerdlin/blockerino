@@ -217,9 +217,11 @@ function HandPiecesView({ hand, boardSize }: HandProps) {
 	);
 }
 
-export function ReadOnlyHandPieces({ hand, boardSize, scale = 1 }: { hand: Hand; boardSize: number; scale?: number }) {
+/** Another player's hand, drawn in that player's skin (pieceSkinId); without one it falls back to this player's own. */
+export function ReadOnlyHandPieces({ hand, boardSize, scale = 1, pieceSkinId: ownerSkin }: { hand: Hand; boardSize: number; scale?: number; pieceSkinId?: string }) {
 	const { HAND_BLOCK_SIZE } = useGameSizes(boardSize);
-	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
+	const mySkin = useAtomValue(shopStateAtom).equipped.piece_skin;
+	const pieceSkinId = ownerSkin ?? mySkin;
 	const size = HAND_BLOCK_SIZE * scale;
 	const blockSize = size;
 
