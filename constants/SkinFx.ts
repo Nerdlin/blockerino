@@ -124,15 +124,19 @@ function buildStyleCodes(): Map<string, number> {
 		const kindName = getSkinKind(item.id);
 		const kind = KIND_IDS[kindName];
 		let code = kind;
-		search: for (const pattern of PATTERN_ORDER[kindName]) {
-			for (const shape of SHAPE_ORDER[kindName]) {
-				// a kind's own surface looks different in every kind; a drawn pattern looks the same in any kind
-				const key = `${pattern === PATTERN_KIND ? `k${kind}` : `p${pattern}`}:${shape}`;
-				if (used.has(key)) continue;
-				used.add(key);
-				code = kind | (pattern << 4) | (shape << 8);
-				break search;
-			}
+		// walk the pairs so that the pattern and the shape both change from one skin of a family to the next
+		// (every pair is reached once: the shape step of 5 is coprime with the 6 shapes)
+		const patterns = PATTERN_ORDER[kindName];
+		const shapes = SHAPE_ORDER[kindName];
+		for (let k = 0; k < patterns.length * shapes.length; k++) {
+			const pattern = patterns[k % patterns.length];
+			const shape = shapes[(k + Math.floor(k / patterns.length)) % shapes.length];
+			// a kind's own surface looks different in every kind; a drawn pattern looks the same in any kind
+			const key = `${pattern === PATTERN_KIND ? `k${kind}` : `p${pattern}`}:${shape}`;
+			if (used.has(key)) continue;
+			used.add(key);
+			code = kind | (pattern << 4) | (shape << 8);
+			break;
 		}
 		codes.set(item.id, code);
 	}
@@ -327,14 +331,7 @@ export function skinDecorStyle(code: number, size: number, _hex?: string): Recor
 	return null;
 }
 
-/** Extra block style per kind (the liquid drop is round; neon glows). */
-export function skinBlockShape(code: number, size: number, hex: string): Record<string, unknown> {
-	"worklet";
-	const own = kindShape(code & 15, size, hex);
-	const shaped = shapeStyle((code >> 8) & 15, size);
-	return shaped ? { ...own, ...shaped } : own;
-}
-
+// Declared before the worklets that use it: a worklet captures the functions it calls when it is defined.
 function kindShape(kind: number, size: number, hex: string): Record<string, unknown> {
 	"worklet";
 	if (kind === SKIN_LIQUID) return { borderRadius: Math.round(size * 0.42) };
@@ -348,6 +345,15 @@ function kindShape(kind: number, size: number, hex: string): Record<string, unkn
 	if (kind === SKIN_ORB) return { borderRadius: Math.round(size * 0.5) };
 	return {};
 }
+
+/** Extra block style per kind (the liquid drop is round; neon glows). */
+export function skinBlockShape(code: number, size: number, hex: string): Record<string, unknown> {
+	"worklet";
+	const own = kindShape(code & 15, size, hex);
+	const shaped = shapeStyle((code >> 8) & 15, size);
+	return shaped ? { ...own, ...shaped } : own;
+}
+
 
 /** The look of a block while it appears (t: 0 -> 1). */
 export function skinAppear(code: number, t: number, size: number): Record<string, unknown> {
