@@ -443,6 +443,36 @@ const EXTRA_PIECE_SKINS: ShopItem[] = [
 	previewColors: previewColors as string[],
 }));
 
+// Wave 3: one family for each of the six newer block kinds (pixel, glass, metal, wood, candy, orb; constants/SkinFx.ts).
+const EXTRA_PIECE_SKINS_WAVE_3: ShopItem[] = [
+	["piece_pixel_gameboy", "Pocket Pixels", "Four shades of green from an old handheld.", 240, "#9BBC0F", ["#4E7A2E", "#5B8C32", "#8BAC0F"]],
+	["piece_pixel_arcade", "Arcade Pixels", "Hard pixel edges in loud arcade colours.", 380, "#FF3B4E", ["#FF3B4E", "#FFD23F", "#3BCEAC"]],
+	["piece_pixel_vapor", "Vapor Pixels", "Pink and cyan pixels from a late-night screen.", 720, "#FF71CE", ["#FF71CE", "#01CDFE", "#05FFA1"]],
+	["piece_glass_ice", "Ice Glass", "See-through blocks of frozen glass.", 300, "#BAE6FD", ["#BAE6FD", "#7DD3FC", "#E0F2FE"]],
+	["piece_glass_rose", "Rose Glass", "Tinted glass in soft pink and plum.", 560, "#F9A8D4", ["#F9A8D4", "#F472B6", "#FBCFE8"]],
+	["piece_glass_aqua", "Aquarium", "Blue-green glass with light coming through.", 820, "#2DD4BF", ["#2DD4BF", "#22D3EE", "#5EEAD4"]],
+	["piece_metal_steel", "Brushed Steel", "Grey steel plates with a cold shine.", 260, "#CBD5E1", ["#94A3B8", "#CBD5E1", "#64748B"]],
+	["piece_metal_bronze", "Bronze Plates", "Warm bronze and copper with a polished edge.", 520, "#D97706", ["#B45309", "#D97706", "#F59E0B"]],
+	["piece_metal_chrome", "Liquid Chrome", "Mirror chrome that catches every light.", 1650, "#E5E7EB", ["#F8FAFC", "#CBD5E1", "#E0E7FF"]],
+	["piece_wood_oak", "Oak Planks", "Light oak with a visible grain.", 220, "#D6A86B", ["#C08A4F", "#D6A86B", "#A0703B"]],
+	["piece_wood_cherry", "Cherry Wood", "Deep red cherry polished to a shine.", 460, "#B4532A", ["#C2410C", "#DC5A2A", "#A8431F"]],
+	["piece_wood_ebony", "Ebony", "Near-black ebony with golden inlay.", 780, "#A16207", ["#6B5A4E", "#A16207", "#5E4E43"]],
+	["piece_sweet_mint", "Mint Candy", "Striped mint sweets, cool and fresh.", 280, "#6EE7B7", ["#6EE7B7", "#A7F3D0", "#34D399"]],
+	["piece_sweet_berry", "Berry Candy", "Glossy berry sweets with a white stripe.", 540, "#F43F5E", ["#F43F5E", "#E11D48", "#FB7185"]],
+	["piece_sweet_rainbow", "Rainbow Candy", "Every colour of the candy shop at once.", 1550, "#FDE047", ["#F87171", "#FB923C", "#FDE047"]],
+	["piece_orb_bubble", "Soap Bubbles", "Round bubbles with a rainbow shine.", 320, "#A5F3FC", ["#A5F3FC", "#C4B5FD", "#FBCFE8"]],
+	["piece_orb_planet", "Planets", "Little planets in warm and cold colours.", 840, "#F59E0B", ["#F59E0B", "#3B82F6", "#EF4444"]],
+	["piece_orb_galaxy", "Galaxy Orbs", "Glowing orbs with a whole galaxy inside.", 1750, "#C084FC", ["#7C3AED", "#C084FC", "#4F46E5"]],
+].map(([id, title, description, price, accent, previewColors]) => ({
+	id: id as string,
+	category: "piece_skin" as const,
+	title: title as string,
+	description: description as string,
+	price: price as number,
+	accent: accent as string,
+	previewColors: previewColors as string[],
+}));
+
 const EXTRA_PIECE_SKINS_WAVE_2: ShopItem[] = [
 	["piece_moonstone", "Moonstone", "Pale moonlit blocks with cool stone edges.", 660, "#C4B5FD", ["#111827", "#C4B5FD", "#E0F2FE"]],
 	["piece_jade_tile", "Jade Tiles", "Green jade blocks with darker carved sides.", 680, "#34D399", ["#064E3B", "#34D399", "#A7F3D0"]],
@@ -748,6 +778,7 @@ export const SHOP_ITEMS: ShopItem[] = dedupeShopItems([
 	...BASE_SHOP_ITEMS,
 	...EXTRA_PIECE_SKINS,
 	...EXTRA_PIECE_SKINS_WAVE_2,
+	...EXTRA_PIECE_SKINS_WAVE_3,
 	...EXTRA_BACKGROUNDS,
 	...EXTRA_BACKGROUNDS_WAVE_2,
 	...EXTRA_MUSIC,

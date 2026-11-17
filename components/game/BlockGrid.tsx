@@ -588,13 +588,16 @@ interface ReadOnlyBlockGridProps {
 	hoverX?: number | null;
 	hoverY?: number | null;
 	hand?: Hand;
+	/** The board owner's piece skin (a Versus opponent's); the viewer's own when not given. */
+	pieceSkinId?: string;
 }
 
-export function ReadOnlyBlockGrid({ board, gridBlockSize, hoverIndex, hoverX, hoverY, hand }: ReadOnlyBlockGridProps) {
+export function ReadOnlyBlockGrid({ board, gridBlockSize, hoverIndex, hoverX, hoverY, hand, pieceSkinId: ownerSkin }: ReadOnlyBlockGridProps) {
 	const blockElements: any[] = [];
 	const boardLength = board.length;
 	const { currentTheme } = useTheme();
-	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
+	const mySkin = useAtomValue(shopStateAtom).equipped.piece_skin;
+	const pieceSkinId = ownerSkin ?? mySkin;
 
 	// Calculate which cells are covered by the opponent's dragging piece
 	const hoverCells = new Set<string>();

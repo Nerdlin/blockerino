@@ -12,7 +12,7 @@ describe("collection sets", () => {
 		expect(sets.reduce((sum, set) => sum + set.items.length, 0)).toBe(collectibleItems().length);
 		expect(sets.find((set) => set.id === EXCLUSIVE_SET)?.items).toHaveLength(12);
 		// the server counts the same sets (collection_set_items): spot checks from the migration dry run
-		expect(sets.find((set) => set.id === "piece_skin:common")?.items).toHaveLength(10);
+		expect(sets.find((set) => set.id === "piece_skin:common")?.items).toHaveLength(15);
 		expect(sets.find((set) => set.id === "music:rare")?.items).toHaveLength(22);
 	});
 

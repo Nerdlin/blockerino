@@ -1,7 +1,7 @@
 // How a piece skin looks and moves beyond its colors: the block's surface, how a placed block appears and how a
 // cleared block goes. Every shop skin belongs to one kind. Runs in worklets too (plain values only).
 
-export type SkinKind = "bevel" | "stone" | "crystal" | "lava" | "neon" | "liquid";
+export type SkinKind = "bevel" | "stone" | "crystal" | "lava" | "neon" | "liquid" | "pixel" | "glass" | "metal" | "wood" | "candy" | "orb";
 
 // numeric ids for worklets (comparing numbers is cheapest on the UI thread)
 export const SKIN_BEVEL = 0;
@@ -10,8 +10,15 @@ export const SKIN_CRYSTAL = 2;
 export const SKIN_LAVA = 3;
 export const SKIN_NEON = 4;
 export const SKIN_LIQUID = 5;
+export const SKIN_PIXEL = 6;
+export const SKIN_GLASS = 7;
+export const SKIN_METAL = 8;
+export const SKIN_WOOD = 9;
+export const SKIN_CANDY = 10;
+export const SKIN_ORB = 11;
 
-const KIND_IDS: Record<SkinKind, number> = { bevel: SKIN_BEVEL, stone: SKIN_STONE, crystal: SKIN_CRYSTAL, lava: SKIN_LAVA, neon: SKIN_NEON, liquid: SKIN_LIQUID };
+const KIND_IDS: Record<SkinKind, number> = { bevel: SKIN_BEVEL, stone: SKIN_STONE, crystal: SKIN_CRYSTAL, lava: SKIN_LAVA, neon: SKIN_NEON, liquid: SKIN_LIQUID,
+	pixel: SKIN_PIXEL, glass: SKIN_GLASS, metal: SKIN_METAL, wood: SKIN_WOOD, candy: SKIN_CANDY, orb: SKIN_ORB };
 
 const EXTRA: Record<string, SkinKind> = {
 	piece_desert_clay: "stone",
@@ -49,6 +56,24 @@ const EXTRA: Record<string, SkinKind> = {
 	piece_chest_dragon: "lava",
 	piece_chest_prism: "crystal",
 	piece_chest_relic: "crystal",
+	piece_pixel_gameboy: "pixel",
+	piece_pixel_arcade: "pixel",
+	piece_pixel_vapor: "pixel",
+	piece_glass_ice: "glass",
+	piece_glass_rose: "glass",
+	piece_glass_aqua: "glass",
+	piece_metal_steel: "metal",
+	piece_metal_bronze: "metal",
+	piece_metal_chrome: "metal",
+	piece_wood_oak: "wood",
+	piece_wood_cherry: "wood",
+	piece_wood_ebony: "wood",
+	piece_sweet_mint: "candy",
+	piece_sweet_berry: "candy",
+	piece_sweet_rainbow: "candy",
+	piece_orb_bubble: "orb",
+	piece_orb_planet: "orb",
+	piece_orb_galaxy: "orb",
 };
 
 export function getSkinKind(pieceSkinId: string = "piece_classic"): SkinKind {
@@ -105,6 +130,49 @@ export function skinDecorStyle(kind: number, size: number, _hex?: string): Recor
 			backgroundColor: "rgba(0,0,0,0.78)", borderWidth: 1, borderColor: "rgba(255,255,255,0.35)",
 		};
 	}
+	if (kind === SKIN_PIXEL) {
+		// one hard square highlight in the corner, like a sprite's lit pixel
+		const px = Math.max(2, Math.round(size * 0.2));
+		return { position: "absolute", left: 0, top: 0, width: px, height: px, backgroundColor: "rgba(255,255,255,0.7)" };
+	}
+	if (kind === SKIN_GLASS) {
+		// a diagonal glint across the pane
+		const band = Math.max(3, Math.round(size * 0.18));
+		return {
+			position: "absolute", left: Math.round(size * 0.12), top: -2, width: band, height: size,
+			backgroundColor: "rgba(255,255,255,0.45)", transform: [{ rotate: "35deg" }],
+		};
+	}
+	if (kind === SKIN_METAL) {
+		// the upper half catches the light, with a thin bright line where it ends
+		return {
+			position: "absolute", left: 0, top: 0, right: 0, height: Math.round(size * 0.38),
+			backgroundColor: "rgba(255,255,255,0.28)", borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.65)",
+		};
+	}
+	if (kind === SKIN_WOOD) {
+		// two grain lines
+		return {
+			position: "absolute", left: 0, right: 0, top: Math.round(size * 0.22), height: Math.round(size * 0.34),
+			borderTopWidth: Math.max(1, Math.round(size * 0.05)), borderBottomWidth: Math.max(1, Math.round(size * 0.05)),
+			borderColor: "rgba(0,0,0,0.28)",
+		};
+	}
+	if (kind === SKIN_CANDY) {
+		// a white wrapper stripe
+		const stripe = Math.max(3, Math.round(size * 0.2));
+		return {
+			position: "absolute", left: Math.round((size - stripe) / 2) - 2, top: -2, width: stripe, height: size,
+			backgroundColor: "rgba(255,255,255,0.55)", transform: [{ rotate: "-45deg" }],
+		};
+	}
+	if (kind === SKIN_ORB) {
+		// a ring around a bright core
+		return {
+			position: "absolute", left: core, top: core, right: core, bottom: core, borderRadius: size,
+			borderWidth: Math.max(1, Math.round(size * 0.07)), borderColor: "rgba(255,255,255,0.6)", backgroundColor: "rgba(255,255,255,0.12)",
+		};
+	}
 	if (kind === SKIN_LIQUID) {
 		// a shine on a drop
 		const shine = Math.max(3, Math.round(size * 0.26));
@@ -122,6 +190,12 @@ export function skinBlockShape(kind: number, size: number, hex: string): Record<
 	if (kind === SKIN_LIQUID) return { borderRadius: Math.round(size * 0.42) };
 	if (kind === SKIN_NEON) return { boxShadow: `0 0 ${Math.round(size * 0.25)}px ${hex}` };
 	if (kind === SKIN_STONE) return { borderRadius: 1 };
+	if (kind === SKIN_PIXEL) return { borderRadius: 0 };
+	if (kind === SKIN_GLASS) return { borderRadius: Math.round(size * 0.12), overflow: "hidden" };
+	if (kind === SKIN_METAL) return { borderRadius: Math.round(size * 0.08), overflow: "hidden" };
+	if (kind === SKIN_WOOD) return { borderRadius: Math.round(size * 0.06), overflow: "hidden" };
+	if (kind === SKIN_CANDY) return { borderRadius: Math.round(size * 0.3), overflow: "hidden" };
+	if (kind === SKIN_ORB) return { borderRadius: Math.round(size * 0.5) };
 	return {};
 }
 
@@ -134,6 +208,13 @@ export function skinAppear(kind: number, t: number, size: number): Record<string
 	if (kind === SKIN_LAVA) return { opacity: 0.4 + 0.6 * t, transform: [{ scale: 1 + 0.12 * Math.sin(t * Math.PI) }] };
 	if (kind === SKIN_NEON) return { opacity: t < 0.3 ? 0.2 : t < 0.45 ? 1 : t < 0.6 ? 0.35 : 1 };
 	if (kind === SKIN_LIQUID) return { transform: [{ scaleX: 1 + 0.25 * u }, { scaleY: 1 - 0.35 * u }] };
+	// pixel: snaps in four steps
+	if (kind === SKIN_PIXEL) return { opacity: 1, transform: [{ scale: 0.25 + 0.75 * Math.min(1, Math.ceil(t * 4) / 4) }] };
+	if (kind === SKIN_GLASS) return { opacity: t, transform: [{ scale: 1.25 - 0.25 * t }] };
+	if (kind === SKIN_METAL) return { opacity: 1, transform: [{ translateY: -size * 0.5 * u * u }, { scale: 1 + 0.08 * Math.sin(t * Math.PI) }] };
+	if (kind === SKIN_WOOD) return { opacity: 1, transform: [{ scaleY: 0.3 + 0.7 * t }] };
+	if (kind === SKIN_CANDY) return { opacity: 1, transform: [{ scale: 1 + 0.3 * Math.sin(t * Math.PI) * u }, { rotate: `${-30 * u}deg` }] };
+	if (kind === SKIN_ORB) return { opacity: t, transform: [{ scale: 0.4 + 0.6 * t }] };
 	// bevel: a small pop
 	return { transform: [{ scale: 1 + 0.15 * Math.sin(t * Math.PI) }] };
 }
@@ -146,6 +227,12 @@ export function skinClear(kind: number, p: number, size: number, dx: number, dy:
 	if (kind === SKIN_LAVA) return { opacity: 1 - p, transform: [{ translateY: size * 0.5 * p }, { scaleY: 1 - p }, { scaleX: 1 + 0.3 * p }] };
 	if (kind === SKIN_NEON) return { opacity: p < 0.2 ? 1 : p < 0.35 ? 0.1 : p < 0.5 ? 0.8 : 1 - p };
 	if (kind === SKIN_LIQUID) return { opacity: 1 - p, transform: [{ scale: 1 + 0.6 * p }] };
+	if (kind === SKIN_PIXEL) return { opacity: p >= 1 ? 0 : 1, transform: [{ scale: Math.max(0, 1 - Math.ceil(p * 4) / 4) }] };
+	if (kind === SKIN_GLASS) return { opacity: 1 - p, transform: [{ scale: 1 + 0.4 * p }, { rotate: `${20 * p}deg` }] };
+	if (kind === SKIN_METAL) return { opacity: 1 - p, transform: [{ translateY: size * 1.8 * p * p }, { rotate: `${rot * 0.5 * p}deg` }] };
+	if (kind === SKIN_WOOD) return { opacity: 1 - p, transform: [{ scaleY: 1 - p }, { translateY: size * 0.4 * p }] };
+	if (kind === SKIN_CANDY) return { opacity: 1 - p, transform: [{ scale: 1 + 0.8 * p }, { rotate: `${180 * p}deg` }] };
+	if (kind === SKIN_ORB) return { opacity: 1 - p, transform: [{ translateY: -size * 1.2 * p }, { scale: 1 - 0.4 * p }] };
 	const e = p === 1 ? 1 : 1 - Math.pow(2, -10 * p);
 	return {
 		opacity: 1 - e,

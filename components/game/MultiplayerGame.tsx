@@ -30,7 +30,9 @@ import { recordLocalMatchHistory } from '@/constants/MatchHistory';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScorePopup } from './ScorePopup';
 import { useSoundSettings } from '@/constants/Sound';
-import { useAtom, useSetAtom } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { shopStateAtom } from '@/constants/Shop';
+import { remotePieceSkin } from '@/constants/RemoteSkin';
 import { getEloBadge } from '@/components/MultiplayerMenu';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getGameModeConfig } from '@/constants/GameModes';
@@ -146,6 +148,11 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
     // Opponent states
     const [opponentBoard, setOpponentBoard] = useState<Board>(newEmptyBoard(boardLength));
+    // each side's board is drawn with its owner's piece skin; the skin travels with every state message
+    const mySkin = useAtomValue(shopStateAtom).equipped.piece_skin;
+    const [opponentSkin, setOpponentSkin] = useState<string | undefined>(undefined);
+    const [player1Skin, setPlayer1Skin] = useState<string | undefined>(undefined);
+    const [player2Skin, setPlayer2Skin] = useState<string | undefined>(undefined);
     const [opponentHand, setOpponentHand] = useState<Hand>([]);
     const [opponentHover, setOpponentHover] = useState<{ index: number | null, x: number | null, y: number | null }>({ index: null, x: null, y: null });
     const [opponentScore, setOpponentScore] = useState(0);
@@ -456,6 +463,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                             if (typeof data.isGameOver === 'boolean') setPlayer1IsGameOver(data.isGameOver);
                             if (typeof data.elo === 'number') setPlayer1Elo(data.elo);
                             if (data.playerName) setPlayer1Name(data.playerName);
+                            setPlayer1Skin(remotePieceSkin(data.pieceSkin));
                         } else if (data.role === 'player2') {
                             if (data.board) setPlayer2Board(data.board);
                             if (data.hand) setPlayer2Hand(data.hand);
@@ -463,6 +471,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                             if (typeof data.isGameOver === 'boolean') setPlayer2IsGameOver(data.isGameOver);
                             if (typeof data.elo === 'number') setPlayer2Elo(data.elo);
                             if (data.playerName) setPlayer2Name(data.playerName);
+                            setPlayer2Skin(remotePieceSkin(data.pieceSkin));
                         }
                     } else if (isActivePlayerRole(myRole) && data.role === getOpponentPlayerRole(myRole)) {
                         if (data.board) setOpponentBoard(data.board);
@@ -471,6 +480,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                         if (typeof data.isGameOver === 'boolean') setOpponentIsGameOver(data.isGameOver);
                         if (typeof data.elo === 'number') setOpponentElo(data.elo);
                         if (data.avatarUrl !== undefined) setOpponentAvatar(data.avatarUrl);
+                        setOpponentSkin(remotePieceSkin(data.pieceSkin));
                     }
                 })
                 .on('broadcast', { event: 'hover_state' }, (payload) => {
@@ -606,6 +616,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                     isGameOver: currentIsGameOver,
                     elo: playerElo,
                     avatarUrl: playerAvatar,
+                    pieceSkin: mySkin,
                     playerName: persistentName,
                     role: myRole
                 }
@@ -997,6 +1008,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                 <View style={styles.spectatorGridWrapper}>
                     <ReadOnlyBlockGrid 
                         board={boardData} 
+                        pieceSkinId={roleKey === 'player1' ? player1Skin : player2Skin}
                         gridBlockSize={isLargeScreen ? GRID_BLOCK_SIZE * 0.8 : 14} 
                         hoverIndex={hoverData.index}
                         hoverX={hoverData.x}
@@ -1072,6 +1084,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                     <View style={styles.opponentWatchGridWrapper}>
                         <ReadOnlyBlockGrid
                             board={opponentBoard}
+                            pieceSkinId={opponentSkin}
                             gridBlockSize={GRID_BLOCK_SIZE}
                             hoverIndex={opponentHover.index}
                             hoverX={opponentHover.x}
@@ -1184,6 +1197,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 									<View style={styles.miniGridScale}>
 										<ReadOnlyBlockGrid 
 											board={opponentBoard} 
+											pieceSkinId={opponentSkin} 
 											gridBlockSize={isShortScreen ? 12 : 20} 
 											hoverIndex={opponentHover.index}
 											hoverX={opponentHover.x}
@@ -1314,6 +1328,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 								<View style={{ position: 'relative', alignSelf: 'center' }}>
 									<ReadOnlyBlockGrid 
 										board={opponentBoard} 
+										pieceSkinId={opponentSkin} 
 										gridBlockSize={GRID_BLOCK_SIZE} 
 										hoverIndex={opponentHover.index}
 										hoverX={opponentHover.x}
