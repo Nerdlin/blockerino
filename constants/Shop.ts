@@ -202,7 +202,7 @@ const BASE_SHOP_ITEMS: ShopItem[] = [
 	{
 		id: "background_ender",
 		category: "background",
-		title: "Ender Depths",
+		title: "Void Depths",
 		description: "Deep violet caves with a green shimmer.",
 		price: 160,
 		accent: "#6BFFB8",
@@ -437,10 +437,10 @@ const BASE_SHOP_ITEMS: ShopItem[] = [
 
 const EXTRA_PIECE_SKINS: ShopItem[] = [
 	["piece_minecraft_moss", "Moss Mine", "Soft green mine-style blocks.", 180, "#7AC74F", ["#4D8B31", "#6BBF45", "#A7C957"]],
-	["piece_minecraft_deepslate", "Deepslate Cubes", "Dense stone blocks with muted gems.", 210, "#6C757D", ["#2F3437", "#495057", "#2CCED2"]],
+	["piece_minecraft_deepslate", "Slate Cubes", "Dense stone blocks with muted gems.", 210, "#6C757D", ["#2F3437", "#495057", "#2CCED2"]],
 	["piece_minecraft_gold", "Gold Mine", "Chunky ore colors with warm edges.", 240, "#FFD166", ["#D4A017", "#B08968", "#6BBF45"]],
-	["piece_minecraft_nether", "Nether Blocks", "Dark red mine blocks for intense runs.", 270, "#C1121F", ["#3A0B00", "#8B1E00", "#FF4D00"]],
-	["piece_minecraft_prismarine", "Prismarine", "Aquatic cube colors with gem highlights.", 300, "#48CAE4", ["#006D77", "#48CAE4", "#90BE6D"]],
+	["piece_minecraft_nether", "Inferno Blocks", "Dark red mine blocks for intense runs.", 270, "#C1121F", ["#3A0B00", "#8B1E00", "#FF4D00"]],
+	["piece_minecraft_prismarine", "Sea Glass", "Aquatic cube colors with gem highlights.", 300, "#48CAE4", ["#006D77", "#48CAE4", "#90BE6D"]],
 	["piece_crystal_aqua", "Aqua Crystal", "Clean blue crystal refraction.", 260, "#7DEBFF", ["#7DEBFF", "#A2D2FF", "#BDE0FE"]],
 	["piece_crystal_amethyst", "Amethyst Crystal", "Purple gemstone blocks with soft glow.", 300, "#C77DFF", ["#5A189A", "#9D4EDD", "#E0AAFF"]],
 	["piece_crystal_rose", "Rose Crystal", "Pink crystal set with bright highlights.", 320, "#FF7DDD", ["#FF7DDD", "#FFC8DD", "#FFFFFF"]],
