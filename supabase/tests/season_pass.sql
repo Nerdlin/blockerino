@@ -103,11 +103,11 @@ begin
 end $$;
 
 reset role;
-do $
+do $$
 begin
   assert (select xp from season_pass_progress where profile_id = 'b0000000-0000-0000-0000-0000000000d1' and season_key = current_season_key()) = 350,
     'the guest calls changed nothing';
-end $;
+end $$;
 
 -- Versus matches and daily tasks are counted from the server's own tables ----------------------------------------------
 insert into versus_matches (room_id, player1_id, player2_id, game_mode, outcome, settled_at) values
