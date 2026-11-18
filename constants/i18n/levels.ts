@@ -59,6 +59,6 @@ export const levels: ScreenDictionary = {
 		"levels.next": "Следующий",
 		"levels.retry": "Ещё раз",
 		"levels.map": "Карта уровней",
-		"levels.chestSignIn": "Войдите в аккаунт, чтобы открывать сундуки глав.",
+		"levels.chestSignIn": "Войди в аккаунт, чтобы открывать сундуки глав.",
 	},
 };

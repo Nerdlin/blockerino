@@ -84,7 +84,7 @@ export function ExtraGameShop() {
 									<Text style={{ fontFamily: "Silkscreen", fontSize: 11, textAlign: "center", marginTop: 8, color: currentTheme.textPrimary }} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>{shopItemText(item, language).title}</Text>
 								<Text style={{ fontFamily: "Silkscreen", fontSize: 8, lineHeight: 11, textAlign: "center", minHeight: 34, color: currentTheme.textSecondary }} numberOfLines={3}>{shopItemText(item, language).description}</Text>
 								<Text style={{ fontFamily: "Silkscreen", fontSize: 9, textAlign: "center", color: isOwned ? item.accent : currentTheme.textSecondary, marginBottom: 4 }}>
-									{isOwned ? t("shop.owned") : t("shop.price", { price: item.price })}
+									{isOwned ? t("shop.owned") : null}
 								</Text>
 								<StylizedButton text={buttonText} onClick={() => handleItemPress(item)} backgroundColor={isOwned ? item.accent : currentTheme.buttonPrimary} disabled={disabled} style={{ minWidth: 100, minHeight: 28, paddingHorizontal: 4, margin: 0 }} textStyle={{ fontSize: 10 }} />
 							</View>

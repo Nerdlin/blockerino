@@ -222,7 +222,7 @@ function ShopItemCard({
 				{shopItemText(item, language).description}
 			</Text>
 			<Text style={[styles.itemStatus, { color: isOwned ? item.accent : chestOnly ? "#FFC93C" : currentTheme.textSecondary }]}>
-				{isOwned ? t("shop.owned") : chestOnly ? t("shop.chestOnly") : t("shop.price", { price: item.price })}
+				{isOwned ? t("shop.owned") : chestOnly ? t("shop.chestOnly") : null}
 			</Text>
 			<StylizedButton
 				text={buttonText}
