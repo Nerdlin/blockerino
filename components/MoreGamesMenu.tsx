@@ -214,20 +214,19 @@ export default function MoreGamesMenu() {
 					</Pressable>
 				</View>
 			</View>
-			{/* a game's rules take two lines; a tap shows all of them */}
-			<Text
+			{/* in a game the rules stay folded behind the toggle, so the board fits the screen; a tap shows them */}
+			{(!activeCard || helpOpen) && <Text
 				onPress={activeCard ? () => setHelpOpen((open) => !open) : undefined}
-				numberOfLines={activeCard && !helpOpen ? 2 : undefined}
 				style={[styles.subHeader, { color: currentTheme.textSecondary, marginBottom: activeCard ? 2 : (fullScreen ? 8 : 12) }]}
 			>
 				{activeCard ? t(`moregames.help.${activeCard.id}`) : ratingPanel !== "list" ? t("moregames.subtitleRatings", { game: t(`moregames.label.${ratingGame}`) }) : t("moregames.subtitleList")}
-			</Text>
+			</Text>}
 			{activeCard ? (
 				<Text
 					testID="moregames-rules-toggle"
 					accessibilityRole="button"
 					onPress={() => setHelpOpen((open) => !open)}
-					style={[styles.subHeader, { color: currentTheme.accent, marginBottom: fullScreen ? 8 : 12, paddingVertical: 4 }]}
+					style={[styles.subHeader, { color: currentTheme.accent, marginBottom: 4, paddingVertical: 2 }]}
 				>
 					{t(helpOpen ? "moregames.rulesHide" : "moregames.rulesShow")}
 				</Text>

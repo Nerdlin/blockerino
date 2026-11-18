@@ -176,7 +176,7 @@ function MainTile({ title, color, onClick }: { title: string; color: string; onC
 			onPress={onClick}
 			style={({ pressed }) => [
 				styles.tile,
-				{ borderColor: color, backgroundColor: "rgba(255, 255, 255, 0.06)" },
+				{ borderColor: color, backgroundColor: "#1C1626" }, // opaque: falling pieces must not show through
 				height < 700 && { height: 40 },
 				pressed && { opacity: 0.7 },
 			]}
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
 		width: 46,
 		height: 46,
 		borderRadius: 12,
-		backgroundColor: "rgba(20, 20, 20, 0.82)",
+		backgroundColor: "#141414",
 		borderWidth: 2,
 		borderColor: "rgba(255, 255, 255, 0.22)",
 		justifyContent: "center",
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
 		width: 46,
 		height: 46,
 		borderRadius: 12,
-		backgroundColor: "rgba(20, 20, 20, 0.82)",
+		backgroundColor: "#141414",
 		borderWidth: 2,
 		borderColor: "rgba(255, 255, 255, 0.22)",
 		justifyContent: "center",
@@ -485,6 +485,7 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 		borderWidth: 1.5,
 		borderColor: "rgba(255, 255, 255, 0.28)",
+		backgroundColor: "#120C1C",
 		justifyContent: "center",
 		alignItems: "center",
 		paddingHorizontal: 6,
@@ -518,7 +519,7 @@ const styles = StyleSheet.create({
 		minWidth: 76,
 		height: 46,
 		borderRadius: 12,
-		backgroundColor: "rgba(20, 20, 20, 0.82)",
+		backgroundColor: "#141414",
 		borderWidth: 2,
 		borderColor: "rgba(255, 255, 255, 0.22)",
 		justifyContent: "center",
@@ -533,7 +534,7 @@ const styles = StyleSheet.create({
 		minWidth: 56,
 		height: 46,
 		borderRadius: 12,
-		backgroundColor: "rgba(20, 20, 20, 0.82)",
+		backgroundColor: "#141414",
 		borderWidth: 2,
 		borderColor: "rgba(255, 255, 255, 0.22)",
 		justifyContent: "center",

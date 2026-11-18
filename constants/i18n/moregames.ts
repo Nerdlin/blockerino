@@ -383,7 +383,7 @@ export const moregames: ScreenDictionary = {
 		"backgammon.mars": "Марс: 2 очка",
 		"backgammon.onePoint": "1 очко",
 		"backgammon.roll": "Бросить кости",
-		"backgammon.undo": "Отменить ход",
+		"backgammon.undo": "Отменить",
 		"backgammon.noMoves": "Ходов нет. Ход переходит сопернику.",
 		"backgammon.opening": "Жеребьёвка: вы {a}, соперник {b}",
 		"backgammon.openingWb": "Жеребьёвка: белые {a}, чёрные {b}",

@@ -213,7 +213,7 @@ function ShopItemCard({
 			},
 		]}>
 			<Pressable onPress={onPreview} accessibilityLabel={shopItemText(item, language).title} style={styles.previewTap}>
-				<CosmeticPreview item={item} animate />
+				<CosmeticPreview item={item} /* animations play in the preview window only: dozens of animated cards stuttered while scrolling */ />
 			</Pressable>
 			<Text style={[styles.itemTitle, { color: currentTheme.textPrimary }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>
 				{shopItemText(item, language).title}

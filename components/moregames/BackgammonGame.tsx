@@ -56,7 +56,8 @@ export function BackgammonGame({ cosmetics, playerName, onRatingChange }: { cosm
 	// game is 80% of the screen on a desktop), so the roll and undo buttons stay in view without scrolling
 	const m = useMemo(() => {
 		const windowH = width < 600 ? height : height * 0.8;
-		const maxBoardH = Math.max(230, windowH - 440);
+		// header, status, trays, pips, dice row, mode switch and room panel take about this much on a phone
+		const maxBoardH = Math.max(200, windowH - (width < 600 ? 555 : 440));
 		const maxDiameter = (maxBoardH - 6) / 11.7;
 		const widthByHeight = Math.floor((maxDiameter + 3) * 12.5 + 6);
 		return boardMetrics(Math.min(480, widthByHeight, Math.max(260, width - 28)));
@@ -583,13 +584,15 @@ export function BackgammonGame({ cosmetics, playerName, onRatingChange }: { cosm
 			<View style={local.diceRow}>
 				<Dice dice={state.dice} rolling={rolling} remaining={remaining} size={Math.max(36, Math.min(52, Math.round(m.col * 1.3)))} rollMs={ROLL_MS} />
 				<View style={{ gap: 6 }}>
-					<StylizedButton text={t("backgammon.roll")} onClick={rollNow} disabled={!canRoll} backgroundColor="#16A34A" style={[styles.resetButton, { minWidth: 124 }]} textStyle={styles.smallButtonText} />
-					<StylizedButton text={t("backgammon.undo")} onClick={undo} disabled={!canAct || played.length === 0} backgroundColor={currentTheme.buttonSecondary} style={[styles.resetButton, { minWidth: 124 }]} textStyle={styles.smallButtonText} />
+					<StylizedButton text={t("backgammon.roll")} onClick={rollNow} disabled={!canRoll} backgroundColor="#16A34A" style={[styles.resetButton, local.actionButton]} textStyle={styles.smallButtonText} />
+					<View style={{ flexDirection: "row", gap: 6 }}>
+						<StylizedButton text={t("backgammon.undo")} onClick={undo} disabled={!canAct || played.length === 0} backgroundColor={currentTheme.buttonSecondary} style={[styles.resetButton, local.halfButton]} textStyle={styles.smallButtonText} />
+						<StylizedButton text={gameFinished ? t(room.role ? "moregames.rematch" : "bot.newGame") : t("moregames.reset")} onClick={reset} backgroundColor={gameFinished ? "#16A34A" : currentTheme.buttonPrimary} style={[styles.resetButton, local.halfButton]} textStyle={styles.smallButtonText} />
+					</View>
 				</View>
 			</View>
 
 			<View style={{ flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
-				<StylizedButton text={gameFinished ? t(room.role ? "moregames.rematch" : "bot.newGame") : t("moregames.reset")} onClick={reset} backgroundColor={gameFinished ? "#16A34A" : currentTheme.buttonPrimary} style={styles.resetButton} textStyle={styles.smallButtonText} />
 				{!room.role && botActive && <HintButton disabled={gameFinished || !canAct || played.length > 0} onHint={showHint} />}
 				{/* the player's checkers all come off, so white (the player) wins */}
 				{!room.role && botActive && !gameFinished && (
@@ -622,5 +625,7 @@ const local = StyleSheet.create({
 	touch: { position: "absolute", left: 0, top: 0, right: 0, bottom: 0, zIndex: 20 },
 	subLine: { fontFamily: "Silkscreen", fontSize: 10, textAlign: "center", marginTop: -6, minHeight: 14 },
 	pips: { fontFamily: "Silkscreen", fontSize: 10, textAlign: "center" },
-	diceRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 18, minHeight: 60 },
+	diceRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 14, minHeight: 60 },
+	actionButton: { minWidth: 0, width: 214, margin: 0, height: 40, minHeight: 40 },
+	halfButton: { minWidth: 0, width: 104, margin: 0, height: 40, minHeight: 40 },
 });

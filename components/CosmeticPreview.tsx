@@ -29,7 +29,7 @@ function pick<T extends Record<string, unknown>>(table: T, key: string): T[keyof
 	return (Object.prototype.hasOwnProperty.call(table, key) ? table[key] : Object.values(table)[0]) as T[keyof T];
 }
 
-/** animate: a block skin plays its animations (always in the large preview; shop cards ask for it, roulette tiles do not). */
+/** animate: a block skin plays its animations (in the large preview; cards and roulette tiles stay still). */
 export default function CosmeticPreview({ item, large = false, animate = large }: { item: ShopItem; large?: boolean; animate?: boolean }) {
 	const u = large ? 1.8 : 1;
 	switch (item.category) {

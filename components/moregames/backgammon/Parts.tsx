@@ -64,7 +64,7 @@ export function Tray({ side, count, skin, width, active, label, countLabel, onPr
 }) {
 	const slot = width / 15;
 	const colors = side === "w" ? skin.white : skin.black;
-	const chip = Math.max(8, Math.min(22, slot - 3));
+	const chip = Math.max(8, Math.min(16, slot - 6));
 	return (
 		<Pressable
 			testID={testID}
@@ -98,7 +98,7 @@ export function Tray({ side, count, skin, width, active, label, countLabel, onPr
 
 const local = StyleSheet.create({
 	checker: { alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 2, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
-	tray: { height: 28, flexDirection: "row", alignItems: "center", borderWidth: 2, borderRadius: 4 },
+	tray: { height: 22, flexDirection: "row", alignItems: "center", borderWidth: 2, borderRadius: 4 },
 	trayLabel: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.45)" },
 	trayLabelText: { fontFamily: "SilkscreenBold", fontSize: 11, color: "#4ADE80" },
 });
