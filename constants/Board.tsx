@@ -52,10 +52,14 @@ export function calculateGameSizes({
   if (isMobile && !isMultiplayer) {
     const handCount = boardLength === 10 ? 5 : 3;
     const baseSlot = 5 * 22 * scaleRatio * handScale;
-    const maxSlot = Math.min((width - 16) / handCount, 5 * 22 * scaleRatio);
-    const wantedSlot = baseSlot + spareHeight * 0.45;
-    handScale *= Math.max(1, Math.min(wantedSlot, maxSlot) / baseSlot);
-    handGap = Math.min(56, 26 + spareHeight * 0.25);
+    // up to 0.7 of a board cell per hand block, and never wider than the screen allows for the whole hand
+    const maxSlot = Math.min((width - 16) / handCount, 5 * 0.7 * gridBlockSize);
+    const wantedSlot = baseSlot + spareHeight * 0.8;
+    const slot = Math.max(baseSlot, Math.min(wantedSlot, maxSlot));
+    handScale *= slot / baseSlot;
+    // the hand sits in the middle of the free space under the board: what the bigger pieces take is not free any more
+    const freeAfterGrowth = Math.max(0, spareHeight - (slot - baseSlot));
+    handGap = Math.min(110, 26 + freeAfterGrowth * 0.5);
   }
 
   return {

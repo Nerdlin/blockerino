@@ -6,7 +6,7 @@ import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { View, Text, Clipboard, TextInput, useWindowDimensions, Pressable } from "react-native";
 import PixelLoader from "@/components/PixelLoader";
-import StylizedButton from "../StylizedButton";
+import StylizedButton, { readableTextColor } from "../StylizedButton";
 import { InviteFriendsPanel } from "./InviteFriendsPanel";
 import type { InviteGame } from "@/constants/GameInvite";
 import { cssColors } from "@/constants/Color";
@@ -123,13 +123,8 @@ export function createRoomCode() {
 }
 
 export function getReadableButtonTextColor(backgroundColor: string) {
-	const hex = backgroundColor.replace("#", "");
-	if (hex.length !== 6) return "white";
-	const r = parseInt(hex.slice(0, 2), 16);
-	const g = parseInt(hex.slice(2, 4), 16);
-	const b = parseInt(hex.slice(4, 6), 16);
-	const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-	return luminance > 0.72 ? "#111111" : "white";
+	// the same WCAG contrast choice as StylizedButton
+	return readableTextColor(backgroundColor) ?? "white";
 }
 
 export function roleLabel(role: OnlineRole | null) {

@@ -178,7 +178,7 @@ export default function DailyChallengesMenu() {
                                 <UiIcon name="starGold" size={18} />
                             </View>
                         ))}
-                        <Text style={[styles.goalText, { color: stars === 3 ? color : currentTheme.textSecondary }]} numberOfLines={1}>
+                        <Text style={[styles.goalText, { color: stars === 3 ? color : currentTheme.textSecondary }]}>
                             {goal === null ? t("ch.allStars") : t("ch.goals", { goals: CHALLENGE_GOALS[card.mode].join(" \u00B7 ") })}
                         </Text>
                     </View>
@@ -366,10 +366,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 3,
         marginTop: 1,
+        flexWrap: "wrap",
     },
     goalText: {
         marginLeft: 4,
         flexShrink: 1,
+        flexBasis: 90,
+        flexGrow: 1,
         fontSize: 9,
         fontFamily: "Silkscreen",
     },

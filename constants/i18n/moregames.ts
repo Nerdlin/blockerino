@@ -28,6 +28,8 @@ export const moregames: ScreenDictionary = {
 		"moregames.help.battleship": "Place your fleet without touching ships, then invite a friend.",
 		// Headers / subtitles
 		"moregames.title": "More Games",
+		"moregames.rulesShow": "Rules ▼",
+		"moregames.rulesHide": "Hide rules ▲",
 		"moregames.subtitleList": "Online rooms, solo boards and cosmetics",
 		"moregames.subtitleActive": "Fuller playable extra mode",
 		"moregames.subtitleRatings": "{game} leaderboard",
@@ -319,6 +321,8 @@ export const moregames: ScreenDictionary = {
 		"moregames.help.battleship": "Расставь корабли без касаний и пригласи друга.",
 		// Headers / subtitles
 		"moregames.title": "Ещё игры",
+		"moregames.rulesShow": "Правила ▼",
+		"moregames.rulesHide": "Скрыть правила ▲",
 		"moregames.subtitleList": "Онлайн-комнаты, соло-доски и косметика",
 		"moregames.subtitleActive": "Полноценный дополнительный режим",
 		"moregames.subtitleRatings": "Таблица лидеров: {game}",

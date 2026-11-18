@@ -22,6 +22,7 @@ export default function SimplePopupView({
 	footer,
 	contentStyle,
 	entrance = "rise",
+	hideScrollbar = false,
 }: {
 	children: React.ReactNode,
 	style?: any[],
@@ -32,6 +33,8 @@ export default function SimplePopupView({
 	contentStyle?: object,
 	/** "pop": the card grows in with a soft spring (a result screen); "rise": the usual quick fade up. */
 	entrance?: "rise" | "pop",
+	/** Long screens with their own scroll cues hide the (thick, on web) scrollbar. */
+	hideScrollbar?: boolean,
 }) {
 	const { width, height } = useWindowDimensions();
 	const scale = getPopupScale(width, height);
@@ -66,7 +69,7 @@ export default function SimplePopupView({
 				ref={scrollRef}
 				style={footer ? styles.scrollViewWithFooter : styles.scrollView}
 				contentContainerStyle={[styles.scrollContent, alignTop && { justifyContent: "flex-start" }, contentStyle]}
-				showsVerticalScrollIndicator={true}
+				showsVerticalScrollIndicator={!hideScrollbar}
 				keyboardShouldPersistTaps="handled"
 				nestedScrollEnabled
 			>

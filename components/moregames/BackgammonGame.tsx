@@ -51,8 +51,16 @@ export function BackgammonGame({ cosmetics, playerName, onRatingChange }: { cosm
 	const skin = BACKGAMMON_SKINS[cosmetics.backgammonSkin] ?? BACKGAMMON_SKINS.classic;
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
-	const { width } = useWindowDimensions();
-	const m = useMemo(() => boardMetrics(Math.min(480, Math.max(260, width - 28))), [width]);
+	const { width, height } = useWindowDimensions();
+	// the board also shrinks to the height that is left after the status, trays, dice and buttons (the window of the
+	// game is 80% of the screen on a desktop), so the roll and undo buttons stay in view without scrolling
+	const m = useMemo(() => {
+		const windowH = width < 600 ? height : height * 0.8;
+		const maxBoardH = Math.max(230, windowH - 440);
+		const maxDiameter = (maxBoardH - 6) / 11.7;
+		const widthByHeight = Math.floor((maxDiameter + 3) * 12.5 + 6);
+		return boardMetrics(Math.min(480, widthByHeight, Math.max(260, width - 28)));
+	}, [width, height]);
 
 	const [state, setState] = useState<BackgammonState>(() => initialState());
 	// the moves already made in the turn being played, not yet handed over
