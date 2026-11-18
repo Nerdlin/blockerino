@@ -3,6 +3,7 @@ import {
 	LogBox,
 	AppState,
 	Platform,
+	View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
@@ -61,6 +62,7 @@ import OtaUpdateHost from "@/components/OtaUpdateHost";
 import GiftHost from "@/components/GiftHost";
 import ScreenLayer from "@/components/ScreenLayer";
 import EmailConfirmHost from "@/components/EmailConfirmHost";
+import PasswordRecoveryHost from "@/components/PasswordRecoveryHost";
 import JoinLinkHost from "@/components/JoinLinkHost";
 import ProfileMenu from "@/components/ProfileMenu";
 import MoreGamesMenu from "@/components/MoreGamesMenu";
@@ -264,13 +266,18 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 		<Animated.View entering={FadeIn} exiting={FadeOut} style={styles.container}>
 			<AnimatedBackground isGameplayActive={isGameplayActive} />
 			{clientEffectsReady && <BackgroundSceneLayer backgroundId={shopState.equipped.background} accent={getShopItem(shopState.equipped.background)?.accent ?? "#FFFFFF"} isGameplayActive={isGameplayActive} />}
-			{clientEffectsReady && [...Array(particleConfig.count)].map((_, i) => (
-				<PieceParticle
-					key={`particle${i}-${isGameplayActive ? 'game' : 'menu'}`}
-					blockSize={particleConfig.blockSize}
-					maxOpacity={particleConfig.maxOpacity}
-				/>
-			))}
+			{/* Falling pieces live in their own layer at the very back, so they never draw over buttons or text. */}
+			{clientEffectsReady && (
+				<View pointerEvents="none" style={styles.particleLayer}>
+					{[...Array(particleConfig.count)].map((_, i) => (
+						<PieceParticle
+							key={`particle${i}-${isGameplayActive ? 'game' : 'menu'}`}
+							blockSize={particleConfig.blockSize}
+							maxOpacity={particleConfig.maxOpacity}
+						/>
+					))}
+				</View>
+			)}
 
 			{ isMainMenuVisible && <MainMenu></MainMenu> }
 			{ gameMode && <Game gameMode={gameMode} initialState={savedGameForCurrentMode || undefined}></Game> }
@@ -335,6 +342,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 			<OtaUpdateHost />
 			<GiftHost />
 			<EmailConfirmHost />
+			<PasswordRecoveryHost />
 			<JoinLinkHost />
 			{/* last: message windows sit above every other popup */}
 			<GameDialogHost />
@@ -344,6 +352,11 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 }
 
 const styles = StyleSheet.create({
+	particleLayer: {
+		...StyleSheet.absoluteFillObject,
+		zIndex: 0,
+		overflow: "hidden",
+	},
 	container: {
 		flex: 1,
 		backgroundColor: "black",

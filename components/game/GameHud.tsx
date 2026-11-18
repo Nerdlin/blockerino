@@ -180,6 +180,7 @@ interface ComboBarProps {
 };
 
 function ComboBar({ lastBrokenLine, handSize, gridWidth }: ComboBarProps) {
+	const { t } = useLanguage();
 	const fillPercentage = useSharedValue(100);
 	const scale = useSharedValue(1);
 	const { width, height } = useWindowDimensions();
@@ -217,8 +218,11 @@ function ComboBar({ lastBrokenLine, handSize, gridWidth }: ComboBarProps) {
 	});
 
 	return (
-		<View style={[styles.comboBarParent, { width: gridWidth }, isMobile && { height: 8, borderWidth: 1 }]}>
-			<Animated.View style={[styles.comboBar, isMobile && { height: 6 }, animatedStyle]} />
+		<View style={{ width: gridWidth, alignItems: 'center' }}>
+			<View style={[styles.comboBarParent, { width: gridWidth }, isMobile && { height: 8, borderWidth: 1 }]}>
+				<Animated.View style={[styles.comboBar, isMobile && { height: 6 }, animatedStyle]} />
+			</View>
+			<Text style={styles.comboCaption}>{t("hud.comboBar")}</Text>
 		</View>
 	);
 };
@@ -349,6 +353,12 @@ const styles = StyleSheet.create({
 		backgroundColor: 'blue',
 		zIndex: 99,
 		position: 'absolute'
+	},
+	comboCaption: {
+		marginTop: 2,
+		fontFamily: 'Silkscreen',
+		fontSize: 8,
+		color: 'rgba(255, 255, 255, 0.6)',
 	},
 	timerBarParent: {
 		width: '100%',

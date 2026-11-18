@@ -1,6 +1,34 @@
 import { Platform, Pressable, StyleSheet, Text } from "react-native";
 import { useSoundSettings } from "@/constants/Sound";
 
+// Dark text on light fills: white text on bright yellow, cyan or green is hard to read. Returns undefined for colours it
+// cannot read (names, transparent, translucent) so those keep the default white text.
+export function readableTextColor(background: string | undefined): string | undefined {
+    if (!background) return undefined;
+    const value = background.trim().toLowerCase();
+    let r: number, g: number, b: number;
+    const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/.exec(value);
+    if (hex) {
+        const h = hex[1].length === 3 ? hex[1].split("").map((c) => c + c).join("") : hex[1];
+        r = parseInt(h.slice(0, 2), 16);
+        g = parseInt(h.slice(2, 4), 16);
+        b = parseInt(h.slice(4, 6), 16);
+    } else {
+        const rgb = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$/.exec(value);
+        if (!rgb) return undefined;
+        if (rgb[4] !== undefined && Number(rgb[4]) < 0.6) return undefined;
+        r = Number(rgb[1]);
+        g = Number(rgb[2]);
+        b = Number(rgb[3]);
+    }
+    const lin = (c: number) => {
+        const s = c / 255;
+        return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    };
+    const luminance = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+    return luminance > 0.4 ? "#111111" : undefined;
+}
+
 export default function StylizedButton({
     text, 
     onClick, 
@@ -25,6 +53,8 @@ export default function StylizedButton({
     if (centered === undefined) {
         centered = true;
     }
+
+    const autoTextColor = readableTextColor(backgroundColor);
 
     const handleHoverIn = () => {
         if (disabled) return;
@@ -60,7 +90,7 @@ export default function StylizedButton({
         >
             {/* one word never splits: it shrinks to fit the button; a phrase wraps between words */}
             <Text
-                style={[styles.stylizedButtonText, textStyle]}
+                style={[styles.stylizedButtonText, autoTextColor ? { color: autoTextColor } : null, textStyle]}
                 numberOfLines={/\s/.test(String(text).trim()) ? undefined : 1}
                 adjustsFontSizeToFit={!/\s/.test(String(text).trim())}
                 minimumFontScale={0.6}

@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255, 179, 0, 0.12)",
     },
     guestBannerTitle: { fontFamily: "Silkscreen", fontSize: 13, color: "#FFD54F" },
-    guestBannerText: { fontSize: 12, color: "rgba(255, 255, 255, 0.85)", marginTop: 3 },
+    guestBannerText: { fontFamily: "Silkscreen", fontSize: 10, lineHeight: 15, color: "rgba(255, 255, 255, 0.85)", marginTop: 3 },
     guestBannerButton: {
         fontFamily: "Silkscreen",
         fontSize: 13,

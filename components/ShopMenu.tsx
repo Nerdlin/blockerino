@@ -132,8 +132,8 @@ export default function ShopMenu() {
 
 			{activeTab === "chests" ? <ChestShop /> : (<>
 			<View style={styles.equippedRow}>
-				<Text style={[styles.equippedLabel, { color: currentTheme.textSecondary }]}>{t("shop.equipped")}</Text>
 				<Text style={[styles.equippedValue, { color: currentTheme.textPrimary }]} numberOfLines={1}>
+					<Text style={{ color: currentTheme.textSecondary }}>{t("shop.equipped")}: </Text>
 					{shopItemText(equippedItem, language).title}
 				</Text>
 			</View>
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
 		width: "100%",
 		maxWidth: 430,
 		flexDirection: "row",
-		justifyContent: "space-between",
+		justifyContent: "center",
 		alignItems: "center",
 		marginTop: 12,
 		marginBottom: 10,
@@ -349,8 +349,8 @@ const styles = StyleSheet.create({
 	equippedValue: {
 		fontFamily: "Silkscreen",
 		fontSize: 12,
-		maxWidth: 240,
-		textAlign: "right",
+		maxWidth: "100%",
+		textAlign: "center",
 	},
 	itemsGrid: {
 		width: "100%",

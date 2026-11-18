@@ -30,6 +30,7 @@ export const levels: ScreenDictionary = {
 		"levels.retry": "Try again",
 		"levels.map": "Level map",
 		"levels.chestSignIn": "Sign in to open chapter chests.",
+		"levels.chestLegend": "Small chest: win 10 levels · big chest: 3 stars on all 10",
 	},
 	ru: {
 		"levels.tabLevels": "Уровни",
@@ -60,5 +61,6 @@ export const levels: ScreenDictionary = {
 		"levels.retry": "Ещё раз",
 		"levels.map": "Карта уровней",
 		"levels.chestSignIn": "Войди в аккаунт, чтобы открывать сундуки глав.",
+		"levels.chestLegend": "Малый сундук: пройди 10 уровней · большой: 3 звезды на всех 10",
 	},
 };

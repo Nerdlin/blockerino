@@ -104,6 +104,8 @@ export default function MainMenu() {
 			<PixelIcon name="medal" size={27} color="#F0AF0C" secondaryColor="#FFFFFF" />
 			{questReady && signedIn && <View style={styles.badgeDot} />}
 		</Pressable>
+		<Text pointerEvents="none" numberOfLines={1} style={[styles.iconCaption, { right: 70 }]}>{t("mainmenu.profileCaption")}</Text>
+		<Text pointerEvents="none" numberOfLines={1} style={[styles.iconCaption, { right: 16 }]}>{t("mainmenu.awardsCaption")}</Text>
 
 		<Image source={require("../assets/images/icon.png")} style={styles.cornerLogo} accessibilityLabel="Blockerino" />
 		<View style={[{ width: '100%', alignItems: 'center' }, menuScale > 1 && { transform: [{ scale: menuScale }] }]}>
@@ -340,7 +342,8 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		width: '100%',
-		height: '100%'
+		height: '100%',
+		zIndex: 1,
 	},
 	cornerLogo: {
 		position: "absolute",
@@ -491,6 +494,16 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 		color: "rgba(255, 255, 255, 0.72)",
 		textAlign: "center",
+	},
+	iconCaption: {
+		position: "absolute",
+		top: 74,
+		width: 62,
+		fontFamily: "Silkscreen",
+		fontSize: 9,
+		color: "rgba(255, 255, 255, 0.72)",
+		textAlign: "center",
+		zIndex: 20,
 	},
 	achievementsIcon: {
 		fontFamily: "SilkscreenBold",

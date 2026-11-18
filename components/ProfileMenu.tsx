@@ -17,7 +17,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSoundSettings } from "@/constants/Sound";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
-import { emailConfirmRedirect } from "@/constants/EmailConfirm";
+import { emailConfirmRedirect, passwordResetRedirect } from "@/constants/EmailConfirm";
 import GiftChestsPanel from "./GiftChestsPanel";
 import { badgeLabel, useProfileBadge } from "@/constants/ProfileBadge";
 import { supabase, renamePlayer } from "@/constants/Supabase";
@@ -146,6 +146,8 @@ export default function ProfileMenu() {
 	// a guest with a name sees their local profile; "Sign in" there opens the form
 	const [showAuth, setShowAuth] = useState(false);
 	const [resendNote, setResendNote] = useState<string | null>(null);
+	const [resetMode, setResetMode] = useState(false);
+	const [resetNote, setResetNote] = useState<string | null>(null);
 	const [playerName, setPlayerName] = useState("");
 	// A guest's name is changed here and nowhere else (More Games, high scores and Versus only show it).
 	const [editingName, setEditingName] = useState(false);
@@ -412,6 +414,23 @@ export default function ProfileMenu() {
 		} finally {
 			setAuthLoading(false);
 		}
+	};
+
+	// Forgotten password: the letter's link goes through the same landing page as the sign-up confirmation.
+	const handlePasswordReset = async () => {
+		const address = email.trim();
+		if (!address) {
+			setErrorMessage(t("profile.fillAllFields"));
+			return;
+		}
+		playSfx('menuClick');
+		setAuthLoading(true);
+		setErrorMessage("");
+		setResetNote(null);
+		const { error } = await supabase.auth.resetPasswordForEmail(address, { redirectTo: passwordResetRedirect(language) });
+		setAuthLoading(false);
+		if (error) setErrorMessage(error.message || t("profile.authFailed"));
+		else setResetNote(t("profile.resetSent", { email: address }));
 	};
 
 	const resendConfirmation = async () => {
@@ -700,6 +719,38 @@ export default function ProfileMenu() {
 							{authMode === "login" ? t("profile.loginTitle") : t("profile.createAccountTitle")}
 						</Text>
 
+						<View style={styles.perksBox}>
+							<Text style={styles.perksTitle}>{t("profile.perksTitle")}</Text>
+							{(["profile.perkSync", "profile.perkFriends", "profile.perkElo", "profile.perkCoins"] as const).map((key) => (
+								<Text key={key} style={[styles.perkLine, { color: currentTheme.textPrimary }]}>{"\u25AA "}{t(key)}</Text>
+							))}
+						</View>
+
+						{resetMode && authMode === "login" ? (
+							<>
+								<Text style={[styles.confirmText, { color: currentTheme.textSecondary, marginBottom: 8 }]}>{t("profile.resetHint")}</Text>
+								<TextInput
+									style={[styles.input, { color: currentTheme.textPrimary, borderColor: currentTheme.gridBorder }]}
+									placeholder={t("profile.emailPlaceholder")}
+									placeholderTextColor={currentTheme.textSecondary}
+									value={email}
+									onChangeText={setEmail}
+									autoCapitalize="none"
+									keyboardType="email-address"
+								/>
+								{errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+								{resetNote ? <Text style={styles.resetNote}>{resetNote}</Text> : null}
+								<StylizedButton
+									onClick={() => void handlePasswordReset()}
+									text={authLoading ? "..." : t("profile.resetSend")}
+									backgroundColor={currentTheme.buttonPrimary}
+									style={[styles.authButton, isMobile && styles.mobileAuthButton]}
+									textStyle={isMobile && styles.mobileAuthButtonText}
+								/>
+								<Text style={styles.needAccountLink} onPress={() => { playSfx('menuClick'); setResetMode(false); setResetNote(null); setErrorMessage(""); }}>{t("profile.resetBack")}</Text>
+							</>
+						) : (
+						<>
 						{pendingEmail && authMode === "login" && (
 							<View style={styles.confirmBox}>
 								<Text style={styles.confirmTitle}>{t("profile.confirmTitle")}</Text>
@@ -736,6 +787,10 @@ export default function ProfileMenu() {
 							secureTextEntry
 						/>
 
+						{authMode === "login" && (
+							<Text style={styles.forgotLink} onPress={() => { playSfx('menuClick'); setResetMode(true); setErrorMessage(""); }}>{t("profile.forgotPassword")}</Text>
+						)}
+
 						{errorMessage ? (
 							<Text style={styles.errorText}>{errorMessage}</Text>
 						) : null}
@@ -757,7 +812,8 @@ export default function ProfileMenu() {
 								<StylizedButton 
 									onClick={handleGoogleSignIn}
 									text={t("profile.googleSignIn")}
-									backgroundColor="rgb(220, 70, 50)"
+									backgroundColor="transparent"
+									borderColor="rgba(255, 255, 255, 0.55)"
 									style={[styles.authButton, isMobile && styles.mobileAuthButton]}
 									textStyle={isMobile && styles.mobileAuthButtonText}
 								/>
@@ -765,7 +821,8 @@ export default function ProfileMenu() {
 								<StylizedButton 
 									onClick={handleDiscordSignIn}
 									text={t("profile.discordSignIn")}
-									backgroundColor="rgb(88, 101, 242)"
+									backgroundColor="transparent"
+									borderColor="rgba(255, 255, 255, 0.55)"
 									style={[styles.authButton, isMobile && styles.mobileAuthButton]}
 									textStyle={isMobile && styles.mobileAuthButtonText}
 								/>
@@ -781,9 +838,11 @@ export default function ProfileMenu() {
 							text={authMode === "login" ? t("profile.needAccount") : t("profile.haveAccount")}
 							backgroundColor="transparent"
 							borderColor="transparent"
-							textStyle={{ fontSize: 12, color: currentTheme.textSecondary }}
+							textStyle={{ fontSize: 13, color: "#E5E7EB", textDecorationLine: "underline" }}
 							style={{ marginTop: 5 }}
 						/>
+						</>
+						)}
 					</View>
 				)}
 			</ScrollView>
@@ -873,6 +932,50 @@ const styles = StyleSheet.create({
 		paddingVertical: 4,
 	},
 	inputLabel: { fontSize: 14, marginBottom: 8 },
+	perksBox: {
+		width: "100%",
+		marginBottom: 12,
+		padding: 10,
+		borderRadius: 8,
+		borderWidth: 1,
+		borderColor: "rgba(255, 255, 255, 0.2)",
+		backgroundColor: "rgba(255, 255, 255, 0.05)",
+	},
+	perksTitle: {
+		fontFamily: "Silkscreen",
+		fontSize: 12,
+		color: "#F0AF0C",
+		marginBottom: 6,
+	},
+	perkLine: {
+		fontFamily: "Silkscreen",
+		fontSize: 11,
+		lineHeight: 17,
+	},
+	forgotLink: {
+		fontFamily: "Silkscreen",
+		fontSize: 12,
+		color: "#93C5FD",
+		textDecorationLine: "underline",
+		alignSelf: "flex-end",
+		paddingVertical: 4,
+		marginBottom: 2,
+	},
+	needAccountLink: {
+		fontFamily: "Silkscreen",
+		fontSize: 13,
+		color: "#E5E7EB",
+		textDecorationLine: "underline",
+		textAlign: "center",
+		paddingVertical: 10,
+	},
+	resetNote: {
+		fontFamily: "Silkscreen",
+		fontSize: 12,
+		color: "#86EFAC",
+		textAlign: "center",
+		marginVertical: 6,
+	},
 	topBar: {
 		width: '100%',
 		flexDirection: 'row',

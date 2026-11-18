@@ -131,6 +131,7 @@ export default function LevelMap() {
 							{chest("complete", "small", summary.won >= LEVELS_PER_CHAPTER)}
 							{chest("perfect", "big", summary.perfect >= LEVELS_PER_CHAPTER)}
 						</View>
+						<Text style={[styles.chestLegend, { color: currentTheme.textSecondary }]}>{t("levels.chestLegend")}</Text>
 						<View style={styles.levels}>
 							{LEVELS.filter((level) => level.chapter === chapter).map((level) => {
 								const s = stars[level.id] ?? 0;
@@ -210,6 +211,12 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 		paddingHorizontal: 4,
 		paddingVertical: 2,
+	},
+	chestLegend: {
+		fontFamily: "Silkscreen",
+		fontSize: 8,
+		textAlign: "right",
+		marginBottom: 6,
 	},
 	chestLabel: {
 		fontFamily: "Silkscreen",

@@ -95,7 +95,7 @@ function HandBlock({
 }
 
 function HandPiecesView({ hand, boardSize }: HandProps) {
-	const { GRID_BLOCK_SIZE, HAND_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardSize);
+	const { GRID_BLOCK_SIZE, HAND_BLOCK_SIZE, HAND_GAP, DRAG_JUMP_LENGTH } = useGameSizes(boardSize);
 	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
 	const skinAnim = getSkinAnim(pieceSkinId);
 	const reducedFx = useReducedFx();
@@ -212,7 +212,7 @@ function HandPiecesView({ hand, boardSize }: HandProps) {
 					maxWidth: HAND_BLOCK_SIZE * 5 * handSize,
 					maxHeight: HAND_BLOCK_SIZE * 5,
 					height: HAND_BLOCK_SIZE * 5,
-					marginTop: isMobile ? (isShortScreen ? 36 : 30) : 45,
+					marginTop: HAND_GAP ?? (isMobile ? (isShortScreen ? 36 : 30) : 45),
 					flexWrap: 'nowrap',
 					flex: 0
 				}
