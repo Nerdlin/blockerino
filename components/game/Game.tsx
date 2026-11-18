@@ -192,6 +192,8 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	}, []);
 	const isMountedRef = useRef(true);
 	const isGameOverRef = useRef(false);
+	// when this game began on this device: the season pass wants a minimum length (a resumed game counts from the resume)
+	const gameStartedAtRef = useRef(Date.now());
 	const secondChanceDecisionLockedRef = useRef(false);
 
 	const updateActiveCombo = (val: number) => {
@@ -262,7 +264,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		setGameOverReason(reason ?? null);
 		setIsGameOver(true);
 		recordAchievementProgress({ soloGamesFinished: 1 });
-		recordSeasonPassGame(sourceForGameMode(gameMode));
+		recordSeasonPassGame(sourceForGameMode(gameMode), { score: Math.floor(score.value), durationMs: Date.now() - gameStartedAtRef.current });
 		if (gameMode === GameModeType.Rescue) recordQuestProgress('rescue');
 		if (gameMode === GameModeType.ComboTrial) recordQuestProgress('combo');
 		if (scoreStorageId.value) {

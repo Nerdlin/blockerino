@@ -22,26 +22,30 @@ import { shopItemText } from "@/constants/i18n/shopItems";
 import { useSoundSettings } from "@/constants/Sound";
 import { track } from "@/constants/Analytics";
 import {
+	COSMETIC_FALLBACK_COINS,
 	DAILY_XP_CAP,
+	MINIMUM_PLAY,
 	SOURCE_RULES,
 	TIER_COUNT,
 	TIER_REWARDS,
 	claimSeasonPassTier,
 	claimableTiers,
+	cosmeticsForSeason,
 	nextRewardTier,
+	resolveReward,
 	seasonTimeLeft,
 	tierCost,
 	tierProgress,
 	useSeasonPass,
+	type ResolvedReward,
 	type TierClaim,
-	type TierReward,
 	type XpSource,
 } from "@/constants/SeasonPass";
 
 const GOLD = "#FFC93C";
 const CYAN = "#38BDF8";
 const GREEN = "#22C55E";
-const RULE_ORDER: XpSource[] = ["classic", "chaos", "challenge", "versus", "more_win", "more_play", "quest_task", "quest_bonus"];
+const RULE_ORDER: XpSource[] = ["classic", "chaos", "challenge", "level", "versus", "more_win", "more_play", "quest_task", "quest_bonus"];
 const BAR_BLOCKS = 20;
 
 /** The season pass: progress, the 30 tiers with their rewards and a claim button where one is waiting. */
@@ -93,6 +97,9 @@ export default function SeasonPassMenu() {
 	const progress = tierProgress(state?.xp ?? 0);
 	const left = seasonTimeLeft(state, now);
 	const upNext = nextRewardTier(state);
+	// the season's skins: the server's list when it has answered, else the device's own copy
+	const seasonKey = state?.season ?? new Date().toISOString().slice(0, 7);
+	const cosmetics = cosmeticsForSeason(seasonKey, state?.cosmetics);
 
 	// the track opens on the tier that matters: the first one waiting for a claim, else the next one to earn
 	const focusTier = waiting[0] ?? upNext ?? TIER_COUNT;
@@ -162,7 +169,7 @@ export default function SeasonPassMenu() {
 				<Text style={[styles.header, { color: currentTheme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>{t("pass.title")}</Text>
 			</View>
 			<Text style={[styles.sub, { color: currentTheme.textSecondary }]}>
-				{formatSeasonKey(state?.season ?? new Date().toISOString().slice(0, 7), t)} · {timeText}
+				{formatSeasonKey(seasonKey, t)} · {timeText}
 			</Text>
 			<Text style={[styles.hint, { color: currentTheme.textSecondary }]}>{t("pass.free")}</Text>
 
@@ -225,11 +232,15 @@ export default function SeasonPassMenu() {
 						</View>
 					))}
 					<Text style={[styles.note, { color: currentTheme.textSecondary, marginTop: 6 }]}>{t("pass.howNote", { cap: DAILY_XP_CAP })}</Text>
+					<Text style={[styles.note, { color: currentTheme.textSecondary }]}>
+						{t("pass.minNote", { classicScore: MINIMUM_PLAY.classic!.score!, classicSeconds: MINIMUM_PLAY.classic!.seconds, challengeScore: MINIMUM_PLAY.challenge!.score!, challengeSeconds: MINIMUM_PLAY.challenge!.seconds, moreSeconds: MINIMUM_PLAY.more_win!.seconds })}
+					</Text>
 				</View>
 			</Collapsible>
 
 			<View style={styles.track} onLayout={(event) => { trackY.current = event.nativeEvent.layout.y; scrollToFocus(); }}>
-				{TIER_REWARDS.map((reward) => {
+				{TIER_REWARDS.map((entry) => {
+					const reward = resolveReward(entry, cosmetics);
 					const claimed = state?.claimed.includes(reward.tier) ?? false;
 					const ready = !claimed && reward.tier <= tier;
 					const isNext = !claimed && !ready && reward.tier === upNext && state !== null;
@@ -267,7 +278,7 @@ function XpBar({ fraction, color }: { fraction: number; color: string }) {
 	);
 }
 
-function RewardLine({ reward, language }: { reward: TierReward; language: "en" | "ru" }) {
+function RewardLine({ reward, language }: { reward: ResolvedReward; language: "en" | "ru" }) {
 	const { t } = useLanguage();
 	const { currentTheme } = useTheme();
 	const item = reward.itemId ? getShopItem(reward.itemId) : undefined;
@@ -311,7 +322,7 @@ function RewardLine({ reward, language }: { reward: TierReward; language: "en" |
 }
 
 function TierRow({ reward, claimed, ready, isNext, busy, disabled, progress, language, onClaim }: {
-	reward: TierReward;
+	reward: ResolvedReward;
 	claimed: boolean;
 	ready: boolean;
 	isNext: boolean;
@@ -396,7 +407,7 @@ function ClaimReveal({ claims, onClose }: { claims: TierClaim[]; onClose: () => 
 					))}
 					{duplicates.map((claim) => (
 						<Text key={claim.tier} style={[styles.note, { color: currentTheme.textSecondary }]}>
-							{t("pass.duplicate", { name: shopItemText(getShopItem(claim.itemId!)!, language).title, coins: 500 })}
+							{t("pass.duplicate", { name: shopItemText(getShopItem(claim.itemId!)!, language).title, coins: COSMETIC_FALLBACK_COINS[claim.tier] ?? 0 })}
 						</Text>
 					))}
 					<StylizedButton text={t("pass.done")} onClick={onClose} backgroundColor={currentTheme.buttonPrimary} />

@@ -163,6 +163,29 @@ export const SKIN_SPRITES: Record<string, Sprite> = {
 		rows: ["W......W", ".W.ww.W.", "..wWWw..", ".wWYYWw.", ".wWYYWw.", "..wWWw..", ".W.ww.W.", "W......W"],
 		keys: { Y: C("#F0ABFC") },
 	},
+	piece_season_snowfall: {
+		rows: ["W...W...", "..W...w.", ".W.w..W.", "...W...W", "w...W...", "..W...w.", ".w...W..", "...W...w"],
+	},
+	piece_season_garland: {
+		rows: ["kkkkkkkk", "r..y..g.", "r..y..g.", ".rr.yy.g", "kkkkkkkk", "..g..r..", "..g..r..", "y..y..y."],
+		keys: { r: C("#FECACA"), y: C("#FEF08A"), g: C("#BBF7D0") },
+	},
+	piece_season_confetti: {
+		rows: ["r..b..y.", "..g..r..", "y...b..g", ".b..y...", "g..r..b.", "..y...g.", "r..g..y.", ".b..r..."],
+		keys: { r: C("#FB7185"), b: C("#38BDF8"), y: C("#FDE047"), g: C("#4ADE80") },
+	},
+	piece_season_sparkler: {
+		rows: ["...W....", "W..W..W.", ".W.y.W..", "..yYy...", "WyYYYyW.", "..yYy...", ".W.y.W..", "W..W..W."],
+		keys: { y: C("#FDE047"), Y: C("#FFFBEB") },
+	},
+	piece_season_heartbeat: {
+		rows: ["........", ".hh..hh.", "hHhhhhHh", "hhhhhhhh", ".hhhhhh.", "..hhhh..", "...hh...", "........"],
+		keys: { h: C("#FDA4AF"), H: C("#FFF1F2") },
+	},
+	piece_season_quartz: {
+		rows: ["WW......", "Ww.qq...", "w.qQQq..", "..qQQq.k", "...qq..k", "......kk", "k.....K.", "kk..KKKK"],
+		keys: { q: C("#F9A8D4"), Q: C("#FBCFE8") },
+	},
 	piece_aurora_glass: { rows: ["w.w.w.w.", "wWw.wWw.", "wWwWwWwW", ".WwWwWw.", ".w.WwW..", "...w.w..", "........", "........"] },
 
 	// ---------------------------------------------------------------- toxic and dark

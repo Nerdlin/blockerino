@@ -17,8 +17,6 @@ import { onQuestsClaimed } from "./DailyQuests";
 export const TIER_COUNT = 30;
 /** The most XP one UTC day can give, over every source. */
 export const DAILY_XP_CAP = 350;
-/** A cosmetic the player already owns pays this many coins instead. */
-export const DUPLICATE_ITEM_COINS = 500;
 
 /** Cumulative XP that tier n needs (5n^2 + 145n: 150 for the first tier, 440 for the last). */
 export function tierXp(tier: number): number {
@@ -58,7 +56,7 @@ export function tierProgress(xp: number): TierProgress {
 // ---- sources -------------------------------------------------------------------------------------------------------
 
 /** What the phone reports (the server cannot see a solo game, so it only trusts the daily limits). */
-export type ReportedSource = "classic" | "chaos" | "challenge" | "more_win" | "more_play";
+export type ReportedSource = "classic" | "chaos" | "challenge" | "level" | "more_win" | "more_play";
 /** What the server counts itself, from its own tables. */
 export type VerifiedSource = "versus" | "quest_task" | "quest_bonus";
 export type XpSource = ReportedSource | VerifiedSource;
@@ -74,6 +72,7 @@ export const SOURCE_RULES: Record<XpSource, SourceRule> = {
 	classic: { xp: 20, max: 5 },
 	chaos: { xp: 20, max: 5 },
 	challenge: { xp: 15, max: 4 },
+	level: { xp: 10, max: 5 },
 	more_win: { xp: 20, max: 4 },
 	more_play: { xp: 8, max: 4 },
 	versus: { xp: 40, max: 5 },
@@ -81,9 +80,37 @@ export const SOURCE_RULES: Record<XpSource, SourceRule> = {
 	quest_bonus: { xp: 30, max: 1 },
 };
 
-export const REPORTED_SOURCES: ReportedSource[] = ["classic", "chaos", "challenge", "more_win", "more_play"];
-/** Calls to the server never carry more events than this (the server clamps it too). */
-export const MAX_EVENTS_PER_CALL = 10;
+export const REPORTED_SOURCES: ReportedSource[] = ["classic", "chaos", "challenge", "level", "more_win", "more_play"];
+/** The server takes one report per source in this many seconds. */
+export const MIN_GAP_SECONDS = 30;
+
+/** What a game must have been to count: a score and a time (the level map and nothing else counts without either). */
+export interface MinimumPlay {
+	score?: number;
+	seconds: number;
+}
+
+export const MINIMUM_PLAY: Partial<Record<ReportedSource, MinimumPlay>> = {
+	classic: { score: 300, seconds: 60 },
+	chaos: { score: 300, seconds: 60 },
+	challenge: { score: 100, seconds: 45 },
+	more_win: { seconds: 30 },
+	more_play: { seconds: 30 },
+};
+
+export interface PlayStats {
+	score?: number;
+	/** How long the game lasted; null or missing when the game cannot say (such a game does not count). */
+	durationMs?: number | null;
+}
+
+/** Whether a finished game was long and good enough to earn XP. The level map has no minimum: a first clear is a clear. */
+export function meetsMinimum(source: ReportedSource, stats: PlayStats = {}): boolean {
+	const rule = MINIMUM_PLAY[source];
+	if (!rule) return true;
+	if (rule.score !== undefined && !((stats.score ?? 0) >= rule.score)) return false;
+	return typeof stats.durationMs === "number" && stats.durationMs >= rule.seconds * 1000;
+}
 
 /** The source a finished solo game belongs to; null for modes without XP (the level map). */
 export function sourceForGameMode(gameMode: string): ReportedSource | null {
@@ -157,46 +184,84 @@ export interface TierReward {
 	coins: number;
 	keys: number;
 	chest: ChestSize | null;
-	itemId: string | null;
+	/** The tier hands out the season's cosmetic (see SEASON_COSMETICS). */
+	cosmetic: boolean;
 }
 
 function reward(tier: number, parts: Partial<Omit<TierReward, "tier">>): TierReward {
-	return { tier, coins: 0, keys: 0, chest: null, itemId: null, ...parts };
+	return { tier, coins: 0, keys: 0, chest: null, cosmetic: false, ...parts };
 }
 
 /** Mirrors public.season_pass_reward() (a jest test compares them). */
 export const TIER_REWARDS: TierReward[] = [
-	reward(1, { coins: 75 }),
+	reward(1, { coins: 25 }),
 	reward(2, { keys: 1 }),
-	reward(3, { coins: 100 }),
-	reward(4, { coins: 100 }),
+	reward(3, { coins: 25 }),
+	reward(4, { coins: 30 }),
 	reward(5, { chest: "small" }),
-	reward(6, { coins: 125 }),
+	reward(6, { coins: 30 }),
 	reward(7, { keys: 1 }),
-	reward(8, { coins: 125 }),
-	reward(9, { coins: 150 }),
-	reward(10, { itemId: "piece_season_dawn" }),
-	reward(11, { coins: 150 }),
-	reward(12, { keys: 1 }),
-	reward(13, { coins: 175 }),
-	reward(14, { coins: 175 }),
-	reward(15, { chest: "small" }),
-	reward(16, { coins: 200 }),
-	reward(17, { keys: 1 }),
-	reward(18, { itemId: "background_season_horizon" }),
-	reward(19, { coins: 200 }),
-	reward(20, { coins: 250 }),
-	reward(21, { coins: 250 }),
-	reward(22, { coins: 250 }),
-	reward(23, { coins: 275 }),
-	reward(24, { keys: 2 }),
-	reward(25, { itemId: "piece_season_nova" }),
-	reward(26, { coins: 300 }),
-	reward(27, { chest: "small" }),
-	reward(28, { coins: 350 }),
-	reward(29, { keys: 2 }),
-	reward(30, { coins: 400, chest: "big", itemId: "background_season_zenith" }),
+	reward(8, { coins: 35 }),
+	reward(9, { coins: 35 }),
+	reward(10, { cosmetic: true }),
+	reward(11, { coins: 40 }),
+	reward(12, { coins: 40 }),
+	reward(13, { keys: 1 }),
+	reward(14, { coins: 45 }),
+	reward(15, { coins: 45 }),
+	reward(16, { coins: 50 }),
+	reward(17, { coins: 50 }),
+	reward(18, { cosmetic: true }),
+	reward(19, { coins: 55 }),
+	reward(20, { chest: "small" }),
+	reward(21, { keys: 1 }),
+	reward(22, { coins: 60 }),
+	reward(23, { coins: 60 }),
+	reward(24, { coins: 65 }),
+	reward(25, { cosmetic: true }),
+	reward(26, { coins: 70 }),
+	reward(27, { keys: 1 }),
+	reward(28, { coins: 75 }),
+	reward(29, { coins: 80 }),
+	reward(30, { coins: 100, chest: "big", cosmetic: true }),
 ];
+
+/** Coins a cosmetic tier pays when its season has no set, or the player owns the skin already (season_pass_cosmetic_coins). */
+export const COSMETIC_FALLBACK_COINS: Record<number, number> = { 10: 100, 18: 150, 25: 200, 30: 300 };
+
+export type SeasonCosmetics = Record<number, string>;
+
+/**
+ * The skins each season hands out, by tier (blocks at 10 and 25, backgrounds at 18 and 30). Mirrors the migration's
+ * season_pass_cosmetics; a new season adds its four here and in a migration. A season missing here pays coins.
+ */
+export const SEASON_COSMETICS: Record<string, SeasonCosmetics> = {
+	"2026-11": { 10: "piece_season_dawn", 18: "background_season_horizon", 25: "piece_season_nova", 30: "background_season_zenith" },
+	"2026-12": { 10: "piece_season_snowfall", 18: "background_season_frostlake", 25: "piece_season_garland", 30: "background_season_midwinter" },
+	"2027-01": { 10: "piece_season_confetti", 18: "background_season_countdown", 25: "piece_season_sparkler", 30: "background_season_newyear" },
+	"2027-02": { 10: "piece_season_heartbeat", 18: "background_season_rosedusk", 25: "piece_season_quartz", 30: "background_season_blizzard" },
+};
+
+/** The server's list for the season when it has answered, else the device's own copy. */
+export function cosmeticsForSeason(season: string, fromServer?: SeasonCosmetics | null): SeasonCosmetics {
+	return fromServer ?? SEASON_COSMETICS[season] ?? {};
+}
+
+export interface ResolvedReward {
+	tier: number;
+	coins: number;
+	keys: number;
+	chest: ChestSize | null;
+	/** The season's skin at this tier; null for a tier without one (or a season without a set). */
+	itemId: string | null;
+}
+
+/** What a tier pays in a season: a cosmetic tier without a skin pays coins instead. */
+export function resolveReward(entry: TierReward, cosmetics: SeasonCosmetics): ResolvedReward {
+	const itemId = entry.cosmetic ? cosmetics[entry.tier] ?? null : null;
+	const coins = entry.coins + (entry.cosmetic && !itemId ? COSMETIC_FALLBACK_COINS[entry.tier] ?? 0 : 0);
+	return { tier: entry.tier, coins, keys: entry.keys, chest: entry.chest, itemId };
+}
 
 export function getTierReward(tier: number): TierReward | undefined {
 	return TIER_REWARDS[tier - 1];
@@ -210,8 +275,9 @@ export interface RewardTotals {
 	items: number;
 }
 
-export function totalRewards(rewards: TierReward[] = TIER_REWARDS): RewardTotals {
-	return rewards.reduce<RewardTotals>(
+/** What a whole pass pays in a season with the given cosmetics. */
+export function totalRewards(cosmetics: SeasonCosmetics = SEASON_COSMETICS["2026-11"]): RewardTotals {
+	return TIER_REWARDS.map((entry) => resolveReward(entry, cosmetics)).reduce<RewardTotals>(
 		(sum, entry) => ({
 			coins: sum.coins + entry.coins,
 			keys: sum.keys + entry.keys,
@@ -221,6 +287,11 @@ export function totalRewards(rewards: TierReward[] = TIER_REWARDS): RewardTotals
 		}),
 		{ coins: 0, keys: 0, smallChests: 0, bigChests: 0, items: 0 },
 	);
+}
+
+/** A pass valued in coins, a chest at its shop price (a key opens a small one): the number the economy is kept to. */
+export function rewardValue(totals: RewardTotals): number {
+	return totals.coins + (totals.keys + totals.smallChests) * 400 + totals.bigChests * 1000;
 }
 
 // ---- state ---------------------------------------------------------------------------------------------------------
@@ -233,6 +304,18 @@ export interface SeasonPassState {
 	claimed: number[];
 	todayXp: number;
 	dailyCap: number;
+	/** The season's skins by tier, as the server holds them. */
+	cosmetics: SeasonCosmetics;
+}
+
+function parseCosmetics(value: unknown): SeasonCosmetics {
+	const result: SeasonCosmetics = {};
+	if (!value || typeof value !== "object" || Array.isArray(value)) return result;
+	for (const [key, id] of Object.entries(value as Record<string, unknown>)) {
+		const tier = Number(key);
+		if (Number.isInteger(tier) && tier >= 1 && tier <= TIER_COUNT && typeof id === "string" && id.length > 0) result[tier] = id;
+	}
+	return result;
 }
 
 function num(value: unknown): number | null {
@@ -256,6 +339,7 @@ export function parseSeasonPassState(data: unknown): SeasonPassState | null {
 		claimed: Array.isArray(row.claimed) ? row.claimed.filter((n): n is number => Number.isInteger(n) && n >= 1 && n <= TIER_COUNT) : [],
 		todayXp: Math.max(0, Math.floor(num(row.today_xp) ?? 0)),
 		dailyCap: Math.max(1, Math.floor(num(row.daily_cap) ?? DAILY_XP_CAP)),
+		cosmetics: row.cosmetics === undefined ? cosmeticsForSeason(row.season) : parseCosmetics(row.cosmetics),
 	};
 }
 
@@ -385,6 +469,8 @@ export async function claimSeasonPassTier(tier: number): Promise<TierClaimResult
 const PENDING_KEY = "SEASON_PASS_PENDING_V1";
 const FLUSH_DELAY_MS = 2500;
 const VERIFIED_SYNC_DELAY_MS = 5000;
+/** A report the server called too fast is tried again a little after its 30 seconds. */
+const RETRY_GAP_MS = (MIN_GAP_SECONDS + 1) * 1000;
 
 interface StoredReports {
 	/** What this device already counted today (sent or waiting), so it stops asking once a limit is reached. */
@@ -440,7 +526,7 @@ async function saveReports(reports: StoredReports): Promise<void> {
 	}
 }
 
-/** Sends the games waiting, one source at a time. What fails stays queued for the next try. */
+/** Sends the games waiting, one event per source (the server takes one a source in 30 s, so the rest follows later). */
 export function flushSeasonPassReports(now: Date = new Date()): Promise<void> {
 	if (flushTimer) {
 		clearTimeout(flushTimer);
@@ -457,28 +543,38 @@ export function flushSeasonPassReports(now: Date = new Date()): Promise<void> {
 			return;
 		}
 		for (const source of REPORTED_SOURCES) {
-			while ((reports.pending[source] ?? 0) > 0) {
-				const count = Math.min(reports.pending[source] ?? 0, MAX_EVENTS_PER_CALL);
-				try {
-					const { data, error } = await supabase.rpc("season_pass_add_xp", { p_source: source, p_count: count });
-					if (error) break;
+			if (!reports.pending[source]) continue;
+			try {
+				const { data, error } = await supabase.rpc("season_pass_add_xp", { p_source: source });
+				if (error) continue;
+				const status = (data as { status?: unknown } | null)?.status;
+				if (status === "too_fast") continue;
+				if (status !== "bad_source" && status !== "guest") {
 					const state = parseSeasonPassState(data);
-					if (!state) break;
+					if (!state) continue;
 					publishSeasonPass(state);
-				} catch {
-					break;
 				}
-				reports.pending[source] = (reports.pending[source] ?? 0) - count;
-				if ((reports.pending[source] ?? 0) <= 0) delete reports.pending[source];
+			} catch {
+				continue;
 			}
+			reports.pending[source] = (reports.pending[source] ?? 0) - 1;
+			if ((reports.pending[source] ?? 0) <= 0) delete reports.pending[source];
 		}
 		await saveReports(reports);
+		if (REPORTED_SOURCES.some((source) => reports.pending[source]) && !flushTimer) {
+			flushTimer = setTimeout(() => {
+				void flushSeasonPassReports();
+			}, RETRY_GAP_MS);
+		}
 	});
 }
 
-/** A finished game of a source: counted against the device's own copy of the daily limits, then sent soon. */
-export function recordSeasonPassGame(source: ReportedSource | null, now: Date = new Date()): void {
-	if (!source) return;
+/**
+ * A finished game of a source. It must have been long and good enough (meetsMinimum), then it is counted against the
+ * device's own copy of the daily limits and sent soon.
+ */
+export function recordSeasonPassGame(source: ReportedSource | null, stats: PlayStats = {}, now: Date = new Date()): void {
+	if (!source || !meetsMinimum(source, stats)) return;
 	void serialize(async () => {
 		const reports = await loadReports(now);
 		const credited = creditEvents(reports.ledger, source, 1);
@@ -494,6 +590,12 @@ export function recordSeasonPassGame(source: ReportedSource | null, now: Date = 
 	});
 }
 
+const moreGameStarts = new Map<string, number>();
+/** A More Games game was opened (or finished, so the next one starts): its length is measured from here. */
+export function noteMoreGameStart(gameId: string, at: number = Date.now()): void {
+	moreGameStarts.set(gameId, at);
+}
+
 /** Versus and daily tasks are counted by the server; this asks it to look soon (the opponent's report may be a moment late). */
 export function scheduleSeasonPassSync(delayMs = VERIFIED_SYNC_DELAY_MS): void {
 	if (verifiedTimer) clearTimeout(verifiedTimer);
@@ -506,8 +608,14 @@ export function scheduleSeasonPassSync(delayMs = VERIFIED_SYNC_DELAY_MS): void {
 /** Watches the finished games of the More Games and Versus and the claimed daily tasks. Call once; returns the stop. */
 export function startSeasonPassTracking(): () => void {
 	const stopOutcomes = subscribeToOutcomes((gameId, outcome) => {
-		if (gameId === "versus") scheduleSeasonPassSync();
-		else recordSeasonPassGame(sourceForOutcome(gameId, outcome));
+		if (gameId === "versus") {
+			scheduleSeasonPassSync();
+			return;
+		}
+		const now = Date.now();
+		const startedAt = moreGameStarts.get(gameId);
+		moreGameStarts.set(gameId, now);
+		recordSeasonPassGame(sourceForOutcome(gameId, outcome), { durationMs: startedAt === undefined ? null : now - startedAt });
 	});
 	const stopQuests = onQuestsClaimed(() => scheduleSeasonPassSync(1500));
 	return () => {
@@ -519,6 +627,7 @@ export function startSeasonPassTracking(): () => void {
 /** Test hook: forget what the module keeps in memory. */
 export function resetSeasonPassReports(): void {
 	memory = null;
+	moreGameStarts.clear();
 	if (flushTimer) clearTimeout(flushTimer);
 	if (verifiedTimer) clearTimeout(verifiedTimer);
 	flushTimer = null;

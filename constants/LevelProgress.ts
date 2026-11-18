@@ -4,6 +4,7 @@ import { supabase } from "./Supabase";
 import { getAccountSession } from "./AccountSession";
 import { LEVELS, LEVELS_PER_CHAPTER } from "./Levels";
 import type { ChestPrize } from "./DailyReward";
+import { recordSeasonPassGame } from "./SeasonPass";
 
 // Stars of the level map. Kept on the device for everyone; for an account also on the server (record_level_result),
 // which is what chapter chests are checked against. Opening the map merges both: the best of each level wins.
@@ -68,6 +69,8 @@ export async function recordLevelWin(levelId: string, stars: number): Promise<nu
 	const local = await loadLocalLevelStars();
 	const kept = Math.max(local[levelId] ?? 0, stars);
 	await saveLocalLevelStars({ ...local, [levelId]: kept });
+	// the first clear of a level earns season pass XP (the map was merged with the server's stars when it opened)
+	if ((local[levelId] ?? 0) === 0 && stars > 0) recordSeasonPassGame("level");
 	try {
 		const { data: { session } } = await getAccountSession();
 		if (session?.user) await supabase.rpc("record_level_result", { p_level_id: levelId, p_stars: stars });
