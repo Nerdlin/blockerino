@@ -22,6 +22,9 @@ import { track } from "@/constants/Analytics";
 import { getHighScores } from "@/constants/Storage";
 import ShareCard, { SHARE_CARD_WIDTH } from "./ShareCard";
 import { buildShareText, shareScoreCard } from "@/constants/ShareScore";
+import { getMomentSnapshot } from "@/constants/MomentStore";
+import { buildMomentShareText } from "@/constants/ShareMoment";
+import MomentShareModal from "./MomentShareModal";
 import { getAccountSession } from '@/constants/AccountSession';
 import { getMedalForScore, getMedals, getNextMedal } from '@/constants/RunGoals';
 import MedalTrack from './MedalTrack';
@@ -47,6 +50,9 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
     const shareCardRef = useRef<View>(null);
     const [shareNote, setShareNote] = useState<string | null>(null);
     const [sharing, setSharing] = useState(false);
+    // the last moves of this game, ready to be made into a GIF; null when nothing was recorded (a level, a restored game)
+    const [momentLog] = useState(() => getMomentSnapshot());
+    const [momentOpen, setMomentOpen] = useState(false);
 
     useEffect(() => {
         let active = true;
@@ -282,6 +288,19 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                         />
                     )}
                 </View>
+                {momentLog && score > 0 && (
+                    <StylizedButton
+                        text={t("moment.button")}
+                        onClick={() => {
+                            playSfx('menuClick');
+                            setMomentOpen(true);
+                        }}
+                        backgroundColor="rgba(255,255,255,0.08)"
+                        borderColor="rgba(255,255,255,0.14)"
+                        style={[styles.secondaryButton, styles.momentButton]}
+                        textStyle={styles.secondaryText}
+                    />
+                )}
             </Animated.View>
 
             {/* where the score went */}
@@ -333,6 +352,16 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                 {submitStatus === 'needs_name' && <Text style={[styles.status, { color: 'rgb(255, 80, 80)' }]}>{t("over.needName")}</Text>}
             </Animated.View>
         </SimplePopupView>
+        {momentOpen && momentLog && (
+            <MomentShareModal
+                log={momentLog}
+                caption={t("moment.captionOver")}
+                dimLastFrame
+                message={buildMomentShareText(t("share.text"), score, modeTitle)}
+                source="game_over"
+                onClose={() => setMomentOpen(false)}
+            />
+        )}
         {/* Drawn off screen: this is the picture that gets shared. */}
         <View pointerEvents="none" style={{ position: 'absolute', left: -(SHARE_CARD_WIDTH + 80), top: 0 }}>
             <ShareCard
@@ -499,6 +528,10 @@ const styles = StyleSheet.create({
         height: 46,
         margin: 0,
         borderRadius: 12,
+    },
+    momentButton: {
+        flex: 0,
+        alignSelf: 'stretch',
     },
     secondaryText: {
         fontSize: 13,

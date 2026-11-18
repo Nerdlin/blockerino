@@ -34,6 +34,12 @@ import { setMusicRate } from '@/constants/Sound';
 import { recordAchievementProgress } from '@/constants/Achievements';
 import { recordQuestProgress } from '@/constants/DailyQuests';
 import { consumeMoveLimitMove, GameOverReason, getGameModeConfig, getInitialMovesRemaining, getInitialTimeRemaining, isMoveLimitComplete } from '@/constants/GameModes';
+import { MomentRecorder, isBigComboMove, packBoardCells, packColor, type MomentLog } from '@/constants/MomentRecorder';
+import { releaseMomentRecorder, setActiveMomentRecorder } from '@/constants/MomentStore';
+import { buildMomentShareText } from '@/constants/ShareMoment';
+import { useLanguage } from '@/constants/Localization';
+import MomentToast from '../MomentToast';
+import MomentShareModal from '../MomentShareModal';
 
 
 const SPRING_CONFIG_MISSED_DRAG = {
@@ -128,6 +134,31 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const [secondChanceReason, setSecondChanceReason] = useState<SecondChanceReason | null>(null);
 	const [gameOverReason, setGameOverReason] = useState<GameOverReason | null>(null);
 	const secondChancesUsed = useSharedValue(validInitialState ? validInitialState.secondChancesUsed || 0 : 0);
+
+	// "Share a moment": the last few moves are kept so a big combo or the end of the game can be shared as a GIF.
+	// Nothing is drawn until the player asks (constants/MomentFrames.ts). Levels have gems the GIF does not draw, so they skip it.
+	const { t } = useLanguage();
+	const momentRecorder = useRef<MomentRecorder | null>(null);
+	if (!momentRecorder.current) momentRecorder.current = new MomentRecorder(boardLength);
+	const momentOfferCount = useRef(0);
+	const [momentOffer, setMomentOffer] = useState<{ id: number; log: MomentLog } | null>(null);
+	const [momentOpen, setMomentOpen] = useState<{ log: MomentLog; caption: string } | null>(null);
+	useEffect(() => {
+		const recorder = momentRecorder.current!;
+		if (!level) setActiveMomentRecorder(recorder);
+		return () => releaseMomentRecorder(recorder);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+	const recordMoment = (before: number[], matrix: number[][], color: number, x: number, y: number, lines: number, points: number, scoreNow: number, comboNow: number) => {
+		const recorder = momentRecorder.current;
+		if (!recorder || level) return;
+		recorder.record(before, matrix, color, x, y, lines, points, scoreNow, comboNow);
+		// a big combo offers the GIF for a few seconds; timed modes are not interrupted
+		if (timeLimitSeconds === undefined && isBigComboMove(lines, comboNow)) {
+			momentOfferCount.current += 1;
+			setMomentOffer({ id: momentOfferCount.current, log: recorder.snapshot() });
+		}
+	};
 	const [scorePopups, setScorePopups] = useState<{id: number, points: number, x: number, y: number}[]>([]);
 	const scorePopupIdCounter = useRef(0);
 
@@ -306,6 +337,8 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		const nextBoard = createSecondChanceBoard();
 		const nextHand = createSecondChanceHand();
 
+		momentRecorder.current?.clear();
+		setMomentOffer(null);
 		score.value = nextScore;
 		board.value = nextBoard;
 		danger.value = isDangerFill(countFilled(nextBoard), boardLength * boardLength);
@@ -499,6 +532,9 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			runOnJS(dismissCoach)();
 			
 			runOnJS(addScorePopup)(pointsEarned, dropX * GRID_BLOCK_SIZE, dropY * GRID_BLOCK_SIZE);
+			if (!level) {
+				runOnJS(recordMoment)(packBoardCells(cleanBoard, BoardBlockType.FILLED, BoardBlockType.HOVERED_BREAK_FILLED), piece.matrix, packColor(piece.color), dropX, dropY, linesBroken, pointsEarned, score.value, combo.value);
+			}
 			
 			if (scoreStorageId.value) {
 				runOnJS(updateHighScore)(scoreStorageId.value!, {
@@ -646,6 +682,16 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 						<View style={{ position: 'relative', alignSelf: 'center' }}>
 							<BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece} combo={combo}></BlockGrid>
 							<DangerFrame active={dangerOn && !isGameOver} />
+							{momentOffer && !isGameOver && !secondChanceReason && !momentOpen && (
+								<MomentToast
+									offerId={momentOffer.id}
+									onPress={() => {
+										setMomentOpen({ log: momentOffer.log, caption: t("moment.captionCombo") });
+										setMomentOffer(null);
+									}}
+									onExpire={() => setMomentOffer(null)}
+								/>
+							)}
 							<View style={[StyleSheet.absoluteFill, { pointerEvents: 'none', zIndex: 9999 }]}>
 								{scorePopups.map(popup => (
 									<ScorePopup 
@@ -687,6 +733,15 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 					)}
 					{isGameOver && !level && (
 						<GameOverModal score={Math.floor(score.value)} gameMode={gameMode} reason={gameOverReason} />
+					)}
+					{momentOpen && (
+						<MomentShareModal
+							log={momentOpen.log}
+							caption={momentOpen.caption}
+							message={buildMomentShareText(t("moment.text"), Math.floor(score.value), t(`mode.${gameMode}`))}
+							source="combo"
+							onClose={() => setMomentOpen(null)}
+						/>
 					)}
 				</View>
 			</GestureHandlerRootView>

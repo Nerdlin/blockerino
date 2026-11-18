@@ -43,6 +43,9 @@ import { remotePieceSkin } from '@/constants/RemoteSkin';
 import { getEloBadge } from '@/components/MultiplayerMenu';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getGameModeConfig } from '@/constants/GameModes';
+import { MomentRecorder, packBoardCells, packColor } from '@/constants/MomentRecorder';
+import { buildMomentShareText } from '@/constants/ShareMoment';
+import MomentShareModal from '@/components/MomentShareModal';
 import { ELO_LOSS, ELO_WIN } from '@/constants/Elo';
 import {
     ActivePlayerRole,
@@ -139,6 +142,14 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 	const score = useSharedValue(0);
 	const combo = useSharedValue(0);
 	const lastBrokenLine = useSharedValue(0);
+
+	// "Share a moment": the last moves of my own board, kept for a GIF after the match (constants/MomentRecorder.ts)
+	const momentRecorder = useRef<MomentRecorder | null>(null);
+	if (!momentRecorder.current) momentRecorder.current = new MomentRecorder(boardLength);
+	const [momentOpen, setMomentOpen] = useState(false);
+	const recordMoment = (before: number[], matrix: number[][], color: number, x: number, y: number, lines: number, points: number, scoreNow: number, comboNow: number) => {
+		momentRecorder.current?.record(before, matrix, color, x, y, lines, points, scoreNow, comboNow);
+	};
 
 	const [isGameOver, setIsGameOver] = useState(false);
     const [isWatchingOpponent, setIsWatchingOpponent] = useState(false);
@@ -722,6 +733,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         score.value = 0;
         combo.value = 0;
         lastBrokenLine.value = 0;
+        momentRecorder.current?.clear();
+        setMomentOpen(false);
         setIsGameOver(false);
         setIsWatchingOpponent(false);
 
@@ -914,6 +927,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
             // Broadcast changes to opponent
             runOnJS(broadcastState)(newBoard, nextHand, score.value, combo.value, lastBrokenLine.value, false);
 			runOnJS(addScorePopup)(pointsEarned, dropX * GRID_BLOCK_SIZE, dropY * GRID_BLOCK_SIZE);
+			runOnJS(recordMoment)(packBoardCells(cleanBoard, BoardBlockType.FILLED, BoardBlockType.HOVERED_BREAK_FILLED), piece.matrix, packColor(piece.color), dropX, dropY, linesBroken, pointsEarned, score.value, combo.value);
 			
 			if (!hasAnyPossibleMove(newBoard, nextHand)) {
 				runOnJS(handleGameOver)();
@@ -1396,6 +1410,15 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                                 )}
                             </View>
 
+                            {momentRecorder.current && momentRecorder.current.size > 0 && (
+                                <StylizedButton
+                                    text={t("moment.button")}
+                                    onClick={() => setMomentOpen(true)}
+                                    backgroundColor={cssColors.spaceGray}
+                                    style={{ marginBottom: 10 }}
+                                />
+                            )}
+
                             {restartRequestStatus === 'idle' && !opponentDisconnected && (
                                 <>
                                     <StylizedButton 
@@ -1470,6 +1493,17 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                         </View>
                     </View>
                 )}
+
+				{momentOpen && momentRecorder.current && momentRecorder.current.size > 0 && (
+					<MomentShareModal
+						log={momentRecorder.current.snapshot()}
+						caption={opponentDisconnected || score.value > opponentScore ? t("moment.captionWin") : score.value < opponentScore ? t("moment.captionLose") : t("moment.captionDraw")}
+						dimLastFrame
+						message={buildMomentShareText(t("moment.text"), Math.floor(score.value), t("mp.matchOver"))}
+						source="versus"
+						onClose={() => setMomentOpen(false)}
+					/>
+				)}
 
 			</GestureHandlerRootView>
 		</SafeAreaView>

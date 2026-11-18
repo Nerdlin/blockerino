@@ -327,6 +327,20 @@ export const UI_GLYPHS = {
 			".bbbbbbb.",
 		],
 	},
+	film: {
+		palette: { a: "#CBD5E1", b: "#334155", c: "#F5B50C", d: "#0F172A" },
+		rows: [
+			".........",
+			"bbbbbbbbb",
+			"bdbaaabdb",
+			"baaacaaab",
+			"bdbaaabdb",
+			"baaacaaab",
+			"bdbaaabdb",
+			"bbbbbbbbb",
+			".........",
+		],
+	},
 } satisfies Record<string, PixelGlyph>;
 
 export type UiGlyphName = keyof typeof UI_GLYPHS;
