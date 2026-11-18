@@ -1,3 +1,5 @@
+jest.mock("@/constants/Sound", () => ({ useSoundSettings: () => ({ playSfx: jest.fn() }) }));
+
 import { readableTextColor } from "./StylizedButton";
 
 describe("readableTextColor", () => {
