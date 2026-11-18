@@ -171,7 +171,7 @@ export default function HighScores() {
 
     const modeItems: SegmentItem<GameModeType>[] = MAIN_LEADERBOARD_GAME_MODES.map((mode) => ({
         key: mode,
-        label: getGameModeConfig(mode).shortTitle,
+        label: mode === GameModeType.Chaos ? t("mp.chaos") : mode === GameModeType.Classic ? t("mp.classic") : getGameModeConfig(mode).shortTitle,
         color: mode === GameModeType.Chaos ? "#7C3AED" : getGameModeConfig(mode).challenge?.color ?? currentTheme.buttonPrimary,
     }));
     const scopeItems: SegmentItem<"season" | "friends" | "alltime">[] = [
@@ -183,6 +183,7 @@ export default function HighScores() {
     return <SimplePopupView style={[{justifyContent: 'flex-start', backgroundColor: currentTheme.menuBackground}]}>
         <View style={styles.topBar}>
             <StylizedButton text={t("hs.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.backButton}></StylizedButton>
+            <Text style={[styles.topTitle, { color: currentTheme.textPrimary }]}>{t("hs.title")}</Text>
             <Pressable
                 onPress={() => refreshScores(true)}
                 disabled={loading}
@@ -318,6 +319,12 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         paddingHorizontal: 12,
         overflow: "hidden",
+    },
+    topTitle: {
+        flex: 1,
+        textAlign: 'center',
+        fontFamily: 'Silkscreen',
+        fontSize: 18,
     },
     topBar: {
         width: '92%',

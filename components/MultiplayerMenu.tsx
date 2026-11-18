@@ -893,7 +893,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             autoCapitalize="characters"
                             maxLength={6}
                         />
-                        <StylizedButton text={t("mp.join")} onClick={handleJoinRoom} backgroundColor={currentTheme.buttonPrimary} style={{ minWidth: 100, height: 32 }} textStyle={{ fontSize: 13 }} />
+                        <StylizedButton text={t("mp.joinByCode")} onClick={handleJoinRoom} backgroundColor={currentTheme.buttonPrimary} style={{ minWidth: 100, height: 32 }} textStyle={{ fontSize: 13 }} />
                     </View>
 
                     {signedIn && playerId !== "" && <VersusFriendsStrip userId={playerId} />}
@@ -928,7 +928,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                                 {t("mp.playersRoom", { name: room.player1_name })}
                                             </Text>
                                             <Text style={[styles.roomSubText, { color: currentTheme.textSecondary }]}>
-                                                {t("mp.roomMeta", { mode: room.game_mode.toUpperCase(), status: room.status })}
+                                                {t("mp.roomMeta", { mode: room.game_mode === GameModeType.Chaos ? t("mp.chaos") : t("mp.classic"), status: room.status === "playing" ? t("mp.statusPlaying") : room.status === "waiting" ? t("mp.statusWaiting") : room.status })}
                                             </Text>
                                         </View>
                                         <View>
