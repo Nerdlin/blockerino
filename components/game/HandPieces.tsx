@@ -7,6 +7,8 @@ import { colorToHex } from "@/constants/Color";
 import { getSkinKindId, skinBlockShape, skinCorners } from "@/constants/SkinFx";
 import { textureOf } from "@/constants/SkinTextures";
 import SkinTexture from "../SkinTexture";
+import { SkinTrail, useReducedFx } from "../SkinFx";
+import { getSkinAnim } from "@/constants/SkinAnimations";
 import { shopStateAtom } from "@/constants/Shop";
 import { SharedPoint, useDraggable } from "@mgcrea/react-native-dnd";
 import { useAtomValue } from "jotai";
@@ -95,6 +97,8 @@ function HandBlock({
 function HandPiecesView({ hand, boardSize }: HandProps) {
 	const { GRID_BLOCK_SIZE, HAND_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardSize);
 	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
+	const skinAnim = getSkinAnim(pieceSkinId);
+	const reducedFx = useReducedFx();
 	const handSize = hand.value.length;
 	const handPieces = [];
 
@@ -188,6 +192,7 @@ function HandPiecesView({ hand, boardSize }: HandProps) {
 					key={`${i}`}
 					createStyle={animatedStyle}
 					hand={hand}
+					trail={skinAnim && !reducedFx ? { anim: skinAnim, skinId: pieceSkinId, hand, index: i, slotSize: HAND_BLOCK_SIZE * 5, jump: DRAG_JUMP_LENGTH, gridSize: GRID_BLOCK_SIZE } : undefined}
 				>
 					{pieceBlocks}
 				</PieceDraggable>
@@ -292,9 +297,11 @@ interface PieceDraggableProps {
 	id: string;
 	createStyle: (sleeping: boolean, dragging: boolean, acting: boolean, offset: SharedPoint, hand: Hand) => object;
 	hand: any;
+	/** The skin's drag trail, left behind this piece while it is dragged. */
+	trail?: Omit<React.ComponentProps<typeof SkinTrail>, "offset" | "state">;
 }
 
-function PieceDraggable({ children, id, createStyle, hand, ...otherProps }: PieceDraggableProps) {
+function PieceDraggable({ children, id, createStyle, hand, trail, ...otherProps }: PieceDraggableProps) {
 	const { props, offset, state, setNodeLayout } = useDraggable({
 		id,
 	});
@@ -321,9 +328,12 @@ function PieceDraggable({ children, id, createStyle, hand, ...otherProps }: Piec
 	}, [state, hand, createStyle]);
 
 	return (
-		<Animated.View {...props} style={animatedStyle} {...otherProps}>
-			{children}
-		</Animated.View>
+		<>
+			<Animated.View {...props} style={animatedStyle} {...otherProps}>
+				{children}
+			</Animated.View>
+			{trail && <SkinTrail {...trail} offset={offset} state={state} />}
+		</>
 	);
 }
 

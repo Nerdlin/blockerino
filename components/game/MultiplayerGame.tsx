@@ -1268,7 +1268,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 							<DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
 								<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand}></StatsGameHud>
 								<View style={{ position: 'relative', alignSelf: 'center' }}>
-                                    <BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
+                                    <BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece} combo={combo}></BlockGrid>
                                     <View style={styles.emotesOverlay}>
                                         {(myRole === 'player1' ? p1Emotes : p2Emotes).map(e => (
                                             <FloatingEmote 

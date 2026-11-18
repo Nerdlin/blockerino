@@ -2,6 +2,9 @@ import { isGemColor } from "@/constants/Levels";
 import { SKIN_NEON, getSkinKindId, skinAppear, skinBlockShape, skinClear, skinCorners } from "@/constants/SkinFx";
 import { textureOf } from "@/constants/SkinTextures";
 import SkinTexture from "../SkinTexture";
+import SkinnedBlock from "../SkinnedBlock";
+import { OwnBoardFx, StaticBoardFx, useReducedFx } from "../SkinFx";
+import { getSkinAnim } from "@/constants/SkinAnimations";
 
 /** A gem cell of a level: a cut cyan stone turned on its corner. */
 function gemBlockStyle(size: number): object {
@@ -67,6 +70,8 @@ interface BlockGridProps {
 	possibleBoardDropSpots: SharedValue<PossibleBoardSpots>;
 	hand: SharedValue<Hand>;
 	draggingPiece: SharedValue<number | null>;
+	/** The run's combo; the combo effect of a chest skin grows with it. */
+	combo?: SharedValue<number>;
 }
 
 const PARTICLE_CONFIGS = Platform.OS === "web" ? [
@@ -384,7 +389,8 @@ function BlockGridView({
 	board,
 	possibleBoardDropSpots,
 	draggingPiece,
-	hand
+	hand,
+	combo
 }: BlockGridProps) {
 	// Opening a game used to block for a second or more while every cell set up its animations. The grid now shows
 	// plain cells at once and swaps in the animated ones a couple of rows per frame, under the opening light sweep.
@@ -404,6 +410,9 @@ function BlockGridView({
 	const { currentTheme } = useTheme();
 	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
 	const { GRID_BLOCK_SIZE, HITBOX_SIZE } = useGameSizes(boardLength);
+	// the skin's animation layer joins once every row is live, so it does not slow the opening of a game
+	const skinAnim = getSkinAnim(pieceSkinId);
+	const reducedFx = useReducedFx();
 
 	forEachBoardBlock(snapshot, (block, x, y) => {
 		const blockPositionStyle = {
@@ -478,6 +487,9 @@ function BlockGridView({
 		>
 			{gridLines}
 			{blockElements}
+			{skinAnim && liveRows >= boardLength && (
+				<OwnBoardFx board={board} combo={combo} skinId={pieceSkinId} anim={skinAnim} blockSize={GRID_BLOCK_SIZE} reduced={reducedFx} />
+			)}
 		</Animated.View>
 	);
 }
@@ -601,9 +613,11 @@ export function ReadOnlyBlockGrid({ board, gridBlockSize, hoverIndex, hoverX, ho
 	const { currentTheme } = useTheme();
 	const mySkin = useAtomValue(shopStateAtom).equipped.piece_skin;
 	const pieceSkinId = ownerSkin ?? mySkin;
+	const skinAnim = getSkinAnim(pieceSkinId);
 
 	// Calculate which cells are covered by the opponent's dragging piece
 	const hoverCells = new Set<string>();
+	const hoverIdx: number[] = [];
 	let hoverColor = { r: 255, g: 255, b: 255 }; // default color
 	if (
 		hoverIndex !== null && hoverIndex !== undefined &&
@@ -623,6 +637,7 @@ export function ReadOnlyBlockGrid({ board, gridBlockSize, hoverIndex, hoverX, ho
 						const by = hoverY + py;
 						if (bx >= 0 && bx < boardLength && by >= 0 && by < boardLength) {
 							hoverCells.add(`${bx},${by}`);
+							hoverIdx.push(by * boardLength + bx);
 						}
 					}
 				}
@@ -639,26 +654,22 @@ export function ReadOnlyBlockGrid({ board, gridBlockSize, hoverIndex, hoverX, ho
 			height: gridBlockSize,
 		};
 
-		let blockStyle: any;
 		const isFilledOrHoveredBreak = block.blockType === BoardBlockType.FILLED || block.blockType === BoardBlockType.HOVERED_BREAK_FILLED;
 		const isHoverCell = hoverCells.has(`${x},${y}`);
+		const blockBorder = Math.max(1, Math.round(gridBlockSize * 0.15));
 
+		// the owner's own skin: its colours, block shape and picture (the opponent's, in Versus)
 		if (isFilledOrHoveredBreak) {
-			blockStyle = createFilledBlockStyle(block.color, Math.max(1, Math.round(gridBlockSize * 0.15)), pieceSkinId);
-		} else if (isHoverCell) {
-			// Render ghost preview for opponent's drag
-			blockStyle = {
-				...createFilledBlockStyle(hoverColor, Math.max(1, Math.round(gridBlockSize * 0.15)), pieceSkinId),
-				opacity: 0.35,
-				borderWidth: 1,
-				borderColor: 'rgba(255, 255, 255, 0.8)'
-			};
-		} else {
-			blockStyle = createEmptyBlockStyle(currentTheme.emptyBlockBorder);
+			blockElements.push(<SkinnedBlock key={`${x},${y}`} color={block.color} size={gridBlockSize} skinId={pieceSkinId} borderWidth={blockBorder} style={blockPositionStyle} />);
+			return;
 		}
-
+		if (isHoverCell) {
+			// ghost preview of the opponent's drag
+			blockElements.push(<SkinnedBlock key={`${x},${y}`} color={hoverColor} size={gridBlockSize} skinId={pieceSkinId} borderWidth={blockBorder} style={[blockPositionStyle, { opacity: 0.35 }]} />);
+			return;
+		}
 		blockElements.push(
-			<View key={`${x},${y}`} style={[blockPositionStyle, blockStyle, { width: gridBlockSize, height: gridBlockSize, justifyContent: 'center', alignItems: 'center' }]} />
+			<View key={`${x},${y}`} style={[blockPositionStyle, createEmptyBlockStyle(currentTheme.emptyBlockBorder), { width: gridBlockSize, height: gridBlockSize, justifyContent: 'center', alignItems: 'center' }]} />
 		);
 	});
 
@@ -675,6 +686,9 @@ export function ReadOnlyBlockGrid({ board, gridBlockSize, hoverIndex, hoverX, ho
 			]}
 		>
 			{blockElements}
+			{skinAnim && (
+				<StaticBoardFx board={board} skinId={pieceSkinId} blockSize={gridBlockSize} hoverCells={hoverIdx} hoverHex={colorToHex(getPieceSkinColor(hoverColor, pieceSkinId))} />
+			)}
 		</View>
 	);
 }

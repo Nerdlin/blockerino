@@ -12,6 +12,7 @@ import {
 } from "./moregames/cosmetics";
 import { createFilledBlockStyle, pieceColors } from "@/constants/Piece";
 import SkinnedBlock from "./SkinnedBlock";
+import { SkinPreviewFx } from "./SkinFx";
 import PixelChessPiece from "./moregames/chess/PixelChessPiece";
 
 // Little scenes that show a shop item the way it looks in its own game: the board and pieces for chess, a radar
@@ -26,7 +27,8 @@ function pick<T extends Record<string, unknown>>(table: T, key: string): T[keyof
 	return (Object.prototype.hasOwnProperty.call(table, key) ? table[key] : Object.values(table)[0]) as T[keyof T];
 }
 
-export default function CosmeticPreview({ item, large = false }: { item: ShopItem; large?: boolean }) {
+/** animate: a block skin plays its animations (always in the large preview; shop cards ask for it, roulette tiles do not). */
+export default function CosmeticPreview({ item, large = false, animate = large }: { item: ShopItem; large?: boolean; animate?: boolean }) {
 	const u = large ? 1.8 : 1;
 	switch (item.category) {
 		case "chess_piece":
@@ -44,7 +46,7 @@ export default function CosmeticPreview({ item, large = false }: { item: ShopIte
 		case "checkers_skin":
 			return <CheckersPreview item={item} u={u} />;
 		default:
-			return <BlockerinoPreview item={item} u={u} />;
+			return <BlockerinoPreview item={item} u={u} large={large} animate={animate} />;
 	}
 }
 
@@ -249,7 +251,7 @@ function MahjongPreview({ item, u }: { item: ShopItem; u: number }) {
 }
 
 // Blockerino's own cosmetics: block skins, backgrounds, music and sound effects.
-function BlockerinoPreview({ item, u }: { item: ShopItem; u: number }) {
+function BlockerinoPreview({ item, u, large, animate }: { item: ShopItem; u: number; large: boolean; animate: boolean }) {
 	if (item.category === "background" && item.gradient) {
 		return (
 			<View style={[styles.frame, { height: 46 * u, borderRadius: 6, overflow: "hidden" }]}>
@@ -285,14 +287,17 @@ function BlockerinoPreview({ item, u }: { item: ShopItem; u: number }) {
 		// the same six colors and block style the game draws with this skin
 		return (
 			<Frame u={u}>
-				<View style={{ gap: 3 * u }}>
-					{[0, 1].map((row) => (
-						<View key={row} style={{ flexDirection: "row", gap: 3 * u }}>
-							{[0, 1, 2].map((col) => (
-								<SkinnedBlock key={col} color={pieceColors[row * 3 + col]} size={18 * u} skinId={item.id} borderWidth={Math.max(2, Math.round(4 * u))} />
-							))}
-						</View>
-					))}
+				<View>
+					<View style={{ gap: 3 * u }}>
+						{[0, 1].map((row) => (
+							<View key={row} style={{ flexDirection: "row", gap: 3 * u }}>
+								{[0, 1, 2].map((col) => (
+									<SkinnedBlock key={col} color={pieceColors[row * 3 + col]} size={18 * u} skinId={item.id} borderWidth={Math.max(2, Math.round(4 * u))} />
+								))}
+							</View>
+						))}
+					</View>
+					{animate && <SkinPreviewFx skinId={item.id} rows={2} cols={3} blockSize={18 * u} pitch={21 * u} mini={!large} />}
 				</View>
 			</Frame>
 		);

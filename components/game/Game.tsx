@@ -644,7 +644,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 						{level && <LevelHud level={level} score={score} lines={levelLines} bestCombo={levelBestCombo} gemsLeft={levelGems} movesRemaining={movesRemaining} timeRemaining={timeRemaining} width={GRID_BLOCK_SIZE * boardLength + 6} />}
 						{hasRunGoals(gameMode) && <RunGoalBar gameMode={gameMode} score={score} initialScore={validInitialState ? validInitialState.score : 0} width={GRID_BLOCK_SIZE * boardLength + 6} />}
 						<View style={{ position: 'relative', alignSelf: 'center' }}>
-							<BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece}></BlockGrid>
+							<BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece} combo={combo}></BlockGrid>
 							<DangerFrame active={dangerOn && !isGameOver} />
 							<View style={[StyleSheet.absoluteFill, { pointerEvents: 'none', zIndex: 9999 }]}>
 								{scorePopups.map(popup => (
