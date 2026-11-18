@@ -17,7 +17,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSoundSettings } from "@/constants/Sound";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
-import { emailConfirmRedirect } from "@/constants/EmailConfirm";
+import { emailConfirmRedirect, passwordResetRedirect } from "@/constants/EmailConfirm";
 import GiftChestsPanel from "./GiftChestsPanel";
 import { badgeLabel, useProfileBadge } from "@/constants/ProfileBadge";
 import { supabase, renamePlayer } from "@/constants/Supabase";
@@ -427,7 +427,7 @@ export default function ProfileMenu() {
 		setAuthLoading(true);
 		setErrorMessage("");
 		setResetNote(null);
-		const { error } = await supabase.auth.resetPasswordForEmail(address, { redirectTo: emailConfirmRedirect(language) });
+		const { error } = await supabase.auth.resetPasswordForEmail(address, { redirectTo: passwordResetRedirect(language) });
 		setAuthLoading(false);
 		if (error) setErrorMessage(error.message || t("profile.authFailed"));
 		else setResetNote(t("profile.resetSent", { email: address }));

@@ -54,6 +54,14 @@ export const profile: ScreenDictionary = {
 		"profile.resetSend": "Send link",
 		"profile.resetSent": "Done! If {email} has an account, a reset link is on its way.",
 		"profile.resetBack": "Back to login",
+		"profile.newPasswordTitle": "Set a new password",
+		"profile.newPasswordPlaceholder": "New password",
+		"profile.newPasswordConfirm": "Repeat the password",
+		"profile.newPasswordSave": "Save password",
+		"profile.newPasswordShort": "The password needs at least {count} characters.",
+		"profile.newPasswordMismatch": "The passwords do not match.",
+		"profile.newPasswordFailed": "Could not save the password. Try again.",
+		"profile.newPasswordDone": "Done! The new password is saved.",
 
 		// Auth titles
 		"profile.loginTitle": "Login to Sync",
@@ -144,6 +152,14 @@ export const profile: ScreenDictionary = {
 		"profile.resetSend": "Отправить ссылку",
 		"profile.resetSent": "Готово! Если для {email} есть аккаунт, письмо со ссылкой уже в пути.",
 		"profile.resetBack": "Назад ко входу",
+		"profile.newPasswordTitle": "Новый пароль",
+		"profile.newPasswordPlaceholder": "Новый пароль",
+		"profile.newPasswordConfirm": "Повтори пароль",
+		"profile.newPasswordSave": "Сохранить пароль",
+		"profile.newPasswordShort": "Пароль должен быть не короче {count} символов.",
+		"profile.newPasswordMismatch": "Пароли не совпадают.",
+		"profile.newPasswordFailed": "Не получилось сохранить пароль. Попробуй ещё раз.",
+		"profile.newPasswordDone": "Готово! Новый пароль сохранён.",
 
 		// Auth titles
 		"profile.loginTitle": "Вход для синхронизации",

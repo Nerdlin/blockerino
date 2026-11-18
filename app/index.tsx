@@ -60,6 +60,7 @@ import OtaUpdateHost from "@/components/OtaUpdateHost";
 import GiftHost from "@/components/GiftHost";
 import ScreenLayer from "@/components/ScreenLayer";
 import EmailConfirmHost from "@/components/EmailConfirmHost";
+import PasswordRecoveryHost from "@/components/PasswordRecoveryHost";
 import JoinLinkHost from "@/components/JoinLinkHost";
 import ProfileMenu from "@/components/ProfileMenu";
 import MoreGamesMenu from "@/components/MoreGamesMenu";
@@ -337,6 +338,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 			<OtaUpdateHost />
 			<GiftHost />
 			<EmailConfirmHost />
+			<PasswordRecoveryHost />
 			<JoinLinkHost />
 			{/* last: message windows sit above every other popup */}
 			<GameDialogHost />
