@@ -403,7 +403,8 @@ export function BackgammonGame({ cosmetics, playerName, onRatingChange }: { cosm
 		if (!online) return;
 		if (!result && !remoteResult) return;
 		const matchResult: "player1" | "player2" = remoteResult ? (room.role as "player1" | "player2") : result!.winner === "w" ? "player1" : "player2";
-		const resultKey = `${room.roomCode}:${matchResult}:${remoteResult || result?.winner}`;
+		// one report per game: the turn count tells two games of the same room apart
+		const resultKey = `${room.roomCode}:${matchResult}:${state.turns}:${remoteResult || result?.winner}`;
 		if (ratingSubmittedRef.current === resultKey) return;
 		// Every player reports the game; the server changes ratings on the loser's report. There are no draws.
 		ratingSubmittedRef.current = resultKey;
@@ -415,7 +416,7 @@ export function BackgammonGame({ cosmetics, playerName, onRatingChange }: { cosm
 			roomCode: room.roomCode,
 			metadata: { mars: Boolean(result?.mars), points: result?.points ?? 1 },
 		}).then(() => onRatingChange());
-	}, [onRatingChange, online, opponentName, playerName, remoteResult, result, room.role, room.roomCode]);
+	}, [onRatingChange, online, opponentName, playerName, remoteResult, result, room.role, room.roomCode, state.turns]);
 
 	const outcome = remoteResult ? "win" : result ? ((online || botActive) && result.winner !== mySide ? "loss" : "win") : null;
 	useOutcomeSound(outcome, `${room.roomCode}:${state.off.w}:${state.off.b}`);

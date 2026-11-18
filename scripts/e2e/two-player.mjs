@@ -166,7 +166,7 @@ async function launchPlayer(name, port, chromePath) {
 // ---- helpers shared by the scenarios ----
 
 // order of the cards in More Games: Chess, Durak, Sea Battle, Checkers, Tic-Tac-Toe, Sudoku, Mahjong
-const MORE_GAME_INDEX = { chess: 0, durak: 1, battleship: 2, checkers: 3, tictactoe: 4 };
+const MORE_GAME_INDEX = { chess: 0, durak: 1, battleship: 2, checkers: 3, backgammon: 4, tictactoe: 5 };
 
 async function openGame(player, game) {
 	await player.clickText("More Games"); await sleep(1500);
