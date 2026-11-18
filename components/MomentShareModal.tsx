@@ -100,7 +100,8 @@ export default function MomentShareModal({
 	const report = (result: MomentShareResult) => {
 		track("moment_share", { source, result, platform: Platform.OS });
 		if (result === "saved") setNote(t("moment.saved"));
-		else if (result === "shared") setNote(t("moment.shared"));
+		// the share sheet cannot tell us whether it was cancelled, so only the web (which can) says it is done
+		else if (result === "shared") { if (Platform.OS === "web") setNote(t("moment.shared")); }
 		else if (result === "link") setNote(t("moment.linkShared"));
 		else if (result === "failed") setNote(t("moment.shareFailed"));
 	};

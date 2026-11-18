@@ -36,6 +36,14 @@ const GAMES_FINISHED_KEY = 'GAMES_FINISHED';
 // Guests are asked to create an account only after a few games, never straight after the first one.
 const ACCOUNT_PROMPT_AFTER_GAMES = 3;
 
+/** Russian and English count forms: 1 монета, 2-4 монеты, 5+ монет. */
+function coinsAwardedKey(n: number): string {
+	const last = n % 10, lastTwo = n % 100;
+	if (last === 1 && lastTwo !== 11) return "over.coinsAwardedOne";
+	if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) return "over.coinsAwardedFew";
+	return "over.coinsAwarded";
+}
+
 export default function GameOverModal({ score, gameMode, reason }: { score: number, gameMode: GameModeType, reason?: GameOverReason | null }) {
     const [setAppState, appendAppState] = useSetAppState();
     const { playSfx } = useSoundSettings();
@@ -208,7 +216,7 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
         <FadeInView pop delay={1000}>
             <View style={styles.coinsChip}>
                 <View style={styles.coinDot} />
-                <Text style={styles.coinsChipText}>{t("over.coinsAwarded", { coins: coinsAwarded })}</Text>
+                <Text style={styles.coinsChipText}>{t(coinsAwardedKey(coinsAwarded), { coins: coinsAwarded })}</Text>
             </View>
         </FadeInView>
     ) : null;
