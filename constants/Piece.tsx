@@ -973,6 +973,24 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 				{ r: 250, g: 204, b: 21 },
 				{ r: 253, g: 230, b: 138 },
 			];
+		case "piece_season_dawn":
+			return [
+				{ r: 251, g: 146, b: 60 },
+				{ r: 253, g: 186, b: 116 },
+				{ r: 254, g: 243, b: 199 },
+				{ r: 234, g: 88, b: 12 },
+				{ r: 252, g: 211, b: 77 },
+				{ r: 244, g: 114, b: 182 },
+			];
+		case "piece_season_nova":
+			return [
+				{ r: 34, g: 211, b: 238 },
+				{ r: 103, g: 232, b: 249 },
+				{ r: 240, g: 171, b: 252 },
+				{ r: 99, g: 102, b: 241 },
+				{ r: 165, g: 243, b: 252 },
+				{ r: 232, g: 121, b: 249 },
+			];
 		case "piece_moonstone":
 			return [
 				{ r: 82, g: 96, b: 125 },

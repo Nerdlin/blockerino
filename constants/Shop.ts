@@ -770,6 +770,38 @@ const CHEST_EXCLUSIVE_BACKGROUNDS: ShopItem[] = [
 	chestOnly: true,
 }));
 
+// Season pass exclusives (constants/SeasonPass.ts, migration 20261118130000_season_pass.sql): never sold and in no chest.
+// Like the podium backgrounds they are secret, price 0 and 'server_only' in the catalog; only the pass hands them out.
+const SEASON_PASS_PIECES: ShopItem[] = [
+	["piece_season_dawn", "Season Dawn", "Sunrise blocks from the season pass.", "#FDBA74", ["#9A3412", "#FB923C", "#FEF3C7"]],
+	["piece_season_nova", "Season Nova", "A star going nova in every block.", "#67E8F9", ["#0E7490", "#67E8F9", "#F0ABFC"]],
+].map(([id, title, description, accent, previewColors]) => ({
+	id: id as string,
+	category: "piece_skin" as const,
+	title: title as string,
+	description: description as string,
+	price: 0,
+	accent: accent as string,
+	previewColors: previewColors as string[],
+	secret: true,
+}));
+
+const SEASON_PASS_BACKGROUNDS: ShopItem[] = [
+	["background_season_horizon", "Season Horizon", "A sunrise horizon over a dark sea.", "#FB923C", ["#0C0A1C", "#9A3412", "#FDBA74"], ["rgb(12, 10, 28)", "rgb(154, 52, 18)", "rgb(253, 186, 116)"], "sunset"],
+	["background_season_zenith", "Season Zenith", "The sky at its highest point, for those who finish the pass.", "#A5F3FC", ["#020617", "#1E40AF", "#A5F3FC"], ["rgb(2, 6, 23)", "rgb(30, 64, 175)", "rgb(165, 243, 252)"], "ice"],
+].map(([id, title, description, accent, previewColors, gradient, scene]) => ({
+	id: id as string,
+	category: "background" as const,
+	title: title as string,
+	description: description as string,
+	price: 0,
+	accent: accent as string,
+	previewColors: previewColors as string[],
+	gradient: gradient as [string, string, string],
+	scene: scene as BackgroundScene,
+	secret: true,
+}));
+
 function dedupeShopItems(items: ShopItem[]): ShopItem[] {
 	const itemMap = new Map<string, ShopItem>();
 	for (const item of items) {
@@ -792,6 +824,8 @@ export const SHOP_ITEMS: ShopItem[] = dedupeShopItems([
 	...EXTRA_SFX_WAVE_2,
 	...CHEST_EXCLUSIVE_PIECES,
 	...CHEST_EXCLUSIVE_BACKGROUNDS,
+	...SEASON_PASS_PIECES,
+	...SEASON_PASS_BACKGROUNDS,
 ]);
 
 const SHOP_ITEM_MAP = new Map(SHOP_ITEMS.map((item) => [item.id, item]));

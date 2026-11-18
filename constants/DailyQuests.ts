@@ -131,6 +131,14 @@ export function subscribeToDailyQuests(listener: () => void): () => void {
 		listeners.delete(listener);
 	};
 }
+const claimListeners = new Set<() => void>();
+/** Called after the server paid daily tasks (the season pass counts them from its own tables and wants to look). */
+export function onQuestsClaimed(listener: () => void): () => void {
+	claimListeners.add(listener);
+	return () => {
+		claimListeners.delete(listener);
+	};
+}
 function notify() {
 	listeners.forEach((listener) => {
 		try {
@@ -276,6 +284,15 @@ export async function claimDailyQuests(day: string, ids: string[]): Promise<Ques
 			state.claimed = Array.from(new Set([...state.claimed, ...result.claimed]));
 			await writeState(state);
 			notify();
+			if (result.granted.length > 0) {
+				claimListeners.forEach((listener) => {
+					try {
+						listener();
+					} catch (error) {
+						console.error("Quest claim listener failed:", error);
+					}
+				});
+			}
 		}
 		return result;
 	} catch {

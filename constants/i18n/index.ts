@@ -21,6 +21,7 @@ import { notifications } from "./notifications";
 import { playerprofile } from "./playerprofile";
 import { chess } from "./chess";
 import { chests } from "./chests";
+import { seasonpass } from "./seasonpass";
 
 export type ScreenDictionary = { en: Record<string, string>; ru: Record<string, string> };
 
@@ -45,6 +46,7 @@ const modules: ScreenDictionary[] = [
 	playerprofile,
 	chess,
 	chests,
+	seasonpass,
 ];
 
 export const moduleTranslations: Record<Language, Record<string, string>> = {

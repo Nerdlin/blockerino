@@ -33,6 +33,7 @@ import DangerFrame from './DangerFrame';
 import { setMusicRate } from '@/constants/Sound';
 import { recordAchievementProgress } from '@/constants/Achievements';
 import { recordQuestProgress } from '@/constants/DailyQuests';
+import { recordSeasonPassGame, sourceForGameMode } from '@/constants/SeasonPass';
 import { consumeMoveLimitMove, GameOverReason, getGameModeConfig, getInitialMovesRemaining, getInitialTimeRemaining, isMoveLimitComplete } from '@/constants/GameModes';
 
 
@@ -261,6 +262,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		setGameOverReason(reason ?? null);
 		setIsGameOver(true);
 		recordAchievementProgress({ soloGamesFinished: 1 });
+		recordSeasonPassGame(sourceForGameMode(gameMode));
 		if (gameMode === GameModeType.Rescue) recordQuestProgress('rescue');
 		if (gameMode === GameModeType.ComboTrial) recordQuestProgress('combo');
 		if (scoreStorageId.value) {

@@ -62,6 +62,8 @@ const EXTRA: Record<string, SkinKind> = {
 	piece_chest_dragon: "lava",
 	piece_chest_prism: "crystal",
 	piece_chest_relic: "crystal",
+	piece_season_dawn: "orb",
+	piece_season_nova: "crystal",
 	piece_circuit_candy: "candy",
 	piece_monochrome: "metal",
 	piece_circuit_terminal: "pixel",

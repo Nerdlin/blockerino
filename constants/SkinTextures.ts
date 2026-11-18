@@ -154,6 +154,15 @@ export const SKIN_SPRITES: Record<string, Sprite> = {
 		rows: ["a.......", ".a....aa", "..a..a..", "...WW...", "...WW...", "..v..v..", "vv....v.", ".......v"],
 		keys: { a: C("#99F6E4"), v: C("#C4B5FD") },
 	},
+	// season pass: a low sun on a horizon, and a star bursting
+	piece_season_dawn: {
+		rows: ["........", "...yy...", "..yYYy..", ".yYYYYy.", "oooooooo", "........", "wwww.www", "..ww.w.."],
+		keys: { y: C("#FDE047"), Y: C("#FFF7C2"), o: C("#FB923C") },
+	},
+	piece_season_nova: {
+		rows: ["W......W", ".W.ww.W.", "..wWWw..", ".wWYYWw.", ".wWYYWw.", "..wWWw..", ".W.ww.W.", "W......W"],
+		keys: { Y: C("#F0ABFC") },
+	},
 	piece_aurora_glass: { rows: ["w.w.w.w.", "wWw.wWw.", "wWwWwWwW", ".WwWwWw.", ".w.WwW..", "...w.w..", "........", "........"] },
 
 	// ---------------------------------------------------------------- toxic and dark

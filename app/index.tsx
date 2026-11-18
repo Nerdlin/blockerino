@@ -47,6 +47,8 @@ import AchievementsMenu from "@/components/AchievementsMenu";
 import AchievementToastHost from "@/components/AchievementToast";
 import ShopMenu from "@/components/ShopMenu";
 import SeasonResultsMenu from "@/components/SeasonResultsMenu";
+import SeasonPassMenu from "@/components/SeasonPassMenu";
+import SeasonPassHost from "@/components/SeasonPassHost";
 import AdminPanel from "@/components/AdminPanel";
 import SeasonRewardsHost from "@/components/SeasonRewardsHost";
 import DailyRewardHost from "@/components/DailyRewardHost";
@@ -276,6 +278,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 			{ appState.containsState(MenuStateType.ACHIEVEMENTS) && <ScreenLayer><AchievementsMenu /></ScreenLayer>}
 			{ appState.containsState(MenuStateType.SHOP) && <ScreenLayer><ShopMenu /></ScreenLayer>}
 			{ appState.containsState(MenuStateType.SEASON_RESULTS) && <ScreenLayer><SeasonResultsMenu /></ScreenLayer>}
+			{ appState.containsState(MenuStateType.SEASON_PASS) && <ScreenLayer><SeasonPassMenu /></ScreenLayer>}
 			{ appState.containsState(MenuStateType.ADMIN) && <AdminPanel />}
 			
 			{ isMultiplayerMenuVisible && (
@@ -322,6 +325,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 			)}
 
 			<SeasonRewardsHost />
+			<SeasonPassHost />
 			<DailyRewardHost />
 			<NotificationsHost />
 			<AchievementToastHost />
