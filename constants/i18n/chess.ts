@@ -250,7 +250,7 @@ export const chess: ScreenDictionary = {
 		"chess.theirTurn": "{name} думает",
 		"chess.moves": "Ходы",
 		"chess.won": "Победа",
-		"chess.lost": "Ты проиграл",
+		"chess.lost": "Поражение",
 		"chess.drawn": "Ничья",
 		"chess.aborted": "Партия отменена",
 		"chess.reason.checkmate": "матом",
