@@ -185,7 +185,7 @@ export const multiplayer: ScreenDictionary = {
 		"mp.victory": "Победа!",
 		"mp.defeat": "Поражение. Победил соперник.",
 		"mp.draw": "Ничья!",
-		"mp.opponentLeft": "Соперник вышел. Ты победил!",
+		"mp.opponentLeft": "Соперник вышел. Победа за тобой!",
 		"mp.rematch": "Реванш",
 		"mp.exitLobby": "В лобби",
 		"mp.rematchWaiting": "Ждём согласия соперника...",
