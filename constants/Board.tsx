@@ -42,10 +42,25 @@ export function calculateGameSizes({
   );
 
   const scaleRatio = gridBlockSize / 46;
-  const handScale = isMobile && boardLength === 10 ? 0.62 : (isMobile ? 0.72 : 1.0);
+  let handScale = isMobile && boardLength === 10 ? 0.62 : (isMobile ? 0.72 : 1.0);
+
+  // A solo phone game is usually limited by the width, so a tall screen has room left under the board. The hand
+  // takes part of it: bigger pieces (never wider than the screen, never bigger than the desktop hand) and a wider gap
+  // under the board. Only the size of the hand changes; the drag maths reads the measured layouts.
+  const spareHeight = Math.max(0, maxGridHeight - gridBlockSize * boardLength);
+  let handGap: number | null = null;
+  if (isMobile && !isMultiplayer) {
+    const handCount = boardLength === 10 ? 5 : 3;
+    const baseSlot = 5 * 22 * scaleRatio * handScale;
+    const maxSlot = Math.min((width - 16) / handCount, 5 * 22 * scaleRatio);
+    const wantedSlot = baseSlot + spareHeight * 0.45;
+    handScale *= Math.max(1, Math.min(wantedSlot, maxSlot) / baseSlot);
+    handGap = Math.min(56, 26 + spareHeight * 0.25);
+  }
 
   return {
     GRID_BLOCK_SIZE: gridBlockSize,
+    HAND_GAP: handGap,
     HAND_BLOCK_SIZE: 22 * scaleRatio * handScale,
     HITBOX_SIZE: Math.max(6, 12 * scaleRatio),
     DRAG_JUMP_LENGTH: HAS_FINE_POINTER ? 0 : 116 * scaleRatio

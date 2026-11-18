@@ -169,11 +169,15 @@ const styles = StyleSheet.create({
 	},
 	track: {
 		width: "100%",
-		height: 3,
-		marginTop: 2,
-		backgroundColor: "rgba(255,255,255,0.12)",
+		height: 7,
+		marginTop: 3,
+		borderRadius: 4,
+		borderWidth: 1,
+		borderColor: "rgba(255,255,255,0.35)",
+		backgroundColor: "rgba(0,0,0,0.35)",
+		overflow: "hidden",
 	},
 	fill: {
-		height: 3,
+		height: 5,
 	},
 });
