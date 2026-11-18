@@ -8,10 +8,11 @@ describe("readableTextColor", () => {
 		expect(readableTextColor("#38BDF8")).toBe("#111111");
 		expect(readableTextColor("rgb(240, 240, 240)")).toBe("#111111");
 	});
-	it("picks the text colour with the higher WCAG contrast on mid tones", () => {
-		expect(readableTextColor("rgb(220, 70, 50)")).toBe("#111111");
+	it("keeps white text on mid tones like red and orange", () => {
+		expect(readableTextColor("#FF3333")).toBeUndefined();
+		expect(readableTextColor("rgb(220, 70, 50)")).toBeUndefined();
+		expect(readableTextColor("#FF8C00")).toBeUndefined();
 		expect(readableTextColor("#D2B48C")).toBe("#111111");
-		expect(readableTextColor("#FF8C00")).toBe("#111111");
 	});
 	it("keeps the default on dark, translucent and unknown fills", () => {
 		expect(readableTextColor("#7C3AED")).toBeUndefined();

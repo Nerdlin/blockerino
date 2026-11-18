@@ -198,7 +198,7 @@ export default function OptionsMenu() {
 					style={styles.topBackButton}
 					textStyle={{ fontSize: 12 }}
 				/>
-				<Text style={[styles.topTitle, { color: currentTheme.textPrimary }]}>{t("settings.title")}</Text>
+				<Text style={[styles.topTitle, { color: currentTheme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{t("settings.title")}</Text>
 				<View style={styles.topBackButton} />
 			</View>
 

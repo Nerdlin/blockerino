@@ -16,8 +16,10 @@ import { getSkinAnim } from "@/constants/SkinAnimations";
 import {
 	beamStyle,
 	diffBoards,
-	idleSpark,
-	particleStyle,
+	idleCycle,
+	idleSparkPart,
+	particleBox,
+	particleMotion,
 	planEvents,
 	trailParticle,
 	type FxBeam,
@@ -42,6 +44,7 @@ function isJsFirstRun() {
 }
 
 const HIDDEN = { opacity: 0 };
+const NO_BOX = { width: 0, height: 0 };
 const POOL_BOARD = Platform.OS === "web" ? 72 : 56;
 const POOL_SMALL = 24;
 const POOL_TRAIL = 10;
@@ -118,15 +121,21 @@ export function pushBeams(slots: BeamSlot[], cursor: number, list: FxBeam[]): nu
 }
 
 const FxParticleView = memo(function FxParticleView({ slot }: { slot: FxSlot }) {
-	const style = useAnimatedStyle((): any => {
+	// size and colours only when the slot gets a new particle; opacity and transform every frame
+	const box = useAnimatedStyle((): any => {
+		if (isJsFirstRun()) return NO_BOX;
+		const i = slot.i.value;
+		return i === null ? NO_BOX : particleBox(i);
+	});
+	const motion = useAnimatedStyle((): any => {
 		if (isJsFirstRun()) return HIDDEN;
 		const i = slot.i.value;
 		const p = slot.p.value;
 		if (i === null || p <= 0 || p >= 1) return HIDDEN;
 		const frame: FxFrame = { x: 0, y: 0, a: 1, sc: 1 };
-		return particleStyle(i, p, frame);
+		return particleMotion(i, p, frame);
 	});
-	return <Animated.View pointerEvents="none" style={[styles.part, style]} />;
+	return <Animated.View pointerEvents="none" style={[styles.part, box, motion]} />;
 });
 
 const FxBeamView = memo(function FxBeamView({ slot }: { slot: BeamSlot }) {
@@ -143,14 +152,31 @@ const FxBeamView = memo(function FxBeamView({ slot }: { slot: BeamSlot }) {
 /** One spark of the idle shimmer: now and then it lights a block of the board, in the skin's own way. */
 const IdleSparkView = memo(function IdleSparkView({ board, clock, anim, k, blockSize, pitch, skinId }: { board: SharedValue<Board>; clock: SharedValue<number>; anim: SkinAnim; k: number; blockSize: number; pitch: number; skinId: string }) {
 	const idle = anim.idle;
-	const style = useAnimatedStyle((): any => {
-		if (isJsFirstRun()) return HIDDEN;
-		const found = idleSpark(idle, board.value, k, clock.value, blockSize, pitch, skinId);
-		if (found === null) return HIDDEN;
-		const frame: FxFrame = { x: 0, y: 0, a: 1, sc: 1 };
-		return particleStyle(found.part, found.p, frame);
+	// the spark's particle is worked out once per cycle (not every frame), the frames only move it
+	const part = useSharedValue<FxParticle | null>(null);
+	useAnimatedReaction(
+		() => idleCycle(idle, k, clock.value).cyc,
+		(cyc, prev) => {
+			if (cyc === prev) return;
+			part.value = idleSparkPart(idle, board.value, k, cyc, blockSize, pitch, skinId);
+		},
+		[idle, k, blockSize, pitch, skinId],
+	);
+	const box = useAnimatedStyle((): any => {
+		if (isJsFirstRun()) return NO_BOX;
+		const i = part.value;
+		return i === null ? NO_BOX : particleBox(i);
 	});
-	return <Animated.View pointerEvents="none" style={[styles.part, style]} />;
+	const motion = useAnimatedStyle((): any => {
+		if (isJsFirstRun()) return HIDDEN;
+		const i = part.value;
+		if (i === null) return HIDDEN;
+		const { p } = idleCycle(idle, k, clock.value);
+		if (p >= 1) return HIDDEN;
+		const frame: FxFrame = { x: 0, y: 0, a: 1, sc: 1 };
+		return particleMotion(i, p, frame);
+	});
+	return <Animated.View pointerEvents="none" style={[styles.part, box, motion]} />;
 });
 
 /** A clock for the idle shimmer: milliseconds since it started, counted by a timing that outlasts any game. */
@@ -164,11 +190,23 @@ function useIdleClock(enabled: boolean): SharedValue<number> {
 	return clock;
 }
 
+/** How many views of a pool are mounted: a few more every frame, so a pool of dozens never lands in a single frame. */
+function useMountedCount(total: number, perFrame = 8): number {
+	const [count, setCount] = useState(Math.min(total, perFrame));
+	useEffect(() => {
+		if (count >= total) return;
+		const id = requestAnimationFrame(() => setCount((c) => Math.min(total, c + perFrame)));
+		return () => cancelAnimationFrame(id);
+	}, [count, total, perFrame]);
+	return count;
+}
+
 function Canvas({ slots, beams, idleNodes }: { slots: FxSlot[]; beams: BeamSlot[]; idleNodes?: React.ReactNode }) {
+	const mounted = useMountedCount(slots.length);
 	return (
 		<View pointerEvents="none" style={styles.layer}>
 			{beams.map((slot, index) => <FxBeamView key={`b${index}`} slot={slot} />)}
-			{slots.map((slot, index) => <FxParticleView key={`p${index}`} slot={slot} />)}
+			{slots.slice(0, mounted).map((slot, index) => <FxParticleView key={`p${index}`} slot={slot} />)}
 			{idleNodes}
 		</View>
 	);
@@ -187,7 +225,7 @@ type OwnProps = {
  * The animation layer of the player's own board: it watches the board on the UI thread and turns blocks landing and
  * going, and lines being cleared, into the skin's particles and bars (and the combo effect of chest skins).
  */
-export const OwnBoardFx = memo(function OwnBoardFx({ board, combo, skinId, anim, blockSize, reduced }: OwnProps) {
+const OwnBoardFxLayer = memo(function OwnBoardFxLayer({ board, combo, skinId, anim, blockSize, reduced }: OwnProps) {
 	const slots = useParticleSlots(POOL_BOARD);
 	const beams = useBeamSlots(BEAMS);
 	const cursor = useSharedValue(0);
@@ -291,8 +329,9 @@ type TrailProps = {
 };
 
 /** The trail of a dragged piece: every half block it moves, it leaves a few particles where it was. */
-export const SkinTrail = memo(function SkinTrail({ anim, skinId, hand, index, offset, state, slotSize, jump, gridSize }: TrailProps) {
+const SkinTrailLayer = memo(function SkinTrailLayer({ anim, skinId, hand, index, offset, state, slotSize, jump, gridSize }: TrailProps) {
 	const slots = useParticleSlots(POOL_TRAIL);
+	const mounted = useMountedCount(POOL_TRAIL, 4);
 	const cursor = useSharedValue(0);
 	const step = Math.max(8, gridSize * 0.5);
 	useAnimatedReaction(
@@ -322,9 +361,27 @@ export const SkinTrail = memo(function SkinTrail({ anim, skinId, hand, index, of
 	);
 	return (
 		<View pointerEvents="none" style={styles.trail}>
-			{slots.map((slot, k) => <FxParticleView key={`t${k}`} slot={slot} />)}
+			{slots.slice(0, mounted).map((slot, k) => <FxParticleView key={`t${k}`} slot={slot} />)}
 		</View>
 	);
+});
+
+/** True a moment after mount: the effect pools (dozens of animated views) start after the board has drawn, so entering a game stays instant. */
+function useMountedLate(ms: number): boolean {
+	const [ready, setReady] = useState(false);
+	useEffect(() => {
+		const id = setTimeout(() => setReady(true), ms);
+		return () => clearTimeout(id);
+	}, [ms]);
+	return ready;
+}
+
+export const OwnBoardFx = memo(function OwnBoardFx(props: OwnProps) {
+	return useMountedLate(350) ? <OwnBoardFxLayer {...props} /> : null;
+});
+
+export const SkinTrail = memo(function SkinTrail(props: TrailProps) {
+	return useMountedLate(450) ? <SkinTrailLayer {...props} /> : null;
 });
 
 function previewBoard(rows: number, cols: number): Board {

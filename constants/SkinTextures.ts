@@ -248,7 +248,7 @@ export const SKIN_SPRITES: Record<string, Sprite> = {
 export type TextureLayer = { color: string; d: string };
 
 /** The sprite on the 16x16 grid (each sprite pixel 2x2), light pixels with a soft shadow below-right. */
-function paint(pieceSkinId: string): (string | null)[] | null {
+export function paint(pieceSkinId: string): (string | null)[] | null {
 	const sprite = SKIN_SPRITES[pieceSkinId];
 	if (!sprite) return null;
 	const keys = { ...BASE_KEYS, ...(sprite.keys ?? {}) };

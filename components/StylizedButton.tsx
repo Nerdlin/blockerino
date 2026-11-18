@@ -26,11 +26,9 @@ export function readableTextColor(background: string | undefined): string | unde
         return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
     };
     const luminance = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-    // WCAG contrast ratio against white and against near-black: take whichever text reads better
-    const NEAR_BLACK_LUMINANCE = 0.0056;
-    const whiteContrast = 1.05 / (luminance + 0.05);
-    const darkContrast = (luminance + 0.05) / (NEAR_BLACK_LUMINANCE + 0.05);
-    return darkContrast > whiteContrast ? "#111111" : undefined;
+    // Only really light fills (yellow, light blue, pale grey) get dark text. Mid tones such as red or orange keep white:
+    // pure WCAG would turn them dark too, which reads worse with the pixel font and its shadow.
+    return luminance > 0.42 ? "#111111" : undefined;
 }
 
 export default function StylizedButton({

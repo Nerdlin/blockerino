@@ -25,6 +25,7 @@ function gemBlockStyle(size: number): object {
 import React from "react";
 import {
 	Board,
+	BoardBlock,
 	BoardBlockType,
 	forEachBoardBlock,
 	PossibleBoardSpots,
@@ -47,6 +48,7 @@ import { StyleSheet, Platform, View } from "react-native";
 import Animated, {
 	SharedValue,
 	interpolateColor,
+	makeMutable,
 	runOnJS,
 	useAnimatedReaction,
 	useAnimatedStyle,
@@ -87,10 +89,10 @@ interface SparkParticleProps {
 	x: number;
 	y: number;
 	gridBlockSize: number;
-	board: SharedValue<Board>;
+	cell: SharedValue<BoardBlock>;
 }
 
-function SparkParticle({ sparkProgress, index, x, y, gridBlockSize, board }: SparkParticleProps) {
+function SparkParticle({ sparkProgress, index, x, y, gridBlockSize, cell }: SparkParticleProps) {
 	const animatedStyle = useAnimatedStyle(() => {
 		const progress = sparkProgress.value;
 		if (progress === 0 || progress === 1) {
@@ -111,7 +113,7 @@ function SparkParticle({ sparkProgress, index, x, y, gridBlockSize, board }: Spa
 		const scale = (1 - progress) * 1.5;
 		const opacity = progress < 0.15 ? progress / 0.15 : (1 - progress);
 
-		const block = board.value[y][x];
+		const block = cell.value;
 		const colorHex = colorToHex(block.color);
 
 		return {
@@ -140,7 +142,8 @@ function SparkParticle({ sparkProgress, index, x, y, gridBlockSize, board }: Spa
 interface GridBlockProps {
 	x: number;
 	y: number;
-	board: SharedValue<Board>;
+	/** This cell of the board, mirrored by the grid only when it changes (see BlockGridView). */
+	cell: SharedValue<BoardBlock>;
 	boardSize: number;
 	gridBlockSize: number;
 	currentTheme: Theme;
@@ -159,7 +162,7 @@ const CELL_RESET = Platform.OS === "web"
 
 // Memoised like BlockDroppable below: while the board goes live row by row, a re-render of the grid must not set up
 // every cell that is already live again.
-const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBlockSize, currentTheme, pieceSkinId, startsEmpty, startColor }: GridBlockProps) {
+const GridBlock = React.memo(function GridBlock({ x, y, cell, boardSize, gridBlockSize, currentTheme, pieceSkinId, startsEmpty, startColor }: GridBlockProps) {
 	// The board has 64-100 cells and every hook here is paid once per cell when a game opens (it took seconds on a
 	// phone), so a cell keeps as few shared values and animated styles as it can: the break direction is fixed per
 	// cell, the white flash is drawn by the static style, and the spark progress exists only where sparks are drawn.
@@ -184,11 +187,11 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 
 	// Реакция на изменение состояния блока
 	useAnimatedReaction(() => {
-		return board.value[y][x].blockType;
+		return cell.value.blockType;
 	}, (cur, prev) => {
 		if ((skinKind & 15) === SKIN_NEON) {
 			if (cur === BoardBlockType.HOVERED || cur === BoardBlockType.FILLED) {
-				trailColor.value = colorToHex(board.value[y][x].color);
+				trailColor.value = colorToHex(cell.value.color);
 				trail.value = 0;
 			} else if (cur === BoardBlockType.EMPTY && prev !== null && prev !== BoardBlockType.EMPTY) {
 				trail.value = 1;
@@ -263,23 +266,9 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 			if (!startsEmpty && isGemColor(startColor)) return { ...CELL_RESET, ...gemBlockStyle(gridBlockSize) };
 			return startsEmpty ? { ...CELL_RESET, ...createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) } : { ...CELL_RESET, ...createFilledBlockStyle(startColor, 7, pieceSkinId), ...skinBlockShape(skinKind, gridBlockSize, colorToHex(getPieceSkinColor(startColor, pieceSkinId))), opacity: 1, transform: [] };
 		}
-		const block = board.value[y][x];
+		const block = cell.value;
 
 		if (block.blockType === BoardBlockType.EMPTY) {
-			// the load sweep is a faint glow, the flash of a cleared block is near white
-			const flashVal = Math.max(loadBlockFlash.value * 0.15, flashOpacity.value * 0.9);
-			if (flashVal > 0.0075) {
-				return {
-					...CELL_RESET,
-					...createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0),
-					backgroundColor: `rgba(255, 255, 255, ${flashVal})`,
-				};
-			}
-			if (trail.value > 0.02) {
-				const h = trailColor.value;
-				const rgba = `rgba(${parseInt(h.slice(1, 3), 16)}, ${parseInt(h.slice(3, 5), 16)}, ${parseInt(h.slice(5, 7), 16)}, ${(trail.value * 0.85).toFixed(3)})`;
-				return { ...CELL_RESET, ...createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0), boxShadow: `0 0 ${Math.round(gridBlockSize * 0.3)}px ${rgba}` };
-			}
 			return { ...CELL_RESET, ...createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) };
 		}
 
@@ -326,9 +315,28 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 		return style;
 	});
 
+	// the opening light sweep (faint) and the flash of a cleared block (near white) light an empty cell from a white layer
+	// under it, by opacity only: animating the cell's own background re-ran its whole style and was a slow update per frame
+	const flashStyle = useAnimatedStyle(() => {
+		if (isJsFirstRun()) return { opacity: 0 };
+		const v = Math.max(loadBlockFlash.value * 0.15, flashOpacity.value * 0.9);
+		return { opacity: v > 0.0075 && cell.value.blockType === BoardBlockType.EMPTY ? v : 0 };
+	});
+
+	// the neon trail: its colour and glow are set once per block that leaves, the fade is only opacity (a cheap update;
+	// an animated boxShadow made Android redo the whole view tree every frame while a piece was dragged)
+	const neon = (skinKind & 15) === SKIN_NEON;
+	const glowBox = useAnimatedStyle((): any => {
+		if (!neon || isJsFirstRun()) return { opacity: 0 };
+		const h = trailColor.value;
+		const rgba = `rgba(${parseInt(h.slice(1, 3), 16)}, ${parseInt(h.slice(3, 5), 16)}, ${parseInt(h.slice(5, 7), 16)}, 0.85)`;
+		return { boxShadow: `0 0 ${Math.round(gridBlockSize * 0.3)}px ${rgba}` };
+	});
+	const glowFade = useAnimatedStyle(() => ({ opacity: neon && trail.value > 0.02 ? trail.value : 0 }));
+
 	const fallingStyle = useAnimatedStyle(() => {
 		if (placedBlockFall.value > 0) {
-			const block = board.value[y][x];
+			const block = cell.value;
 			return {
 				...createFilledBlockStyle(block.color, 7, pieceSkinId),
 				...skinBlockShape(skinKind, gridBlockSize, colorToHex(getPieceSkinColor(block.color, pieceSkinId))),
@@ -349,7 +357,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 	// and it follows the block while it appears. The surface itself does not depend on the block's color.
 	const decorFrameStyle = useAnimatedStyle((): any => {
 		if (skinKind === 0 || isJsFirstRun()) return { opacity: 0 };
-		const block = board.value[y][x];
+		const block = cell.value;
 		if ((block.blockType !== BoardBlockType.FILLED && block.blockType !== BoardBlockType.HOVERED) || isGemColor(block.color)) return { opacity: 0 };
 		if (block.blockType === BoardBlockType.HOVERED) return { opacity: 0.45, transform: [] };
 		if (appear.value < 1) {
@@ -363,12 +371,14 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 
 	return (
 		<>
+			<Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: 0, width: gridBlockSize, height: gridBlockSize, backgroundColor: "#FFFFFF" }, flashStyle]} />
 			<Animated.View style={[staticStyle, { width: gridBlockSize, height: gridBlockSize, justifyContent: 'center', alignItems: 'center' }]} />
 			{decor && (
 				<Animated.View pointerEvents="none" style={[decorFrame, decorFrameStyle]}>
 					<SkinTexture skinId={pieceSkinId} />
 				</Animated.View>
 			)}
+			{neon && <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: 0, width: gridBlockSize, height: gridBlockSize }, glowBox, glowFade]} />}
 			<Animated.View style={fallingStyle} />
 			{PARTICLE_CONFIGS.map((_, i) => (
 				<SparkParticle
@@ -378,7 +388,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, board, boardSize, gridBl
 					x={x}
 					y={y}
 					gridBlockSize={gridBlockSize}
-					board={board}
+					cell={cell}
 				/>
 			))}
 		</>
@@ -398,6 +408,25 @@ function BlockGridView({
 	// a render reads it once; reading it once per cell took about half a second per render on a phone.
 	const snapshot = board.value;
 	const boardLength = snapshot.length;
+	// One shared value per cell, written only when that cell changes: a dragged piece moving one cell over rewrites the
+	// whole board, and with every cell reading the board all 64-100 cells re-ran their styles (several per cell) for it.
+	const cells = React.useMemo(() => snapshot.flat().map((block) => makeMutable<BoardBlock>(block)),
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- the cells follow the board through the reaction below
+		[board, boardLength]);
+	useAnimatedReaction(() => board.value, (cur) => {
+		const n = cur.length;
+		for (let y = 0; y < n; y++) {
+			for (let x = 0; x < n; x++) {
+				const c = cells[y * n + x];
+				if (!c) continue;
+				const b = cur[y][x];
+				const o = c.value;
+				if (o === b) continue;
+				if (o.blockType !== b.blockType || o.color.r !== b.color.r || o.color.g !== b.color.g || o.color.b !== b.color.b
+					|| o.hoveredBreakColor.r !== b.hoveredBreakColor.r || o.hoveredBreakColor.g !== b.hoveredBreakColor.g || o.hoveredBreakColor.b !== b.hoveredBreakColor.b) c.value = b;
+			}
+		}
+	}, [cells]);
 	const [liveRows, setLiveRows] = useState(0);
 	useEffect(() => {
 		const rowsTotal = boardLength;
@@ -430,7 +459,7 @@ function BlockGridView({
 				{!live ? <View style={[plainStyle, { width: GRID_BLOCK_SIZE, height: GRID_BLOCK_SIZE }]} /> : <GridBlock
 					x={x}
 					y={y}
-					board={board}
+					cell={cells[y * boardLength + x]}
 					boardSize={boardLength}
 					gridBlockSize={GRID_BLOCK_SIZE}
 					currentTheme={currentTheme}

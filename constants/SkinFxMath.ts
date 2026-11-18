@@ -237,6 +237,31 @@ export function particleStyle(i: FxParticle, p: number, out: FxFrame): object {
 	};
 }
 
+/**
+ * The two halves of particleStyle, for speed: the box (size, colours, shape) changes only when a particle is born,
+ * the motion (opacity and transform) every frame. Size and colours each frame would make the layout run per frame.
+ */
+export function particleBox(i: FxParticle): object {
+	"worklet";
+	const hollow = i.s === S_RING || i.s === S_GEM;
+	return { width: i.w, height: i.h, backgroundColor: hollow ? "transparent" : i.col, borderWidth: i.bw, borderColor: i.col, boxShadow: i.sh };
+}
+
+export function particleMotion(i: FxParticle, p: number, out: FxFrame): object {
+	"worklet";
+	fxFrame(i, p, out);
+	if (out.a <= 0.01 || out.sc <= 0.05) return HIDDEN;
+	return { opacity: out.a, transform: [{ translateX: i.x + out.x - i.w / 2 }, { translateY: i.y + out.y - i.h / 2 }, { scale: out.sc }] };
+}
+
+/** Where the idle shimmer of spark k is at clockMs: its cycle and its progress (p >= 1 means resting). */
+export function idleCycle(idle: IdleFx, k: number, clockMs: number): { cyc: number; p: number } {
+	"worklet";
+	const tt = clockMs / idle.every + ((k * 0.618) % 1);
+	const cyc = Math.floor(tt);
+	return { cyc, p: ((tt - cyc) * idle.every) / idle.fx.t };
+}
+
 /** A bar for a cleared line (axis 0 row, 1 column; index counts from the board's top left). */
 export function spawnBeam(b: Beam, axis: number, index: number, rows: number, cols: number, B: number, pitch: number, seed: number, delay: number): FxBeam {
 	"worklet";
@@ -451,13 +476,9 @@ export function trailParticle(anim: SkinAnim, cx: number, cy: number, B: number,
 	return spawnParticle(anim.trail, cx, cy, B, hex, st, 0, 1, 1, 0);
 }
 
-/** The idle shimmer: where its k-th spark is now (a cell that holds a block) and how far along it is, or null while it rests. */
-export function idleSpark(idle: IdleFx, board: Board, k: number, clockMs: number, B: number, pitch: number, skinId: string): { part: FxParticle; p: number } | null {
+/** The particle spark k shows during cycle cyc (null: no filled block found). */
+export function idleSparkPart(idle: IdleFx, board: Board, k: number, cyc: number, B: number, pitch: number, skinId: string): FxParticle | null {
 	"worklet";
-	const tt = clockMs / idle.every + ((k * 0.618) % 1);
-	const cyc = Math.floor(tt);
-	const p = ((tt - cyc) * idle.every) / idle.fx.t;
-	if (p >= 1) return null;
 	const rows = board.length;
 	const cols = board[0].length;
 	const cells = rows * cols;
@@ -474,6 +495,14 @@ export function idleSpark(idle: IdleFx, board: Board, k: number, clockMs: number
 	if (found < 0) return null;
 	const hex = cellHex(board, found, cols, skinId);
 	const st = { s: (h ^ 0x9e3779b9) >>> 0 };
-	const part = spawnParticle(idle.fx, (found % cols) * pitch + B / 2, Math.floor(found / cols) * pitch + B / 2, B, hex, st, 0, 1, 1, 0);
-	return { part, p };
+	return spawnParticle(idle.fx, (found % cols) * pitch + B / 2, Math.floor(found / cols) * pitch + B / 2, B, hex, st, 0, 1, 1, 0);
+}
+
+/** The idle shimmer: where its k-th spark is now (a cell that holds a block) and how far along it is, or null while it rests. */
+export function idleSpark(idle: IdleFx, board: Board, k: number, clockMs: number, B: number, pitch: number, skinId: string): { part: FxParticle; p: number } | null {
+	"worklet";
+	const { cyc, p } = idleCycle(idle, k, clockMs);
+	if (p >= 1) return null;
+	const part = idleSparkPart(idle, board, k, cyc, B, pitch, skinId);
+	return part === null ? null : { part, p };
 }
