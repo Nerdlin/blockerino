@@ -6,7 +6,7 @@ import { track } from "./Analytics";
 import { noteCoinBalance } from "./Achievements";
 import { getAccountSession } from './AccountSession';
 
-export type ShopCategory = "piece_skin" | "background" | "music" | "sfx" | "chess_piece" | "chess_board" | "sea_skin" | "card_skin" | "sudoku_theme" | "mahjong_theme" | "checkers_skin";
+export type ShopCategory = "piece_skin" | "background" | "music" | "sfx" | "chess_piece" | "chess_board" | "sea_skin" | "card_skin" | "sudoku_theme" | "mahjong_theme" | "checkers_skin" | "backgammon_skin";
 export type BackgroundScene = "classic" | "ender" | "sunset" | "ice" | "cyber";
 
 export interface ShopItem {
@@ -36,6 +36,7 @@ export interface EquippedCosmetics {
 	sudoku_theme: string;
 	mahjong_theme: string;
 	checkers_skin: string;
+	backgammon_skin: string;
 }
 
 export type ShopProfileField = "coins" | "owned_item_ids" | "equipped";
@@ -67,6 +68,7 @@ export const DEFAULT_EQUIPPED_COSMETICS: EquippedCosmetics = {
 	sudoku_theme: "sudoku_theme_wood",
 	mahjong_theme: "mahjong_theme_jade",
 	checkers_skin: "checkers_skin_classic",
+	backgammon_skin: "backgammon_skin_classic",
 };
 
 export const FREE_SHOP_ITEM_IDS = Object.values(DEFAULT_EQUIPPED_COSMETICS);
@@ -117,6 +119,13 @@ const BASE_SHOP_ITEMS: ShopItem[] = [
 	{ id: "checkers_skin_candy", category: "checkers_skin", title: "Candy Shop", description: "Pink squares with sugar and berry pieces.", price: 650, accent: "#FACC15", previewColors: ["#FCE7F3", "#DB2777"] },
 	{ id: "checkers_skin_neon", category: "checkers_skin", title: "Neon Night", description: "A dark board with glowing cyan and pink pieces.", price: 820, accent: "#FACC15", previewColors: ["#1E1B4B", "#0F172A"] },
 	{ id: "checkers_skin_gold", category: "checkers_skin", title: "Royal Gold", description: "Gold and onyx for players who never lose.", price: 1500, accent: "#FACC15", previewColors: ["#FEF3C7", "#92400E"] },
+
+	{ id: "backgammon_skin_classic", category: "backgammon_skin", title: "Walnut Board", description: "Dark walnut with cream and sienna points, ivory and ebony checkers.", price: 0, accent: "#E0A96D", previewColors: ["#E8D2A6", "#A0522D"] },
+	{ id: "backgammon_skin_stone", category: "backgammon_skin", title: "Granite Court", description: "A cool slate field with pale points and pearl and slate checkers.", price: 450, accent: "#E0A96D", previewColors: ["#F1F5F9", "#94A3B8"] },
+	{ id: "backgammon_skin_felt", category: "backgammon_skin", title: "Casino Felt", description: "Green felt with cream and red points, like a casino table.", price: 550, accent: "#E0A96D", previewColors: ["#F5E6B8", "#B91C1C"] },
+	{ id: "backgammon_skin_midnight", category: "backgammon_skin", title: "Midnight Club", description: "A deep indigo board with starlit points.", price: 650, accent: "#E0A96D", previewColors: ["#A5B4FC", "#4338CA"] },
+	{ id: "backgammon_skin_neon", category: "backgammon_skin", title: "Neon Arcade", description: "A dark board with glowing cyan and pink checkers.", price: 820, accent: "#E0A96D", previewColors: ["#155E75", "#86198F"] },
+	{ id: "backgammon_skin_gold", category: "backgammon_skin", title: "Golden Court", description: "Gold and onyx for players who never lose.", price: 1500, accent: "#E0A96D", previewColors: ["#FDE68A", "#B45309"] },
 
 	// More Games, wave 2
 	{ id: "chess_piece_marble", category: "chess_piece", title: "Moonlight", description: "Bright white pieces against deep night ones.", price: 600, accent: "#C4B5FD", previewColors: ["#F8FAFC", "#0F172A"] },

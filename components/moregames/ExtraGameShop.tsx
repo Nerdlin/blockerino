@@ -15,6 +15,7 @@ export const EXTRA_CATEGORIES: { id: ShopCategory; labelKey: string }[] = [
 	{ id: "chess_piece", labelKey: "moregames.shop.chessPieces" },
 	{ id: "chess_board", labelKey: "moregames.shop.chessBoard" },
 	{ id: "checkers_skin", labelKey: "moregames.shop.checkersSkins" },
+	{ id: "backgammon_skin", labelKey: "moregames.shop.backgammonSkins" },
 	{ id: "sea_skin", labelKey: "moregames.shop.seaSkins" },
 	{ id: "card_skin", labelKey: "moregames.shop.cardSkins" },
 	{ id: "sudoku_theme", labelKey: "moregames.shop.sudokuThemes" },

@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { ShopItem } from "@/constants/Shop";
 import {
+	BACKGAMMON_SKINS,
 	CARD_SKINS,
 	CHECKERS_SKINS,
 	CHESS_BOARD_COLORS,
@@ -14,6 +15,7 @@ import { createFilledBlockStyle, pieceColors } from "@/constants/Piece";
 import SkinnedBlock from "./SkinnedBlock";
 import { SkinPreviewFx } from "./SkinFx";
 import PixelChessPiece from "./moregames/chess/PixelChessPiece";
+import { PixelPoint } from "./moregames/backgammon/PixelPoint";
 
 // Little scenes that show a shop item the way it looks in its own game: the board and pieces for chess, a radar
 // grid for Sea Battle, a card back and face, a sudoku board and a mahjong table. `large` is the version shown in
@@ -45,6 +47,8 @@ export default function CosmeticPreview({ item, large = false, animate = large }
 			return <MahjongPreview item={item} u={u} />;
 		case "checkers_skin":
 			return <CheckersPreview item={item} u={u} />;
+		case "backgammon_skin":
+			return <BackgammonPreview item={item} u={u} />;
 		default:
 			return <BlockerinoPreview item={item} u={u} large={large} animate={animate} />;
 	}
@@ -119,6 +123,35 @@ function CheckersPreview({ item, u }: { item: ShopItem; u: number }) {
 								</View>
 							);
 						})}
+					</View>
+				))}
+			</View>
+		</Frame>
+	);
+}
+
+function BackgammonPreview({ item, u }: { item: ShopItem; u: number }) {
+	const skin = pick(BACKGAMMON_SKINS, keyOf(item));
+	const pw = 11 * u;
+	const ph = 17 * u;
+	const d = pw * 0.8;
+	const checker = (white: boolean, key: number) => {
+		const colors = white ? skin.white : skin.black;
+		return <View key={key} style={{ width: d, height: d, borderRadius: d, backgroundColor: colors.fill, borderWidth: Math.max(1, u * 1.2), borderColor: colors.rim }} />;
+	};
+	return (
+		<Frame u={u}>
+			<View style={{ borderWidth: Math.max(2, u * 1.5), borderColor: skin.frame, backgroundColor: skin.field }}>
+				{[true, false].map((top) => (
+					<View key={String(top)} style={{ flexDirection: "row", marginTop: top ? 0 : u * 2 }}>
+						{[0, 1, 2, 3, 4, 5].map((col) => (
+							<View key={col} style={{ width: pw, height: ph, alignItems: "center", justifyContent: top ? "flex-start" : "flex-end" }}>
+								<View style={{ position: "absolute", top: 0 }}>
+									<PixelPoint width={pw} height={ph} color={(col + (top ? 0 : 1)) % 2 === 0 ? skin.pointA : skin.pointB} down={top} steps={7} />
+								</View>
+								{col === 0 ? checker(top, 0) : col === 5 ? <>{checker(!top, 1)}{checker(!top, 2)}</> : null}
+							</View>
+						))}
 					</View>
 				))}
 			</View>

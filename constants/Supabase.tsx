@@ -638,7 +638,7 @@ export async function getTopEloRatings(limit: number = 100): Promise<EloRating[]
 }
 
 // Проверить, попал ли счет в топ N
-export type MoreGameRatingGameId = 'battleship' | 'durak' | 'chess' | 'tictactoe' | 'sudoku' | 'mahjong' | 'checkers';
+export type MoreGameRatingGameId = 'battleship' | 'durak' | 'chess' | 'tictactoe' | 'sudoku' | 'mahjong' | 'checkers' | 'backgammon';
 export type MoreGameMatchResult = 'player1' | 'player2' | 'draw';
 
 export interface MoreGameRating {
