@@ -51,6 +51,7 @@ import {
 	CHESS_BOARD_COLORS,
 	CHESS_PIECE_COLORS,
 	MAHJONG_THEMES,
+	BACKGAMMON_SKINS,
 	CARD_SKINS,
 	SEA_SKINS,
 	SUDOKU_THEMES,
@@ -436,6 +437,7 @@ describe("More Games shop cosmetics", () => {
 		card_skin: ["card_skin", "card_skin_", CARD_SKINS],
 		sudoku_theme: ["sudoku_theme", "sudoku_theme_", SUDOKU_THEMES],
 		mahjong_theme: ["mahjong_theme", "mahjong_theme_", MAHJONG_THEMES],
+		backgammon_skin: ["backgammon_skin", "backgammon_skin_", BACKGAMMON_SKINS],
 	};
 
 	it("gives every shop item a palette, so nothing a player buys renders as the default", () => {

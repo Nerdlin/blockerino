@@ -151,6 +151,19 @@ export const CHECKERS_SKINS = {
 	gold: { light: "#FEF3C7", dark: "#92400E", white: { fill: "#FACC15", rim: "#FEF08A" }, black: { fill: "#1C1917", rim: "#A16207" }, glow: true },
 } as const satisfies Record<string, { light: string; dark: string; white: { fill: string; rim: string }; black: { fill: string; rim: string }; glow: boolean }>;
 
+/**
+ * Long backgammon: the frame and field of the board, the two alternating colours of the points and both sides' checkers.
+ * Every shop item id (without its category prefix) has an entry here.
+ */
+export const BACKGAMMON_SKINS = {
+	classic: { frame: "#3B2412", field: "#5B3A1E", pointA: "#E8D2A6", pointB: "#A0522D", white: { fill: "#F5F1E6", rim: "#B9AE97" }, black: { fill: "#2B2B2E", rim: "#0E0E10" }, glow: false },
+	stone: { frame: "#1E293B", field: "#475569", pointA: "#F1F5F9", pointB: "#94A3B8", white: { fill: "#FFFFFF", rim: "#CBD5E1" }, black: { fill: "#1E293B", rim: "#0F172A" }, glow: false },
+	felt: { frame: "#3F2A14", field: "#14532D", pointA: "#F5E6B8", pointB: "#B91C1C", white: { fill: "#FFFDF5", rim: "#D6CFB4" }, black: { fill: "#7F1D1D", rim: "#450A0A" }, glow: false },
+	midnight: { frame: "#0F0D2E", field: "#1E1B4B", pointA: "#A5B4FC", pointB: "#4338CA", white: { fill: "#E0E7FF", rim: "#A5B4FC" }, black: { fill: "#111827", rim: "#6366F1" }, glow: false },
+	neon: { frame: "#0E7490", field: "#0B1020", pointA: "#155E75", pointB: "#86198F", white: { fill: "#22D3EE", rim: "#A5F3FC" }, black: { fill: "#F472B6", rim: "#FBCFE8" }, glow: true },
+	gold: { frame: "#A16207", field: "#451A03", pointA: "#FDE68A", pointB: "#B45309", white: { fill: "#FACC15", rim: "#FEF08A" }, black: { fill: "#1C1917", rim: "#A16207" }, glow: true },
+} as const satisfies Record<string, { frame: string; field: string; pointA: string; pointB: string; white: { fill: string; rim: string }; black: { fill: string; rim: string }; glow: boolean }>;
+
 export interface ExtraGameCosmetics {
 	chessPieces: keyof typeof CHESS_PIECE_COLORS;
 	chessBoard: keyof typeof CHESS_BOARD_COLORS;
@@ -159,6 +172,7 @@ export interface ExtraGameCosmetics {
 	cardSkin: keyof typeof CARD_SKINS;
 	seaSkin: keyof typeof SEA_SKINS;
 	checkersSkin: keyof typeof CHECKERS_SKINS;
+	backgammonSkin: keyof typeof BACKGAMMON_SKINS;
 }
 
 /** Resolves an equipped shop item id to a palette key, falling back when the id is missing or unknown. */
@@ -175,4 +189,5 @@ export const DEFAULT_EXTRA_COSMETICS: ExtraGameCosmetics = {
 	cardSkin: "classic",
 	seaSkin: "paper",
 	checkersSkin: "classic",
+	backgammonSkin: "classic",
 };

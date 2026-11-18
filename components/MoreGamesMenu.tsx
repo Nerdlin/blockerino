@@ -23,20 +23,21 @@ import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { MoreGameId, RatedMoreGameId } from "./moregames/types";
-import { CARD_SKINS, CHECKERS_SKINS, CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics, MAHJONG_THEMES, SEA_SKINS, SUDOKU_THEMES, pickCosmetic } from "./moregames/cosmetics";
+import { BACKGAMMON_SKINS, CARD_SKINS, CHECKERS_SKINS, CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, ExtraGameCosmetics, MAHJONG_THEMES, SEA_SKINS, SUDOKU_THEMES, pickCosmetic } from "./moregames/cosmetics";
 import { DEFAULT_MORE_GAME_PLAYER_NAME, MORE_GAME_CARDS, PLAYER_NAME_KEY, RATED_MORE_GAME_CARDS, getReadableButtonTextColor, normalizeStoredPlayerName } from "./moregames/shared";
 import { styles } from "./moregames/styles";
 import { MoreGameLeaderboardPanel } from "./moregames/Ratings";
 import { ExtraGameShop } from "./moregames/ExtraGameShop";
 import { TicTacToeGame } from "./moregames/TicTacToeGame";
 import { CheckersGame } from "./moregames/CheckersGame";
+import { BackgammonGame } from "./moregames/BackgammonGame";
 import { SudokuGame } from "./moregames/SudokuGame";
 import { MahjongGame } from "./moregames/MahjongGame";
 import { BattleshipGame } from "./moregames/BattleshipGame";
 import { ChessOnlineGame } from "./moregames/ChessGame";
 import { DurakOnlineGame } from "./moregames/DurakGame";
 import { MoreGamesBackProvider, runClaimedBack } from "./moregames/MoreGamesBack";
-export { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, MAHJONG_THEMES, CARD_SKINS, SEA_SKINS, SUDOKU_THEMES, pickCosmetic } from "./moregames/cosmetics";
+export { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, MAHJONG_THEMES, CARD_SKINS, SEA_SKINS, SUDOKU_THEMES, BACKGAMMON_SKINS, pickCosmetic } from "./moregames/cosmetics";
 export { getDurakPayout, getDurakNetPrize, useMiniGameRoom } from "./moregames/shared";
 export { getTicTacToeWinner } from "./moregames/TicTacToeGame";
 export { countSudokuSolutions, generateSudoku } from "./moregames/SudokuGame";
@@ -86,6 +87,7 @@ export default function MoreGamesMenu() {
 		cardSkin: pickCosmetic(CARD_SKINS, shopState.equipped.card_skin, "card_skin_", "classic"),
 		seaSkin: pickCosmetic(SEA_SKINS, shopState.equipped.sea_skin, "sea_skin_", "navy"),
 		checkersSkin: pickCosmetic(CHECKERS_SKINS, shopState.equipped.checkers_skin, "checkers_skin_", "classic"),
+		backgammonSkin: pickCosmetic(BACKGAMMON_SKINS, shopState.equipped.backgammon_skin, "backgammon_skin_", "classic"),
 	}), [shopState.equipped]);
 
 	const [playerName, setPlayerName] = useState(DEFAULT_MORE_GAME_PLAYER_NAME);
@@ -296,6 +298,7 @@ export default function MoreGamesMenu() {
 				<View style={styles.gameSurface}>
 					{activeGame === "shop" && <ExtraGameShop />}
 					{activeGame === "checkers" && <CheckersGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("checkers")} />}
+					{activeGame === "backgammon" && <BackgammonGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("backgammon")} />}
 					{activeGame === "tictactoe" && <TicTacToeGame playerName={playerName} onRatingChange={() => loadRatings("tictactoe")} />}
 					{activeGame === "sudoku" && <SudokuGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("sudoku")} />}
 					{activeGame === "mahjong" && <MahjongGame cosmetics={cosmetics} playerName={playerName} onRatingChange={() => loadRatings("mahjong")} />}

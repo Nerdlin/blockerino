@@ -91,6 +91,7 @@ describe("shop catalog and wallet", () => {
 				sudoku_theme: "sudoku_theme_wood",
 				mahjong_theme: "mahjong_theme_jade",
 				checkers_skin: "checkers_skin_classic",
+				backgammon_skin: "backgammon_skin_classic",
 			},
 		});
 
@@ -120,6 +121,7 @@ describe("shop catalog and wallet", () => {
 				sudoku_theme: "sudoku_theme_wood",
 				mahjong_theme: "mahjong_theme_jade",
 				checkers_skin: "checkers_skin_classic",
+				backgammon_skin: "backgammon_skin_classic",
 			},
 		});
 
@@ -138,6 +140,7 @@ describe("shop catalog and wallet", () => {
 				sudoku_theme: "sudoku_theme_wood",
 				mahjong_theme: "mahjong_theme_jade",
 				checkers_skin: "checkers_skin_classic",
+				backgammon_skin: "backgammon_skin_classic",
 			},
 			starterGrantClaimed: true,
 			updatedAt: local.updatedAt + 1,
@@ -172,6 +175,7 @@ describe("shop catalog and wallet", () => {
 				sudoku_theme: "sudoku_theme_wood",
 				mahjong_theme: "mahjong_theme_jade",
 				checkers_skin: "checkers_skin_classic",
+				backgammon_skin: "backgammon_skin_classic",
 			},
 			starterGrantClaimed: true,
 			updatedAt: 1000,

@@ -24,6 +24,7 @@ const GAME_GLYPHS = {
 	durak: ACHIEVEMENT_GLYPHS.cards,
 	battleship: UI_GLYPHS.wave,
 	checkers: ACHIEVEMENT_GLYPHS.stack,
+	backgammon: UI_GLYPHS.dice,
 	tictactoe: ACHIEVEMENT_GLYPHS.target,
 	sudoku: ACHIEVEMENT_GLYPHS.puzzle,
 	mahjong: ACHIEVEMENT_GLYPHS.bricks,

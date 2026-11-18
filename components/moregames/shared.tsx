@@ -77,6 +77,13 @@ export const MORE_GAME_CARDS: MoreGameCard[] = [
 		tags: ["online", "bot", "rules"],
 	},
 	{
+		id: "backgammon",
+		title: "Long Backgammon",
+		color: "#E0A96D",
+		description: "Long backgammon: all fifteen checkers on the head, no hitting, a bot and online duels.",
+		tags: ["online", "bot", "rules"],
+	},
+	{
 		id: "tictactoe",
 		title: "Tic-Tac-Toe",
 		color: "#F472B6",
@@ -99,7 +106,7 @@ export const MORE_GAME_CARDS: MoreGameCard[] = [
 	},
 ];
 
-export const RATED_MORE_GAME_IDS: RatedMoreGameId[] = ["chess", "checkers", "durak", "battleship", "tictactoe", "sudoku", "mahjong"];
+export const RATED_MORE_GAME_IDS: RatedMoreGameId[] = ["chess", "checkers", "backgammon", "durak", "battleship", "tictactoe", "sudoku", "mahjong"];
 export const RATED_MORE_GAME_CARDS = MORE_GAME_CARDS.filter((card): card is MoreGameCard & { id: RatedMoreGameId } => card.id !== "shop");
 export function normalizeStoredPlayerName(value: string | null | undefined) {
 	const name = (value || "").trim().slice(0, 24);
