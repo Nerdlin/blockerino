@@ -857,7 +857,8 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         onChange={(mode) => setSelectedMode(mode)}
                     />
 
-                    <View style={styles.row}>
+                    <View style={{ height: 10 }} />
+                    <View style={[styles.row, { marginVertical: 0 }]}>
                         <StylizedButton
                             text={t("mp.quickMatch")}
                             onClick={handleQuickMatch}
@@ -866,12 +867,12 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                             textStyle={{ fontSize: 14 }}
                         />
                     </View>
-                    <View style={{ height: 8 }} />
-                    <View style={styles.row}>
+                    <View style={{ height: 10 }} />
+                    <View style={[styles.row, { marginVertical: 0 }]}>
                         <StylizedButton
                             text={t("mp.createRoom")}
                             onClick={() => handleCreateRoom(selectedMode)}
-                            backgroundColor={cssColors.pink} 
+                            backgroundColor={currentTheme.buttonPrimary}
                             style={{ flex: 1, minWidth: 100, height: 46 }}
                             textStyle={{ fontSize: 14 }}
                         />

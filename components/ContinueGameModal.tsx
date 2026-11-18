@@ -22,20 +22,17 @@ export default function ContinueGameModal({
     const { t } = useLanguage();
     const modeTitle = t(`mode.${gameMode}`);
     // The window pops up over the main menu when the app starts, often under a finger already on its way to a menu
-    // button: it takes no taps for a moment, and throwing the saved game away needs a second tap.
+    // button: it takes no taps for a moment, then one tap is enough (that short delay is the guard against a stray tap).
     const [armed, setArmed] = useState(false);
-    const [confirmStartOver, setConfirmStartOver] = useState(false);
     useEffect(() => {
         const timer = setTimeout(() => setArmed(true), 700);
         return () => clearTimeout(timer);
     }, []);
-    useEffect(() => {
-        if (!confirmStartOver) return;
-        const timer = setTimeout(() => setConfirmStartOver(false), 4000);
-        return () => clearTimeout(timer);
-    }, [confirmStartOver]);
 
     return (
+        <>
+        {/* dims and blocks the menu behind, including the buttons in its corners */}
+        <View pointerEvents="auto" style={styles.backdrop} />
         <SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
             <Animated.Text
                 entering={FadeIn.duration(1000)}
@@ -75,20 +72,26 @@ export default function ContinueGameModal({
                 />
 
                 <StylizedButton
-                    text={confirmStartOver ? t("over.startOverConfirm") : t("over.startOver")}
-                    onClick={() => {
-                        if (!armed) return;
-                        if (confirmStartOver) onStartOver();
-                        else setConfirmStartOver(true);
-                    }}
-                    backgroundColor={confirmStartOver ? "#B91C1C" : currentTheme.buttonSecondary}
+                    text={t("over.startOver")}
+                    onClick={() => { if (armed) onStartOver(); }}
+                    backgroundColor={currentTheme.buttonSecondary}
                 />
             </View>
         </SimplePopupView>
+        </>
     );
 }
 
 const styles = StyleSheet.create({
+    backdrop: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        zIndex: 99,
+    },
     titleText: {
         fontSize: 28,
         fontFamily: 'Silkscreen',

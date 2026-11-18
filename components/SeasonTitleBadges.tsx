@@ -6,11 +6,11 @@ import { getLeaderboardTier } from "@/constants/LeaderboardTiers";
 import type { SeasonTitle } from "@/constants/SeasonResults";
 
 /** "2026-10" -> its month and year ("Oct 2026"); anything else is shown as it is. */
-export function formatSeasonKey(seasonKey: string, t: (key: string) => string): string {
+export function formatSeasonKey(seasonKey: string, t: (key: string) => string, full = false): string {
 	const match = /^(\d{4})-(\d{2})$/.exec(seasonKey);
 	if (!match) return seasonKey;
 	const month = Number(match[2]);
-	return month >= 1 && month <= 12 ? `${t(`season.month.${month}`)} ${match[1]}` : seasonKey;
+	return month >= 1 && month <= 12 ? `${t(`${full ? "season.monthFull" : "season.month"}.${month}`)} ${match[1]}` : seasonKey;
 }
 
 // Permanent record of past season finishes, a medal tile for each. Unlike the live top-5 perk, these stay on the

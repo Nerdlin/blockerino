@@ -87,7 +87,7 @@ export const seasonpass: ScreenDictionary = {
 		"pass.rule.level": "Первое прохождение уровня",
 		"pass.rule.more_win": "Победа в «Ещё играх»",
 		"pass.rule.more_play": "Поражение или ничья в «Ещё играх»",
-		"pass.rule.versus": "Матч в Versus",
+		"pass.rule.versus": "Матч в «Дуэли»",
 		"pass.rule.quest_task": "Задание дня",
 		"pass.rule.quest_bonus": "Бонус за все три задания",
 		"pass.rule.line": "+{xp} XP, до {max} в день",

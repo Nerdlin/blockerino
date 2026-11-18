@@ -28,9 +28,9 @@ export interface PodiumEntry {
 
 // second place on the left, first in the middle and highest, third on the right
 const PODIUM = [
-	{ place: 2, medal: "medalSilver" as const, color: "#CBD5E1", height: 46 },
-	{ place: 1, medal: "medalGold" as const, color: "#FACC15", height: 64 },
-	{ place: 3, medal: "medalBronze" as const, color: "#D97706", height: 34 },
+	{ place: 2, medal: "medalSilver" as const, color: "#CBD5E1", height: 58 },
+	{ place: 1, medal: "medalGold" as const, color: "#FACC15", height: 76 },
+	{ place: 3, medal: "medalBronze" as const, color: "#D97706", height: 46 },
 ];
 
 export function LeaderboardPodium({ top, onOpen, metaColor }: { top: PodiumEntry[]; onOpen: (name: string) => void; metaColor?: string }) {
@@ -86,7 +86,7 @@ export function LeaderboardMeCard({ name, avatarUrl, hint, place, placeHint, col
 }
 
 const styles = StyleSheet.create({
-	podium: { width: "100%", flexDirection: "row", alignItems: "flex-end", gap: 6, marginBottom: 12, paddingTop: 4, borderBottomWidth: 2, borderColor: "rgba(255,255,255,0.18)" },
+	podium: { width: "100%", flexDirection: "row", alignItems: "flex-end", gap: 6, marginBottom: 16, paddingTop: 4, borderBottomWidth: 2, borderColor: "rgba(255,255,255,0.18)" },
 	column: { flex: 1, alignItems: "center", gap: 3 },
 	avatar: { borderWidth: 2, borderRadius: 999, padding: 2 },
 	name: { fontSize: 11, maxWidth: "100%" },

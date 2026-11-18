@@ -159,7 +159,7 @@ export default function SeasonPassMenu() {
 	const dayFull = state ? state.todayXp >= state.dailyCap : false;
 
 	return (
-		<SimplePopupView scrollRef={scrollRef} style={[{ justifyContent: "flex-start", backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
+		<SimplePopupView scrollRef={scrollRef} hideScrollbar style={[{ justifyContent: "flex-start", backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
 			<View style={styles.topBar}>
 				<StylizedButton text={t("pass.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.backButton} textStyle={styles.backText} />
 			</View>
@@ -169,7 +169,7 @@ export default function SeasonPassMenu() {
 				<Text style={[styles.header, { color: currentTheme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>{t("pass.title")}</Text>
 			</View>
 			<Text style={[styles.sub, { color: currentTheme.textSecondary }]}>
-				{formatSeasonKey(seasonKey, t)} · {timeText}
+				{formatSeasonKey(seasonKey, t, true)} · {timeText}
 			</Text>
 			<Text style={[styles.hint, { color: currentTheme.textSecondary }]}>{t("pass.free")}</Text>
 
