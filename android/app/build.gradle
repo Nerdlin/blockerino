@@ -130,6 +130,7 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            applicationIdSuffix ".dev" // TEMP-DEV-APK
         }
         release {
             signingConfig signingConfigs.release
