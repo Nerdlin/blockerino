@@ -1,6 +1,6 @@
 // The animation of every piece skin, as data. Each themed skin has its own trail (while its piece is dragged), place
 // effect (the piece lands), clear effect (its blocks go), line effect (a bar along a cleared row or column) and idle
-// shimmer (a tiny spark on a block of the board now and then); the six chest-only skins add more particles and a combo
+// shimmer (a tiny spark on a block of the board now and then); the six chest-only skins and the eight season pass skins add more particles and a combo
 // effect that grows with the combo. The maths is in constants/SkinFxMath.ts, the drawing in components/SkinFx.tsx.
 //
 // All effects are pixel art: square pixels of the skin's own pixel size, snapped to a grid, no blur. Plain values only
@@ -555,6 +555,105 @@ export const SKIN_ANIMATIONS: Record<string, SkinAnim> = {
 			clear: f(FO, PL, ["#FFD700", "#FEF9C3", "#B45309"], 2, 1, 1000, 1.7, { g: 1.5 }),
 		},
 		combo: { fx: f(FA, BA, ["#FFD700", "#FDE047", "#FEF9C3"], 1, 2, 1100, 2.6, { g: 0.8 }), pat: CP_RAIN, base: 6, per: 2, max: 20 },
+	},
+
+	// ---------------------------------------------------------------- season pass exclusives: like the chest skins they
+	// get the extra particles and a combo effect (secret, handed out only by the pass)
+	piece_season_dawn: {
+		trail: f(SH, ST, ["#FDBA74", "#FEF3C7"], 2, 1, 560, 0.9, { a: 270, w: 120 }),
+		place: f(BU, DO, ["#FB923C", "#FEF3C7"], 3, 1, 440, 0.9),
+		clear: f(RI, ST, ["#FDBA74", "#FB923C", "#FEF3C7"], 3, 1, 960, 1.9),
+		beam: bm(BM_WIPE, ["#FEF3C7", "#FB923C"], 3, 600),
+		idle: idle(f(RI, DO, ["#FEF3C7", "#FDBA74"], 1, 1, 1200, 0.9), 2600, 4),
+		ex: {
+			place: f(RI, DO, ["#FDBA74", "#FFFFFF"], 2, 1, 700, 1),
+			clear: f(BU, PL, ["#FDBA74", "#FEF3C7", "#9A3412"], 2, 1, 800, 1.5),
+		},
+		combo: { fx: f(RI, ST, ["#FDBA74", "#FEF3C7", "#FB923C"], 1, 1, 1200, 2.8), pat: CP_BOTTOM, base: 6, per: 2, max: 22 },
+	},
+	piece_season_nova: {
+		trail: f(SP, XX, ["#67E8F9", "#F0ABFC"], 2, 1, 600, 0.8),
+		place: f(BU, PL, ["#67E8F9", "#FFFFFF", "#F0ABFC"], 3, 1, 420, 1.1),
+		clear: f(SH, GM, ["#67E8F9", "#F0ABFC", "#FFFFFF"], 3, 1, 820, 1.8),
+		beam: bm(BM_SPLIT, ["#67E8F9", "#F0ABFC"], 3, 540),
+		idle: idle(f(TW, XX, ["#FFFFFF", "#67E8F9"], 1, 1, 900, 0), 2400, 4),
+		ex: {
+			place: f(PU, RG, ["#67E8F9", "#F0ABFC"], 2, 1, 600, 1.2),
+			clear: f(SP, DO, ["#FFFFFF", "#67E8F9", "#F0ABFC"], 2, 1, 1000, 1.8),
+		},
+		combo: { fx: f(SH, ST, ["#67E8F9", "#F0ABFC", "#FFFFFF"], 1, 1, 800, 3.2, { a: 90, w: 360 }), pat: CP_CENTER, base: 4, per: 2, max: 18 },
+	},
+	piece_season_snowfall: {
+		trail: f(FA, PL, ["#FFFFFF", "#BAE6FD"], 2, 1, 700, 0.8, { g: 0.5 }),
+		place: f(DR, DO, ["#FFFFFF", "#BAE6FD"], 3, 1, 600, 0.9),
+		clear: f(FA, RG, ["#FFFFFF", "#BAE6FD", "#93C5FD"], 3, 1, 1100, 1.6, { g: 0.6 }),
+		beam: bm(BM_SWELL, ["#FFFFFF", "#93C5FD"], 3, 640),
+		idle: idle(f(FA, DO, ["#FFFFFF"], 1, 1, 1400, 0.8, { g: 0.4 }), 2700, 4),
+		ex: {
+			place: f(TW, PL, ["#FFFFFF", "#BAE6FD"], 2, 1, 700, 1),
+			clear: f(DR, PL, ["#FFFFFF", "#E0F2FE"], 2, 1, 1200, 1.8),
+		},
+		combo: { fx: f(FA, DO, ["#FFFFFF", "#BAE6FD", "#E0F2FE"], 1, 2, 1800, 2.8, { g: 0.4 }), pat: CP_RAIN, base: 10, per: 3, max: 26 },
+	},
+	piece_season_garland: {
+		trail: f(BL, PL, ["#F87171", "#4ADE80", "#FDE047"], 2, 1, 520, 0.8),
+		place: f(BL, DO, ["#F87171", "#4ADE80", "#FEF08A"], 3, 1, 500, 0.8),
+		clear: f(BL, RG, ["#DC2626", "#4ADE80", "#FEF08A"], 3, 1, 900, 1.3, { e: EN_CUT }),
+		beam: bm(BM_DASH, ["#F87171", "#4ADE80"], 3, 560),
+		idle: idle(f(BL, DO, ["#F87171", "#4ADE80", "#FDE047"], 1, 1, 1000, 0, { e: EN_CUT }), 2400, 4),
+		ex: {
+			place: f(TW, DO, ["#FEF08A", "#F87171"], 2, 1, 700, 1),
+			clear: f(OR, DO, ["#F87171", "#4ADE80", "#FEF08A"], 2, 1, 1000, 1.2),
+		},
+		combo: { fx: f(BL, DO, ["#F87171", "#4ADE80", "#FDE047"], 1, 2, 1100, 2.4), pat: CP_SIDES, base: 8, per: 3, max: 24 },
+	},
+	piece_season_confetti: {
+		trail: f(CR, TA, ["#FB7185", "#38BDF8", "#FDE047", "#4ADE80"], 2, 1, 600, 0.8),
+		place: f(BO, BA, ["#FB7185", "#38BDF8", "#FDE047"], 3, 1, 520, 1),
+		clear: f(BU, TA, ["#FB7185", "#38BDF8", "#FDE047", "#4ADE80", "#F472B6"], 4, 1, 900, 1.8),
+		beam: bm(BM_FLASH, ["#F472B6", "#FACC15"], 3, 500),
+		idle: idle(f(CR, DO, ["#FB7185", "#38BDF8", "#FDE047", "#4ADE80"], 1, 1, 1100, 0.8), 2500, 4),
+		ex: {
+			place: f(FO, DO, ["#FB7185", "#38BDF8", "#FDE047"], 2, 1, 800, 1.1, { g: 1.2 }),
+			clear: f(FA, BA, ["#FB7185", "#38BDF8", "#FDE047", "#4ADE80"], 3, 1, 1100, 2, { g: 0.9 }),
+		},
+		combo: { fx: f(FA, BA, ["#FB7185", "#38BDF8", "#FDE047", "#4ADE80", "#F472B6"], 1, 2, 1400, 2.8, { g: 0.7 }), pat: CP_SCATTER, base: 8, per: 3, max: 26 },
+	},
+	piece_season_sparkler: {
+		trail: f(TR, ST, ["#FDE047", "#FFFBEB"], 2, 1, 480, 0.9),
+		place: f(BU, ST, ["#FDE047", "#FFFBEB", "#FBBF24"], 3, 1, 380, 1.2),
+		clear: f(SH, PL, ["#FDE047", "#FFFBEB", "#FBBF24"], 3, 1, 700, 1.7),
+		beam: bm(BM_SWEEP, ["#FFFBEB", "#FBBF24"], 2, 480, 2),
+		idle: idle(f(TW, ST, ["#FFFBEB", "#FDE047"], 1, 1, 800, 0), 2300, 4),
+		ex: {
+			place: f(ZZ, DO, ["#FDE047", "#FFFFFF"], 2, 1, 500, 1),
+			clear: f(FO, DO, ["#FBBF24", "#FFFBEB", "#FDE047"], 2, 1, 900, 1.6, { g: 1.4 }),
+		},
+		combo: { fx: f(SH, ST, ["#FDE047", "#FFFBEB", "#FBBF24"], 1, 1, 700, 3, { a: 270, w: 80 }), pat: CP_BOTTOM, base: 5, per: 2, max: 20 },
+	},
+	piece_season_heartbeat: {
+		trail: f(PU, PL, ["#FB7185", "#FFF1F2"], 2, 1, 560, 0.7),
+		place: f(PU, GM, ["#FB7185", "#FFF1F2"], 2, 1, 480, 0.9),
+		clear: f(PU, DO, ["#FB7185", "#FDA4AF", "#FFF1F2"], 3, 2, 900, 1.5),
+		beam: bm(BM_SWELL, ["#FB7185", "#FFF1F2"], 3, 700, 1),
+		idle: idle(f(PU, DO, ["#FB7185", "#FFF1F2"], 1, 1, 900, 0.8), 2200, 4),
+		ex: {
+			place: f(RI, DO, ["#FDA4AF", "#FFF1F2"], 2, 1, 800, 1),
+			clear: f(BB, GM, ["#FB7185", "#FFF1F2"], 2, 1, 1000, 1.7),
+		},
+		combo: { fx: f(PU, RG, ["#FB7185", "#FDA4AF", "#FFF1F2"], 1, 2, 1000, 3.2), pat: CP_CENTER, base: 3, per: 1, max: 13 },
+	},
+	piece_season_quartz: {
+		trail: f(TW, RG, ["#F9A8D4", "#E9D5FF"], 2, 1, 560, 0.7),
+		place: f(PU, ST, ["#F9A8D4", "#E9D5FF", "#FFFFFF"], 2, 1, 460, 1),
+		clear: f(TW, TA, ["#F9A8D4", "#E9D5FF", "#FBCFE8"], 3, 1, 900, 1.5),
+		beam: bm(BM_SPLIT, ["#E9D5FF", "#F9A8D4"], 2, 620, 2),
+		idle: idle(f(TW, GM, ["#FFFFFF", "#E9D5FF"], 1, 1, 900, 0), 2450, 4),
+		ex: {
+			place: f(TW, PL, ["#FFFFFF", "#F9A8D4"], 2, 1, 700, 1),
+			clear: f(BU, GM, ["#F9A8D4", "#E9D5FF", "#FFFFFF"], 2, 1, 800, 1.4),
+		},
+		combo: { fx: f(TW, GM, ["#F9A8D4", "#E9D5FF", "#FFFFFF"], 1, 2, 1100, 2.6), pat: CP_SCATTER, base: 5, per: 2, max: 18 },
 	},
 };
 

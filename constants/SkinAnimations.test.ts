@@ -7,7 +7,10 @@ jest.mock("@react-native-async-storage/async-storage", () => require("@react-nat
 const skins = SHOP_ITEMS.filter((item) => item.category === "piece_skin");
 const themed = skins.filter((item) => item.id !== "piece_classic");
 const chest = themed.filter((item) => item.chestOnly === true);
-const plain = themed.filter((item) => item.chestOnly !== true);
+const season = themed.filter((item) => item.id.startsWith("piece_season_"));
+const exclusive = [...chest, ...season];
+const plain = themed.filter((item) => !exclusive.includes(item));
+const SHOP_THEMED = 60; // the themed skins of the shop and the chests; the season pass skins come on top
 const entries = Object.entries(SKIN_ANIMATIONS);
 
 function fxList(anim: (typeof entries)[number][1]): Fx[] {
@@ -21,9 +24,11 @@ function duplicates(key: (anim: (typeof entries)[number][1]) => string): string[
 }
 
 describe("skin animations: one table entry per skin", () => {
-	it("has 60 entries, one for every themed piece skin of the shop and nothing else", () => {
-		expect(entries).toHaveLength(60);
-		expect(themed).toHaveLength(60);
+	it("has one entry for every themed piece skin (shop, chests and season pass) and nothing else", () => {
+		expect(plain).toHaveLength(SHOP_THEMED - chest.length);
+		expect(season).toHaveLength(8);
+		expect(entries).toHaveLength(themed.length);
+		expect(themed).toHaveLength(SHOP_THEMED + season.length);
 		expect(Object.keys(SKIN_ANIMATIONS).sort()).toEqual(themed.map((item) => item.id).sort());
 		expect(Object.keys(SKIN_ANIMATIONS).sort()).toEqual(Object.keys(SKIN_SPRITES).sort());
 	});
@@ -82,10 +87,10 @@ describe("skin animations: every skin moves its own way", () => {
 	});
 });
 
-describe("skin animations: chest skins get more", () => {
-	it("gives every chest skin extra particles, a combo effect that grows and a livelier shimmer", () => {
+describe("skin animations: chest and season skins get more", () => {
+	it("gives every chest and season skin extra particles, a combo effect that grows and a livelier shimmer", () => {
 		expect(chest.map((item) => item.id).sort()).toEqual(["piece_chest_aurora", "piece_chest_cosmic", "piece_chest_dragon", "piece_chest_prism", "piece_chest_relic", "piece_chest_toxic"]);
-		for (const item of chest) {
+		for (const item of exclusive) {
 			const anim = SKIN_ANIMATIONS[item.id];
 			expect(anim.ex).toBeDefined();
 			expect(anim.combo).toBeDefined();
@@ -98,7 +103,7 @@ describe("skin animations: chest skins get more", () => {
 		}
 	});
 
-	it("leaves the extras to the chest skins", () => {
+	it("leaves the extras to the chest and season skins", () => {
 		for (const item of plain) {
 			const anim = SKIN_ANIMATIONS[item.id];
 			expect(anim.ex).toBeUndefined();
@@ -106,8 +111,8 @@ describe("skin animations: chest skins get more", () => {
 		}
 	});
 
-	it("starts every chest combo effect from a different place or in its own way", () => {
-		const looks = chest.map((item) => SKIN_ANIMATIONS[item.id].combo!).map((combo) => `${combo.fx.m}/${combo.fx.s}`);
-		expect(new Set(looks).size).toBe(chest.length);
+	it("starts every exclusive combo effect from a different place or in its own way", () => {
+		const looks = exclusive.map((item) => SKIN_ANIMATIONS[item.id].combo!).map((combo) => `${combo.fx.m}/${combo.fx.s}`);
+		expect(new Set(looks).size).toBe(exclusive.length);
 	});
 });
