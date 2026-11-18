@@ -581,7 +581,7 @@ export const SKIN_ANIMATIONS: Record<string, SkinAnim> = {
 			place: f(PU, RG, ["#67E8F9", "#F0ABFC"], 2, 1, 600, 1.2),
 			clear: f(SP, DO, ["#FFFFFF", "#67E8F9", "#F0ABFC"], 2, 1, 1000, 1.8),
 		},
-		combo: { fx: f(SH, ST, ["#67E8F9", "#F0ABFC", "#FFFFFF"], 1, 1, 800, 3.2, { a: 90, w: 360 }), pat: CP_CENTER, base: 4, per: 2, max: 18 },
+		combo: { fx: f(SP, ST, ["#67E8F9", "#F0ABFC", "#FFFFFF"], 1, 1, 900, 3.2), pat: CP_CENTER, base: 4, per: 2, max: 18 },
 	},
 	piece_season_snowfall: {
 		trail: f(FA, PL, ["#FFFFFF", "#BAE6FD"], 2, 1, 700, 0.8, { g: 0.5 }),
@@ -593,7 +593,7 @@ export const SKIN_ANIMATIONS: Record<string, SkinAnim> = {
 			place: f(TW, PL, ["#FFFFFF", "#BAE6FD"], 2, 1, 700, 1),
 			clear: f(DR, PL, ["#FFFFFF", "#E0F2FE"], 2, 1, 1200, 1.8),
 		},
-		combo: { fx: f(FA, DO, ["#FFFFFF", "#BAE6FD", "#E0F2FE"], 1, 2, 1800, 2.8, { g: 0.4 }), pat: CP_RAIN, base: 10, per: 3, max: 26 },
+		combo: { fx: f(DR, PL, ["#FFFFFF", "#BAE6FD", "#E0F2FE"], 1, 2, 1500, 2.8), pat: CP_RAIN, base: 10, per: 3, max: 26 },
 	},
 	piece_season_garland: {
 		trail: f(BL, PL, ["#F87171", "#4ADE80", "#FDE047"], 2, 1, 520, 0.8),
@@ -617,7 +617,7 @@ export const SKIN_ANIMATIONS: Record<string, SkinAnim> = {
 			place: f(FO, DO, ["#FB7185", "#38BDF8", "#FDE047"], 2, 1, 800, 1.1, { g: 1.2 }),
 			clear: f(FA, BA, ["#FB7185", "#38BDF8", "#FDE047", "#4ADE80"], 3, 1, 1100, 2, { g: 0.9 }),
 		},
-		combo: { fx: f(FA, BA, ["#FB7185", "#38BDF8", "#FDE047", "#4ADE80", "#F472B6"], 1, 2, 1400, 2.8, { g: 0.7 }), pat: CP_SCATTER, base: 8, per: 3, max: 26 },
+		combo: { fx: f(BU, TA, ["#FB7185", "#38BDF8", "#FDE047", "#4ADE80", "#F472B6"], 1, 2, 1000, 2.8), pat: CP_SCATTER, base: 8, per: 3, max: 26 },
 	},
 	piece_season_sparkler: {
 		trail: f(TR, ST, ["#FDE047", "#FFFBEB"], 2, 1, 480, 0.9),
@@ -629,7 +629,7 @@ export const SKIN_ANIMATIONS: Record<string, SkinAnim> = {
 			place: f(ZZ, DO, ["#FDE047", "#FFFFFF"], 2, 1, 500, 1),
 			clear: f(FO, DO, ["#FBBF24", "#FFFBEB", "#FDE047"], 2, 1, 900, 1.6, { g: 1.4 }),
 		},
-		combo: { fx: f(SH, ST, ["#FDE047", "#FFFBEB", "#FBBF24"], 1, 1, 700, 3, { a: 270, w: 80 }), pat: CP_BOTTOM, base: 5, per: 2, max: 20 },
+		combo: { fx: f(TR, ST, ["#FDE047", "#FFFBEB", "#FBBF24"], 1, 1, 700, 3), pat: CP_BOTTOM, base: 5, per: 2, max: 20 },
 	},
 	piece_season_heartbeat: {
 		trail: f(PU, PL, ["#FB7185", "#FFF1F2"], 2, 1, 560, 0.7),
@@ -641,7 +641,7 @@ export const SKIN_ANIMATIONS: Record<string, SkinAnim> = {
 			place: f(RI, DO, ["#FDA4AF", "#FFF1F2"], 2, 1, 800, 1),
 			clear: f(BB, GM, ["#FB7185", "#FFF1F2"], 2, 1, 1000, 1.7),
 		},
-		combo: { fx: f(PU, RG, ["#FB7185", "#FDA4AF", "#FFF1F2"], 1, 2, 1000, 3.2), pat: CP_CENTER, base: 3, per: 1, max: 13 },
+		combo: { fx: f(PU, DO, ["#FB7185", "#FDA4AF", "#FFF1F2"], 1, 2, 1000, 3.2), pat: CP_CENTER, base: 3, per: 1, max: 13 },
 	},
 	piece_season_quartz: {
 		trail: f(TW, RG, ["#F9A8D4", "#E9D5FF"], 2, 1, 560, 0.7),
