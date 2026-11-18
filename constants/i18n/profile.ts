@@ -44,6 +44,16 @@ export const profile: ScreenDictionary = {
 		"profile.discordSignIn": "Sign in with Discord",
 		"profile.needAccount": "Need an account?",
 		"profile.haveAccount": "Already have an account?",
+		"profile.perksTitle": "An account gives you:",
+		"profile.perkSync": "Progress synced across devices",
+		"profile.perkFriends": "Friends and game invites",
+		"profile.perkElo": "Elo rating and leaderboards",
+		"profile.perkCoins": "Coins and gifts kept safe",
+		"profile.forgotPassword": "Forgot password?",
+		"profile.resetHint": "Enter your email and we will send a link to reset your password.",
+		"profile.resetSend": "Send link",
+		"profile.resetSent": "Done! If {email} has an account, a reset link is on its way.",
+		"profile.resetBack": "Back to login",
 
 		// Auth titles
 		"profile.loginTitle": "Login to Sync",
@@ -124,6 +134,16 @@ export const profile: ScreenDictionary = {
 		"profile.discordSignIn": "Войти через Discord",
 		"profile.needAccount": "Нужен аккаунт?",
 		"profile.haveAccount": "Уже есть аккаунт?",
+		"profile.perksTitle": "Что даёт аккаунт:",
+		"profile.perkSync": "Прогресс на всех устройствах",
+		"profile.perkFriends": "Друзья и приглашения в игру",
+		"profile.perkElo": "Рейтинг Elo и таблицы лидеров",
+		"profile.perkCoins": "Монеты и подарки не пропадут",
+		"profile.forgotPassword": "Забыли пароль?",
+		"profile.resetHint": "Введи почту, и мы пришлём ссылку для сброса пароля.",
+		"profile.resetSend": "Отправить ссылку",
+		"profile.resetSent": "Готово! Если для {email} есть аккаунт, письмо со ссылкой уже в пути.",
+		"profile.resetBack": "Назад ко входу",
 
 		// Auth titles
 		"profile.loginTitle": "Вход для синхронизации",

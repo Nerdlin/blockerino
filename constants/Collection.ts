@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { supabase } from "./Supabase";
 import { getAccountSession } from "./AccountSession";
-import { SHOP_ITEMS, type ShopCategory, type ShopItem } from "./Shop";
+import { FREE_SHOP_ITEM_IDS, SHOP_ITEMS, type ShopCategory, type ShopItem } from "./Shop";
 import { itemRarity, parseChestState, publishChestState, useChestState, type ChestState } from "./Chests";
 import type { Rarity } from "./DailyReward";
 
@@ -69,8 +69,12 @@ export interface CollectionSummary {
 }
 
 export function summarizeCollection(ownedItemIds: string[], chestState: ChestState | null): CollectionSummary {
-	const owned = new Set(ownedItemIds);
-	const items = collectibleItems();
+	// The counter also counts the items everyone starts with (they are always owned); sets and their keys stay on
+	// collectibleItems(), the same list the server uses.
+	const owned = new Set([...ownedItemIds, ...FREE_SHOP_ITEM_IDS]);
+	const freeIds = new Set<string>(FREE_SHOP_ITEM_IDS);
+	const freeItems = SHOP_ITEMS.filter((item) => freeIds.has(item.id) && item.price <= 0);
+	const items = [...freeItems, ...collectibleItems()];
 	const byRarity = Object.fromEntries(RARITY_ORDER.map((rarity) => [rarity, { owned: 0, total: 0 }])) as CollectionSummary["byRarity"];
 	for (const item of items) {
 		const entry = byRarity[itemRarity(item.price)];

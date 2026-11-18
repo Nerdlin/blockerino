@@ -4,6 +4,8 @@ export const mainmenu: ScreenDictionary = {
 	en: {
 		"mainmenu.shop": "SHOP",
 		"mainmenu.profile": "Profile",
+		"mainmenu.profileCaption": "Profile",
+		"mainmenu.awardsCaption": "Awards",
 		"mainmenu.betaVersion": "beta version",
 
 		"mainmenu.classicTitle": "Classic 8x8",
@@ -35,6 +37,8 @@ export const mainmenu: ScreenDictionary = {
 	ru: {
 		"mainmenu.shop": "МАГАЗИН",
 		"mainmenu.profile": "Профиль",
+		"mainmenu.profileCaption": "Профиль",
+		"mainmenu.awardsCaption": "Награды",
 		"mainmenu.betaVersion": "бета-версия",
 
 		"mainmenu.classicTitle": "Классика 8x8",

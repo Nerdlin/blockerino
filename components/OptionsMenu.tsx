@@ -19,6 +19,9 @@ import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { PROFILE_VISIBILITIES, getProfileVisibility, setProfileVisibility, type ProfileVisibility } from "@/constants/PlayerProfile";
 import { disablePush, enablePush, isPushEnabled, isPushSupported } from "@/constants/Notifications";
 
+// Green means on and grey means off; red is never an "on" colour.
+const SWITCH_TRACK = { false: "#4B5563", true: "#10B981" };
+
 export default function OptionsMenu() {
 	const [ appState, setAppState, appendAppState, popAppState ] = useAppState();
 	const isAdmin = useIsAdmin();
@@ -155,17 +158,11 @@ export default function OptionsMenu() {
 		playSfx('menuClick');
 	};
 
-	const buttons = (
+	const inGame = appState.containsGameMode() || appState.containsState(MenuStateType.MULTIPLAYER_GAME);
+	// Back / Resume sits top-left like on every other screen; the footer keeps only the in-game actions.
+	const buttons = inGame ? (
 		<View style={styles.buttonsContainer}>
-			<StylizedButton
-				onClick={handleButtonPress}
-				text={appState.containsGameMode() || appState.containsState(MenuStateType.MULTIPLAYER_GAME) ? t("settings.resume") : t("common.back")}
-				backgroundColor={currentTheme.buttonSecondary}
-				style={isMobile && styles.mobileBottomButton}
-				textStyle={isMobile && styles.mobileBottomButtonText}
-			/>
-
-			{(appState.containsGameMode() || appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
+			{(
 				<>
 					{(appState.containsGameMode() && !appState.containsState(MenuStateType.MULTIPLAYER_GAME)) && (
 						<StylizedButton
@@ -186,14 +183,24 @@ export default function OptionsMenu() {
 				</>
 			)}
 		</View>
-	);
+	) : undefined;
 
 	return (
 		<SimplePopupView footer={buttons} style={[
-			{ backgroundColor: currentTheme.menuBackground },
+			{ backgroundColor: currentTheme.menuBackground, justifyContent: "flex-start" },
 			isMobile && { width: '92%', height: '85%', paddingHorizontal: 10 }
 		]}>
-			<Text style={[styles.sectionHeader, { color: currentTheme.textPrimary }]}>{t("settings.title")}</Text>
+			<View style={styles.topBar}>
+				<StylizedButton
+					onClick={handleButtonPress}
+					text={inGame ? t("settings.resume") : t("common.back")}
+					backgroundColor={currentTheme.buttonSecondary}
+					style={styles.topBackButton}
+					textStyle={{ fontSize: 12 }}
+				/>
+				<Text style={[styles.topTitle, { color: currentTheme.textPrimary }]}>{t("settings.title")}</Text>
+				<View style={styles.topBackButton} />
+			</View>
 
 			<ScrollView
 				style={styles.optionsScroll}
@@ -213,7 +220,7 @@ export default function OptionsMenu() {
 						<Switch
 							value={musicEnabled}
 							onValueChange={handleMusicToggle}
-							trackColor={{ false: "#767577", true: currentTheme.buttonPrimary }}
+							trackColor={SWITCH_TRACK}
 						/>
 					</SettingLabel>
 
@@ -244,7 +251,7 @@ export default function OptionsMenu() {
 						<Switch
 							value={sfxEnabled}
 							onValueChange={handleSfxToggle}
-							trackColor={{ false: "#767577", true: currentTheme.buttonPrimary }}
+							trackColor={SWITCH_TRACK}
 						/>
 					</SettingLabel>
 
@@ -291,7 +298,7 @@ export default function OptionsMenu() {
 						<Switch
 							value={analyticsOn}
 							onValueChange={handleAnalyticsToggle}
-							trackColor={{ false: "#767577", true: currentTheme.buttonPrimary }}
+							trackColor={SWITCH_TRACK}
 						/>
 					</SettingLabel>
 
@@ -322,7 +329,7 @@ export default function OptionsMenu() {
 								<Switch
 									value={pushOn}
 									onValueChange={(value) => void handlePushToggle(value)}
-									trackColor={{ false: "#767577", true: currentTheme.buttonPrimary }}
+									trackColor={SWITCH_TRACK}
 								/>
 							</SettingLabel>
 							{pushNote && <Text style={[styles.settingDesc, { color: currentTheme.textSecondary }]}>{pushNote}</Text>}
@@ -435,6 +442,28 @@ const styles = StyleSheet.create({
 	settingDesc: {
 		fontSize: 8,
 		fontFamily: 'Silkscreen'
+	},
+	topBar: {
+		width: '100%',
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		gap: 8,
+		marginBottom: 12,
+	},
+	topBackButton: {
+		width: 84,
+		minWidth: 84,
+		height: 38,
+		minHeight: 38,
+		margin: 0,
+		paddingHorizontal: 8,
+	},
+	topTitle: {
+		flex: 1,
+		textAlign: 'center',
+		fontSize: 18,
+		fontFamily: 'Silkscreen',
 	},
 	sectionHeader: {
 		fontSize: 22,

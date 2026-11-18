@@ -793,7 +793,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                                             ref={nicknameInputRef}
                                             style={[styles.playerCardInput, {
                                                 color: currentTheme.textPrimary,
-                                                borderBottomColor: matchError === NAME_REQUIRED_MESSAGE ? cssColors.brightNiceRed : 'transparent',
+                                                borderColor: matchError === NAME_REQUIRED_MESSAGE ? cssColors.brightNiceRed : 'rgba(255, 255, 255, 0.4)',
                                             }]}
                                             value={playerName}
                                             onChangeText={handlePlayerNameChange}
@@ -1104,7 +1104,7 @@ const styles = StyleSheet.create({
     playerAvatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
     playerAvatarText: { fontSize: 14 },
     playerCardName: { fontSize: 13 },
-    playerCardInput: { fontFamily: 'SilkscreenBold', fontSize: 13, padding: 0, borderBottomWidth: 1, minWidth: 0 },
+    playerCardInput: { fontFamily: 'SilkscreenBold', fontSize: 13, paddingHorizontal: 8, paddingVertical: 5, borderWidth: 2, borderRadius: 6, backgroundColor: 'rgba(255, 255, 255, 0.07)', minWidth: 0 },
     playerCardMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
     tierPill: { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
     tierPillText: { fontFamily: 'SilkscreenBold', fontSize: 8, color: '#000' },

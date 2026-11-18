@@ -19,7 +19,7 @@ import { useLanguage } from "@/constants/Localization";
 import UiIcon from "./UiIcon";
 import LevelMap from "./LevelMap";
 import { noteAchievementHighWater } from "@/constants/Achievements";
-import { countChallengeStars, DAILY_THREE_STAR_COINS, dailyStreak, getClaimedDailyRewards, getDailyPuzzleDays, rememberDailyReward, MAX_CHALLENGE_STARS, msUntilNextPuzzle, nextGoal, puzzleDayKey, starsForScore } from "@/constants/ChallengeProgress";
+import { countChallengeStars, DAILY_THREE_STAR_COINS, CHALLENGE_GOALS, dailyStreak, getClaimedDailyRewards, getDailyPuzzleDays, rememberDailyReward, MAX_CHALLENGE_STARS, msUntilNextPuzzle, nextGoal, puzzleDayKey, starsForScore } from "@/constants/ChallengeProgress";
 
 type BestScoreMap = Partial<Record<GameModeType, number>>;
 
@@ -179,7 +179,7 @@ export default function DailyChallengesMenu() {
                             </View>
                         ))}
                         <Text style={[styles.goalText, { color: stars === 3 ? color : currentTheme.textSecondary }]} numberOfLines={1}>
-                            {goal === null ? t("ch.allStars") : t("ch.nextGoal", { score: goal })}
+                            {goal === null ? t("ch.allStars") : t("ch.goals", { goals: CHALLENGE_GOALS[card.mode].join(" \u00B7 ") })}
                         </Text>
                     </View>
                     {isDaily && (
