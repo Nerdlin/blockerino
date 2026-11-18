@@ -16,6 +16,7 @@ import { getDailyQuests, subscribeToDailyQuests } from "@/constants/DailyQuests"
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import AndroidTesterBanner from "./AndroidTesterBanner";
 import { badgeLabel, badgeTotal, useProfileBadge } from "@/constants/ProfileBadge";
+import { claimableTiers, useSeasonPass } from "@/constants/SeasonPass";
 
 const CHAOS_VIOLET = "#7C3AED";
 
@@ -37,6 +38,9 @@ export default function MainMenu() {
 	const streakStatus = useAtomValue(dailyRewardStatusAtom);
 	const setDailyRewardOpen = useSetAtom(dailyRewardOpenAtom);
 	const { signedIn } = useAccountIdentity();
+	// a green dot on the pass button while a tier waits to be claimed
+	const { pass: seasonPass } = useSeasonPass();
+	const passReady = signedIn && claimableTiers(seasonPass).length > 0;
 
 	// A green dot on the medal while finished daily quests wait to be collected.
 	const [questReady, setQuestReady] = useState(false);
@@ -152,6 +156,7 @@ export default function MainMenu() {
 		<FadeInView index={5} delay={250} style={{ width: "100%", alignItems: "center" }}>
 		<View style={[styles.rowWrap, styles.quietRow]}>
 			<QuietButton title={t("mainmenu.highScoresTitle")} onClick={() => appendAppState(MenuStateType.HIGH_SCORES)} />
+			<QuietButton title={t("pass.menuButton")} onClick={() => appendAppState(MenuStateType.SEASON_PASS)} dot={passReady} />
 			<QuietButton title={t("mainmenu.optionsTitle")} onClick={() => appendAppState(MenuStateType.OPTIONS)} />
 		</View>
 		<AndroidTesterBanner />
@@ -179,14 +184,15 @@ function MainTile({ title, color, onClick }: { title: string; color: string; onC
 	);
 }
 
-function QuietButton({ title, onClick }: { title: string; onClick: () => void }) {
+function QuietButton({ title, onClick, dot }: { title: string; onClick: () => void; dot?: boolean }) {
 	const { height } = useWindowDimensions();
 	return (
 		<Pressable
 			onPress={onClick}
 			style={({ pressed }) => [styles.quietButton, height < 700 && { height: 32 }, pressed && { opacity: 0.7 }]}
 		>
-			<Text style={styles.quietText}>{title}</Text>
+			<Text style={styles.quietText} numberOfLines={1} adjustsFontSizeToFit>{title}</Text>
+			{dot && <View style={styles.badgeDot} />}
 		</Pressable>
 	);
 }

@@ -33,6 +33,7 @@ import DangerFrame from './DangerFrame';
 import { setMusicRate } from '@/constants/Sound';
 import { recordAchievementProgress } from '@/constants/Achievements';
 import { recordQuestProgress } from '@/constants/DailyQuests';
+import { recordSeasonPassGame, sourceForGameMode } from '@/constants/SeasonPass';
 import { consumeMoveLimitMove, GameOverReason, getGameModeConfig, getInitialMovesRemaining, getInitialTimeRemaining, isMoveLimitComplete } from '@/constants/GameModes';
 import { MomentRecorder, isBigComboMove, packBoardCells, packColor, type MomentLog } from '@/constants/MomentRecorder';
 import { releaseMomentRecorder, setActiveMomentRecorder } from '@/constants/MomentStore';
@@ -222,6 +223,8 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	}, []);
 	const isMountedRef = useRef(true);
 	const isGameOverRef = useRef(false);
+	// when this game began on this device: the season pass wants a minimum length (a resumed game counts from the resume)
+	const gameStartedAtRef = useRef(Date.now());
 	const secondChanceDecisionLockedRef = useRef(false);
 
 	const updateActiveCombo = (val: number) => {
@@ -292,6 +295,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		setGameOverReason(reason ?? null);
 		setIsGameOver(true);
 		recordAchievementProgress({ soloGamesFinished: 1 });
+		recordSeasonPassGame(sourceForGameMode(gameMode), { score: Math.floor(score.value), durationMs: Date.now() - gameStartedAtRef.current });
 		if (gameMode === GameModeType.Rescue) recordQuestProgress('rescue');
 		if (gameMode === GameModeType.ComboTrial) recordQuestProgress('combo');
 		if (scoreStorageId.value) {

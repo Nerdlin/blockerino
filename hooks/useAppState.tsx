@@ -12,6 +12,7 @@ export enum MenuStateType {
 	MORE_GAMES = 'more_games',
 	PROFILE = 'profile',
 	SEASON_RESULTS = 'season_results',
+	SEASON_PASS = 'season_pass',
 	ADMIN = 'admin'
 }
 

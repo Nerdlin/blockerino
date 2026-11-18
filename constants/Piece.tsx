@@ -973,6 +973,78 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 				{ r: 250, g: 204, b: 21 },
 				{ r: 253, g: 230, b: 138 },
 			];
+		case "piece_season_dawn":
+			return [
+				{ r: 251, g: 146, b: 60 },
+				{ r: 253, g: 186, b: 116 },
+				{ r: 254, g: 243, b: 199 },
+				{ r: 234, g: 88, b: 12 },
+				{ r: 252, g: 211, b: 77 },
+				{ r: 244, g: 114, b: 182 },
+			];
+		case "piece_season_nova":
+			return [
+				{ r: 34, g: 211, b: 238 },
+				{ r: 103, g: 232, b: 249 },
+				{ r: 240, g: 171, b: 252 },
+				{ r: 99, g: 102, b: 241 },
+				{ r: 165, g: 243, b: 252 },
+				{ r: 232, g: 121, b: 249 },
+			];
+		case "piece_season_snowfall":
+			return [
+				{ r: 219, g: 234, b: 254 },
+				{ r: 147, g: 197, b: 253 },
+				{ r: 255, g: 255, b: 255 },
+				{ r: 125, g: 211, b: 252 },
+				{ r: 186, g: 230, b: 253 },
+				{ r: 165, g: 180, b: 252 },
+			];
+		case "piece_season_garland":
+			return [
+				{ r: 220, g: 38, b: 38 },
+				{ r: 34, g: 197, b: 94 },
+				{ r: 250, g: 204, b: 21 },
+				{ r: 239, g: 68, b: 68 },
+				{ r: 74, g: 222, b: 128 },
+				{ r: 253, g: 224, b: 71 },
+			];
+		case "piece_season_confetti":
+			return [
+				{ r: 244, g: 114, b: 182 },
+				{ r: 250, g: 204, b: 21 },
+				{ r: 56, g: 189, b: 248 },
+				{ r: 74, g: 222, b: 128 },
+				{ r: 251, g: 146, b: 60 },
+				{ r: 167, g: 139, b: 250 },
+			];
+		case "piece_season_sparkler":
+			return [
+				{ r: 253, g: 224, b: 71 },
+				{ r: 255, g: 247, b: 205 },
+				{ r: 251, g: 191, b: 36 },
+				{ r: 250, g: 250, b: 250 },
+				{ r: 245, g: 158, b: 11 },
+				{ r: 254, g: 240, b: 138 },
+			];
+		case "piece_season_heartbeat":
+			return [
+				{ r: 251, g: 113, b: 133 },
+				{ r: 244, g: 63, b: 94 },
+				{ r: 253, g: 164, b: 175 },
+				{ r: 225, g: 29, b: 72 },
+				{ r: 249, g: 168, b: 212 },
+				{ r: 236, g: 72, b: 153 },
+			];
+		case "piece_season_quartz":
+			return [
+				{ r: 244, g: 184, b: 206 },
+				{ r: 251, g: 207, b: 232 },
+				{ r: 216, g: 180, b: 254 },
+				{ r: 244, g: 114, b: 182 },
+				{ r: 233, g: 213, b: 255 },
+				{ r: 253, g: 164, b: 175 },
+			];
 		case "piece_moonstone":
 			return [
 				{ r: 82, g: 96, b: 125 },

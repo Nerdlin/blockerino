@@ -48,7 +48,8 @@ function readServerCatalog(): Map<string, CatalogRow> {
 
 function expectedKind(item: (typeof SHOP_ITEMS)[number]): string {
 	if (item.chestOnly) return "server_only";
-	if (item.secret) return item.id.startsWith("background_season_") ? "server_only" : "client_secret";
+	// podium backgrounds and the season pass cosmetics (piece_season_*, background_season_*) come from the server only
+	if (item.secret) return /^(piece|background)_season_/.test(item.id) ? "server_only" : "client_secret";
 	return item.price > 0 ? "paid" : "free";
 }
 

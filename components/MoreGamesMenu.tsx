@@ -15,6 +15,7 @@ import { useAtomValue } from "jotai";
 import { chessInviteAtom } from "@/constants/chess/ChessInvite";
 import { gameInviteAtom } from "@/constants/GameInvite";
 import { subscribeToOutcomes } from "@/constants/GameStats";
+import { noteMoreGameStart } from "@/constants/SeasonPass";
 import { useSoundSettings } from "@/constants/Sound";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -72,6 +73,8 @@ export default function MoreGamesMenu() {
 	const { width } = useWindowDimensions();
 	const isMobile = width < 600;
 	const [activeGame, setActiveGame] = useState<MoreGameId | null>(null);
+	// a game was opened: the season pass measures its length from here (and from every finished game, for a rematch)
+	useEffect(() => { if (activeGame && activeGame !== "shop") noteMoreGameStart(activeGame); }, [activeGame]);
 	const pendingChessInvite = useAtomValue(chessInviteAtom);
 	useEffect(() => { if (pendingChessInvite) setActiveGame("chess"); }, [pendingChessInvite]);
 	const pendingGameInvite = useAtomValue(gameInviteAtom);

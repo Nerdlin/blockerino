@@ -770,6 +770,50 @@ const CHEST_EXCLUSIVE_BACKGROUNDS: ShopItem[] = [
 	chestOnly: true,
 }));
 
+// Season pass exclusives (constants/SeasonPass.ts, migration 20261118130000_season_pass.sql): never sold and in no chest.
+// Like the podium backgrounds they are secret, price 0 and 'server_only' in the catalog; only the pass hands them out.
+const SEASON_PASS_PIECES: ShopItem[] = [
+	["piece_season_dawn", "Season Dawn", "Sunrise blocks from the season pass.", "#FDBA74", ["#9A3412", "#FB923C", "#FEF3C7"]],
+	["piece_season_nova", "Season Nova", "A star going nova in every block.", "#67E8F9", ["#0E7490", "#67E8F9", "#F0ABFC"]],
+	["piece_season_snowfall", "Snowfall", "Soft snowflakes drifting over icy blocks.", "#BAE6FD", ["#1E3A8A", "#93C5FD", "#FFFFFF"]],
+	["piece_season_garland", "Garland", "Red and green holiday lights on every block.", "#F87171", ["#7F1D1D", "#DC2626", "#4ADE80"]],
+	["piece_season_confetti", "Confetti", "A party popper in every block.", "#F472B6", ["#BE185D", "#FACC15", "#38BDF8"]],
+	["piece_season_sparkler", "Sparkler", "Golden sparks of a midnight sparkler.", "#FDE047", ["#92400E", "#FBBF24", "#FFF7CD"]],
+	["piece_season_heartbeat", "Heartbeat", "A pulsing heart in rose and red.", "#FB7185", ["#9F1239", "#FB7185", "#FFF1F2"]],
+	["piece_season_quartz", "Rose Quartz", "Pale pink crystal with a violet glint.", "#F9A8D4", ["#9D174D", "#F9A8D4", "#E9D5FF"]],
+].map(([id, title, description, accent, previewColors]) => ({
+	id: id as string,
+	category: "piece_skin" as const,
+	title: title as string,
+	description: description as string,
+	price: 0,
+	accent: accent as string,
+	previewColors: previewColors as string[],
+	secret: true,
+}));
+
+const SEASON_PASS_BACKGROUNDS: ShopItem[] = [
+	["background_season_horizon", "Season Horizon", "A sunrise horizon over a dark sea.", "#FB923C", ["#0C0A1C", "#9A3412", "#FDBA74"], ["rgb(12, 10, 28)", "rgb(154, 52, 18)", "rgb(253, 186, 116)"], "sunset"],
+	["background_season_zenith", "Season Zenith", "The sky at its highest point, for those who finish the pass.", "#A5F3FC", ["#020617", "#1E40AF", "#A5F3FC"], ["rgb(2, 6, 23)", "rgb(30, 64, 175)", "rgb(165, 243, 252)"], "ice"],
+	["background_season_frostlake", "Frozen Lake", "A moonlit lake under a sheet of ice.", "#7DD3FC", ["#020817", "#0C4A6E", "#BAE6FD"], ["rgb(2, 8, 23)", "rgb(12, 74, 110)", "rgb(186, 230, 253)"], "ice"],
+	["background_season_midwinter", "Midwinter Night", "The longest night, quiet and deep violet.", "#C4B5FD", ["#08061C", "#312E81", "#E0E7FF"], ["rgb(8, 6, 28)", "rgb(49, 46, 129)", "rgb(224, 231, 255)"], "ender"],
+	["background_season_countdown", "Countdown", "Purple night with the last seconds of the year.", "#FDE047", ["#0A0814", "#581C87", "#FDE047"], ["rgb(10, 8, 20)", "rgb(88, 28, 135)", "rgb(253, 224, 71)"], "cyber"],
+	["background_season_newyear", "Midnight Gold", "Gold dust falling after the stroke of twelve.", "#FBBF24", ["#0F0A02", "#78350F", "#FBBF24"], ["rgb(15, 10, 2)", "rgb(120, 53, 15)", "rgb(251, 191, 36)"], "sunset"],
+	["background_season_rosedusk", "Rose Dusk", "A warm rose sky at the end of winter.", "#FB7185", ["#180612", "#9F1239", "#FDA4AF"], ["rgb(24, 6, 18)", "rgb(159, 18, 57)", "rgb(253, 164, 175)"], "sunset"],
+	["background_season_blizzard", "Blizzard Night", "Blue snow driven across a dark field.", "#E0F2FE", ["#030712", "#1E3A8A", "#E0F2FE"], ["rgb(3, 7, 18)", "rgb(30, 58, 138)", "rgb(224, 242, 254)"], "ice"],
+].map(([id, title, description, accent, previewColors, gradient, scene]) => ({
+	id: id as string,
+	category: "background" as const,
+	title: title as string,
+	description: description as string,
+	price: 0,
+	accent: accent as string,
+	previewColors: previewColors as string[],
+	gradient: gradient as [string, string, string],
+	scene: scene as BackgroundScene,
+	secret: true,
+}));
+
 function dedupeShopItems(items: ShopItem[]): ShopItem[] {
 	const itemMap = new Map<string, ShopItem>();
 	for (const item of items) {
@@ -792,6 +836,8 @@ export const SHOP_ITEMS: ShopItem[] = dedupeShopItems([
 	...EXTRA_SFX_WAVE_2,
 	...CHEST_EXCLUSIVE_PIECES,
 	...CHEST_EXCLUSIVE_BACKGROUNDS,
+	...SEASON_PASS_PIECES,
+	...SEASON_PASS_BACKGROUNDS,
 ]);
 
 const SHOP_ITEM_MAP = new Map(SHOP_ITEMS.map((item) => [item.id, item]));
