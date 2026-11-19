@@ -1,6 +1,6 @@
-import { memo, useEffect, useState } from "react"
+import { memo, useEffect, useRef, useState } from "react"
 import { Pressable, StyleSheet, Text, View, Platform, useWindowDimensions } from "react-native"
-import Animated, { SharedValue, interpolateColor, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated"
+import Animated, { Easing, SharedValue, cancelAnimation, interpolateColor, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated"
 import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
 import { getHighScores } from "@/constants/Storage";
 import { colorToHex } from "@/constants/Color";
@@ -9,6 +9,26 @@ import { useGameSizes } from "@/constants/Board";
 import PixelIcon from "@/components/PixelIcon";
 import { getGameModeConfig } from "@/constants/GameModes";
 import { useLanguage } from "@/constants/Localization";
+import { buzz } from "@/constants/Haptic";
+import { useEffectsProfile } from "@/constants/EffectsProfile";
+
+/** The best saved score of a mode (0 until one is saved), loaded once. */
+function useBestScore(gameMode?: GameModeType): number {
+	const [best, setBest] = useState(0);
+	useEffect(() => {
+		if (gameMode === undefined) return;
+		let mounted = true;
+		getHighScores(gameMode, true, true).then((scores) => {
+			if (mounted && scores.length > 0) setBest(scores[0].score);
+		}).catch(() => undefined);
+		return () => {
+			mounted = false;
+		};
+	}, [gameMode]);
+	return best;
+}
+
+const RECORD_COLORS = ["#FF6BD6", "#FFD36B", "#6BFFB0", "#6BC7FF", "#FF6BD6"];
 
 const comboBarGoodColor = colorToHex({r: 0, g: 255, b: 0});
 const comboBarBadColor = colorToHex({r: 255, g: 51, b: 51});
@@ -82,6 +102,39 @@ export const StatsGameHud = memo(function StatsGameHud({ score, lastBrokenLine, 
 	const [timeLeftText, setTimeLeftText] = useState("60");
 	const [movesLeftText, setMovesLeftText] = useState("30");
 	const scoreAnimValue = useSharedValue(0); // stores the score, used to interpolate the number for animation
+	const [scoreNow, setScoreNow] = useState(0);
+	const best = useBestScore(gameMode);
+	const lightEffects = useEffectsProfile() === "light";
+	// only a score that was at or below the saved best during this session can beat it (a resumed game already past it stays quiet)
+	const wasBelow = useRef(false);
+	if (best > 0 && scoreNow <= best) wasBelow.current = true;
+	const beaten = best > 0 && scoreNow > best && wasBelow.current;
+	const recordOn = useSharedValue(0);
+	const hue = useSharedValue(0);
+	const pop = useSharedValue(1);
+	const labelOpacity = useSharedValue(0);
+	useEffect(() => {
+		if (!beaten) {
+			cancelAnimation(hue);
+			recordOn.value = 0;
+			hue.value = 0;
+			pop.value = 1;
+			labelOpacity.value = 0;
+			return;
+		}
+		// the first point past the saved best: a pop, a buzz, a label that fades, and a score that keeps shimmering
+		recordOn.value = 1;
+		buzz("success");
+		pop.value = withSequence(withTiming(1.3, { duration: 140 }), withTiming(1, { duration: 260 }));
+		labelOpacity.value = withSequence(withTiming(1, { duration: 150 }), withDelay(2200, withTiming(0, { duration: 400 })));
+		if (!lightEffects) hue.value = withRepeat(withTiming(1, { duration: 1800, easing: Easing.linear }), -1, false);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [beaten, lightEffects]);
+	const scoreStyle = useAnimatedStyle(() => ({
+		transform: [{ scale: pop.value }],
+		color: recordOn.value === 0 ? "white" : lightEffects ? "#FFD700" : interpolateColor(hue.value, [0, 0.25, 0.5, 0.75, 1], RECORD_COLORS),
+	}));
+	const labelStyle = useAnimatedStyle(() => ({ opacity: labelOpacity.value }));
 	const { width, height } = useWindowDimensions();
 	const isMobile = width < 600 || height < 700;
 	const isShortScreen = height < 700;
@@ -99,7 +152,10 @@ export const StatsGameHud = memo(function StatsGameHud({ score, lastBrokenLine, 
 	})
 	
 	useAnimatedReaction(() => Math.floor(scoreAnimValue.value), (current, previous) => {
-		if (current !== previous) runOnJS(setScoreText)(String(current));
+		if (current !== previous) {
+			runOnJS(setScoreText)(String(current));
+			runOnJS(setScoreNow)(current);
+		}
 	});
 
 	useAnimatedReaction(() => {
@@ -121,8 +177,7 @@ export const StatsGameHud = memo(function StatsGameHud({ score, lastBrokenLine, 
 	return <>
 		<View style={[styles.hudContainer, isMobile && { height: isShortScreen ? 70 : 90 }]}>
 			<View style={[styles.scoreContainer, isMobile && { height: isShortScreen ? 28 : 38, marginTop: 2, marginBottom: 2 }]}>
-				<Text style={{
-					color: 'white',
+				<Animated.Text style={[{
 					fontFamily: 'Silkscreen',
 					fontSize: isMobile ? (isShortScreen ? 24 : 32) : 50,
 					...Platform.select({
@@ -136,7 +191,8 @@ export const StatsGameHud = memo(function StatsGameHud({ score, lastBrokenLine, 
 						}
 					}),
 					alignSelf: 'center'
-				}}>{scoreText}</Text>
+				}, scoreStyle]}>{scoreText}</Animated.Text>
+				<Animated.Text pointerEvents="none" style={[styles.recordLabel, labelStyle]}>{t("hud.newRecord")}</Animated.Text>
 			</View>
 			
 			{moveLimit !== undefined && movesRemaining ? (
@@ -226,29 +282,11 @@ const ComboBar = memo(function ComboBar({ lastBrokenLine, handSize, gridWidth }:
 });
 
 export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score: SharedValue<number>}) {
-	const [ highestScore, setHighestScore ] = useState(0);
+	const highestScore = useBestScore(gameMode);
 	const [ scoreState, setScoreState ] = useState(score.value);
 	const { width, height } = useWindowDimensions();
 	const isMobile = width < 600 || height < 700;
 
-	useEffect(() => {
-		let isMounted = true;
-
-		const refreshBestScores = async () => {
-			const highScores = await getHighScores(gameMode, true, true);
-			if (isMounted && highScores.length > 0) {
-				setHighestScore(highScores[0].score);
-			}
-
-		};
-
-		refreshBestScores();
-
-		return () => {
-			isMounted = false;
-		};
-	}, [gameMode]);
-	
 	useAnimatedReaction(() => {
 		return score.value;
 	}, (cur, prev) => {
@@ -328,6 +366,15 @@ const styles = StyleSheet.create({
 		height: 120,
 		justifyContent: 'center',
 		alignItems: 'center',
+	},
+	recordLabel: {
+		position: 'absolute',
+		top: -12,
+		alignSelf: 'center',
+		fontFamily: 'Silkscreen',
+		fontSize: 11,
+		color: '#FFD700',
+		letterSpacing: 2,
 	},
 	scoreContainer: {
 		width: '100%',
