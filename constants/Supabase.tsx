@@ -687,6 +687,8 @@ export async function getMoreGameLeaderboard(
             .from('more_game_ratings')
             .select('id, game_id, player_key, player_name, elo, wins, losses, draws, games_played, last_result, last_played_at, updated_at')
             .eq('game_id', gameId)
+            // Only players with a win: someone who has only lost (or failed a puzzle) is not a "top player".
+            .gt('wins', 0)
             // Most wins first; with equal wins the better win rate (fewer games played) is ahead.
             .order('wins', { ascending: false })
             .order('games_played', { ascending: true })
