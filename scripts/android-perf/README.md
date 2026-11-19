@@ -6,6 +6,8 @@ circular drag. Same seeded save, same touches, so two builds can be compared. Wr
 Why not the dev client: it always runs a dev-mode bundle, so its frame times mean nothing. The emulator's software GPU is no
 better. These scripts need a release-mode build with its own package name that does not touch the Play app's data.
 
+`node scripts/android-perf/perf-build.mjs setup` does steps 1-3 below for you and `teardown` undoes them.
+
 ## One-time setup (temporary, do not commit)
 
 1. `android/app/build.gradle`, inside `buildTypes`:
