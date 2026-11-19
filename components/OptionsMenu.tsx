@@ -8,6 +8,8 @@ import { useCallback, useEffect, useState } from "react";
 import * as Application from "expo-application";
 import { updateService } from "@/constants/UpdateService";
 import { useSoundSettings } from "@/constants/Sound";
+import { HAPTIC_LEVELS, buzz, useHapticSettings } from "@/constants/Haptic";
+import { effectsProfileSetting, useEffectsProfile, type EffectsProfile } from "@/constants/EffectsProfile";
 import { ThemeType, useTheme } from "@/constants/Theme";
 import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, useLanguage, type Language } from "@/constants/Localization";
 import Slider from "@react-native-community/slider";
@@ -23,6 +25,8 @@ import { disablePush, enablePush, isPushEnabled, isPushSupported } from "@/const
 const SWITCH_TRACK = { false: "#4B5563", true: "#10B981" };
 
 export default function OptionsMenu() {
+	const haptics = useHapticSettings();
+	const effectsProfile = useEffectsProfile();
 	const [ appState, setAppState, appendAppState, popAppState ] = useAppState();
 	const isAdmin = useIsAdmin();
 	const { width } = useWindowDimensions();
@@ -272,6 +276,49 @@ export default function OptionsMenu() {
 							</Text>
 						</View>
 					)}
+				</View>
+
+				<View style={styles.settingSection}>
+					<Text style={[styles.sectionLabel, { color: currentTheme.accent }]}>{t("settings.haptics")}</Text>
+					<SettingLabel
+						title={t("settings.haptics")}
+						description={t("settings.hapticsDesc")}
+						labelStyle={{ color: currentTheme.textPrimary }}
+						descStyle={{ color: currentTheme.textSecondary }}
+					>
+						<Switch
+							value={haptics.enabled}
+							onValueChange={(value) => { haptics.setEnabled(value); if (value) buzz("medium"); }}
+							trackColor={SWITCH_TRACK}
+						/>
+					</SettingLabel>
+					{haptics.enabled && (
+						<View style={styles.sliderContainer}>
+							<Slider
+								style={styles.slider}
+								minimumValue={0}
+								maximumValue={HAPTIC_LEVELS - 1}
+								step={1}
+								value={haptics.level}
+								onValueChange={(value) => { const level = Math.round(value); if (level !== haptics.level) { haptics.setLevel(level); buzz("medium"); } }}
+								minimumTrackTintColor={currentTheme.buttonPrimary}
+								maximumTrackTintColor={currentTheme.textSecondary}
+								thumbTintColor={currentTheme.accent}
+							/>
+							<Text style={[styles.sliderValue, { color: currentTheme.textSecondary }]}>{t(`settings.hapticsLevel${haptics.level}`)}</Text>
+						</View>
+					)}
+				</View>
+
+				<View style={styles.settingSection}>
+					<Text style={[styles.sectionLabel, { color: currentTheme.accent }]}>{t("settings.effects")}</Text>
+					<Text style={[styles.settingDesc, { color: currentTheme.textSecondary, marginBottom: 10 }]}>{t("settings.effectsDesc")}</Text>
+					<SegmentedControl
+						items={[{ key: "full", label: t("settings.effectsFull") }, { key: "light", label: t("settings.effectsLight") }]}
+						value={effectsProfile}
+						onChange={(key: string) => effectsProfileSetting.set(key as EffectsProfile)}
+						small
+					/>
 				</View>
 
 				<View style={styles.settingSection}>

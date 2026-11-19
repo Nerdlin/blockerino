@@ -11,7 +11,7 @@ import Animated, {
 	withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Haptics from "expo-haptics";
+import { buzz } from "@/constants/Haptic";
 import AchievementIcon from "@/components/AchievementIcon";
 import { ACHIEVEMENT_DEFINITIONS, subscribeToAchievementUnlocks } from "@/constants/Achievements";
 import { useAtomValue } from "jotai";
@@ -58,7 +58,7 @@ function AchievementToast({ achievementId, onDone }: { achievementId: string; on
 	useEffect(() => {
 		void playSfx("achievement");
 		if (Platform.OS !== "web") {
-			void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+			buzz("success");
 		}
 
 		translateY.value = withSequence(

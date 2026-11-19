@@ -23,6 +23,7 @@ import { chess } from "./chess";
 import { chests } from "./chests";
 import { moment } from "./moment";
 import { seasonpass } from "./seasonpass";
+import { options } from "./options";
 
 export type ScreenDictionary = { en: Record<string, string>; ru: Record<string, string> };
 
@@ -49,6 +50,7 @@ const modules: ScreenDictionary[] = [
 	chests,
 	moment,
 	seasonpass,
+	options,
 ];
 
 export const moduleTranslations: Record<Language, Record<string, string>> = {

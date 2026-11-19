@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import * as Haptics from "expo-haptics";
+import { buzz } from "@/constants/Haptic";
 import UiIcon from "./UiIcon";
 import type { UiGlyphName } from "@/constants/UiGlyphs";
 import { useLanguage } from "@/constants/Localization";
@@ -26,7 +26,7 @@ export default function RankUpOverlay({ tier, elo, onClose }: { tier: RankUpTier
 
 	useEffect(() => {
 		void playSfx("achievement");
-		if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+		buzz("success");
 		Animated.sequence([
 			Animated.timing(backdrop, { toValue: 1, duration: 220, useNativeDriver: true }),
 			Animated.parallel([

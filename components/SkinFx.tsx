@@ -29,6 +29,7 @@ import {
 import { colorToHex } from "@/constants/Color";
 import { getPieceSkinColor, pieceColors } from "@/constants/Piece";
 import type { Hand } from "@/constants/Hand";
+import { useEffectsProfile } from "@/constants/EffectsProfile";
 
 // Draws the skin animations (constants/SkinAnimations.ts, constants/SkinFxMath.ts). A layer owns a small pool of
 // particle views, each driven by two shared values (its progress and what it is), so a burst costs a few writes and no
@@ -54,8 +55,9 @@ const BEAMS = 3;
 export type FxSlot = { p: SharedValue<number>; i: SharedValue<FxParticle | null> };
 export type BeamSlot = { p: SharedValue<number>; i: SharedValue<FxBeam | null> };
 
-/** The effects ease off when the system asks for reduced motion: fewer particles, no idle shimmer, no trail, no combo show. */
+/** The effects ease off when the system asks for reduced motion or the player picked the light profile: fewer particles, no idle shimmer, no trail, no combo show. */
 export function useReducedFx(): boolean {
+	const light = useEffectsProfile() === "light";
 	const [reduced, setReduced] = useState(false);
 	useEffect(() => {
 		let alive = true;
@@ -66,7 +68,7 @@ export function useReducedFx(): boolean {
 			sub?.remove?.();
 		};
 	}, []);
-	return reduced;
+	return reduced || light;
 }
 
 // A pool has a fixed size for as long as it lives, so the hooks run the same number of times on every render.

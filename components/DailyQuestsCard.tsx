@@ -6,7 +6,7 @@ import FadeInView from "./FadeInView";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { useSoundSettings } from "@/constants/Sound";
-import * as Haptics from "expo-haptics";
+import { buzz } from "@/constants/Haptic";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { loadShopState, useShopState } from "@/constants/Shop";
 import {
@@ -83,7 +83,7 @@ export default function DailyQuestsCard() {
 		}, 0);
 		setNote({ text: t(result.keys !== null ? "quest.claimedKey" : "ach.claimed", { coins: paid }), ok: true });
 		void playSfx("achievement");
-		if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+		buzz("success");
 		await refresh();
 	};
 

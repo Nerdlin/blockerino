@@ -17,7 +17,7 @@ import { gameInviteAtom } from "@/constants/GameInvite";
 import { subscribeToOutcomes } from "@/constants/GameStats";
 import { noteMoreGameStart } from "@/constants/SeasonPass";
 import { useSoundSettings } from "@/constants/Sound";
-import * as Haptics from "expo-haptics";
+import { buzz } from "@/constants/Haptic";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import SimplePopupView from "./SimplePopupView";
@@ -59,9 +59,7 @@ export default function MoreGamesMenu() {
 	useEffect(() => subscribeToOutcomes((_game, outcome) => {
 		if (outcome === "draw") return;
 		void playSfx(outcome === "win" ? "achievement" : "gameOver");
-		if (Platform.OS !== "web") {
-			void Haptics.notificationAsync(outcome === "win" ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning).catch(() => undefined);
-		}
+		buzz(outcome === "win" ? "success" : "warning");
 	}), [playSfx]);
 	const [appState, , appendAppState, popAppState] = useAppState();
 	// Back on this screen (the profile, where the name is changed, sits on top of it): read the name again.

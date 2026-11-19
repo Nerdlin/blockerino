@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import * as Haptics from "expo-haptics";
+import { buzz } from "@/constants/Haptic";
 import SimplePopupView from "./SimplePopupView";
 import ChallengeLeaderboard from "./ChallengeLeaderboard";
 import StylizedButton from "./StylizedButton";
@@ -74,7 +74,7 @@ export default function DailyChallengesMenu() {
             if (result.status === "ok") {
                 setRewardNote(t("ch.rewardPaid", { coins: DAILY_THREE_STAR_COINS }));
                 void playSfx("achievement");
-                if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+                buzz("success");
             }
             return;
         }

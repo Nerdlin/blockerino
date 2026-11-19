@@ -1,24 +1,10 @@
 import { useEffect, useRef } from "react";
-import { Platform } from "react-native";
-import * as Haptics from "expo-haptics";
 import { useSoundSettings, type SoundType } from "@/constants/Sound";
 
 // Sounds and vibration shared by the mini-games (Sea Battle, Checkers, Durak, Tic-Tac-Toe). Chess has its own hook.
 
-export type Buzz = "light" | "medium" | "heavy" | "success" | "warning" | "error";
-
-/** A short vibration; nothing on the web. */
-export function buzz(kind: Buzz): void {
-	if (Platform.OS === "web") return;
-	try {
-		const run = kind === "success" || kind === "warning" || kind === "error"
-			? Haptics.notificationAsync(kind === "success" ? Haptics.NotificationFeedbackType.Success : kind === "warning" ? Haptics.NotificationFeedbackType.Warning : Haptics.NotificationFeedbackType.Error)
-			: Haptics.impactAsync(kind === "light" ? Haptics.ImpactFeedbackStyle.Light : kind === "medium" ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Heavy);
-		void run.catch(() => undefined);
-	} catch {
-		// vibration is optional
-	}
-}
+import { buzz } from "@/constants/Haptic";
+export { buzz, type Buzz } from "@/constants/Haptic";
 
 /** playSfx that stays stable between renders, for effects and timers. */
 export function useGameSfx(): (sound: SoundType) => void {

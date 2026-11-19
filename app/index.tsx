@@ -22,6 +22,8 @@ import { firstRunCoachAtom, shouldRunFirstRun } from '@/constants/FirstRun';
 import React, { useState, useEffect } from "react";
 import OptionsMenu from "@/components/OptionsMenu";
 import BackgroundSceneLayer from "@/components/BackgroundScene";
+import { useEffectsProfile } from "@/constants/EffectsProfile";
+import { useHapticSettings } from "@/constants/Haptic";
 import {
 	MenuStateType,
 	useAppState,
@@ -108,6 +110,8 @@ export default function App() {
 function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 	const { initialize: initSounds } = useSoundSettings({ manageMusicPlayback: true });
 	useShopBootstrap();
+	const lightEffects = useEffectsProfile() === "light";
+	useHapticSettings(); // loads the saved vibration settings at start
 	const shopState = useAtomValue(shopStateAtom);
 
 	// Russian needs a Cyrillic-capable pixel face; map it onto the Silkscreen family
@@ -265,11 +269,11 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 		<StatusBar style="light" backgroundColor="#050510" translucent={false} />
 		<Animated.View entering={FadeIn} exiting={FadeOut} style={styles.container}>
 			<AnimatedBackground isGameplayActive={isGameplayActive} />
-			{clientEffectsReady && <BackgroundSceneLayer backgroundId={shopState.equipped.background} accent={getShopItem(shopState.equipped.background)?.accent ?? "#FFFFFF"} isGameplayActive={isGameplayActive} />}
+			{clientEffectsReady && !lightEffects && <BackgroundSceneLayer backgroundId={shopState.equipped.background} accent={getShopItem(shopState.equipped.background)?.accent ?? "#FFFFFF"} isGameplayActive={isGameplayActive} />}
 			{/* Decorative pieces look like extra playable pieces when they move next to the board. */}
 			{clientEffectsReady && !isGameplayActive && (
 				<View testID="background-pieces" pointerEvents="none" style={styles.particleLayer}>
-					{[...Array(particleConfig.count)].map((_, i) => (
+					{[...Array(lightEffects ? Math.ceil(particleConfig.count / 2) : particleConfig.count)].map((_, i) => (
 						<PieceParticle
 							key={`particle${i}`}
 							blockSize={particleConfig.blockSize}

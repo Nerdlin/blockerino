@@ -31,7 +31,7 @@ import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { loadShopState, useShopState } from "@/constants/Shop";
 import { useLanguage } from "@/constants/Localization";
 import { useSoundSettings } from "@/constants/Sound";
-import * as Haptics from "expo-haptics";
+import { buzz } from "@/constants/Haptic";
 
 const GROUPS: AchievementGroup[] = ["solo", "versus", "games", "economy"];
 
@@ -127,7 +127,7 @@ export default function AchievementsMenu() {
 		const paid = result.granted.reduce((sum, id) => sum + (achievements.find((row) => row.id === id)?.reward ?? 0), 0);
 		setClaimNote({ text: t("ach.claimed", { coins: paid }), ok: true });
 		void playSfx("achievement");
-		if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+		buzz("success");
 	};
 
 	useEscapeKey(popAppState);

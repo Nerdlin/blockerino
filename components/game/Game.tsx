@@ -5,7 +5,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView, PointerType, State } from 'react-native-gesture-handler';
 import { ReduceMotion, runOnJS, useSharedValue } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { buzz } from "@/constants/Haptic";
 import {
 	BoardBlockType, JS_emptyPossibleBoardSpots, breakLines, canPlacePiece, clearHoverBlocks, cloneBoard,
 	createPossibleBoardSpots, createSeededBoard, emptyPossibleBoardSpots, getPlacementPreview,
@@ -81,13 +81,13 @@ function decodeDndId(id: string): XYPoint {
 	};
 }
 
-function impactAsyncHelper(style: Haptics.ImpactFeedbackStyle) {
-	Haptics.impactAsync(style);
+function impactAsyncHelper() {
+	buzz("light");
 }
 
 function runPiecePlacedHaptic() {
 	"worklet";
-	runOnJS(impactAsyncHelper)(Haptics.ImpactFeedbackStyle.Light);
+	runOnJS(impactAsyncHelper)();
 }
 
 export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initialState?: SavedGameState}) => {

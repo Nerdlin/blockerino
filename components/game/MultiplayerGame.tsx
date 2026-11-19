@@ -9,7 +9,7 @@ import PixelLoader from "@/components/PixelLoader";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView, PointerType, State } from 'react-native-gesture-handler';
 import Animated, { ReduceMotion, runOnJS, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { buzz } from "@/constants/Haptic";
 import {
 	BoardBlockType, JS_emptyPossibleBoardSpots, breakLines, canPlacePiece, clearHoverBlocks, cloneBoard,
 	createPossibleBoardSpots, emptyPossibleBoardSpots, getPlacementPreview, hasAnyPossibleMove,
@@ -91,13 +91,13 @@ function decodeDndId(id: string): XYPoint {
 	};
 }
 
-function impactAsyncHelper(style: Haptics.ImpactFeedbackStyle) {
-	Haptics.impactAsync(style);
+function impactAsyncHelper() {
+	buzz("light");
 }
 
 function runPiecePlacedHaptic() {
 	"worklet";
-	runOnJS(impactAsyncHelper)(Haptics.ImpactFeedbackStyle.Light);
+	runOnJS(impactAsyncHelper)();
 }
 
 function FloatingEmote({ text, onComplete }: { text: string; onComplete: () => void }) {
