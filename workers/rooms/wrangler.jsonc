@@ -12,5 +12,5 @@
 	},
 	"durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
 	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
-	"observability": { "enabled": true }
+	"observability": { "enabled": true, "redact_query_string": true }
 }
