@@ -13,6 +13,7 @@ import { shopItemText } from "@/constants/i18n/shopItems";
 import { RARITY_COLORS, type ChestPrize } from "@/constants/DailyReward";
 import { PixelChest } from "./DailyCalendar";
 import CosmeticPreview from "./CosmeticPreview";
+import ChapterPicture from "./ChapterPicture";
 import StylizedButton from "./StylizedButton";
 import UiIcon from "./UiIcon";
 
@@ -132,6 +133,12 @@ export default function LevelMap() {
 							{chest("perfect", "big", summary.perfect >= LEVELS_PER_CHAPTER)}
 						</View>
 						<Text style={[styles.chestLegend, { color: currentTheme.textSecondary }]}>{t("levels.chestLegend")}</Text>
+						<ChapterPicture
+							chapter={chapter}
+							rowStars={LEVELS.filter((level) => level.chapter === chapter).map((level) => stars[level.id] ?? 0)}
+							caption={t("levels.pictureHint")}
+							doneLabel={t("levels.pictureDone")}
+						/>
 						<View style={styles.levels}>
 							{LEVELS.filter((level) => level.chapter === chapter).map((level) => {
 								const s = stars[level.id] ?? 0;
