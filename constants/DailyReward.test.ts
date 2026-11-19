@@ -12,6 +12,7 @@ jest.mock("./Supabase", () => ({
 }));
 
 import {
+	buyStreakFreeze,
 	claimDailyReward,
 	fetchDailyRewardStatus,
 	parseDailyRewardClaim,
@@ -91,8 +92,8 @@ describe("season calendar", () => {
 		const status = parseDailyRewardStatus({ status: "ok", streak: 1, best: 1, claimed_today: true, next_streak: 2, next_reward: 60 });
 		expect(status?.calendar).toHaveLength(28);
 		expect(status?.nextChest).toBeNull();
-		expect(fallbackCalendar()[27]).toEqual({ day: 28, coins: 125, chest: "big" });
-		expect(fallbackCalendar()[6]).toEqual({ day: 7, coins: 110, chest: "small" });
+		expect(fallbackCalendar()[27]).toEqual({ day: 28, coins: 125, chest: "big", freeze: true });
+		expect(fallbackCalendar()[6]).toEqual({ day: 7, coins: 110, chest: "small", freeze: false });
 	});
 
 	it("reads a chest prize and the owned items", () => {
@@ -102,5 +103,26 @@ describe("season calendar", () => {
 		expect(item?.claim.ownedItemIds).toEqual(["piece_classic", "piece_lava"]);
 		const coins = parseDailyRewardClaim({ status: "claimed", streak: 7, reward: 110, best: 7, coins: 900, next_reward: 55, chest: { size: "small", kind: "coins", coins: 420 } });
 		expect(coins?.claim.chest).toEqual({ size: "small", kind: "coins", coins: 420, rarity: "common" });
+	});
+});
+
+describe("streak freezes", () => {
+	it("reads the freezes the status carries and defaults to none", () => {
+		expect(parseDailyRewardStatus({ status: "ok", streak: 3, best: 5, claimed_today: false, next_streak: 4, next_reward: 80, freezes: 1, freeze_cap: 2, freeze_price: 300, freezes_to_use: 1 }))
+			.toMatchObject({ freezes: 1, freezeCap: 2, freezePrice: 300, freezesToUse: 1 });
+		expect(parseDailyRewardStatus({ status: "ok", streak: 3, best: 5, claimed_today: false, next_streak: 4, next_reward: 80 }))
+			.toMatchObject({ freezes: 0, freezesToUse: 0 });
+	});
+	it("reads what a claim spent and gave", () => {
+		const parsed = parseDailyRewardClaim({ status: "claimed", streak: 14, best: 14, reward: 100, next_reward: 110, coins: 5, freezes_used: 2, freezes_left: 1, freeze_granted: true });
+		expect(parsed?.claim).toMatchObject({ freezesUsed: 2, freezesLeft: 1, freezeGranted: true });
+	});
+	it("buys a freeze and understands the refusals", async () => {
+		mockRpc.mockResolvedValueOnce({ data: { status: "ok", coins: 700, freezes: 1 }, error: null });
+		await expect(buyStreakFreeze()).resolves.toEqual({ status: "ok", coins: 700, freezes: 1 });
+		mockRpc.mockResolvedValueOnce({ data: { status: "not_enough_coins", coins: 10, freezes: 0 }, error: null });
+		await expect(buyStreakFreeze()).resolves.toMatchObject({ status: "not_enough_coins" });
+		mockRpc.mockResolvedValueOnce({ data: { status: "no_profile" }, error: null });
+		await expect(buyStreakFreeze()).resolves.toBeNull();
 	});
 });

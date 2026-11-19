@@ -13,6 +13,8 @@ export interface CalendarDay {
 	day: number;
 	coins: number;
 	chest: ChestSize | null;
+	/** The day gives a streak freeze. */
+	freeze: boolean;
 }
 
 export type Rarity = "common" | "rare" | "epic" | "legendary";
@@ -37,7 +39,7 @@ export const CALENDAR_LENGTH = 28;
 export function fallbackCalendar(): CalendarDay[] {
 	return Array.from({ length: CALENDAR_LENGTH }, (_, i) => {
 		const day = i + 1;
-		return { day, coins: 50 + 10 * ((day - 1) % 7) + 5 * Math.floor((day - 1) / 7), chest: day === 28 ? "big" : day % 7 === 0 ? "small" : null };
+		return { day, coins: 50 + 10 * ((day - 1) % 7) + 5 * Math.floor((day - 1) / 7), chest: day === 28 ? "big" : day % 7 === 0 ? "small" : null, freeze: day === 14 || day === 28 };
 	});
 }
 
@@ -53,6 +55,11 @@ export interface DailyRewardStatus {
 	/** The chest that day opens, if any. */
 	nextChest: ChestSize | null;
 	calendar: CalendarDay[];
+	/** Streak freezes held, the most that can be held, their price in coins, and how many a claim today would use up. */
+	freezes: number;
+	freezeCap: number;
+	freezePrice: number;
+	freezesToUse: number;
 }
 
 export interface DailyRewardClaim {
@@ -67,6 +74,10 @@ export interface DailyRewardClaim {
 	chest: ChestPrize | null;
 	/** Everything the player owns after the claim (a chest may add an item). */
 	ownedItemIds: string[] | null;
+	/** Freezes this claim spent on missed days, freezes left, and whether this day gave one. */
+	freezesUsed: number;
+	freezesLeft: number;
+	freezeGranted: boolean;
 }
 
 export const dailyRewardStatusAtom = atom<DailyRewardStatus | null>(null);
@@ -88,7 +99,7 @@ function parseCalendar(value: unknown): CalendarDay[] {
 		const row = entry as Record<string, unknown>;
 		const day = asNumber(row.day);
 		const coins = asNumber(row.coins);
-		return day === null || coins === null ? [] : [{ day, coins, chest: asChestSize(row.chest) }];
+		return day === null || coins === null ? [] : [{ day, coins, chest: asChestSize(row.chest), freeze: row.freeze === true }];
 	});
 	return days.length > 0 ? days : fallbackCalendar();
 }
@@ -113,7 +124,10 @@ export function parseDailyRewardStatus(data: unknown): DailyRewardStatus | null 
 	const nextStreak = asNumber(row.next_streak);
 	const nextReward = asNumber(row.next_reward);
 	if (streak === null || best === null || nextStreak === null || nextReward === null) return null;
-	return { streak, best, claimedToday: row.claimed_today === true, nextStreak, nextReward, nextChest: asChestSize(row.next_chest), calendar: parseCalendar(row.calendar) };
+	return {
+		streak, best, claimedToday: row.claimed_today === true, nextStreak, nextReward, nextChest: asChestSize(row.next_chest), calendar: parseCalendar(row.calendar),
+		freezes: asNumber(row.freezes) ?? 0, freezeCap: asNumber(row.freeze_cap) ?? 2, freezePrice: asNumber(row.freeze_price) ?? 300, freezesToUse: asNumber(row.freezes_to_use) ?? 0,
+	};
 }
 
 export function parseDailyRewardClaim(data: unknown): { state: "claimed" | "already"; claim: DailyRewardClaim } | null {
@@ -134,6 +148,9 @@ export function parseDailyRewardClaim(data: unknown): { state: "claimed" | "alre
 			nextReward,
 			chest: parseChest(row.chest),
 			ownedItemIds: Array.isArray(row.owned_item_ids) ? row.owned_item_ids.filter((id): id is string => typeof id === "string") : null,
+			freezesUsed: asNumber(row.freezes_used) ?? 0,
+			freezesLeft: asNumber(row.freezes_left) ?? 0,
+			freezeGranted: row.freeze_granted === true,
 		},
 	};
 }
@@ -163,6 +180,23 @@ export async function claimDailyReward(): Promise<{ state: "claimed" | "already"
 		const claim = parseDailyRewardClaim(data);
 		if (claim) noteStreakBest(claim.claim.best);
 		return claim;
+	} catch {
+		return null;
+	}
+}
+
+export type BuyFreezeResult = { status: "ok" | "full" | "not_enough_coins"; coins: number | null; freezes: number };
+
+/** Buys a streak freeze with coins. Null when the server cannot be reached or the player is not signed in. */
+export async function buyStreakFreeze(): Promise<BuyFreezeResult | null> {
+	try {
+		const { data: { session } } = await getAccountSession();
+		if (!session?.user) return null;
+		const { data, error } = await supabase.rpc("buy_streak_freeze");
+		if (error || !data || typeof data !== "object") return null;
+		const row = data as Record<string, unknown>;
+		if (row.status !== "ok" && row.status !== "full" && row.status !== "not_enough_coins") return null;
+		return { status: row.status, coins: asNumber(row.coins), freezes: asNumber(row.freezes) ?? 0 };
 	} catch {
 		return null;
 	}

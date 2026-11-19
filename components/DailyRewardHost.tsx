@@ -16,6 +16,7 @@ import DailyCalendar from "./DailyCalendar";
 import ChestRoulette from "./ChestRoulette";
 import { ChestOdds, ChestPrizeCard, LuckyHourNote, useLuckyHour } from "./ChestParts";
 import {
+	buyStreakFreeze,
 	claimDailyReward,
 	dailyRewardOpenAtom,
 	dailyRewardStatusAtom,
@@ -43,6 +44,7 @@ export default function DailyRewardHost() {
 	const [claim, setClaim] = useState<DailyRewardClaim | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [failed, setFailed] = useState(false);
+	const [freezeNote, setFreezeNote] = useState<string | null>(null);
 	// After the first reward on a phone, offer reminders once (never before the player got something good).
 	const [offerPush, setOfferPush] = useState(false);
 	const [pushNote, setPushNote] = useState<string | null>(null);
@@ -89,6 +91,26 @@ export default function DailyRewardHost() {
 		setFailed(false);
 		setOfferPush(false);
 		setPushNote(null);
+		setFreezeNote(null);
+	};
+
+	const onBuyFreeze = async () => {
+		if (busy) return;
+		setBusy(true);
+		const result = await buyStreakFreeze();
+		setBusy(false);
+		if (!result) {
+			setFreezeNote(t("daily.failed"));
+			return;
+		}
+		if (result.status === "not_enough_coins") setFreezeNote(t("daily.freezeNoCoins"));
+		else setFreezeNote(null);
+		setStatus({ ...status!, freezes: result.freezes });
+		if (result.status === "ok" && result.coins !== null) {
+			const latest = await loadShopState();
+			await commitRef.current({ ...latest, balance: result.coins }, []);
+			track("streak_freeze_buy", { freezes: result.freezes });
+		}
 	};
 
 	const onPushYes = async () => {
@@ -125,7 +147,7 @@ export default function DailyRewardHost() {
 			}, []);
 		}
 		setClaim(won);
-		setStatus({ ...status!, streak: won.streak, best: won.best, claimedToday: true, nextStreak: won.streak + 1, nextReward: won.nextReward });
+		setStatus({ ...status!, streak: won.streak, best: won.best, claimedToday: true, nextStreak: won.streak + 1, nextReward: won.nextReward, freezes: won.freezesLeft, freezesToUse: 0 });
 		setChestDone(false);
 		if (result.state === "claimed") {
 			track("streak_claim", { streak: won.streak, reward: won.reward });
@@ -175,6 +197,10 @@ export default function DailyRewardHost() {
 
 			<View style={styles.block}>
 				<Text style={[styles.line, { color: currentTheme.textPrimary }]}>{t("daily.streakDay", { days: shownStreak })}</Text>
+				<Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("daily.freezes", { have: status.freezes, cap: status.freezeCap })}</Text>
+				{!claimedNow && !alreadyClaimed && status.freezesToUse > 0 && <Text style={[styles.note, { color: "#6BC7FF" }]}>{t("daily.freezeWillUse", { days: status.freezesToUse })}</Text>}
+				{claimedNow && claim.freezesUsed > 0 && <FadeInView pop><Text style={[styles.note, { color: "#6BC7FF" }]}>{t("daily.freezeUsed", { days: claim.freezesUsed })}</Text></FadeInView>}
+				{claimedNow && claim.freezeGranted && <FadeInView pop><Text style={[styles.note, { color: "#6BC7FF" }]}>{t("daily.freezeGranted")}</Text></FadeInView>}
 				{claimedNow ? (
 					<>
 						<FadeInView pop><Text style={[styles.reward, { color: "#FFD700" }]}>{t("daily.claimed", { coins: claim.reward })}</Text></FadeInView>
@@ -191,6 +217,13 @@ export default function DailyRewardHost() {
 					<Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("daily.toChest", { days: daysToChest })}</Text>
 				)}
 				{failed && <Text style={[styles.note, { color: "#FF6B6B" }]}>{t("daily.failed")}</Text>}
+				{!chest && status.freezes < status.freezeCap && (
+					<>
+						<Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("daily.freezeInfo")}</Text>
+						<StylizedButton text={t("daily.freezeBuy", { price: status.freezePrice })} onClick={() => void onBuyFreeze()} backgroundColor={currentTheme.buttonSecondary} textStyle={{ fontSize: 12 }} />
+					</>
+				)}
+				{freezeNote && <Text style={[styles.note, { color: "#FF6B6B" }]}>{freezeNote}</Text>}
 				{offerPush && <Text style={[styles.note, { color: currentTheme.textPrimary, marginTop: 8 }]}>{t("notif.pushOffer")}</Text>}
 				{pushNote && <Text style={[styles.note, { color: currentTheme.textSecondary, marginTop: 8 }]}>{pushNote}</Text>}
 			</View>
