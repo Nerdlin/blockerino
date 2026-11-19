@@ -126,6 +126,8 @@ export const adminApi = {
 	adjustCoins: (profileId: string, delta: number, reason: string) =>
 		call<{ coins: number }>("admin_adjust_coins", { p_profile_id: profileId, p_delta: delta, p_reason: reason }),
 	resetRecord: (profileId: string, mode: "classic" | "chaos") => call<{ ok: boolean }>("admin_reset_record", { p_profile_id: profileId, p_mode: mode }),
+	setRecord: (profileId: string, mode: "classic" | "chaos", score: number, reason: string) =>
+		call<{ ok: boolean; mode: string; score: number }>("admin_set_record", { p_profile_id: profileId, p_mode: mode, p_score: score, p_reason: reason }),
 	seasonTop: (board: "classic" | "chaos") => call<AdminSeasonRow[]>("admin_season_top", { p_board: board }),
 	setAndroidVersion: (value: AndroidVersionConfig) => call<AndroidVersionConfig>("admin_set_android_version", { p_value: value }),
 	setElo: (profileId: string, elo: number, reason: string) =>

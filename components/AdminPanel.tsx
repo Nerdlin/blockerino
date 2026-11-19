@@ -181,6 +181,8 @@ function PlayerCard({ player, onBack }: { player: AdminPlayer; onBack: () => voi
 	const [coins, setCoins] = useState(player.coins);
 	const [elo, setElo] = useState(player.elo);
 	const [matches, setMatches] = useState<number | null>(player.matches ?? null);
+	const [records, setRecords] = useState({ classic: player.highscore_classic, chaos: player.highscore_chaos });
+	const [recordInput, setRecordInput] = useState({ classic: "", chaos: "" });
 	const [eloInput, setEloInput] = useState("");
 	const [matchesInput, setMatchesInput] = useState("");
 	const [amount, setAmount] = useState("");
@@ -216,6 +218,14 @@ function PlayerCard({ player, onBack }: { player: AdminPlayer; onBack: () => voi
 		setEloInput("");
 		return `Рейтинг теперь ${result.elo}`;
 	});
+	const saveRecord = (mode: "classic" | "chaos") => run(async () => {
+		const typedScore = wholeNumber(recordInput[mode]);
+		if (typedScore === null) return "Введите число";
+		const result = await adminApi.setRecord(player.id, mode, typedScore, reason || "админ-панель");
+		setRecords((current) => ({ ...current, [mode]: result.score }));
+		setRecordInput((current) => ({ ...current, [mode]: "" }));
+		return `Рекорд ${mode === "classic" ? "Классики" : "Хаоса"} теперь ${result.score}`;
+	});
 	const saveMatches = () => run(async () => {
 		if (typedMatches === null) return "Введите число";
 		const result = await adminApi.setMatches(player.id, typedMatches, reason || "админ-панель");
@@ -230,7 +240,7 @@ function PlayerCard({ player, onBack }: { player: AdminPlayer; onBack: () => voi
 			<Text style={[styles.title, { color: currentTheme.textPrimary, textAlign: "left" }]}>{player.player_name}</Text>
 			<Text style={[styles.muted, { color: currentTheme.textSecondary }]}>
 				Монеты {coins} · Elo {elo} · матчей {matches ?? "—"} · серия {player.streak_count}{"\n"}
-				Классика {player.highscore_classic} · Хаос {player.highscore_chaos}{"\n"}
+				Классика {records.classic} · Хаос {records.chaos}{"\n"}
 				Вход: {player.login_providers?.join(", ") || "—"}, последний {formatDate(player.last_login_at)}{"\n"}
 				С нами с {formatDate(player.created_at)}
 			</Text>
@@ -262,11 +272,21 @@ function PlayerCard({ player, onBack }: { player: AdminPlayer; onBack: () => voi
 			</View>
 			{!player.has_account && <Text style={[styles.muted, { color: currentTheme.textSecondary }]}>У гостя нет истории матчей: число матчей задаётся только игрокам с аккаунтом.</Text>}
 
+			<Text style={[styles.label, { color: currentTheme.textPrimary }]}>Рекорды</Text>
+			<Text style={[styles.muted, { color: currentTheme.textSecondary }]}>Задаёт лучший счёт режима и счёт в таблице текущего сезона. Ноль убирает игрока из таблицы. Всё пишется в журнал.</Text>
+			{([["classic", "Классика"], ["chaos", "Хаос"]] as const).map(([mode, title]) => (
+				<View key={mode} style={styles.row}>
+					<TextInput value={recordInput[mode]} onChangeText={(text) => setRecordInput((current) => ({ ...current, [mode]: text }))} keyboardType="number-pad" placeholder={`${title} (сейчас ${records[mode]})`} placeholderTextColor={currentTheme.textSecondary}
+						style={[styles.input, { flex: 1, color: currentTheme.textPrimary, borderColor: currentTheme.textSecondary }]} />
+					<StylizedButton text="Задать" onClick={() => void saveRecord(mode)} backgroundColor={currentTheme.buttonPrimary} style={styles.smallButton} textStyle={styles.smallText} disabled={busy || wholeNumber(recordInput[mode]) === null} />
+				</View>
+			))}
+
 			<Text style={[styles.label, { color: currentTheme.textPrimary }]}>Подозрительный рекорд</Text>
 			<Text style={[styles.muted, { color: currentTheme.textSecondary }]}>Обнуляет лучший счёт режима и убирает игрока из таблицы текущего сезона.</Text>
 			<View style={styles.row}>
-				<StylizedButton text="Сбросить Классику" onClick={() => void run(async () => { await adminApi.resetRecord(player.id, "classic"); return "Рекорд Классики сброшен"; })} backgroundColor="#B91C1C" style={styles.smallButton} textStyle={styles.smallText} disabled={busy} />
-				<StylizedButton text="Сбросить Хаос" onClick={() => void run(async () => { await adminApi.resetRecord(player.id, "chaos"); return "Рекорд Хаоса сброшен"; })} backgroundColor="#B91C1C" style={styles.smallButton} textStyle={styles.smallText} disabled={busy} />
+				<StylizedButton text="Сбросить Классику" onClick={() => void run(async () => { await adminApi.resetRecord(player.id, "classic"); setRecords((current) => ({ ...current, classic: 0 })); return "Рекорд Классики сброшен"; })} backgroundColor="#B91C1C" style={styles.smallButton} textStyle={styles.smallText} disabled={busy} />
+				<StylizedButton text="Сбросить Хаос" onClick={() => void run(async () => { await adminApi.resetRecord(player.id, "chaos"); setRecords((current) => ({ ...current, chaos: 0 })); return "Рекорд Хаоса сброшен"; })} backgroundColor="#B91C1C" style={styles.smallButton} textStyle={styles.smallText} disabled={busy} />
 			</View>
 			{message && <Text style={[styles.muted, { color: currentTheme.textPrimary }]}>{message}</Text>}
 		</View>
