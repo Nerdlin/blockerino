@@ -28,10 +28,14 @@ export function getMainMenuScale(width: number, height: number): number {
 }
 
 export default function MainMenu() {
-	const { t } = useLanguage();
+	const { language, t } = useLanguage();
 	const { badge: profileBadge } = useProfileBadge();
 	const [ , appendAppState ] = useSetAppState();
 	const { width, height } = useWindowDimensions();
+	const isRussian = language === "ru";
+	const quietLabelWidth = (Math.min(width * 0.8, 420) - 20) / 3 - 15;
+	// The longest labels in Pixelify Sans and Silkscreen take about 6 and 8 em respectively.
+	const quietSize = Math.max(10, Math.min(isRussian ? 14 : 13, Math.floor(quietLabelWidth / (isRussian ? 6 : 8))));
 	const menuScale = getMainMenuScale(width, height);
 	const isShortScreen = height < 700;
 	const shopBalance = useAtomValue(shopStateAtom).balance;
@@ -157,9 +161,9 @@ export default function MainMenu() {
 		</FadeInView>
 		<FadeInView index={5} delay={250} style={{ width: "100%", alignItems: "center" }}>
 		<View style={[styles.rowWrap, styles.quietRow]}>
-			<QuietButton title={t("mainmenu.highScoresTitle")} onClick={() => appendAppState(MenuStateType.HIGH_SCORES)} />
-			<QuietButton title={t("pass.menuButton")} onClick={() => appendAppState(MenuStateType.SEASON_PASS)} dot={passReady} />
-			<QuietButton title={t("mainmenu.optionsTitle")} onClick={() => appendAppState(MenuStateType.OPTIONS)} />
+			<QuietButton title={t("mainmenu.highScoresTitle")} size={quietSize} short={isShortScreen} onClick={() => appendAppState(MenuStateType.HIGH_SCORES)} />
+			<QuietButton title={t("pass.menuButton")} size={quietSize} short={isShortScreen} onClick={() => appendAppState(MenuStateType.SEASON_PASS)} dot={passReady} />
+			<QuietButton title={t("mainmenu.optionsTitle")} size={quietSize} short={isShortScreen} onClick={() => appendAppState(MenuStateType.OPTIONS)} />
 		</View>
 		<AndroidTesterBanner />
 		</FadeInView>
@@ -186,14 +190,14 @@ function MainTile({ title, color, onClick }: { title: string; color: string; onC
 	);
 }
 
-function QuietButton({ title, onClick, dot }: { title: string; onClick: () => void; dot?: boolean }) {
-	const { height } = useWindowDimensions();
+function QuietButton({ title, onClick, dot, size, short }: { title: string; onClick: () => void; dot?: boolean; size: number; short: boolean }) {
 	return (
 		<Pressable
+			accessibilityRole="button"
 			onPress={onClick}
-			style={({ pressed }) => [styles.quietButton, height < 700 && { height: 32 }, pressed && { opacity: 0.7 }]}
+			style={({ pressed }) => [styles.quietButton, short && { minHeight: 36 }, pressed && { opacity: 0.7 }]}
 		>
-			<Text style={styles.quietText} numberOfLines={1} adjustsFontSizeToFit>{title}</Text>
+			<Text style={[styles.quietText, { fontSize: size }]}>{title}</Text>
 			{dot && <View style={styles.badgeDot} />}
 		</Pressable>
 	);
@@ -481,7 +485,8 @@ const styles = StyleSheet.create({
 	},
 	quietButton: {
 		flex: 1,
-		height: 38,
+		minWidth: 0,
+		minHeight: 38,
 		borderRadius: 8,
 		borderWidth: 1.5,
 		borderColor: "rgba(255, 255, 255, 0.28)",
@@ -492,7 +497,6 @@ const styles = StyleSheet.create({
 	},
 	quietText: {
 		fontFamily: "Silkscreen",
-		fontSize: 13,
 		color: "rgba(255, 255, 255, 0.72)",
 		textAlign: "center",
 	},

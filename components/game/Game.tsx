@@ -1,15 +1,21 @@
-import { PieceData, getBlockCount } from '@/constants/Piece';
+import { getBlockCount } from '@/constants/Piece';
 import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-dnd';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, PointerType, State } from 'react-native-gesture-handler';
 import { ReduceMotion, runOnJS, useSharedValue } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, createPossibleBoardSpots, emptyPossibleBoardSpots, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes, createSeededBoard, cloneBoard, hasAnyPossibleMove, isBoardEmpty } from '@/constants/Board';
+import {
+	BoardBlockType, JS_emptyPossibleBoardSpots, breakLines, canPlacePiece, clearHoverBlocks, cloneBoard,
+	createPossibleBoardSpots, createSeededBoard, emptyPossibleBoardSpots, getPlacementPreview,
+	hasAnyPossibleMove, isBoardEmpty, newEmptyBoard, placePieceOntoBoard, useGameSizes,
+	type Board, type ClearedLines, type PlacementPreview, type PossibleBoardSpots, type XYPoint,
+} from '@/constants/Board';
 import { StatsGameHud, StickyGameHud } from '@/components/game/GameHud';
 import BlockGrid from '@/components/game/BlockGrid';
 import { createRandomHand, createRandomHandWorklet, createSeededHand, getDailyPuzzleKey, getNumericSeedFromDate } from '@/constants/Hand';
+import { movedBeyondDropTarget, useWebDragRelease } from '@/hooks/useWebDragRelease';
 import HandPieces from '@/components/game/HandPieces';
 import { GameModeType, activeComboAtom } from '@/hooks/useAppState';
 import { createHighScore, HighScoreId, updateHighScore, SavedGameState, saveActiveGame, clearActiveGame } from '@/constants/Storage';
@@ -55,6 +61,17 @@ const SPRING_CONFIG_MISSED_DRAG = {
 
 type SecondChanceReason = "moves" | "time";
 
+function countFilled(board: Board): number {
+	"worklet";
+	let filled = 0;
+	for (const row of board) {
+		for (const cell of row) {
+			if (cell.blockType === BoardBlockType.FILLED) filled++;
+		}
+	}
+	return filled;
+}
+
 function decodeDndId(id: string): XYPoint {
 	"worklet";
 	const parts = id.split(",");
@@ -79,7 +96,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const levelId = useAtomValue(currentLevelAtom);
 	const level = gameMode === GameModeType.Level && levelId ? getLevel(levelId) : undefined;
 	const boardLength = modeConfig.boardLength;
-	const { GRID_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardLength);
+	const { GRID_BLOCK_SIZE, HITBOX_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardLength);
 	const handSize = modeConfig.handSize;
 	const timeLimitSeconds = level ? level.time : modeConfig.timeLimitSeconds;
 	const allowSecondChance = modeConfig.allowSecondChance;
@@ -101,21 +118,28 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		(!isDaily || initialState.dailyKey === dailyKey)
 	);
 	const validInitialState = canUseInitialState ? initialState! : null;
-	const handCount = useSharedValue(validInitialState ? validInitialState.handCount || 0 : 0);
-
-	const board = useSharedValue(
-		validInitialState 
-			? validInitialState.board 
-			: level ? createLevelBoard(level) : (isDaily ? createSeededBoard(boardLength, dailySeed) : (startBoard ? createSeededBoard(boardLength, Math.floor(Math.random() * 1000000000), startBoard.minBlocks, startBoard.maxBlocks) : newEmptyBoard(boardLength)))
-	);
+	const [opening] = useState(() => {
+		const board = validInitialState ? clearHoverBlocks(cloneBoard(validInitialState.board))
+			: level ? createLevelBoard(level)
+			: isDaily ? createSeededBoard(boardLength, dailySeed)
+			: startBoard ? createSeededBoard(boardLength, Math.floor(Math.random() * 1000000000), startBoard.minBlocks, startBoard.maxBlocks)
+			: newEmptyBoard(boardLength);
+		const handCount = validInitialState?.handCount ?? 0;
+		const hand = validInitialState?.hand
+			?? (level ? createSeededHand(handSize, level.seed + 1)
+				: isDaily ? createSeededHand(handSize, dailySeed + 1 + handCount)
+				: createRandomHand(handSize, gameMode));
+		return { board, hand, handCount, danger: isDangerFill(countFilled(board), boardLength * boardLength) };
+	});
+	const handCount = useSharedValue(opening.handCount);
+	const board = useSharedValue(opening.board);
+	const placementPreview = useSharedValue<PlacementPreview | null>(null);
+	const lineClear = useSharedValue<ClearedLines | null>(null);
 	const draggingPiece = useSharedValue<number | null>(null);
+	const { lastUpdate: lastDragPosition, releasedAt } = useWebDragRelease(draggingPiece);
 	const lastHoveredDropId = useSharedValue<string | null>(null);
 	const possibleBoardDropSpots = useSharedValue<PossibleBoardSpots>(JS_emptyPossibleBoardSpots(boardLength));
-	const hand = useSharedValue(
-		validInitialState 
-			? validInitialState.hand 
-			: level ? createSeededHand(handSize, level.seed + 1) : (isDaily ? createSeededHand(handSize, dailySeed + 1 + handCount.value) : createRandomHand(handSize, gameMode))
-	);
+	const hand = useSharedValue(opening.hand);
 	const score = useSharedValue(validInitialState ? validInitialState.score : 0);
 	const combo = useSharedValue(validInitialState ? validInitialState.combo : 0);
 	// How many moves ago was the last broken line?
@@ -177,18 +201,8 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	};
 
 	// The board is almost full: a red frame pulses around it and the music speeds up.
-	const countFilled = (cells: typeof board.value) => {
-		"worklet";
-		let filled = 0;
-		for (let y = 0; y < cells.length; y++) {
-			for (let x = 0; x < cells[y].length; x++) {
-				if (cells[y][x].blockType === BoardBlockType.FILLED) filled++;
-			}
-		}
-		return filled;
-	};
-	const danger = useSharedValue(isDangerFill(countFilled(board.value), boardLength * boardLength));
-	const [dangerOn, setDangerOn] = useState(danger.value);
+	const danger = useSharedValue(opening.danger);
+	const [dangerOn, setDangerOn] = useState(opening.danger);
 	useEffect(() => {
 		setMusicRate(dangerOn && !isGameOver ? 1.12 : 1);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -344,6 +358,11 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		momentRecorder.current?.clear();
 		setMomentOffer(null);
 		score.value = nextScore;
+		placementPreview.value = null;
+		lineClear.value = null;
+		draggingPiece.value = null;
+		lastHoveredDropId.value = null;
+		possibleBoardDropSpots.value = JS_emptyPossibleBoardSpots(boardLength);
 		board.value = nextBoard;
 		danger.value = isDangerFill(countFilled(nextBoard), boardLength * boardLength);
 		setDangerOn(danger.value);
@@ -451,13 +470,10 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		return () => { delete (window as any).__blockerino; };
 	}, [GRID_BLOCK_SIZE]);
 
-	const handleDragEnd: DndProviderProps["onDragEnd"] = ({ active, over }) => {
+	const handleDragEnd: DndProviderProps["onDragEnd"] = ({ over }) => {
 		"worklet";
+		if (draggingPiece.value == null) return;
 		if (over) {
-			if (draggingPiece.value == null) {
-				return;
-			}
-
 			const dropIdStr = over.id.toString();
 			const {x: dropX, y: dropY} = decodeDndId(dropIdStr);
 			if (isNaN(dropX) || isNaN(dropY)) {
@@ -466,9 +482,8 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				return;
 			}
 			const piece = hand.value[draggingPiece.value];
-			const cleanBoard = clearHoverBlocks(cloneBoard(board.value));
-			if (!piece || createPossibleBoardSpots(cleanBoard, piece)[dropY]?.[dropX] !== 1 || isGameOver || secondChanceReason) {
-				board.value = cleanBoard;
+			const cleanBoard = board.value;
+			if (!piece || !canPlacePiece(cleanBoard, piece, dropX, dropY) || isGameOver || secondChanceReason) {
 				draggingPiece.value = null;
 				possibleBoardDropSpots.value = emptyPossibleBoardSpots(boardLength);
 				return;
@@ -487,10 +502,11 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			// Звук размещения блока
 			runOnJS(playSfx)('placeBlock');
 
-			const newBoard = clearHoverBlocks(cloneBoard(board.value));
+			const newBoard = cloneBoard(cleanBoard);
 			placePieceOntoBoard(newBoard, piece, dropX, dropY, BoardBlockType.FILLED);
 
-			const linesBroken = breakLines(newBoard);
+			const cleared: ClearedLines = { rows: [], columns: [] };
+			const linesBroken = breakLines(newBoard, cleared);
 			
 			// add score from placing block
 			const pieceBlockCount = getBlockCount(piece);
@@ -576,6 +592,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 			}
 			hand.value = nextHand;
 			
+			lineClear.value = linesBroken > 0 ? cleared : null;
 			board.value = newBoard;
 			const nowDanger = isDangerFill(countFilled(newBoard), boardLength * boardLength);
 			if (nowDanger !== danger.value) {
@@ -610,7 +627,6 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				runOnJS(startSecondChanceOrFinish)("moves");
 			}
 		} else {
-			board.value = clearHoverBlocks(cloneBoard(board.value));
 			// Звук неудачного размещения
 			runOnJS(playSfx)('invalidPlacement');
 		}
@@ -620,9 +636,14 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 		possibleBoardDropSpots.value = emptyPossibleBoardSpots(boardLength);
 	};
 
-	const handleBegin: DndProviderProps["onBegin"] = (event, meta) => {
+	const handleBegin: DndProviderProps["onBegin"] = (_event, meta) => {
 		"worklet";
+		placementPreview.value = null;
 		lastHoveredDropId.value = null;
+		if (Platform.OS === "web") {
+			lastDragPosition.value = null;
+			releasedAt.value = null;
+		}
 		const handIndex = Number(meta.activeId.toString());
 		if (hand.value[handIndex] != null) {
 			draggingPiece.value = handIndex;
@@ -632,46 +653,29 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 
 	const handleFinalize: DndProviderProps["onFinalize"] = ({ state }) => {
 		"worklet";
+		placementPreview.value = null;
 		lastHoveredDropId.value = null;
-		if (state !== State.END) {
+		if (state !== State.END || (Platform.OS === "web" && movedBeyondDropTarget(lastDragPosition.value, releasedAt.value, GRID_BLOCK_SIZE + HITBOX_SIZE))) {
 			draggingPiece.value = null;
+			possibleBoardDropSpots.value = emptyPossibleBoardSpots(boardLength);
 		}
 	};
 
-	const handleUpdate: DndProviderProps["onUpdate"] = (event, {activeId, activeLayout, droppableActiveId}) => {
+	const handleUpdate: DndProviderProps["onUpdate"] = (event, { droppableActiveId }) => {
 		"worklet";
-		const currentDropId = droppableActiveId ? droppableActiveId.toString() : null;
-		if (currentDropId === lastHoveredDropId.value) {
-			return;
+		const index = draggingPiece.value;
+		if (index == null) return;
+		if (Platform.OS === "web" && event.pointerType === PointerType.MOUSE) {
+			lastDragPosition.value = { x: event.absoluteX, y: event.absoluteY };
 		}
+		const currentDropId = droppableActiveId?.toString() ?? null;
+		if (currentDropId === lastHoveredDropId.value) return;
 		lastHoveredDropId.value = currentDropId;
 
-		if (!currentDropId || currentDropId === "trash") {
-			board.value = clearHoverBlocks(cloneBoard(board.value));
-			return;
-		}
-
-		if (draggingPiece.value == null) {
-			return;
-		}
-
-		const {x: dropX, y: dropY} = decodeDndId(currentDropId);
-		if (isNaN(dropX) || isNaN(dropY)) {
-			board.value = clearHoverBlocks(cloneBoard(board.value));
-			return;
-		}
-		const piece: PieceData = hand.value[draggingPiece.value!]!;
-
-		// Fast check from precomputed drop spots matrix
-		const canFit = piece && possibleBoardDropSpots.value[dropY]?.[dropX] === 1;
-		const newBoard = clearHoverBlocks(cloneBoard(board.value));
-		if (!canFit) {
-			board.value = newBoard;
-			return;
-		}
-		updateHoveredBreaks(newBoard, piece, dropX, dropY);
-
-		board.value = newBoard;
+		const { x: dropX, y: dropY } = decodeDndId(currentDropId ?? "");
+		const piece = hand.value[index];
+		const canFit = piece != null && possibleBoardDropSpots.value[dropY]?.[dropX] === 1;
+		placementPreview.value = canFit ? getPlacementPreview(board.value, piece, dropX, dropY) : null;
 	};
 	
 	return (        
@@ -680,11 +684,11 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				<View style={styles.root}>
 					<StickyGameHud gameMode={gameMode} score={score}></StickyGameHud>
 					<DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
-						<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand} gameMode={gameMode} timeRemaining={timeRemaining} movesRemaining={movesRemaining}></StatsGameHud>
+						<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} handSize={handSize} gameMode={gameMode} timeRemaining={timeRemaining} movesRemaining={movesRemaining} />
 						{level && <LevelHud level={level} score={score} lines={levelLines} bestCombo={levelBestCombo} gemsLeft={levelGems} movesRemaining={movesRemaining} timeRemaining={timeRemaining} width={GRID_BLOCK_SIZE * boardLength + 6} />}
 						{hasRunGoals(gameMode) && <RunGoalBar gameMode={gameMode} score={score} initialScore={validInitialState ? validInitialState.score : 0} width={GRID_BLOCK_SIZE * boardLength + 6} />}
 						<View style={{ position: 'relative', alignSelf: 'center' }}>
-							<BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece} combo={combo}></BlockGrid>
+							<BlockGrid board={board} placementPreview={placementPreview} lineClear={lineClear} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece} combo={combo}></BlockGrid>
 							<DangerFrame active={dangerOn && !isGameOver} />
 							{momentOffer && !isGameOver && !secondChanceReason && !momentOpen && (
 								<MomentToast

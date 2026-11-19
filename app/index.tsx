@@ -258,7 +258,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 	
 	const isMultiplayerGameVisible = !!appState.containsState(MenuStateType.MULTIPLAYER_GAME) && !!multiplayerRoomId;
 	const isGameplayActive = gameMode !== undefined || isMultiplayerGameVisible;
-	const particleConfig = getBackgroundParticleConfig(shopState.equipped.background, isGameplayActive);
+	const particleConfig = getBackgroundParticleConfig(shopState.equipped.background);
 
 	return (
 		<>
@@ -266,12 +266,12 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 		<Animated.View entering={FadeIn} exiting={FadeOut} style={styles.container}>
 			<AnimatedBackground isGameplayActive={isGameplayActive} />
 			{clientEffectsReady && <BackgroundSceneLayer backgroundId={shopState.equipped.background} accent={getShopItem(shopState.equipped.background)?.accent ?? "#FFFFFF"} isGameplayActive={isGameplayActive} />}
-			{/* Falling pieces live in their own layer at the very back, so they never draw over buttons or text. */}
-			{clientEffectsReady && (
-				<View pointerEvents="none" style={styles.particleLayer}>
+			{/* Decorative pieces look like extra playable pieces when they move next to the board. */}
+			{clientEffectsReady && !isGameplayActive && (
+				<View testID="background-pieces" pointerEvents="none" style={styles.particleLayer}>
 					{[...Array(particleConfig.count)].map((_, i) => (
 						<PieceParticle
-							key={`particle${i}-${isGameplayActive ? 'game' : 'menu'}`}
+							key={`particle${i}`}
 							blockSize={particleConfig.blockSize}
 							maxOpacity={particleConfig.maxOpacity}
 						/>

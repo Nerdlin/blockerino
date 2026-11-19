@@ -27,6 +27,8 @@ import {
 	Board,
 	BoardBlock,
 	BoardBlockType,
+	type ClearedLines,
+	type PlacementPreview,
 	forEachBoardBlock,
 	PossibleBoardSpots,
 	useGameSizes
@@ -47,14 +49,11 @@ import { useEffect, useState } from "react";
 import { StyleSheet, Platform, View } from "react-native";
 import Animated, {
 	SharedValue,
-	interpolateColor,
 	makeMutable,
 	runOnJS,
 	useAnimatedReaction,
 	useAnimatedStyle,
 	useSharedValue,
-	withDelay,
-	withRepeat,
 	withSequence,
 	withTiming,
 } from "react-native-reanimated";
@@ -69,6 +68,8 @@ function isJsFirstRun() {
 
 interface BlockGridProps {
 	board: SharedValue<Board>;
+	placementPreview: SharedValue<PlacementPreview | null>;
+	lineClear: SharedValue<ClearedLines | null>;
 	possibleBoardDropSpots: SharedValue<PossibleBoardSpots>;
 	hand: SharedValue<Hand>;
 	draggingPiece: SharedValue<number | null>;
@@ -89,7 +90,7 @@ interface SparkParticleProps {
 	x: number;
 	y: number;
 	gridBlockSize: number;
-	cell: SharedValue<BoardBlock>;
+	cell: SharedValue<GridCell>;
 }
 
 function SparkParticle({ sparkProgress, index, x, y, gridBlockSize, cell }: SparkParticleProps) {
@@ -139,16 +140,18 @@ function SparkParticle({ sparkProgress, index, x, y, gridBlockSize, cell }: Spar
 	return <Animated.View style={[styles.pointerEventsNone, animatedStyle]} />;
 }
 
+type GridCell = BoardBlock & { clearVersion: number };
+
 interface GridBlockProps {
 	x: number;
 	y: number;
 	/** This cell of the board, mirrored by the grid only when it changes (see BlockGridView). */
-	cell: SharedValue<BoardBlock>;
-	boardSize: number;
+	cell: SharedValue<GridCell>;
 	gridBlockSize: number;
 	currentTheme: Theme;
 	pieceSkinId: string;
-	/** Whether the cell was empty when it went live (it then joins the opening light sweep). */
+	showDebris: boolean;
+	/** Whether the cell was empty when it was first drawn. */
 	startsEmpty: boolean;
 	/** The colour of the block it held when it went live. */
 	startColor: Color;
@@ -160,104 +163,83 @@ const CELL_RESET = Platform.OS === "web"
 	? { transform: [], zIndex: 0, boxShadow: "none" }
 	: { transform: [], zIndex: 0, boxShadow: [] as never[] };
 
-// Memoised like BlockDroppable below: while the board goes live row by row, a re-render of the grid must not set up
-// every cell that is already live again.
-const GridBlock = React.memo(function GridBlock({ x, y, cell, boardSize, gridBlockSize, currentTheme, pieceSkinId, startsEmpty, startColor }: GridBlockProps) {
-	// The board has 64-100 cells and every hook here is paid once per cell when a game opens (it took seconds on a
-	// phone), so a cell keeps as few shared values and animated styles as it can: the break direction is fixed per
-	// cell, the white flash is drawn by the static style, and the spark progress exists only where sparks are drawn.
-	const loadBlockFlash = useSharedValue(0);
-	const placedBlockFall = useSharedValue(0);
-	const waveEffect = useSharedValue(0);
-	const flashOpacity = useSharedValue(0);
-	// 1 when the block stands still; runs 0 -> 1 when a block is placed (the skin's own way of appearing)
-	const appear = useSharedValue(1);
-	// neon skins: a cell a block just left keeps its glow for a moment and lets it fade (a light trail)
-	const trail = useSharedValue(0);
-	const trailColor = useSharedValue("#ffffff");
+function CellDebris({ x, y, cell, gridBlockSize, pieceSkinId, startColor }: Pick<GridBlockProps, "x" | "y" | "cell" | "gridBlockSize" | "pieceSkinId" | "startColor">) {
+	const progress = useSharedValue(0);
+	const color = useSharedValue(startColor);
 	const skinKind = getSkinKindId(pieceSkinId);
-	// eslint-disable-next-line react-hooks/rules-of-hooks -- PARTICLE_CONFIGS is fixed per platform, so the hook count never changes
+	// eslint-disable-next-line react-hooks/rules-of-hooks -- fixed per platform
 	const sparkProgress = PARTICLE_CONFIGS.length > 0 ? useSharedValue(0) : null;
-	const cellSeed = (x * 7919 + y * 104729 + 31) % 100003;
-	const fallAngle = ((cellSeed % 628) / 100);
-	const fallDistance = 50 + (cellSeed % 100);
-	const fallDirectionX = Math.cos(fallAngle) * fallDistance;
-	const fallDirectionY = Math.sin(fallAngle) * fallDistance;
-	const fallRotation = ((cellSeed * 7) % 720) - 360;
+	const seed = (x * 7919 + y * 104729 + 31) % 100003;
+	const angle = (seed % 628) / 100;
+	const distance = 50 + (seed % 100);
+	const dx = Math.cos(angle) * distance;
+	const dy = Math.sin(angle) * distance;
+	const rotation = ((seed * 7) % 720) - 360;
 
-	// Реакция на изменение состояния блока
-	useAnimatedReaction(() => {
-		return cell.value.blockType;
-	}, (cur, prev) => {
-		if ((skinKind & 15) === SKIN_NEON) {
-			if (cur === BoardBlockType.HOVERED || cur === BoardBlockType.FILLED) {
-				trailColor.value = colorToHex(cell.value.color);
-				trail.value = 0;
-			} else if (cur === BoardBlockType.EMPTY && prev !== null && prev !== BoardBlockType.EMPTY) {
-				trail.value = 1;
-				trail.value = withTiming(0, { duration: 700 });
-			}
-		}
-		// Анимация при удалении блока
-		if (cur === BoardBlockType.EMPTY && (prev === BoardBlockType.FILLED || prev === BoardBlockType.HOVERED_BREAK_EMPTY || prev === BoardBlockType.HOVERED_BREAK_FILLED)) {
-			// the wave of "about to break" repeats forever; the cleared cell does not need it any more
-			waveEffect.value = 0;
-			flashOpacity.value = withSequence(
-				withTiming(1, { duration: 100 }),
-				withTiming(0, { duration: 250 })
-			);
-
-
-			placedBlockFall.value = withSequence(
-				withTiming(1, { duration: 600 }),
-				withTiming(0, { duration: 0 })
-			);
-
-			if (sparkProgress) {
-				sparkProgress.value = 0;
-				sparkProgress.value = withTiming(1, { duration: 550 });
-			}
-		}
-		// Сброс анимации при размещении нового блока
-		else if (cur === BoardBlockType.FILLED && (prev === BoardBlockType.EMPTY || prev === BoardBlockType.HOVERED)) {
-			placedBlockFall.value = 0;
-			appear.value = 0;
-			appear.value = withTiming(1, { duration: 280 });
-			if (sparkProgress) sparkProgress.value = 0;
-		}
-		// Анимация волны для блоков, которые будут разрушены
-		else if ((cur === BoardBlockType.HOVERED_BREAK_FILLED || cur === BoardBlockType.HOVERED_BREAK_EMPTY) &&
-				(prev === BoardBlockType.FILLED || prev === BoardBlockType.EMPTY)) {
-			waveEffect.value = withRepeat(
-				withTiming(1, { duration: 400 }),
-				-1,
-				true
-			);
-		}
-		// Сброс анимации волны
-		else if ((cur === BoardBlockType.FILLED || cur === BoardBlockType.EMPTY) &&
-				(prev === BoardBlockType.HOVERED_BREAK_FILLED || prev === BoardBlockType.HOVERED_BREAK_EMPTY)) {
-			waveEffect.value = 0;
+	useAnimatedReaction(() => cell.value.clearVersion, (current, previous) => {
+		if (current === (previous ?? 0)) return;
+		color.value = cell.value.color;
+		progress.value = 0;
+		progress.value = withTiming(1, { duration: 600 });
+		if (sparkProgress) {
+			sparkProgress.value = 0;
+			sparkProgress.value = withTiming(1, { duration: 550 });
 		}
 	});
 
-	// Анимация загрузки блоков при первом рендере
-	useEffect(() => {
-		if (!startsEmpty)
-			return;
-		const step = 70;
-		const upwardDelay = (boardSize - 1 - y) * step;
-		const downwardDelay = 2 * y * step;
+	const box = useAnimatedStyle(() => {
+		const fill = isJsFirstRun() ? startColor : color.value;
+		return {
+			...createFilledBlockStyle(fill, 7, pieceSkinId),
+			...skinBlockShape(skinKind, gridBlockSize, colorToHex(getPieceSkinColor(fill, pieceSkinId))),
+		};
+	});
+	const motion = useAnimatedStyle(() => {
+		if (isJsFirstRun()) return { opacity: 0 };
+		const t = progress.value;
+		if (t <= 0 || t >= 1 || cell.value.blockType !== BoardBlockType.EMPTY) return { opacity: 0 };
+		return skinClear(skinKind, t, gridBlockSize, dx, dy, rotation);
+	});
 
-		loadBlockFlash.value = withDelay(
-			upwardDelay,
-			withSequence(
-				withTiming(1, { duration: step }),
-				withDelay(downwardDelay, withTiming(0, { duration: step }))
-			)
-		);
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	return (
+		<>
+			<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { width: gridBlockSize, height: gridBlockSize, zIndex: 20 }, box, motion]} />
+			{PARTICLE_CONFIGS.map((_, index) => (
+				<SparkParticle key={index} sparkProgress={sparkProgress!} index={index} x={x} y={y} gridBlockSize={gridBlockSize} cell={cell} />
+			))}
+		</>
+	);
+}
+
+function CellNeonGlow({ cell, gridBlockSize }: Pick<GridBlockProps, "cell" | "gridBlockSize">) {
+	const opacity = useSharedValue(0);
+	const color = useSharedValue("#FFFFFF");
+	useAnimatedReaction(() => cell.value.clearVersion, (current, previous) => {
+		if (current === (previous ?? 0)) return;
+		color.value = colorToHex(cell.value.color);
+		opacity.value = 1;
+		opacity.value = withTiming(0, { duration: 700 });
+	});
+	const glow = useAnimatedStyle(() => {
+		if (isJsFirstRun()) return {};
+		const hex = color.value;
+		const rgba = `rgba(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)}, 0.85)`;
+		return { boxShadow: `0 0 ${Math.round(gridBlockSize * 0.3)}px ${rgba}` };
+	});
+	const fade = useAnimatedStyle(() => ({ opacity: isJsFirstRun() || cell.value.blockType !== BoardBlockType.EMPTY ? 0 : opacity.value }));
+	return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, glow, fade]} />;
+}
+
+const GridBlock = React.memo(function GridBlock({ x, y, cell, gridBlockSize, currentTheme, pieceSkinId, showDebris, startsEmpty, startColor }: GridBlockProps) {
+	const appear = useSharedValue(1);
+	const skinKind = getSkinKindId(pieceSkinId);
+
+	useAnimatedReaction(() => cell.value.blockType, (current, previous) => {
+		if (current === BoardBlockType.FILLED && previous === BoardBlockType.EMPTY) {
+			appear.value = 0;
+			appear.value = withTiming(1, { duration: 280 });
+		}
+	});
 
 	const staticStyle = useAnimatedStyle(() => {
 		// Reanimated runs a style once on the JS thread (runtime kind 1) for the first frame; reading the board there would copy it
@@ -272,84 +254,16 @@ const GridBlock = React.memo(function GridBlock({ x, y, cell, boardSize, gridBlo
 			return { ...CELL_RESET, ...createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) };
 		}
 
-		let style: any = { ...CELL_RESET, ...createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) };
-		// a gem of a level (constants/Levels.ts): clear its row or column to break it
-		if (block.blockType === BoardBlockType.FILLED && isGemColor(block.color)) {
+		if (isGemColor(block.color)) {
 			return { ...CELL_RESET, ...gemBlockStyle(gridBlockSize) };
 		}
-		if (block.blockType === BoardBlockType.FILLED || block.blockType === BoardBlockType.HOVERED) {
-			style = {
-				...CELL_RESET,
-				...createFilledBlockStyle(block.color, 7, pieceSkinId),
-				...skinBlockShape(skinKind, gridBlockSize, colorToHex(getPieceSkinColor(block.color, pieceSkinId))),
-				opacity: block.blockType === BoardBlockType.HOVERED ? 0.45 : 1,
-				transform: []
-			};
-			if (block.blockType === BoardBlockType.FILLED && appear.value < 1) {
-				style = { ...style, ...skinAppear(skinKind, appear.value, gridBlockSize) };
-			}
-		}
-		// Улучшенная анимация для блоков, которые будут разрушены
-		else if (block.blockType === BoardBlockType.HOVERED_BREAK_EMPTY || block.blockType === BoardBlockType.HOVERED_BREAK_FILLED) {
-			const blockColor = block.blockType === BoardBlockType.HOVERED_BREAK_EMPTY ? block.color : block.hoveredBreakColor;
-
-			// Волновой эффект
-			const waveScale = 1 + (waveEffect.value * 0.1);
-
-			style = {
-				...CELL_RESET,
-				...createFilledBlockStyle(blockColor, 7, pieceSkinId),
-				borderWidth: 2,
-				borderColor: interpolateColor(
-					waveEffect.value,
-					[0, 0.5, 1],
-					['rgba(255, 255, 255, 0.4)', 'rgba(255, 255, 255, 1)', 'rgba(255, 255, 255, 0.4)']
-				),
-				transform: [
-					{ scale: waveScale }
-				],
-				zIndex: 10
-			};
-		}
-
-		return style;
-	});
-
-	// the opening light sweep (faint) and the flash of a cleared block (near white) light an empty cell from a white layer
-	// under it, by opacity only: animating the cell's own background re-ran its whole style and was a slow update per frame
-	const flashStyle = useAnimatedStyle(() => {
-		if (isJsFirstRun()) return { opacity: 0 };
-		const v = Math.max(loadBlockFlash.value * 0.15, flashOpacity.value * 0.9);
-		return { opacity: v > 0.0075 && cell.value.blockType === BoardBlockType.EMPTY ? v : 0 };
-	});
-
-	// the neon trail: its colour and glow are set once per block that leaves, the fade is only opacity (a cheap update;
-	// an animated boxShadow made Android redo the whole view tree every frame while a piece was dragged)
-	const neon = (skinKind & 15) === SKIN_NEON;
-	const glowBox = useAnimatedStyle((): any => {
-		if (!neon || isJsFirstRun()) return { opacity: 0 };
-		const h = trailColor.value;
-		const rgba = `rgba(${parseInt(h.slice(1, 3), 16)}, ${parseInt(h.slice(3, 5), 16)}, ${parseInt(h.slice(5, 7), 16)}, 0.85)`;
-		return { boxShadow: `0 0 ${Math.round(gridBlockSize * 0.3)}px ${rgba}` };
-	});
-	const glowFade = useAnimatedStyle(() => ({ opacity: neon && trail.value > 0.02 ? trail.value : 0 }));
-
-	const fallingStyle = useAnimatedStyle(() => {
-		if (placedBlockFall.value > 0) {
-			const block = cell.value;
-			return {
-				...createFilledBlockStyle(block.color, 7, pieceSkinId),
-				...skinBlockShape(skinKind, gridBlockSize, colorToHex(getPieceSkinColor(block.color, pieceSkinId))),
-				...skinClear(skinKind, placedBlockFall.value, gridBlockSize, fallDirectionX, fallDirectionY, fallRotation),
-				position: 'absolute',
-				top: 0,
-				left: 0,
-				width: gridBlockSize,
-				height: gridBlockSize,
-				zIndex: 20
-			};
-		}
-		return { opacity: 0, width: 0, height: 0, position: 'absolute' };
+		return {
+			...CELL_RESET,
+			...createFilledBlockStyle(block.color, 7, pieceSkinId),
+			...skinBlockShape(skinKind, gridBlockSize, colorToHex(getPieceSkinColor(block.color, pieceSkinId))),
+			opacity: 1,
+			...(appear.value < 1 ? skinAppear(skinKind, appear.value, gridBlockSize) : {}),
+		};
 	});
 
 	// the skin's surface over a filled block (stone face, crystal facet, lava core, neon hollow, drop shine). It sits in a
@@ -358,8 +272,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, cell, boardSize, gridBlo
 	const decorFrameStyle = useAnimatedStyle((): any => {
 		if (skinKind === 0 || isJsFirstRun()) return { opacity: 0 };
 		const block = cell.value;
-		if ((block.blockType !== BoardBlockType.FILLED && block.blockType !== BoardBlockType.HOVERED) || isGemColor(block.color)) return { opacity: 0 };
-		if (block.blockType === BoardBlockType.HOVERED) return { opacity: 0.45, transform: [] };
+		if (block.blockType !== BoardBlockType.FILLED || isGemColor(block.color)) return { opacity: 0, transform: [] };
 		if (appear.value < 1) {
 			const a = skinAppear(skinKind, appear.value, gridBlockSize) as { opacity?: number; transform?: any[] };
 			return { opacity: a.opacity ?? 1, transform: a.transform ?? [] };
@@ -371,32 +284,112 @@ const GridBlock = React.memo(function GridBlock({ x, y, cell, boardSize, gridBlo
 
 	return (
 		<>
-			<Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: 0, width: gridBlockSize, height: gridBlockSize, backgroundColor: "#FFFFFF" }, flashStyle]} />
 			<Animated.View style={[staticStyle, { width: gridBlockSize, height: gridBlockSize, justifyContent: 'center', alignItems: 'center' }]} />
 			{decor && (
 				<Animated.View pointerEvents="none" style={[decorFrame, decorFrameStyle]}>
 					<SkinTexture skinId={pieceSkinId} />
 				</Animated.View>
 			)}
-			{neon && <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: 0, width: gridBlockSize, height: gridBlockSize }, glowBox, glowFade]} />}
-			<Animated.View style={fallingStyle} />
-			{PARTICLE_CONFIGS.map((_, i) => (
-				<SparkParticle
-					key={`spark-${i}`}
-					sparkProgress={sparkProgress!}
-					index={i}
-					x={x}
-					y={y}
-					gridBlockSize={gridBlockSize}
-					cell={cell}
-				/>
-			))}
+			{(skinKind & 15) === SKIN_NEON && <CellNeonGlow cell={cell} gridBlockSize={gridBlockSize} />}
+			{showDebris && <CellDebris x={x} y={y} cell={cell} gridBlockSize={gridBlockSize} pieceSkinId={pieceSkinId} startColor={startColor} />}
 		</>
 	);
 });
 
+// The overlays below are plain Views animated by opacity and transform. They used to be react-native-svg paths whose
+// "d" changed while a piece was dragged and when a line cleared; on a phone each of those updates re-drew an SVG bitmap
+// on the main thread (measured on a Galaxy: dragging and clearing a line cost about twice as many slow frames).
+function ClearFlashBar({ axis, k, lineClear, brightness, size, n }: { axis: "row" | "column"; k: number; lineClear: SharedValue<ClearedLines | null>; brightness: SharedValue<number>; size: number; n: number }) {
+	const style = useAnimatedStyle(() => {
+		if (isJsFirstRun()) return { opacity: 0 };
+		const cleared = lineClear.value;
+		const hit = cleared != null && (axis === "row" ? cleared.rows.includes(k) : cleared.columns.includes(k));
+		return { opacity: hit ? brightness.value : 0 };
+	});
+	const length = n * size;
+	return <Animated.View pointerEvents="none" style={[styles.overlayBar, axis === "row" ? { left: 0, top: k * size, width: length, height: size } : { left: k * size, top: 0, width: size, height: length }, style]} />;
+}
+
+function ClearFlash({ lineClear, size, n }: { lineClear: SharedValue<ClearedLines | null>; size: number; n: number }) {
+	const brightness = useSharedValue(0);
+	useAnimatedReaction(() => lineClear.value, (cleared) => {
+		if (!cleared) return;
+		brightness.value = withSequence(withTiming(0.82, { duration: 75 }), withTiming(0, { duration: 230 }));
+	});
+	const bars: React.ReactNode[] = [];
+	for (let k = 0; k < n; k++) {
+		bars.push(<ClearFlashBar key={`r${k}`} axis="row" k={k} lineClear={lineClear} brightness={brightness} size={size} n={n} />);
+		bars.push(<ClearFlashBar key={`c${k}`} axis="column" k={k} lineClear={lineClear} brightness={brightness} size={size} n={n} />);
+	}
+	return <View pointerEvents="none" style={StyleSheet.absoluteFill}>{bars}</View>;
+}
+
+function OpeningSweep({ size, n }: { size: number; n: number }) {
+	const progress = useSharedValue(0);
+	useEffect(() => {
+		progress.value = withTiming(1, { duration: 420 });
+	}, [progress]);
+	const band = useAnimatedStyle(() => {
+		if (isJsFirstRun()) return { opacity: 0 };
+		const t = progress.value;
+		return { opacity: 0.45 * t * (1 - t), transform: [{ translateY: (n - (n + 2) * t) * size }] };
+	});
+	return <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.clip]}>
+		<Animated.View style={[{ height: 2 * size, backgroundColor: "white" }, band]} />
+	</View>;
+}
+
+function PreviewCell({ column, row, hand, draggingPiece, size }: { column: number; row: number; hand: SharedValue<Hand>; draggingPiece: SharedValue<number | null>; size: number }) {
+	// the shape of the dragged piece changes only when a drag starts or another piece is picked up
+	const style = useAnimatedStyle(() => {
+		if (isJsFirstRun()) return { opacity: 0 };
+		const index = draggingPiece.value;
+		const matrix = index == null ? undefined : hand.value[index]?.matrix;
+		return { opacity: matrix != null && matrix[row] != null && matrix[row][column] >= 1 ? 1 : 0 };
+	});
+	return <Animated.View pointerEvents="none" style={[styles.previewCell, { left: column * size + 1, top: row * size + 1, width: size - 2, height: size - 2 }, style]} />;
+}
+
+function PreviewLine({ axis, k, placementPreview, size, n }: { axis: "row" | "column"; k: number; placementPreview: SharedValue<PlacementPreview | null>; size: number; n: number }) {
+	const style = useAnimatedStyle(() => {
+		if (isJsFirstRun()) return { opacity: 0 };
+		const preview = placementPreview.value;
+		const hit = preview != null && (axis === "row" ? preview.rows.includes(k) : preview.columns.includes(k));
+		return { opacity: hit ? 1 : 0 };
+	});
+	const length = n * size - 2;
+	return <Animated.View pointerEvents="none" style={[styles.previewLine, axis === "row" ? { left: 1, top: k * size + 1, width: length, height: size - 2 } : { left: k * size + 1, top: 1, width: size - 2, height: length }, style]} />;
+}
+
+function LandingPreview({ placementPreview, hand, draggingPiece, size, n }: Pick<BlockGridProps, "placementPreview" | "hand" | "draggingPiece"> & { size: number; n: number }) {
+	const position = useAnimatedStyle(() => {
+		const preview = placementPreview.value;
+		return {
+			opacity: preview ? 1 : 0,
+			transform: [{ translateX: (preview?.x ?? 0) * size }, { translateY: (preview?.y ?? 0) * size }],
+		};
+	});
+	const cells: React.ReactNode[] = [];
+	for (let row = 0; row < 5; row++) {
+		for (let column = 0; column < 5; column++) cells.push(<PreviewCell key={`${column},${row}`} column={column} row={row} hand={hand} draggingPiece={draggingPiece} size={size} />);
+	}
+	const lines: React.ReactNode[] = [];
+	for (let k = 0; k < n; k++) {
+		lines.push(<PreviewLine key={`r${k}`} axis="row" k={k} placementPreview={placementPreview} size={size} n={n} />);
+		lines.push(<PreviewLine key={`c${k}`} axis="column" k={k} placementPreview={placementPreview} size={size} n={n} />);
+	}
+	return (
+		<View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 10, overflow: "hidden" }]}>
+			<Animated.View testID="landing-preview" style={[StyleSheet.absoluteFill, position]}>{cells}</Animated.View>
+			<View testID="landing-preview-lines" style={StyleSheet.absoluteFill}>{lines}</View>
+		</View>
+	);
+}
+
 function BlockGridView({
 	board,
+	placementPreview,
+	lineClear,
 	possibleBoardDropSpots,
 	draggingPiece,
 	hand,
@@ -406,24 +399,25 @@ function BlockGridView({
 	// plain cells at once and swaps in the animated ones a couple of rows per frame, under the opening light sweep.
 	// Reading a shared value on the JS thread is a synchronous trip to the UI runtime that copies the whole board, so
 	// a render reads it once; reading it once per cell took about half a second per render on a phone.
-	const snapshot = board.value;
+	const snapshot = React.useMemo(() => board.value, [board]);
 	const boardLength = snapshot.length;
-	// One shared value per cell, written only when that cell changes: a dragged piece moving one cell over rewrites the
-	// whole board, and with every cell reading the board all 64-100 cells re-ran their styles (several per cell) for it.
-	const cells = React.useMemo(() => snapshot.flat().map((block) => makeMutable<BoardBlock>(block)),
+	// Only cells touched by a committed move need to update their styles.
+	const cells = React.useMemo(() => snapshot.flat().map((block) => makeMutable<GridCell>({ ...block, clearVersion: 0 })),
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- the cells follow the board through the reaction below
 		[board, boardLength]);
-	useAnimatedReaction(() => board.value, (cur) => {
-		const n = cur.length;
+	useAnimatedReaction(() => board.value, (current, previous) => {
+		const cleared = previous ? lineClear.value : null;
+		const n = current.length;
 		for (let y = 0; y < n; y++) {
 			for (let x = 0; x < n; x++) {
-				const c = cells[y * n + x];
-				if (!c) continue;
-				const b = cur[y][x];
-				const o = c.value;
-				if (o === b) continue;
-				if (o.blockType !== b.blockType || o.color.r !== b.color.r || o.color.g !== b.color.g || o.color.b !== b.color.b
-					|| o.hoveredBreakColor.r !== b.hoveredBreakColor.r || o.hoveredBreakColor.g !== b.hoveredBreakColor.g || o.hoveredBreakColor.b !== b.hoveredBreakColor.b) c.value = b;
+				const cell = cells[y * n + x];
+				if (!cell) continue;
+				const next = current[y][x];
+				const old = cell.value;
+				const didClear = cleared?.rows.includes(y) || cleared?.columns.includes(x);
+				if (didClear || old.blockType !== next.blockType || old.color.r !== next.color.r || old.color.g !== next.color.g || old.color.b !== next.color.b) {
+					cell.value = { ...next, clearVersion: old.clearVersion + (didClear ? 1 : 0) };
+				}
 			}
 		}
 	}, [cells]);
@@ -442,6 +436,7 @@ function BlockGridView({
 	// the skin's animation layer joins once every row is live, so it does not slow the opening of a game
 	const skinAnim = getSkinAnim(pieceSkinId);
 	const reducedFx = useReducedFx();
+	const showDebris = Platform.OS !== "android" || skinAnim == null;
 
 	forEachBoardBlock(snapshot, (block, x, y) => {
 		const blockPositionStyle = {
@@ -460,10 +455,10 @@ function BlockGridView({
 					x={x}
 					y={y}
 					cell={cells[y * boardLength + x]}
-					boardSize={boardLength}
 					gridBlockSize={GRID_BLOCK_SIZE}
 					currentTheme={currentTheme}
 					pieceSkinId={pieceSkinId}
+					showDebris={showDebris}
 					startsEmpty={block.blockType === BoardBlockType.EMPTY}
 					startColor={block.color}
 				/>}
@@ -516,8 +511,11 @@ function BlockGridView({
 		>
 			{gridLines}
 			{blockElements}
+			<OpeningSweep size={GRID_BLOCK_SIZE} n={boardLength} />
+			<ClearFlash lineClear={lineClear} size={GRID_BLOCK_SIZE} n={boardLength} />
+			<LandingPreview placementPreview={placementPreview} hand={hand} draggingPiece={draggingPiece} size={GRID_BLOCK_SIZE} n={boardLength} />
 			{skinAnim && liveRows >= boardLength && (
-				<OwnBoardFx board={board} combo={combo} skinId={pieceSkinId} anim={skinAnim} blockSize={GRID_BLOCK_SIZE} reduced={reducedFx} />
+				<OwnBoardFx board={board} lineClear={lineClear} combo={combo} skinId={pieceSkinId} anim={skinAnim} blockSize={GRID_BLOCK_SIZE} reduced={reducedFx} />
 			)}
 		</Animated.View>
 	);
@@ -561,7 +559,7 @@ const BlockDroppable = React.memo(function BlockDroppable({
 		const row = possibleBoardDropSpots.value[y];
 		return row ? row[x] === 1 : false;
 	}, (active, previousActive) => {
-		if (previousActive !== undefined && active !== previousActive) {
+		if (previousActive !== null && active !== previousActive) {
 			runOnJS(updateLayout)();
 		}
 	});
@@ -599,6 +597,10 @@ const BlockDroppable = React.memo(function BlockDroppable({
 });
 
 const styles = StyleSheet.create({
+	overlayBar: { position: "absolute", backgroundColor: "white" },
+	previewCell: { position: "absolute", backgroundColor: "rgba(255,255,255,0.24)", borderWidth: 1, borderColor: "rgba(255,255,255,0.75)" },
+	previewLine: { position: "absolute", borderWidth: 2, borderColor: "#FFE69E" },
+	clip: { overflow: "hidden" },
 	grid: {
 		borderWidth: 3,
 		borderRadius: 2,

@@ -243,8 +243,8 @@ describe("shop catalog and wallet", () => {
 		expect(getBackgroundScene("background_classic")).toBe("classic");
 		expect(getBackgroundScene("background_ender")).toBe("ender");
 
-		const classic = getBackgroundParticleConfig("background_classic", false);
-		const ender = getBackgroundParticleConfig("background_ender", false);
+		const classic = getBackgroundParticleConfig("background_classic");
+		const ender = getBackgroundParticleConfig("background_ender");
 
 		expect(ender.count).toBeGreaterThan(0);
 		expect(ender.count).toBeLessThan(classic.count);

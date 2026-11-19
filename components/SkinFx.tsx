@@ -10,7 +10,7 @@ import Animated, {
 	withDelay,
 	withTiming,
 } from "react-native-reanimated";
-import type { Board } from "@/constants/Board";
+import type { Board, ClearedLines } from "@/constants/Board";
 import type { SkinAnim } from "@/constants/SkinAnimations";
 import { getSkinAnim } from "@/constants/SkinAnimations";
 import {
@@ -45,9 +45,10 @@ function isJsFirstRun() {
 
 const HIDDEN = { opacity: 0 };
 const NO_BOX = { width: 0, height: 0 };
-const POOL_BOARD = Platform.OS === "web" ? 72 : 56;
+const ANDROID_PARTICLE_LIMITS = { place: 8, clear: 14, combo: 12 };
+const POOL_BOARD = Platform.OS === "android" ? 34 : Platform.OS === "web" ? 72 : 56;
 const POOL_SMALL = 24;
-const POOL_TRAIL = 10;
+const POOL_TRAIL = Platform.OS === "android" ? 7 : 10;
 const BEAMS = 3;
 
 export type FxSlot = { p: SharedValue<number>; i: SharedValue<FxParticle | null> };
@@ -214,6 +215,7 @@ function Canvas({ slots, beams, idleNodes }: { slots: FxSlot[]; beams: BeamSlot[
 
 type OwnProps = {
 	board: SharedValue<Board>;
+	lineClear: SharedValue<ClearedLines | null>;
 	combo?: SharedValue<number>;
 	skinId: string;
 	anim: SkinAnim;
@@ -225,7 +227,7 @@ type OwnProps = {
  * The animation layer of the player's own board: it watches the board on the UI thread and turns blocks landing and
  * going, and lines being cleared, into the skin's particles and bars (and the combo effect of chest skins).
  */
-const OwnBoardFxLayer = memo(function OwnBoardFxLayer({ board, combo, skinId, anim, blockSize, reduced }: OwnProps) {
+const OwnBoardFxLayer = memo(function OwnBoardFxLayer({ board, lineClear, combo, skinId, anim, blockSize, reduced }: OwnProps) {
 	const slots = useParticleSlots(POOL_BOARD);
 	const beams = useBeamSlots(BEAMS);
 	const cursor = useSharedValue(0);
@@ -237,9 +239,16 @@ const OwnBoardFxLayer = memo(function OwnBoardFxLayer({ board, combo, skinId, an
 		() => board.value,
 		(cur, prev) => {
 			if (!prev || cur === prev) return;
-			const ev = diffBoards(prev, cur, true);
+			const ev = diffBoards(prev, cur, lineClear.value);
 			if (ev.placed.length === 0 && ev.cleared.length === 0) return;
-			const plan = planEvents(anim, ev, prev, cur, skinId, { B: blockSize, pitch: blockSize, seed: Math.floor(Math.random() * 2147483647), combo: combo ? combo.value : 0, level });
+			const plan = planEvents(anim, ev, prev, cur, skinId, {
+				B: blockSize,
+				pitch: blockSize,
+				seed: Math.floor(Math.random() * 2147483647),
+				combo: combo ? combo.value : 0,
+				level,
+				particleLimits: Platform.OS === "android" ? ANDROID_PARTICLE_LIMITS : undefined,
+			});
 			cursor.value = pushParticles(slots, cursor.value, plan.ps);
 			beamCursor.value = pushBeams(beams, beamCursor.value, plan.bs);
 		},
@@ -282,7 +291,7 @@ export const StaticBoardFx = memo(function StaticBoardFx({ board, skinId, blockS
 		const prev = previous.current;
 		previous.current = board;
 		if (!prev || !anim || prev.length !== board.length) return;
-		const ev = diffBoards(prev, board, false);
+		const ev = diffBoards(prev, board);
 		if (ev.placed.length === 0 && ev.cleared.length === 0) return;
 		const plan = planEvents(anim, ev, prev, board, skinId, { B: blockSize, pitch: blockSize, seed: Math.floor(Math.random() * 2147483647), combo: 0, level });
 		cursor.current = pushParticles(slots, cursor.current, plan.ps.slice(0, POOL_SMALL));
@@ -381,7 +390,7 @@ export const OwnBoardFx = memo(function OwnBoardFx(props: OwnProps) {
 });
 
 export const SkinTrail = memo(function SkinTrail(props: TrailProps) {
-	return useMountedLate(450) ? <SkinTrailLayer {...props} /> : null;
+	return useMountedLate(450 + (Platform.OS === "android" ? props.index * 85 : 0)) ? <SkinTrailLayer {...props} /> : null;
 });
 
 function previewBoard(rows: number, cols: number): Board {

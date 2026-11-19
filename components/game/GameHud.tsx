@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react"
+import { memo, useEffect, useState } from "react"
 import { Pressable, StyleSheet, Text, View, Platform, useWindowDimensions } from "react-native"
 import Animated, { SharedValue, interpolateColor, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from "react-native-reanimated"
-import { Hand } from "@/constants/Hand";
 import { GameModeType, MenuStateType, useAppState } from "@/hooks/useAppState";
 import { getHighScores } from "@/constants/Storage";
 import { colorToHex } from "@/constants/Color";
@@ -18,7 +17,7 @@ interface GameHudProps {
 	score: SharedValue<number>,
 	combo: SharedValue<number>,
 	lastBrokenLine: SharedValue<number>,
-	hand: SharedValue<Hand>,
+	handSize: number,
 	gameMode?: GameModeType,
 	timeRemaining?: SharedValue<number>,
 	movesRemaining?: SharedValue<number>
@@ -77,7 +76,7 @@ function MoveLimitBar({ movesRemaining, moveLimit }: { movesRemaining: SharedVal
 	);
 }
 
-export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, timeRemaining, movesRemaining }: GameHudProps) {
+export const StatsGameHud = memo(function StatsGameHud({ score, lastBrokenLine, handSize, gameMode, timeRemaining, movesRemaining }: GameHudProps) {
 	const { t } = useLanguage();
 	const [scoreText, setScoreText] = useState("0");
 	const [timeLeftText, setTimeLeftText] = useState("60");
@@ -99,11 +98,9 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, tim
 		scoreAnimValue.value = withTiming(current, { duration: 200 });
 	})
 	
-	useAnimatedReaction(() => {
-		return scoreAnimValue.value
-	}, (current, _prev) => {
-		runOnJS(setScoreText)(String(Math.floor(current)));
-	})
+	useAnimatedReaction(() => Math.floor(scoreAnimValue.value), (current, previous) => {
+		if (current !== previous) runOnJS(setScoreText)(String(current));
+	});
 
 	useAnimatedReaction(() => {
 		return timeRemaining ? timeRemaining.value : 0;
@@ -167,11 +164,11 @@ export function StatsGameHud({ score, combo, lastBrokenLine, hand, gameMode, tim
 					<TimerBar timeRemaining={timeRemaining} />
 				</View>
 			) : (
-				<ComboBar lastBrokenLine={lastBrokenLine} handSize={hand.value.length} gridWidth={gridWidth}></ComboBar>
+				<ComboBar lastBrokenLine={lastBrokenLine} handSize={handSize} gridWidth={gridWidth} />
 			)}
 		</View>
 	</>
-}
+});
 
 interface ComboBarProps {
 	lastBrokenLine: SharedValue<number>,
@@ -179,7 +176,7 @@ interface ComboBarProps {
 	gridWidth: number
 };
 
-function ComboBar({ lastBrokenLine, handSize, gridWidth }: ComboBarProps) {
+const ComboBar = memo(function ComboBar({ lastBrokenLine, handSize, gridWidth }: ComboBarProps) {
 	const { t } = useLanguage();
 	const fillPercentage = useSharedValue(100);
 	const scale = useSharedValue(1);
@@ -208,11 +205,12 @@ function ComboBar({ lastBrokenLine, handSize, gridWidth }: ComboBarProps) {
 	});
 
 	const animatedStyle = useAnimatedStyle(() => {
+		const fill = Math.max(0, Math.min(1, fillPercentage.value / 100));
 		return {
-			width: `${fillPercentage.value}%`,
-			backgroundColor: interpolateColor(fillPercentage.value / 100, [0, 1/5, 1], ['transparent', comboBarBadColor, comboBarGoodColor]),
+			backgroundColor: interpolateColor(fill, [0, 1/5, 1], ['transparent', comboBarBadColor, comboBarGoodColor]),
 			transform: [
-				{ scale: scale.value }
+				{ scaleX: fill },
+				{ scaleY: scale.value },
 			]
 		};
 	});
@@ -225,7 +223,7 @@ function ComboBar({ lastBrokenLine, handSize, gridWidth }: ComboBarProps) {
 			<Text style={styles.comboCaption}>{t("hud.comboBar")}</Text>
 		</View>
 	);
-};
+});
 
 export function StickyGameHud({gameMode, score}: {gameMode: GameModeType, score: SharedValue<number>}) {
 	const [ highestScore, setHighestScore ] = useState(0);
@@ -348,11 +346,14 @@ const styles = StyleSheet.create({
 		zIndex: 100,
 	},
 	comboBar: {
+		width: '100%',
 		height: 12,
 		borderRadius: 10,
 		backgroundColor: 'blue',
 		zIndex: 99,
-		position: 'absolute'
+		position: 'absolute',
+		left: 0,
+		transformOrigin: '0% 50%',
 	},
 	comboCaption: {
 		marginTop: 2,

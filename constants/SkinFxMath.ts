@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import type { Board } from "./Board";
+import type { Board, ClearedLines } from "./Board";
 import { colorToHex } from "./Color";
 import { getPieceSkinColor } from "./Piece";
 import {
@@ -21,8 +21,6 @@ const TAU = Math.PI * 2;
 // the board's cell states (constants/Board.tsx BoardBlockType; copied so this file stays free of the app-state hooks)
 const CELL_EMPTY = 0;
 const CELL_HOVERED = 1;
-const CELL_BREAK_FILLED = 2;
-const CELL_BREAK_EMPTY = 3;
 const CELL_FILLED = 4;
 
 /** boxShadow value of a particle that has no composite pixels (the style keys never go missing, so the last one cannot stick). */
@@ -336,57 +334,36 @@ function cellHex(board: Board, idx: number, cols: number, skinId: string): strin
 	return colorToHex(getPieceSkinColor(cell.color, skinId));
 }
 
-/** What changed between two boards: blocks that landed, blocks that went, lines that went. strict: the own board, with its hover states. */
-export function diffBoards(prev: Board, cur: Board, strict: boolean): BoardEvents {
+/** For the local board, use the lines recorded by placement. An opponent's snapshot has no clear event. */
+export function diffBoards(prev: Board, cur: Board, localClear?: ClearedLines | null): BoardEvents {
 	"worklet";
 	const rows = cur.length;
 	const cols = cur[0].length;
 	const placed: number[] = [];
 	const cleared: number[] = [];
-	const flag: boolean[] = [];
-	let removed = 0;
-	let hover = false;
+	const lines: number[] = [];
 	for (let y = 0; y < rows; y++) {
 		for (let x = 0; x < cols; x++) {
-			const pt = prev[y][x].blockType;
-			const ct = cur[y][x].blockType;
+			const before = prev[y][x].blockType;
+			const after = cur[y][x].blockType;
 			const idx = y * cols + x;
-			flag.push(false);
-			if (pt === CELL_BREAK_FILLED || pt === CELL_BREAK_EMPTY) hover = true;
-			if (ct === CELL_FILLED && (pt === CELL_EMPTY || pt === CELL_HOVERED)) placed.push(idx);
-			else if (ct === CELL_EMPTY && pt !== CELL_EMPTY && pt !== CELL_HOVERED) {
-				// a hover that was only cancelled leaves cells empty too; a real clear takes a block that stood there
-				cleared.push(idx);
-				flag[idx] = true;
-				if (pt === CELL_FILLED || pt === CELL_BREAK_FILLED) removed++;
-			}
+			if (after === CELL_FILLED && (before === CELL_EMPTY || before === CELL_HOVERED)) placed.push(idx);
+			if (localClear === undefined ? before === CELL_FILLED && after === CELL_EMPTY
+				: localClear?.rows.includes(y) || localClear?.columns.includes(x)) cleared.push(idx);
 		}
 	}
-	const lines: number[] = [];
-	const reset = removed === 0 || (strict ? !hover && placed.length === 0 : cleared.length > cols * rows * 0.7);
-	if (reset) cleared.length = 0;
-	if (cleared.length > 0) {
+
+	if (localClear) {
+		lines.push(...localClear.rows, ...localClear.columns.map((x) => 1000 + x));
+	} else if (localClear === undefined && cleared.length > 0) {
+		if (cleared.length > cols * rows * 0.7) return { placed, cleared: [], lines };
 		for (let y = 0; y < rows; y++) {
-			let n = 0;
-			let had = 0;
-			let now = 0;
-			for (let x = 0; x < cols; x++) {
-				if (flag[y * cols + x]) n++;
-				if (prev[y][x].blockType === CELL_FILLED) had++;
-				if (cur[y][x].blockType === CELL_FILLED) now++;
-			}
-			if (strict ? n === cols : n > 0 && now === 0 && had >= Math.max(1, cols - 5)) lines.push(y);
+			const full = prev[y].filter((cell) => cell.blockType === CELL_FILLED).length;
+			if (full >= Math.max(1, cols - 5) && cur[y].every((cell) => cell.blockType !== CELL_FILLED)) lines.push(y);
 		}
 		for (let x = 0; x < cols; x++) {
-			let n = 0;
-			let had = 0;
-			let now = 0;
-			for (let y = 0; y < rows; y++) {
-				if (flag[y * cols + x]) n++;
-				if (prev[y][x].blockType === CELL_FILLED) had++;
-				if (cur[y][x].blockType === CELL_FILLED) now++;
-			}
-			if (strict ? n === rows : n > 0 && now === 0 && had >= Math.max(1, rows - 5)) lines.push(1000 + x);
+			const full = prev.filter((row) => row[x].blockType === CELL_FILLED).length;
+			if (full >= Math.max(1, rows - 5) && cur.every((row) => row[x].blockType !== CELL_FILLED)) lines.push(1000 + x);
 		}
 	}
 	return { placed, cleared, lines };
@@ -398,12 +375,11 @@ export type PlanOptions = {
 	seed: number;
 	combo: number;
 	level: number; // 1 full, 0.5 reduced
+	particleLimits?: { place: number; clear: number; combo: number };
 };
 export type FxPlan = { ps: FxParticle[]; bs: FxBeam[] };
 
-const CAP_PLACE = 14;
-const CAP_CLEAR = 26;
-const CAP_COMBO = 22;
+const PARTICLE_LIMITS = { place: 14, clear: 26, combo: 22 };
 
 function burst(out: FxParticle[], fx: Fx, cx: number, cy: number, B: number, hex: string, st: { s: number }, n: number, scale: number, delay: number, cap: number): void {
 	"worklet";
@@ -418,25 +394,27 @@ export function planEvents(anim: SkinAnim, ev: BoardEvents, prev: Board, cur: Bo
 	const rows = cur.length;
 	const st = { s: (o.seed >>> 0) || 1 };
 	const level = o.level;
+	const limits = o.particleLimits ?? PARTICLE_LIMITS;
 	const place: FxParticle[] = [];
 	const clear: FxParticle[] = [];
 	const combo: FxParticle[] = [];
 	const bs: FxBeam[] = [];
 	const cell = (idx: number, which: number): number => (which === 0 ? (idx % cols) * o.pitch + B / 2 : Math.floor(idx / cols) * o.pitch + B / 2);
 	const share = (n: number, count: number, cap: number): number => Math.max(1, Math.min(Math.round(n * level), Math.floor(cap / Math.max(1, count))));
-	for (let k = 0; k < ev.placed.length; k++) {
+	for (let k = 0; k < ev.placed.length && place.length < limits.place; k++) {
 		const idx = ev.placed[k];
 		const hex = cellHex(cur, idx, cols, skinId);
-		burst(place, anim.place, cell(idx, 0), cell(idx, 1), B, hex, st, share(anim.place.n, ev.placed.length, CAP_PLACE), 1, 0, CAP_PLACE);
-		if (anim.ex) burst(place, anim.ex.place, cell(idx, 0), cell(idx, 1), B, hex, st, share(anim.ex.place.n, ev.placed.length, CAP_PLACE), 1, 0, CAP_PLACE);
+		burst(place, anim.place, cell(idx, 0), cell(idx, 1), B, hex, st, share(anim.place.n, ev.placed.length, limits.place), 1, 0, limits.place);
+		if (anim.ex) burst(place, anim.ex.place, cell(idx, 0), cell(idx, 1), B, hex, st, share(anim.ex.place.n, ev.placed.length, limits.place), 1, 0, limits.place);
 	}
-	for (let k = 0; k < ev.cleared.length; k++) {
+	for (let k = 0; k < ev.cleared.length && clear.length < limits.clear; k++) {
 		const idx = ev.cleared[k];
-		const hex = cellHex(prev, idx, cols, skinId);
+		const before = prev[Math.floor(idx / cols)][idx % cols];
+		const hex = cellHex(before.blockType === CELL_FILLED ? prev : cur, idx, cols, skinId);
 		const wave = ((idx % cols) + Math.floor(idx / cols)) % cols;
 		const delay = wave * 18;
-		burst(clear, anim.clear, cell(idx, 0), cell(idx, 1), B, hex, st, share(anim.clear.n, ev.cleared.length, CAP_CLEAR), 1, delay, CAP_CLEAR);
-		if (anim.ex) burst(clear, anim.ex.clear, cell(idx, 0), cell(idx, 1), B, hex, st, share(anim.ex.clear.n, ev.cleared.length, CAP_CLEAR), 1, delay, CAP_CLEAR);
+		burst(clear, anim.clear, cell(idx, 0), cell(idx, 1), B, hex, st, share(anim.clear.n, ev.cleared.length, limits.clear), 1, delay, limits.clear);
+		if (anim.ex) burst(clear, anim.ex.clear, cell(idx, 0), cell(idx, 1), B, hex, st, share(anim.ex.clear.n, ev.cleared.length, limits.clear), 1, delay, limits.clear);
 	}
 	for (let k = 0; k < ev.lines.length && k < 3; k++) {
 		const line = ev.lines[k];
@@ -444,7 +422,7 @@ export function planEvents(anim: SkinAnim, ev: BoardEvents, prev: Board, cur: Bo
 	}
 	const c = anim.combo;
 	if (c && ev.lines.length > 0 && o.combo >= 2 && level >= 1) {
-		const n = Math.min(c.max, c.base + c.per * o.combo);
+		const n = Math.min(limits.combo, c.max, c.base + c.per * o.combo);
 		const W = (cols - 1) * o.pitch + B;
 		const H = (rows - 1) * o.pitch + B;
 		const scale = 1 + 0.08 * Math.min(o.combo, 10);
@@ -462,8 +440,7 @@ export function planEvents(anim: SkinAnim, ev: BoardEvents, prev: Board, cur: Bo
 				x = W / 2 + (r1 - 0.5) * B * 1.2;
 				y = H / 2 + (r2 - 0.5) * B * 1.2;
 			}
-			burst(combo, c.pat === CP_SIDES && x > 0 ? mirrored : c.fx, x, y, B, "#ffffff", st, 1, scale, (j % 6) * 40, CAP_COMBO + 1);
-			if (combo.length >= CAP_COMBO) break;
+			burst(combo, c.pat === CP_SIDES && x > 0 ? mirrored : c.fx, x, y, B, "#ffffff", st, 1, scale, (j % 6) * 40, limits.combo);
 		}
 	}
 	return { ps: combo.concat(clear, place), bs };

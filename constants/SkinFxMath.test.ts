@@ -28,25 +28,25 @@ const frame = (): FxFrame => ({ x: 0, y: 0, a: 1, sc: 1 });
 const opts = (combo = 0, level = 1) => ({ B: 40, pitch: 40, seed: 12345, combo, level });
 
 describe("diffBoards", () => {
-	it("sees a piece land: hovered cells that turn filled", () => {
-		const ev = diffBoards(board(["....", "hh..", "....", "...."]), board(["....", "##..", "....", "...."]), true);
+	it("sees a piece land on the committed board", () => {
+		const ev = diffBoards(board(["....", "....", "....", "...."]), board(["....", "##..", "....", "...."]), null);
 		expect(ev.placed).toEqual([4, 5]);
 		expect(ev.cleared).toEqual([]);
 		expect(ev.lines).toEqual([]);
 	});
 
 	it("sees a line go, with the piece's own cell and the blocks that stood there", () => {
-		const prev = board(["....", "bebb", "....", "...."]);
+		const prev = board(["....", "#.##", "....", "...."]);
 		const cur = board(["....", "....", "....", "...."]);
-		const ev = diffBoards(prev, cur, true);
+		const ev = diffBoards(prev, cur, { rows: [1], columns: [] });
 		expect(ev.cleared).toEqual([4, 5, 6, 7]);
 		expect(ev.lines).toEqual([1]);
 	});
 
 	it("sees a column go and keeps the cells of a piece that stayed", () => {
-		const prev = board(["b...", "b...", "e..h", "b..h"]);
+		const prev = board(["#...", "#...", "....", "#..."]);
 		const cur = board(["....", "....", "...#", "...#"]);
-		const ev = diffBoards(prev, cur, true);
+		const ev = diffBoards(prev, cur, { rows: [], columns: [0] });
 		expect(ev.cleared).toEqual([0, 4, 8, 12]);
 		expect(ev.placed).toEqual([11, 15]);
 		expect(ev.lines).toEqual([1000]);
@@ -55,21 +55,21 @@ describe("diffBoards", () => {
 	it("takes a hover that was only cancelled for no clear and no landing", () => {
 		const hovering = board(["b.##", "e...", "....", "...."]);
 		const cancelled = board(["#.##", "....", "....", "...."]);
-		const ev = diffBoards(hovering, cancelled, true);
+		const ev = diffBoards(hovering, cancelled, null);
 		expect(ev.placed).toEqual([]);
 		expect(ev.cleared).toEqual([]);
 		expect(ev.lines).toEqual([]);
 	});
 
 	it("does not take a restart for a clear", () => {
-		const ev = diffBoards(board(["####", "####", "####", "####"]), board(["....", "....", "....", "...."]), true);
+		const ev = diffBoards(board(["####", "####", "####", "####"]), board(["....", "....", "....", "...."]), null);
 		expect(ev.cleared).toEqual([]);
 	});
 
 	it("reads a plain board of another player: new blocks land, a full row that is empty now went", () => {
 		const prev = board(["........", "########", "#.......", "........", "........", "........", "........", "........"]);
 		const cur = board(["........", "........", "##......", "........", "........", "........", "........", "........"]);
-		const ev = diffBoards(prev, cur, false);
+		const ev = diffBoards(prev, cur);
 		expect(ev.cleared).toEqual([8, 9, 10, 11, 12, 13, 14, 15]);
 		expect(ev.placed).toEqual([17]);
 		expect(ev.lines).toEqual([1]);

@@ -1,19 +1,25 @@
 import { LeaderboardAvatar } from "@/components/LeaderboardPodium";
 import { usePlayerAvatar } from "@/constants/PlayerAvatars";
 import { markOnlineRoom } from "@/constants/OutgoingInvite";
-import { PieceData, getBlockCount } from '@/constants/Piece';
+import { getBlockCount } from '@/constants/Piece';
 import { DndProvider, DndProviderProps, Rectangle } from '@mgcrea/react-native-dnd';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View, useWindowDimensions, ScrollView, Image } from "react-native";
 import PixelLoader from "@/components/PixelLoader";
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GestureHandlerRootView, State } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, PointerType, State } from 'react-native-gesture-handler';
 import Animated, { ReduceMotion, runOnJS, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Board, BoardBlockType, JS_emptyPossibleBoardSpots, PossibleBoardSpots, XYPoint, breakLines, clearHoverBlocks, cloneBoard, createPossibleBoardSpots, emptyPossibleBoardSpots, hasAnyPossibleMove, newEmptyBoard, placePieceOntoBoard, updateHoveredBreaks, useGameSizes } from '@/constants/Board';
+import {
+	BoardBlockType, JS_emptyPossibleBoardSpots, breakLines, canPlacePiece, clearHoverBlocks, cloneBoard,
+	createPossibleBoardSpots, emptyPossibleBoardSpots, getPlacementPreview, hasAnyPossibleMove,
+	newEmptyBoard, placePieceOntoBoard, useGameSizes,
+	type Board, type ClearedLines, type PlacementPreview, type PossibleBoardSpots, type XYPoint,
+} from '@/constants/Board';
 import { StatsGameHud, StickyGameHud } from '@/components/game/GameHud';
 import BlockGrid, { ReadOnlyBlockGrid } from '@/components/game/BlockGrid';
 import { Hand, createRandomHand, createRandomHandWorklet } from '@/constants/Hand';
+import { movedBeyondDropTarget, useWebDragRelease } from '@/hooks/useWebDragRelease';
 import HandPieces, { ReadOnlyHandPieces } from '@/components/game/HandPieces';
 import { GameModeType, MenuStateType, useAppState, activeComboAtom } from '@/hooks/useAppState';
 import { supabase, getPlayerProfileData } from '@/constants/Supabase';
@@ -130,15 +136,19 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const boardLength = modeConfig.boardLength;
 	
     // Game sizes
-	const { GRID_BLOCK_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardLength);
+	const { GRID_BLOCK_SIZE, HITBOX_SIZE, DRAG_JUMP_LENGTH } = useGameSizes(boardLength);
     const handSize = modeConfig.handSize;
 	
     // Local player states
-	const board = useSharedValue(newEmptyBoard(boardLength));
+	const [opening] = useState(() => ({ board: newEmptyBoard(boardLength), hand: createRandomHand(handSize, gameMode) }));
+	const board = useSharedValue(opening.board);
+	const placementPreview = useSharedValue<PlacementPreview | null>(null);
+	const lineClear = useSharedValue<ClearedLines | null>(null);
 	const draggingPiece = useSharedValue<number | null>(null);
+	const { lastUpdate: lastDragPosition, releasedAt } = useWebDragRelease(draggingPiece);
 	const lastHoveredDropId = useSharedValue<string | null>(null);
 	const possibleBoardDropSpots = useSharedValue<PossibleBoardSpots>(JS_emptyPossibleBoardSpots(boardLength));
-	const hand = useSharedValue(createRandomHand(handSize, gameMode));
+	const hand = useSharedValue(opening.hand);
 	const score = useSharedValue(0);
 	const combo = useSharedValue(0);
 	const lastBrokenLine = useSharedValue(0);
@@ -165,7 +175,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const myAvatar = usePlayerAvatar(null, true);
 
     // Opponent states
-    const [opponentBoard, setOpponentBoard] = useState<Board>(newEmptyBoard(boardLength));
+    const [opponentBoard, setOpponentBoard] = useState(() => newEmptyBoard(boardLength));
     // each side's board is drawn with its owner's piece skin; the skin travels with every state message
     const mySkin = useAtomValue(shopStateAtom).equipped.piece_skin;
     const [opponentSkin, setOpponentSkin] = useState<string | undefined>(undefined);
@@ -179,7 +189,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const [opponentDisconnected, setOpponentDisconnected] = useState(false);
 
     // Spectator state tracking
-    const [player1Board, setPlayer1Board] = useState<Board>(newEmptyBoard(boardLength));
+    const [player1Board, setPlayer1Board] = useState(() => newEmptyBoard(boardLength));
     const [player1Hand, setPlayer1Hand] = useState<Hand>([]);
     const [player1Score, setPlayer1Score] = useState(0);
     const [player1IsGameOver, setPlayer1IsGameOver] = useState(false);
@@ -187,7 +197,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     const [player1Name, setPlayer1Name] = useState('Player 1');
     const [player1Hover, setPlayer1Hover] = useState<{ index: number | null, x: number | null, y: number | null }>({ index: null, x: null, y: null });
 
-    const [player2Board, setPlayer2Board] = useState<Board>(newEmptyBoard(boardLength));
+    const [player2Board, setPlayer2Board] = useState(() => newEmptyBoard(boardLength));
     const [player2Hand, setPlayer2Hand] = useState<Hand>([]);
     const [player2Score, setPlayer2Score] = useState(0);
     const [player2IsGameOver, setPlayer2IsGameOver] = useState(false);
@@ -650,10 +660,11 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
     const broadcastHoverState = (index: number | null, x: number | null, y: number | null) => {
         if (myRole === 'spectator') return;
+        const latest = pendingHover.current ?? lastSentHover.current;
         if (
-            lastSentHover.current.index === index &&
-            lastSentHover.current.x === x &&
-            lastSentHover.current.y === y
+            latest.index === index &&
+            latest.x === x &&
+            latest.y === y
         ) {
             return;
         }
@@ -728,6 +739,11 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
     }, [gameMode, getPersistentPlayerName, isGameOver, myRole, opponentDisconnected, opponentIsGameOver, opponentScore, persistRoomResult, reportMyResult, score.value, submitOpponentForfeitLoss]);
 
     const resetGameLocal = () => {
+        placementPreview.value = null;
+        lineClear.value = null;
+        draggingPiece.value = null;
+        lastHoveredDropId.value = null;
+        possibleBoardDropSpots.value = JS_emptyPossibleBoardSpots(boardLength);
         board.value = newEmptyBoard(boardLength);
         hand.value = createRandomHandWorklet(handSize, gameMode);
         score.value = 0;
@@ -740,12 +756,14 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
         setOpponentBoard(newEmptyBoard(boardLength));
         setOpponentHand([]);
+        setOpponentHover({ index: null, x: null, y: null });
         setOpponentScore(0);
         setOpponentIsGameOver(false);
         setRestartRequestStatus('idle');
         eloUpdatedRef.current = false;
 
         broadcastState(board.value, hand.value, 0, 0, 0, false);
+        broadcastHoverState(null, null, null);
     };
 
     const handleRestartRequest = () => {
@@ -836,13 +854,10 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
         }
     };
 
-	const handleDragEnd: DndProviderProps["onDragEnd"] = ({ active, over }) => {
+	const handleDragEnd: DndProviderProps["onDragEnd"] = ({ over }) => {
 		"worklet";
+		if (draggingPiece.value == null) return;
 		if (over) {
-			if (draggingPiece.value == null) {
-				return;
-			}
-
 			const dropIdStr = over.id.toString();
 			const {x: dropX, y: dropY} = decodeDndId(dropIdStr);
 			if (isNaN(dropX) || isNaN(dropY)) {
@@ -852,9 +867,8 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 				return;
 			}
 			const piece = hand.value[draggingPiece.value];
-			const cleanBoard = clearHoverBlocks(cloneBoard(board.value));
-			if (!piece || createPossibleBoardSpots(cleanBoard, piece)[dropY]?.[dropX] !== 1) {
-				board.value = cleanBoard;
+			const cleanBoard = board.value;
+			if (!piece || !canPlacePiece(cleanBoard, piece, dropX, dropY)) {
 				draggingPiece.value = null;
 				possibleBoardDropSpots.value = emptyPossibleBoardSpots(boardLength);
 				runOnJS(broadcastHoverState)(null, null, null);
@@ -872,10 +886,11 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 			// Play placement sound
 			runOnJS(playSfx)('placeBlock');
 
-			const newBoard = clearHoverBlocks(cloneBoard(board.value));
+			const newBoard = cloneBoard(cleanBoard);
 			placePieceOntoBoard(newBoard, piece, dropX, dropY, BoardBlockType.FILLED);
 
-			const linesBroken = breakLines(newBoard);
+			const cleared: ClearedLines = { rows: [], columns: [] };
+			const linesBroken = breakLines(newBoard, cleared);
 			
 			const pieceBlockCount = getBlockCount(piece);
 			let pointsEarned = pieceBlockCount;
@@ -922,6 +937,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 				nextHand = newHand;
 			}
 			hand.value = nextHand;
+			lineClear.value = linesBroken > 0 ? cleared : null;
 			board.value = newBoard;
 
             // Broadcast changes to opponent
@@ -934,7 +950,6 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 			}
 			
 		} else {
-			board.value = clearHoverBlocks(cloneBoard(board.value));
 			runOnJS(playSfx)('invalidPlacement');
 		}
 		
@@ -944,9 +959,14 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 		runOnJS(broadcastHoverState)(null, null, null);
 	};
 
-	const handleBegin: DndProviderProps["onBegin"] = (event, meta) => {
+	const handleBegin: DndProviderProps["onBegin"] = (_event, meta) => {
 		"worklet";
+		placementPreview.value = null;
 		lastHoveredDropId.value = null;
+		if (Platform.OS === "web") {
+			lastDragPosition.value = null;
+			releasedAt.value = null;
+		}
 		const handIndex = Number(meta.activeId.toString());
 		if (hand.value[handIndex] != null) {
 			draggingPiece.value = handIndex;
@@ -956,52 +976,31 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 
 	const handleFinalize: DndProviderProps["onFinalize"] = ({ state }) => {
 		"worklet";
+		placementPreview.value = null;
 		lastHoveredDropId.value = null;
-		if (state !== State.END) {
+		if (state !== State.END || (Platform.OS === "web" && movedBeyondDropTarget(lastDragPosition.value, releasedAt.value, GRID_BLOCK_SIZE + HITBOX_SIZE))) {
 			draggingPiece.value = null;
+			possibleBoardDropSpots.value = emptyPossibleBoardSpots(boardLength);
 			runOnJS(broadcastHoverState)(null, null, null);
 		}
 	};
 
-	const handleUpdate: DndProviderProps["onUpdate"] = (event, {activeId, activeLayout, droppableActiveId}) => {
+	const handleUpdate: DndProviderProps["onUpdate"] = (event, { droppableActiveId }) => {
 		"worklet";
-		const currentDropId = droppableActiveId ? droppableActiveId.toString() : null;
-		if (currentDropId === lastHoveredDropId.value) {
-			return;
+		const index = draggingPiece.value;
+		if (index == null) return;
+		if (Platform.OS === "web" && event.pointerType === PointerType.MOUSE) {
+			lastDragPosition.value = { x: event.absoluteX, y: event.absoluteY };
 		}
+		const currentDropId = droppableActiveId?.toString() ?? null;
+		if (currentDropId === lastHoveredDropId.value) return;
 		lastHoveredDropId.value = currentDropId;
 
-		if (!currentDropId || currentDropId === "trash") {
-			board.value = clearHoverBlocks(cloneBoard(board.value));
-			runOnJS(broadcastHoverState)(draggingPiece.value, null, null);
-			return;
-		}
-
-		if (draggingPiece.value == null) {
-			return;
-		}
-
-		const {x: dropX, y: dropY} = decodeDndId(currentDropId);
-		if (isNaN(dropX) || isNaN(dropY)) {
-			board.value = clearHoverBlocks(cloneBoard(board.value));
-			runOnJS(broadcastHoverState)(draggingPiece.value, null, null);
-			return;
-		}
-		const piece: PieceData = hand.value[draggingPiece.value!]!;
-
-		// Fast check from precomputed drop spots matrix
-		const canFit = piece && possibleBoardDropSpots.value[dropY]?.[dropX] === 1;
-		const newBoard = clearHoverBlocks(cloneBoard(board.value));
-		if (!canFit) {
-			board.value = newBoard;
-			runOnJS(broadcastHoverState)(draggingPiece.value, null, null);
-			return;
-		}
-		updateHoveredBreaks(newBoard, piece, dropX, dropY);
-
-		board.value = newBoard;
-
-		runOnJS(broadcastHoverState)(draggingPiece.value, dropX, dropY);
+		const { x: dropX, y: dropY } = decodeDndId(currentDropId ?? "");
+		const piece = hand.value[index];
+		const canFit = piece != null && possibleBoardDropSpots.value[dropY]?.[dropX] === 1;
+		placementPreview.value = canFit ? getPlacementPreview(board.value, piece, dropX, dropY) : null;
+		runOnJS(broadcastHoverState)(index, canFit ? dropX : null, canFit ? dropY : null);
 	};
 
     const handleExit = async () => {
@@ -1280,9 +1279,9 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 								</View>
 							)}
 							<DndProvider shouldDropWorklet={pieceOverlapsRectangle} springConfig={SPRING_CONFIG_MISSED_DRAG} onBegin={handleBegin} onFinalize={handleFinalize} onDragEnd={handleDragEnd} onUpdate={handleUpdate}>
-								<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} hand={hand}></StatsGameHud>
+								<StatsGameHud score={score} combo={combo} lastBrokenLine={lastBrokenLine} handSize={handSize} />
 								<View style={{ position: 'relative', alignSelf: 'center' }}>
-                                    <BlockGrid board={board} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece} combo={combo}></BlockGrid>
+                                    <BlockGrid board={board} placementPreview={placementPreview} lineClear={lineClear} possibleBoardDropSpots={possibleBoardDropSpots} hand={hand} draggingPiece={draggingPiece} combo={combo}></BlockGrid>
                                     <View style={styles.emotesOverlay}>
                                         {(myRole === 'player1' ? p1Emotes : p2Emotes).map(e => (
                                             <FloatingEmote 

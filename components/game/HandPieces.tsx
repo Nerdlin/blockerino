@@ -1,9 +1,9 @@
 import React from "react";
 import { useGameSizes } from "@/constants/Board";
 import { Hand } from "@/constants/Hand";
-import { createFilledBlockStyle, getPieceSkinColor } from "@/constants/Piece";
+import { bombPiecesData, createFilledBlockStyle, getPieceSkinColor, piecesData } from "@/constants/Piece";
 import SkinnedBlock from "../SkinnedBlock";
-import { colorToHex } from "@/constants/Color";
+import { colorToHex, type Color } from "@/constants/Color";
 import { getSkinKindId, skinBlockShape, skinCorners } from "@/constants/SkinFx";
 import { textureOf } from "@/constants/SkinTextures";
 import SkinTexture from "../SkinTexture";
@@ -12,8 +12,33 @@ import { getSkinAnim } from "@/constants/SkinAnimations";
 import { shopStateAtom } from "@/constants/Shop";
 import { SharedPoint, useDraggable } from "@mgcrea/react-native-dnd";
 import { useAtomValue } from "jotai";
-import { StyleSheet, View, useWindowDimensions } from "react-native";
-import Animated, { SharedValue, runOnJS, useAnimatedStyle, useAnimatedReaction } from "react-native-reanimated";
+import { Platform, StyleSheet, View, useWindowDimensions } from "react-native";
+import Animated, { SharedValue, runOnJS, useAnimatedStyle, useAnimatedReaction, useDerivedValue } from "react-native-reanimated";
+
+const NATIVE = Platform.OS !== "web";
+function isJsFirstRun() {
+	"worklet";
+	return NATIVE && (globalThis as { __RUNTIME_KIND?: number }).__RUNTIME_KIND === 1;
+}
+
+type PieceCells = { color: Color; positions: { x: number; y: number }[] };
+const MAX_CELLS = Math.max(...[...piecesData, ...bombPiecesData].map(({ matrix }) =>
+	matrix.reduce((count, row) => count + row.filter((cell) => cell >= 1).length, 0)
+));
+
+function pieceCells(hand: Hand): (PieceCells | null)[] {
+	"worklet";
+	return hand.map((piece) => {
+		if (!piece) return null;
+		const positions: PieceCells["positions"] = [];
+		for (let y = 0; y < piece.matrix.length; y++) {
+			for (let x = 0; x < piece.matrix[y].length; x++) {
+				if (piece.matrix[y][x] >= 1) positions.push({ x, y });
+			}
+		}
+		return { color: piece.color, positions };
+	});
+}
 
 interface HandProps {
 	hand: SharedValue<Hand>;
@@ -21,74 +46,34 @@ interface HandProps {
 	onHandChange?: (newHand: Hand) => void;
 }
 
-function HandBlock({
-	hand,
-	i,
-	x,
-	y,
-	GRID_BLOCK_SIZE,
-	pieceSkinId,
-}: {
-	hand: SharedValue<Hand>;
-	i: number;
-	x: number;
-	y: number;
-	GRID_BLOCK_SIZE: number;
+function HandBlock({ cells, initialPiece, slot, index, size, pieceSkinId }: {
+	cells: SharedValue<(PieceCells | null)[]>;
+	initialPiece: PieceCells | null;
+	slot: number;
+	index: number;
+	size: number;
 	pieceSkinId: string;
 }) {
 	const skinKind = getSkinKindId(pieceSkinId);
 	const animatedStyle = useAnimatedStyle(() => {
-		const piece = hand.value[i];
-		if (piece == null) {
-			return {
-				opacity: 0,
-			};
-		}
-		const pieceHeight = piece.matrix.length;
-		const pieceWidth = piece.matrix[0].length;
-
-		let style = {};
-		if (x > pieceWidth - 1 || y > pieceHeight - 1 || piece.matrix[y][x] === 0) {
-			style = {
-				opacity: 0,
-			};
-		} else {
-			style = {
-				top: y * GRID_BLOCK_SIZE,
-				left: x * GRID_BLOCK_SIZE,
-				width: GRID_BLOCK_SIZE,
-				height: GRID_BLOCK_SIZE,
-				...createFilledBlockStyle(piece.color, 7, pieceSkinId),
-				...skinBlockShape(skinKind, GRID_BLOCK_SIZE, colorToHex(getPieceSkinColor(piece.color, pieceSkinId))),
-				opacity: 1,
-			};
-		}
-
-		return style;
-	}, [pieceSkinId, skinKind]);
-
-	// the skin surface (crystal facet, lava core, ...) on this block of the hand
-	const decorStyle = useAnimatedStyle(() => {
-		const piece = hand.value[i];
-		if (skinKind === 0 || piece == null || x > piece.matrix[0].length - 1 || y > piece.matrix.length - 1 || piece.matrix[y][x] === 0) return { opacity: 0 };
-		return { opacity: 1 };
-	}, [skinKind]);
+		const piece = isJsFirstRun() ? initialPiece : cells.value[slot];
+		const position = piece?.positions[index];
+		if (!piece || !position) return { opacity: 0 };
+		return {
+			...createFilledBlockStyle(piece.color, 7, pieceSkinId),
+			...skinBlockShape(skinKind, size, colorToHex(getPieceSkinColor(piece.color, pieceSkinId))),
+			top: position.y * size,
+			left: position.x * size,
+			opacity: 1,
+		};
+	});
 
 	return (
-		<Animated.View
-			style={[
-				styles.emptyBlock,
-				{
-					width: GRID_BLOCK_SIZE,
-					height: GRID_BLOCK_SIZE,
-				},
-				animatedStyle,
-			]}
-		>
+		<Animated.View style={[styles.emptyBlock, { width: size, height: size }, animatedStyle]}>
 			{skinKind !== 0 && textureOf(pieceSkinId) && (
-				<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { overflow: "hidden" }, skinCorners(skinKind, GRID_BLOCK_SIZE), decorStyle]}>
+				<View pointerEvents="none" style={[StyleSheet.absoluteFill, { overflow: "hidden" }, skinCorners(skinKind, size)]}>
 					<SkinTexture skinId={pieceSkinId} />
-				</Animated.View>
+				</View>
 			)}
 		</Animated.View>
 	);
@@ -99,30 +84,30 @@ function HandPiecesView({ hand, boardSize }: HandProps) {
 	const pieceSkinId = useAtomValue(shopStateAtom).equipped.piece_skin;
 	const skinAnim = getSkinAnim(pieceSkinId);
 	const reducedFx = useReducedFx();
-	const handSize = hand.value.length;
+	const startingHand = hand.value;
+	const startingCells = pieceCells(startingHand);
+	const liveCells = useDerivedValue(() => isJsFirstRun() ? startingCells : pieceCells(hand.value));
+	const handSize = startingHand.length;
 	const handPieces = [];
 
 	for (let i = 0; i < handSize; i++) {
-		const pieceBlocks = [];
-		for (let y = 0; y < 5; y++) {
-			for (let x = 0; x < 5; x++) {
-				pieceBlocks.push(
-					<HandBlock
-						key={`p${x},${y}`}
-						hand={hand}
-						i={i}
-						x={x}
-						y={y}
-						GRID_BLOCK_SIZE={GRID_BLOCK_SIZE}
-						pieceSkinId={pieceSkinId}
-					/>
-				);
-			}
-		}
+		const initialPiece = startingCells[i];
+		const capacity = Math.max(MAX_CELLS, initialPiece?.positions.length ?? 0);
+		const pieceBlocks = Array.from({ length: capacity }, (_, index) => (
+			<HandBlock
+				key={index}
+				cells={liveCells}
+				initialPiece={initialPiece}
+				slot={i}
+				index={index}
+				size={GRID_BLOCK_SIZE}
+				pieceSkinId={pieceSkinId}
+			/>
+		));
 
 		const id = String(i);
 
-		const animatedStyle = (sleeping: boolean, dragging: boolean, acting: boolean, offset: SharedPoint, hand: Hand) => {
+		const animatedStyle = (dragging: boolean, acting: boolean, offset: SharedPoint, hand: Hand) => {
 			"worklet";
 			const piece = hand[i];
 			if (piece == null) {
@@ -192,6 +177,7 @@ function HandPiecesView({ hand, boardSize }: HandProps) {
 					key={`${i}`}
 					createStyle={animatedStyle}
 					hand={hand}
+					startingHand={startingHand}
 					trail={skinAnim && !reducedFx ? { anim: skinAnim, skinId: pieceSkinId, hand, index: i, slotSize: HAND_BLOCK_SIZE * 5, jump: DRAG_JUMP_LENGTH, gridSize: GRID_BLOCK_SIZE } : undefined}
 				>
 					{pieceBlocks}
@@ -295,13 +281,14 @@ export function ReadOnlyHandPieces({ hand, boardSize, scale = 1, pieceSkinId: ow
 interface PieceDraggableProps {
 	children: any;
 	id: string;
-	createStyle: (sleeping: boolean, dragging: boolean, acting: boolean, offset: SharedPoint, hand: Hand) => object;
-	hand: any;
+	createStyle: (dragging: boolean, acting: boolean, offset: SharedPoint, hand: Hand) => object;
+	hand: SharedValue<Hand>;
+	startingHand: Hand;
 	/** The skin's drag trail, left behind this piece while it is dragged. */
 	trail?: Omit<React.ComponentProps<typeof SkinTrail>, "offset" | "state">;
 }
 
-function PieceDraggable({ children, id, createStyle, hand, trail, ...otherProps }: PieceDraggableProps) {
+function PieceDraggable({ children, id, createStyle, hand, startingHand, trail, ...otherProps }: PieceDraggableProps) {
 	const { props, offset, state, setNodeLayout } = useDraggable({
 		id,
 	});
@@ -321,10 +308,9 @@ function PieceDraggable({ children, id, createStyle, hand, trail, ...otherProps 
 	});
 
 	const animatedStyle = useAnimatedStyle(() => {
-		const isSleeping = state.value === "sleeping";
-		const isActive = state.value === "dragging";
-		const isActing = state.value === "acting";
-		return createStyle(isSleeping, isActive, isActing, offset, hand.value);
+		if (isJsFirstRun()) return createStyle(false, false, offset, startingHand);
+		const phase = state.value;
+		return createStyle(phase === "dragging", phase === "acting", offset, hand.value);
 	}, [state, hand, createStyle]);
 
 	return (

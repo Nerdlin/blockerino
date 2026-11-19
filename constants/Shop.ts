@@ -1029,21 +1029,11 @@ export function getBackgroundScene(itemId: string): BackgroundScene {
 	return getShopItem(itemId)?.scene ?? "classic";
 }
 
-export function getBackgroundParticleConfig(itemId: string, isGameplayActive: boolean) {
+export function getBackgroundParticleConfig(itemId: string) {
 	const scene = getBackgroundScene(itemId);
-	if (scene === "classic") {
-		return {
-			count: isGameplayActive ? 4 : 8,
-			blockSize: isGameplayActive ? 14 : 22,
-			maxOpacity: isGameplayActive ? 0.32 : 0.65,
-		};
-	}
-
-	return {
-		count: isGameplayActive ? 3 : 6,
-		blockSize: isGameplayActive ? 14 : 22,
-		maxOpacity: isGameplayActive ? 0.26 : 0.48,
-	};
+	return scene === "classic"
+		? { count: 8, blockSize: 22, maxOpacity: 0.65 }
+		: { count: 6, blockSize: 22, maxOpacity: 0.48 };
 }
 
 interface MergeShopStateOptions {

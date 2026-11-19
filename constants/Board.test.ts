@@ -1,12 +1,14 @@
 import {
 	Board,
 	BoardBlockType,
+	breakLines,
 	calculateGameSizes,
 	clearHoverBlocks,
 	cloneBoard,
+	getPlacementPreview,
 	hasAnyPossibleMove,
 	newEmptyBoard,
-	updateHoveredBreaks,
+	placePieceOntoBoard,
 } from "./Board";
 import { PieceData } from "./Piece";
 
@@ -30,23 +32,33 @@ describe("board helpers", () => {
 		expect(board[0][0].color.r).not.toBe(123);
 	});
 
-	it("shows a shadow of the piece where it would land, and clearing it leaves the board empty", () => {
+	it("keeps the board unchanged while a piece is moved quickly between preview positions", () => {
 		const board = newEmptyBoard(4);
+		const before = cloneBoard(board);
 		const oneBlock: PieceData = {
 			matrix: [[1]],
 			color: { r: 255, g: 255, b: 255 },
 			distributionPoints: 1,
 		};
 
-		updateHoveredBreaks(board, oneBlock, 0, 0);
-
-		expect(board[0][0].blockType).toBe(BoardBlockType.HOVERED);
-		expect(board[0][1].blockType).toBe(BoardBlockType.EMPTY);
-		clearHoverBlocks(board);
-		expect(board[0][0].blockType).toBe(BoardBlockType.EMPTY);
+		for (let i = 0; i < 50; i++) {
+			const x = i % 4;
+			const y = (i + 1) % 4;
+			expect(getPlacementPreview(board, oneBlock, x, y)).toEqual({ x, y, rows: [], columns: [] });
+		}
+		expect(board).toEqual(before);
 	});
 
-	it("keeps filled preview cells filled when a hover clears crossing lines", () => {
+	it("removes legacy hover cells without erasing filled pieces", () => {
+		const board = newEmptyBoard(4);
+		board[0][0].blockType = BoardBlockType.HOVERED_BREAK_EMPTY;
+		board[0][1].blockType = BoardBlockType.HOVERED_BREAK_FILLED;
+		clearHoverBlocks(board);
+		expect(board[0][0].blockType).toBe(BoardBlockType.EMPTY);
+		expect(board[0][1].blockType).toBe(BoardBlockType.FILLED);
+	});
+
+	it("previews crossing lines and records the same lines only after placement", () => {
 		const board = newEmptyBoard(4);
 		board[0][0].blockType = BoardBlockType.FILLED;
 		board[0][1].blockType = BoardBlockType.FILLED;
@@ -65,11 +77,15 @@ describe("board helpers", () => {
 			distributionPoints: 1,
 		};
 
-		updateHoveredBreaks(board, cornerPiece, 0, 0);
-
-		expect(board[0][0].blockType).toBe(BoardBlockType.HOVERED_BREAK_FILLED);
-		clearHoverBlocks(board);
+		expect(getPlacementPreview(board, cornerPiece, 0, 0)).toEqual({ x: 0, y: 0, rows: [0], columns: [0] });
 		expect(board[0][0].blockType).toBe(BoardBlockType.FILLED);
+		expect(board[0][3].blockType).toBe(BoardBlockType.EMPTY);
+
+		const lines = { rows: [], columns: [] };
+		placePieceOntoBoard(board, cornerPiece, 0, 0, BoardBlockType.FILLED);
+		expect(breakLines(board, lines)).toBe(2);
+		expect(lines).toEqual({ rows: [0], columns: [0] });
+		expect(board[0][0].blockType).toBe(BoardBlockType.EMPTY);
 	});
 
 	it("checks possible moves from the supplied board and hand immediately", () => {

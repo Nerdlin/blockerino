@@ -105,6 +105,13 @@ export interface BoardBlock {
 
 export type Board = BoardBlock[][];
 
+export interface ClearedLines {
+  rows: number[];
+  columns: number[];
+}
+
+export type PlacementPreview = XYPoint & ClearedLines;
+
 export function cloneBoard(board: Board): Board {
   "worklet";
   return board.map((row) => row.map((cell) => ({
@@ -188,6 +195,19 @@ export function JS_emptyPossibleBoardSpots(
     });
   });
 }
+export function canPlacePiece(board: Board, piece: PieceData, x: number, y: number): boolean {
+  "worklet";
+  const height = piece.matrix.length;
+  const width = piece.matrix[0].length;
+  if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x + width > board.length || y + height > board.length) return false;
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      if (piece.matrix[row][col] === 1 && board[y + row][x + col].blockType === BoardBlockType.FILLED) return false;
+    }
+  }
+  return true;
+}
+
 export function createPossibleBoardSpots(
   board: Board,
   piece: PieceData | null,
@@ -203,23 +223,7 @@ export function createPossibleBoardSpots(
 
   for (let boardY = 0; boardY <= boardLength - pieceHeight; boardY++) {
     for (let boardX = 0; boardX <= boardLength - pieceWidth; boardX++) {
-      let canFit = true;
-
-      for (let pieceY = 0; pieceY < pieceHeight; pieceY++) {
-        for (let pieceX = 0; pieceX < pieceWidth; pieceX++) {
-          if (
-            piece.matrix[pieceY][pieceX] === 1 &&
-            board[boardY + pieceY][boardX + pieceX].blockType ===
-              BoardBlockType.FILLED
-          ) {
-            canFit = false;
-            break;
-          }
-        }
-        if (!canFit) break;
-      }
-
-      if (canFit) {
+      if (canPlacePiece(board, piece, boardX, boardY)) {
         fitPositions[boardY][boardX] = 1;
       }
     }
@@ -234,10 +238,9 @@ export function hasAnyPossibleMove(board: Board, hand: Hand): boolean {
     const piece = hand[i];
     if (!piece) continue;
 
-    const possibleSpots = createPossibleBoardSpots(board, piece);
-    for (let y = 0; y < possibleSpots.length; y++) {
-      for (let x = 0; x < possibleSpots[y].length; x++) {
-        if (possibleSpots[y][x] === 1) {
+    for (let y = 0; y <= board.length - piece.matrix.length; y++) {
+      for (let x = 0; x <= board.length - piece.matrix[0].length; x++) {
+        if (canPlacePiece(board, piece, x, y)) {
           return true;
         }
       }
@@ -284,78 +287,27 @@ export function placePieceOntoBoard(
   }
 }
 
-export function updateHoveredBreaks(
-  board: Board,
-  piece: PieceData,
-  dropX: number,
-  dropY: number,
-) {
+export function getPlacementPreview(board: Board, piece: PieceData, x: number, y: number): PlacementPreview {
   "worklet";
-  const boardLength = board.length;
-  const tempBoard = cloneBoard(board);
-  placePieceOntoBoard(tempBoard, piece, dropX, dropY, BoardBlockType.HOVERED);
+  const rows: number[] = [];
+  const columns: number[] = [];
+  const matrix = piece.matrix;
 
-  const rowsToClear = new Set<number>();
-  const colsToClear = new Set<number>();
-
-  for (let row = 0; row < boardLength; row++) {
-    if (
-      tempBoard[row].every(
-        (cell) =>
-          cell.blockType === BoardBlockType.FILLED ||
-          cell.blockType === BoardBlockType.HOVERED,
-      )
-    ) {
-      rowsToClear.add(row);
+  // Only lines that intersect this piece can become full.
+  for (let row = y; row < y + matrix.length; row++) {
+    if (board[row].every((cell, col) => cell.blockType === BoardBlockType.FILLED || matrix[row - y][col - x] >= 1)) {
+      rows.push(row);
     }
   }
-
-  for (let col = 0; col < boardLength; col++) {
-    if (
-      tempBoard.every(
-        (row) =>
-          row[col].blockType === BoardBlockType.FILLED ||
-          row[col].blockType === BoardBlockType.HOVERED,
-      )
-    ) {
-      colsToClear.add(col);
+  for (let col = x; col < x + matrix[0].length; col++) {
+    if (board.every((row, i) => row[col].blockType === BoardBlockType.FILLED || (matrix[i - y]?.[col - x] ?? 0) >= 1)) {
+      columns.push(col);
     }
   }
-
-  // the piece's own cells show where it will land, a shadow of it on the board
-  placePieceOntoBoard(board, piece, dropX, dropY, BoardBlockType.HOVERED);
-
-  const count = rowsToClear.size + colsToClear.size;
-
-  if (count > 0) {
-    rowsToClear.forEach((row) => {
-      for (let col = 0; col < boardLength; col++) {
-        if (board[row][col].blockType === BoardBlockType.FILLED) {
-          board[row][col].blockType = BoardBlockType.HOVERED_BREAK_FILLED;
-          board[row][col].hoveredBreakColor = piece.color;
-        } else {
-          board[row][col].blockType = BoardBlockType.HOVERED_BREAK_EMPTY;
-        }
-      }
-    });
-
-    colsToClear.forEach((col) => {
-      for (let row = 0; row < boardLength; row++) {
-        if (
-          board[row][col].blockType === BoardBlockType.FILLED ||
-          board[row][col].blockType === BoardBlockType.HOVERED_BREAK_FILLED
-        ) {
-          board[row][col].blockType = BoardBlockType.HOVERED_BREAK_FILLED;
-          board[row][col].hoveredBreakColor = piece.color;
-        } else {
-          board[row][col].blockType = BoardBlockType.HOVERED_BREAK_EMPTY;
-        }
-      }
-    });
-  }
+  return { x, y, rows, columns };
 }
 
-export function breakLines(board: Board): number {
+export function breakLines(board: Board, cleared?: ClearedLines): number {
   "worklet";
   const boardLength = board.length;
   const rowsToClear = new Set<number>();
@@ -374,6 +326,10 @@ export function breakLines(board: Board): number {
   }
 
   const count = rowsToClear.size + colsToClear.size;
+  if (cleared && count > 0) {
+    cleared.rows = Array.from(rowsToClear);
+    cleared.columns = Array.from(colsToClear);
+  }
 
   if (count > 0) {
     rowsToClear.forEach((row) => {
