@@ -234,11 +234,17 @@ const GridBlock = React.memo(function GridBlock({ x, y, cell, gridBlockSize, cur
 	const appear = useSharedValue(1);
 	const skinKind = getSkinKindId(pieceSkinId);
 
+	// The skin texture (a frame and an image) is mounted when a block first lands in the cell, not for all 64-100 cells when a
+	// game opens: on a phone those 120-200 native views were a third of the 80 ms frame that opens a game. Nothing hovers over a
+	// cell any more (the landing preview is its own layer), so the cell only ever goes from empty to filled.
+	const hasTexture = skinKind !== 0 && textureOf(pieceSkinId) !== null;
+	const [decorMounted, setDecorMounted] = useState(hasTexture && !startsEmpty);
 	useAnimatedReaction(() => cell.value.blockType, (current, previous) => {
 		if (current === BoardBlockType.FILLED && previous === BoardBlockType.EMPTY) {
 			appear.value = 0;
 			appear.value = withTiming(1, { duration: 280 });
 		}
+		if (hasTexture && current === BoardBlockType.FILLED) runOnJS(setDecorMounted)(true);
 	});
 
 	const staticStyle = useAnimatedStyle(() => {
@@ -279,7 +285,7 @@ const GridBlock = React.memo(function GridBlock({ x, y, cell, gridBlockSize, cur
 		}
 		return { opacity: 1, transform: [] };
 	});
-	const decor = skinKind !== 0 && textureOf(pieceSkinId) !== null;
+	const decor = decorMounted;
 	const decorFrame = { position: 'absolute' as const, left: 0, top: 0, width: gridBlockSize, height: gridBlockSize, borderWidth: filledBlockBorderWidth(7, pieceSkinId), borderColor: 'transparent', overflow: 'hidden' as const, ...skinCorners(skinKind, gridBlockSize) };
 
 	return (
@@ -448,6 +454,9 @@ function BlockGridView({
 		};
 
 		const live = y < liveRows;
+		// An empty cell draws nothing, so until its row goes live it is not mounted at all: a new game has 64 of them, and their views
+		// were most of the 600 that one frame had to create and draw when a game opened.
+		if (!live && block.blockType === BoardBlockType.EMPTY) return;
 		const plainStyle = live ? null : (block.blockType === BoardBlockType.EMPTY ? createEmptyBlockStyle(currentTheme.emptyBlockBorder, 0) : isGemColor(block.color) ? gemBlockStyle(GRID_BLOCK_SIZE) : createFilledBlockStyle(block.color, 7, pieceSkinId));
 		blockElements.push(
 			<Animated.View key={`${x},${y}`} style={blockPositionStyle}>
@@ -462,14 +471,16 @@ function BlockGridView({
 					startsEmpty={block.blockType === BoardBlockType.EMPTY}
 					startColor={block.color}
 				/>}
-				<BlockDroppable
-					x={x}
-					y={y}
-					style={styles.hitbox}
-					possibleBoardDropSpots={possibleBoardDropSpots}
-					hitboxSize={HITBOX_SIZE}
-					gridBlockSize={GRID_BLOCK_SIZE}
-				></BlockDroppable>
+				{live && (
+					<BlockDroppable
+						x={x}
+						y={y}
+						style={styles.hitbox}
+						possibleBoardDropSpots={possibleBoardDropSpots}
+						hitboxSize={HITBOX_SIZE}
+						gridBlockSize={GRID_BLOCK_SIZE}
+					></BlockDroppable>
+				)}
 			</Animated.View>
 		);
 	});
@@ -512,8 +523,9 @@ function BlockGridView({
 			{gridLines}
 			{blockElements}
 			<OpeningSweep size={GRID_BLOCK_SIZE} n={boardLength} />
-			<ClearFlash lineClear={lineClear} size={GRID_BLOCK_SIZE} n={boardLength} />
-			<LandingPreview placementPreview={placementPreview} hand={hand} draggingPiece={draggingPiece} size={GRID_BLOCK_SIZE} n={boardLength} />
+			{/* needed only once something is dragged or cleared, so they join after the cells */}
+			{liveRows >= boardLength && <ClearFlash lineClear={lineClear} size={GRID_BLOCK_SIZE} n={boardLength} />}
+			{liveRows >= boardLength && <LandingPreview placementPreview={placementPreview} hand={hand} draggingPiece={draggingPiece} size={GRID_BLOCK_SIZE} n={boardLength} />}
 			{skinAnim && liveRows >= boardLength && (
 				<OwnBoardFx board={board} lineClear={lineClear} combo={combo} skinId={pieceSkinId} anim={skinAnim} blockSize={GRID_BLOCK_SIZE} reduced={reducedFx} />
 			)}
