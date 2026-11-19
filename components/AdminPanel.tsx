@@ -4,12 +4,18 @@ import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import SegmentedControl from "./SegmentedControl";
 import PixelLoader from "./PixelLoader";
+import { StatEditor } from "./AdminStatForms";
 import { cssColors } from "@/constants/Color";
 import { opaqueColor, useTheme } from "@/constants/Theme";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useSetAppState } from "@/hooks/useAppState";
 import {
+	CHESS_CLASSES,
+	COUNTED_GAMES,
+	GAME_TITLES,
+	RATED_GAMES,
 	RECORD_MODES,
+	type AdminPlayerDetails,
 	type RecordMode,
 	adminApi,
 	useAdminWinButton,
@@ -191,6 +197,13 @@ function PlayerCard({ player, onBack }: { player: AdminPlayer; onBack: () => voi
 	const [reason, setReason] = useState("");
 	const [message, setMessage] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
+	const [details, setDetails] = useState<AdminPlayerDetails | null>(null);
+	const [levelInput, setLevelInput] = useState("");
+	const loadDetails = useCallback(() => adminApi.playerDetails(player.id).then(setDetails).catch(() => setDetails(null)), [player.id]);
+	useEffect(() => {
+		void loadDetails();
+	}, [loadDetails]);
+	const why = reason || "админ-панель";
 
 	const run = async (task: () => Promise<string>) => {
 		if (busy) return;
@@ -290,6 +303,78 @@ function PlayerCard({ player, onBack }: { player: AdminPlayer; onBack: () => voi
 				<StylizedButton text="Сбросить Классику" onClick={() => void run(async () => { await adminApi.resetRecord(player.id, "classic"); setRecords((current) => ({ ...current, classic: 0 })); return "Рекорд Классики сброшен"; })} backgroundColor="#B91C1C" style={styles.smallButton} textStyle={styles.smallText} disabled={busy} />
 				<StylizedButton text="Сбросить Хаос" onClick={() => void run(async () => { await adminApi.resetRecord(player.id, "chaos"); setRecords((current) => ({ ...current, chaos: 0 })); return "Рекорд Хаоса сброшен"; })} backgroundColor="#B91C1C" style={styles.smallButton} textStyle={styles.smallText} disabled={busy} />
 			</View>
+
+			{details && (
+				<>
+					<Text style={[styles.label, { color: currentTheme.textPrimary }]}>Уровни</Text>
+					<Text style={[styles.muted, { color: currentTheme.textSecondary }]}>
+						{details.has_account
+							? `Звёзд ${Object.values(details.levels).reduce((sum, stars) => sum + stars, 0)} из 150, пройдено уровней ${Object.keys(details.levels).length} из 50. Введи уровень (например 2-5) или all для всех, потом звёзды. 0 стирает.`
+							: "У гостя нет аккаунта, звёзд уровней у него нет."}
+					</Text>
+					{details.has_account && (
+						<>
+							<TextInput value={levelInput} onChangeText={setLevelInput} autoCapitalize="none" placeholder="уровень: 1-1 … 5-10 или all" placeholderTextColor={currentTheme.textSecondary}
+								style={[styles.input, { color: currentTheme.textPrimary, borderColor: currentTheme.textSecondary }]} />
+							<View style={styles.row}>
+								{[0, 1, 2, 3].map((stars) => (
+									<StylizedButton key={stars} text={`${stars}★`} onClick={() => void run(async () => {
+										const level = levelInput.trim().toLowerCase();
+										if (!level) return "Введите уровень";
+										await adminApi.setLevelStars(player.id, level, stars, why);
+										await loadDetails();
+										return `Уровень ${level}: ${stars}★`;
+									})} backgroundColor={stars === 0 ? "#B91C1C" : currentTheme.buttonPrimary} style={styles.smallButton} textStyle={styles.smallText} disabled={busy || !levelInput.trim()} />
+								))}
+							</View>
+						</>
+					)}
+
+					<StatEditor
+						title="Шахматы: рейтинг и партии"
+						note="По контролю времени. Пустое поле оставляет число как есть."
+						chips={CHESS_CLASSES}
+						fields={[{ key: "rating", label: "Рейтинг" }, { key: "wins", label: "Победы" }, { key: "losses", label: "Поражения" }, { key: "draws", label: "Ничьи" }]}
+						current={(chip) => details.chess.find((row) => row.time_class === chip)}
+						busy={busy}
+						onSave={async (chip, values) => {
+							await adminApi.setChessRating(player.id, chip, { rating: values.rating, wins: values.wins, losses: values.losses, draws: values.draws }, why);
+							await loadDetails();
+							return "Шахматы обновлены";
+						}}
+					/>
+
+					<StatEditor
+						title="Другие игры: онлайн-рейтинг"
+						note="Рейтинг и счёт игр по имени игрока, как их считает сама игра."
+						chips={RATED_GAMES.map((game) => ({ key: game, label: GAME_TITLES[game] }))}
+						fields={[{ key: "elo", label: "Рейтинг" }, { key: "wins", label: "Победы" }, { key: "losses", label: "Поражения" }, { key: "draws", label: "Ничьи" }]}
+						current={(chip) => details.more.find((row) => row.game_id === chip)}
+						busy={busy}
+						onSave={async (chip, values) => {
+							await adminApi.setMoreGameRating(player.id, chip, { elo: values.elo, wins: values.wins, losses: values.losses, draws: values.draws }, why);
+							await loadDetails();
+							return `${GAME_TITLES[chip]}: рейтинг обновлён`;
+						}}
+					/>
+
+					{details.has_account && (
+						<StatEditor
+							title="Счётчики побед по играм"
+							note="Победы, поражения и ничьи в профиле; игры с ботом считаются отдельно."
+							chips={COUNTED_GAMES.map((game) => ({ key: game, label: GAME_TITLES[game] }))}
+							fields={[{ key: "wins", label: "Победы" }, { key: "losses", label: "Поражения" }, { key: "draws", label: "Ничьи" }, { key: "bot_wins", label: "С ботом: победы" }, { key: "bot_losses", label: "С ботом: поражения" }, { key: "bot_draws", label: "С ботом: ничьи" }]}
+							current={(chip) => details.records.find((row) => row.game_id === chip)}
+							busy={busy}
+							onSave={async (chip, values) => {
+								await adminApi.setGameRecord(player.id, chip, { wins: values.wins, losses: values.losses, draws: values.draws, bot_wins: values.bot_wins, bot_losses: values.bot_losses, bot_draws: values.bot_draws }, why);
+								await loadDetails();
+								return `${GAME_TITLES[chip]}: счётчики обновлены`;
+							}}
+						/>
+					)}
+				</>
+			)}
 			{message && <Text style={[styles.muted, { color: currentTheme.textPrimary }]}>{message}</Text>}
 		</View>
 	);

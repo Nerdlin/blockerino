@@ -125,6 +125,24 @@ export interface AdminSeasonRow {
 	account_created: string;
 }
 
+export const GAME_TITLES: Record<string, string> = {
+	versus: "Дуэль 1на1", chess: "Шахматы", battleship: "Морской бой", durak: "Дурак", tictactoe: "Крестики-нолики",
+	sudoku: "Судоку", mahjong: "Маджонг", checkers: "Шашки", backgammon: "Нарды",
+};
+/** Games that have an online rating of their own (more_game_ratings) and games that count wins and losses (player_game_records). */
+export const RATED_GAMES = ["battleship", "durak", "chess", "tictactoe", "sudoku", "mahjong", "checkers", "backgammon"] as const;
+export const COUNTED_GAMES = ["versus", "chess", "battleship", "durak", "tictactoe", "sudoku", "mahjong", "checkers", "backgammon"] as const;
+export const CHESS_CLASSES = [{ key: "bullet", label: "Пуля" }, { key: "blitz", label: "Блиц" }, { key: "rapid", label: "Рапид" }] as const;
+
+export interface AdminPlayerDetails {
+	has_account: boolean;
+	/** level id (1-1 .. 5-10) to stars */
+	levels: Record<string, number>;
+	chess: { time_class: string; rating: number; wins: number; losses: number; draws: number }[];
+	more: { game_id: string; elo: number; wins: number; losses: number; draws: number }[];
+	records: { game_id: string; wins: number; losses: number; draws: number; bot_wins: number; bot_losses: number; bot_draws: number }[];
+}
+
 export interface AdminLogRow {
 	action: string;
 	details: Record<string, unknown>;
@@ -146,6 +164,15 @@ export const adminApi = {
 	resetRecord: (profileId: string, mode: "classic" | "chaos") => call<{ ok: boolean }>("admin_reset_record", { p_profile_id: profileId, p_mode: mode }),
 	setRecord: (profileId: string, mode: RecordMode, score: number, reason: string) =>
 		call<{ ok: boolean; mode: string; score: number }>("admin_set_record", { p_profile_id: profileId, p_mode: mode, p_score: score, p_reason: reason }),
+	playerDetails: (profileId: string) => call<AdminPlayerDetails>("admin_player_details", { p_profile_id: profileId }),
+	setLevelStars: (profileId: string, level: string, stars: number, reason: string) =>
+		call<{ ok: boolean }>("admin_set_level_stars", { p_profile_id: profileId, p_level_id: level, p_stars: stars, p_reason: reason }),
+	setChessRating: (profileId: string, timeClass: string, v: { rating: number | null; wins: number | null; losses: number | null; draws: number | null }, reason: string) =>
+		call<{ ok: boolean }>("admin_set_chess_rating", { p_profile_id: profileId, p_time_class: timeClass, p_rating: v.rating, p_wins: v.wins, p_losses: v.losses, p_draws: v.draws, p_reason: reason }),
+	setMoreGameRating: (profileId: string, game: string, v: { elo: number | null; wins: number | null; losses: number | null; draws: number | null }, reason: string) =>
+		call<{ ok: boolean }>("admin_set_more_game_rating", { p_profile_id: profileId, p_game_id: game, p_elo: v.elo, p_wins: v.wins, p_losses: v.losses, p_draws: v.draws, p_reason: reason }),
+	setGameRecord: (profileId: string, game: string, v: Record<"wins" | "losses" | "draws" | "bot_wins" | "bot_losses" | "bot_draws", number | null>, reason: string) =>
+		call<{ ok: boolean }>("admin_set_game_record", { p_profile_id: profileId, p_game_id: game, p_wins: v.wins, p_losses: v.losses, p_draws: v.draws, p_bot_wins: v.bot_wins, p_bot_losses: v.bot_losses, p_bot_draws: v.bot_draws, p_reason: reason }),
 	seasonTop: (board: "classic" | "chaos") => call<AdminSeasonRow[]>("admin_season_top", { p_board: board }),
 	setAndroidVersion: (value: AndroidVersionConfig) => call<AndroidVersionConfig>("admin_set_android_version", { p_value: value }),
 	setElo: (profileId: string, elo: number, reason: string) =>
