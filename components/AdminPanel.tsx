@@ -21,6 +21,7 @@ import {
 	useAdminWinButton,
 	useIsAdmin,
 	type AdminLogRow,
+	type AdminDiscordUsage,
 	type AdminOverview,
 	type AdminPlayer,
 	type AdminSeasonRow,
@@ -130,6 +131,7 @@ function OverviewTab() {
 					<Stat label="Монет у всех" value={data.coins_total} />
 				</View>
 			)}
+			<DiscordUsageCard />
 			<View style={[styles.row, styles.card, { borderColor: currentTheme.textSecondary }]}>
 				<View style={{ flex: 1 }}>
 					<Text style={[styles.label, { color: currentTheme.textPrimary }]}>Кнопка «Победа» в играх с ботом</Text>
@@ -138,6 +140,34 @@ function OverviewTab() {
 				<Switch value={winButton} onValueChange={setWinButton} />
 			</View>
 			<StylizedButton text="Обновить" onClick={reload} backgroundColor={cssColors.spaceGray} />
+		</View>
+	);
+}
+
+/** Where the Discord Activity is played: server or direct message, desktop or mobile, and the busiest servers. Only the owner sees it. */
+function DiscordUsageCard() {
+	const { currentTheme } = useTheme();
+	const [days, setDays] = useState(7);
+	const { data, error, loading } = useLoad<AdminDiscordUsage>(() => adminApi.discordUsage(days), [days]);
+	const surfaceName = (surface: string | null) => (surface === "guild" ? "Сервер" : surface === "dm" ? "Личка / группа" : "?");
+	return (
+		<View style={[styles.card, { borderColor: currentTheme.textSecondary, gap: 8 }]}>
+			<Text style={[styles.label, { color: currentTheme.textPrimary }]}>Discord Activity</Text>
+			<SegmentedControl items={[{ key: "1", label: "Сутки" }, { key: "7", label: "Неделя" }, { key: "30", label: "Месяц" }]} value={String(days)} onChange={(key) => setDays(Number(key))} small />
+			{loading && <PixelLoader size="small" color={currentTheme.textPrimary} />}
+			{error && <Text style={styles.error}>{error}</Text>}
+			{data && (
+				<>
+					<Text style={[styles.muted, { color: currentTheme.textSecondary }]}>Запусков: {data.total}, устройств: {data.devices}. Считаются только игроки с включённой статистикой.</Text>
+					{data.surfaces.map((row) => (
+						<Text key={`${row.surface}-${row.platform}`} style={[styles.muted, { color: currentTheme.textPrimary }]}>{surfaceName(row.surface)}, {row.platform === "mobile" ? "телефон" : row.platform === "desktop" ? "компьютер" : "?"}: {row.sessions} ({row.devices} уст.)</Text>
+					))}
+					{data.servers.length > 0 && <Text style={[styles.label, { color: currentTheme.textPrimary }]}>Серверы</Text>}
+					{data.servers.map((row) => (
+						<Text key={row.guild} selectable style={[styles.muted, { color: currentTheme.textPrimary }]}>{row.guild}: {row.sessions} запусков, {row.devices} уст.</Text>
+					))}
+				</>
+			)}
 		</View>
 	);
 }

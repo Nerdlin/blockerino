@@ -5,6 +5,7 @@ import { supabase } from '@/constants/Supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isDiscordActivityLocation, withDiscordTimeout } from '@/constants/DiscordEnvironment';
 import { attachDiscordPresence } from '@/constants/DiscordPresence';
+import { trackDiscordOpen } from '@/constants/DiscordUsage';
 
 const discordClientId = process.env.EXPO_PUBLIC_DISCORD_CLIENT_ID;
 
@@ -71,6 +72,7 @@ export function useDiscordSDK() {
       try {
         await withDiscordTimeout(discordSdk.ready());
         console.log("Discord SDK is ready!");
+        trackDiscordOpen(discordSdk);
         
         // 1. Authorize with Discord Client
         const { code } = await withDiscordTimeout(discordSdk.commands.authorize({

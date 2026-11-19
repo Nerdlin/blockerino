@@ -43,6 +43,7 @@ export default function PrivacyPolicy() {
                 <LegalBullet>What is recorded: screens opened, game modes started and finished, final scores, purchases of in-game items, the application version and platform, and a random identifier the application generates for itself (it is not a hardware or advertising identifier).</LegalBullet>
                 <LegalBullet>If you are signed in, the server also links events to your account identifier. Guests are not linked to any account.</LegalBullet>
                 <LegalBullet>Events are deleted automatically after 180 days.</LegalBullet>
+                <LegalBullet>Discord Activity: when the game is opened as a Discord Activity, one event records whether it was opened in a server or in a direct message, the Discord platform (desktop or mobile) and, for a server, that server's numeric identifier. This event is not linked to your account and is deleted after 90 days.</LegalBullet>
                 <LegalBullet>Crash reports: if the application crashes, it records the error text, a short technical trace, the screen you were on, the application version and your system version, in the same database and under the same switch. They are deleted after 90 days.</LegalBullet>
                 <LegalBullet>You can switch collection off at any time in Options, under Privacy. The application then stops recording and discards events that were not yet sent.</LegalBullet>
 

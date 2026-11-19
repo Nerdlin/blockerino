@@ -143,6 +143,14 @@ export interface AdminPlayerDetails {
 	records: { game_id: string; wins: number; losses: number; draws: number; bot_wins: number; bot_losses: number; bot_draws: number }[];
 }
 
+export interface AdminDiscordUsage {
+	days: number;
+	total: number;
+	devices: number;
+	surfaces: { surface: string | null; platform: string | null; sessions: number; devices: number }[];
+	servers: { guild: string; sessions: number; devices: number; last_seen: string }[];
+}
+
 export interface AdminLogRow {
 	action: string;
 	details: Record<string, unknown>;
@@ -158,6 +166,7 @@ async function call<T>(name: string, args?: Record<string, unknown>): Promise<T>
 
 export const adminApi = {
 	overview: () => call<AdminOverview>("admin_overview"),
+	discordUsage: (days: number) => call<AdminDiscordUsage>("admin_discord_usage", { p_days: days }),
 	findPlayers: (query: string) => call<AdminPlayer[]>("admin_find_players", { p_query: query }),
 	adjustCoins: (profileId: string, delta: number, reason: string) =>
 		call<{ coins: number }>("admin_adjust_coins", { p_profile_id: profileId, p_delta: delta, p_reason: reason }),
