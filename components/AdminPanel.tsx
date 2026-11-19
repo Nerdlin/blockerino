@@ -9,6 +9,8 @@ import { opaqueColor, useTheme } from "@/constants/Theme";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useSetAppState } from "@/hooks/useAppState";
 import {
+	RECORD_MODES,
+	type RecordMode,
 	adminApi,
 	useAdminWinButton,
 	useIsAdmin,
@@ -181,8 +183,8 @@ function PlayerCard({ player, onBack }: { player: AdminPlayer; onBack: () => voi
 	const [coins, setCoins] = useState(player.coins);
 	const [elo, setElo] = useState(player.elo);
 	const [matches, setMatches] = useState<number | null>(player.matches ?? null);
-	const [records, setRecords] = useState({ classic: player.highscore_classic, chaos: player.highscore_chaos });
-	const [recordInput, setRecordInput] = useState({ classic: "", chaos: "" });
+	const [records, setRecords] = useState<Record<RecordMode, number>>(() => Object.fromEntries(RECORD_MODES.map(({ mode, column }) => [mode, player[column] ?? 0])) as Record<RecordMode, number>);
+	const [recordInput, setRecordInput] = useState<Record<RecordMode, string>>(() => Object.fromEntries(RECORD_MODES.map(({ mode }) => [mode, ""])) as Record<RecordMode, string>);
 	const [eloInput, setEloInput] = useState("");
 	const [matchesInput, setMatchesInput] = useState("");
 	const [amount, setAmount] = useState("");
@@ -218,13 +220,13 @@ function PlayerCard({ player, onBack }: { player: AdminPlayer; onBack: () => voi
 		setEloInput("");
 		return `Рейтинг теперь ${result.elo}`;
 	});
-	const saveRecord = (mode: "classic" | "chaos") => run(async () => {
+	const saveRecord = (mode: RecordMode) => run(async () => {
 		const typedScore = wholeNumber(recordInput[mode]);
 		if (typedScore === null) return "Введите число";
 		const result = await adminApi.setRecord(player.id, mode, typedScore, reason || "админ-панель");
 		setRecords((current) => ({ ...current, [mode]: result.score }));
 		setRecordInput((current) => ({ ...current, [mode]: "" }));
-		return `Рекорд ${mode === "classic" ? "Классики" : "Хаоса"} теперь ${result.score}`;
+		return `Рекорд «${RECORD_MODES.find((entry) => entry.mode === mode)?.title}» теперь ${result.score}`;
 	});
 	const saveMatches = () => run(async () => {
 		if (typedMatches === null) return "Введите число";
@@ -273,8 +275,8 @@ function PlayerCard({ player, onBack }: { player: AdminPlayer; onBack: () => voi
 			{!player.has_account && <Text style={[styles.muted, { color: currentTheme.textSecondary }]}>У гостя нет истории матчей: число матчей задаётся только игрокам с аккаунтом.</Text>}
 
 			<Text style={[styles.label, { color: currentTheme.textPrimary }]}>Рекорды</Text>
-			<Text style={[styles.muted, { color: currentTheme.textSecondary }]}>Задаёт лучший счёт режима и счёт в таблице текущего сезона. Ноль убирает игрока из таблицы. Всё пишется в журнал.</Text>
-			{([["classic", "Классика"], ["chaos", "Хаос"]] as const).map(([mode, title]) => (
+			<Text style={[styles.muted, { color: currentTheme.textSecondary }]}>Задаёт лучший счёт режима (у Классики и Хаоса ещё и счёт в таблице сезона). Ноль обнуляет рекорд. Всё пишется в журнал.</Text>
+			{RECORD_MODES.map(({ mode, title }) => (
 				<View key={mode} style={styles.row}>
 					<TextInput value={recordInput[mode]} onChangeText={(text) => setRecordInput((current) => ({ ...current, [mode]: text }))} keyboardType="number-pad" placeholder={`${title} (сейчас ${records[mode]})`} placeholderTextColor={currentTheme.textSecondary}
 						style={[styles.input, { flex: 1, color: currentTheme.textPrimary, borderColor: currentTheme.textSecondary }]} />

@@ -80,6 +80,18 @@ export interface AndroidVersionConfig {
 	isMandatory?: boolean;
 }
 
+/** Every mode that keeps a best score on the server (profiles.highscore_*), with its name in the panel. */
+export const RECORD_MODES = [
+	{ mode: "classic", column: "highscore_classic", title: "Классика" },
+	{ mode: "chaos", column: "highscore_chaos", title: "Хаос" },
+	{ mode: "time_attack", column: "highscore_time_attack", title: "На скорость" },
+	{ mode: "move_limit", column: "highscore_move_limit", title: "Лимит ходов" },
+	{ mode: "rescue", column: "highscore_rescue", title: "Спасение" },
+	{ mode: "combo_trial", column: "highscore_combo_trial", title: "Комбо" },
+	{ mode: "daily", column: "highscore_daily", title: "Головоломка дня" },
+] as const;
+export type RecordMode = (typeof RECORD_MODES)[number]["mode"];
+
 export interface AdminPlayer {
 	id: string;
 	player_name: string;
@@ -88,6 +100,12 @@ export interface AdminPlayer {
 	elo: number;
 	highscore_classic: number;
 	highscore_chaos: number;
+	// the other modes; missing on a server that does not send them yet
+	highscore_time_attack?: number;
+	highscore_move_limit?: number;
+	highscore_rescue?: number;
+	highscore_combo_trial?: number;
+	highscore_daily?: number;
 	streak_count: number;
 	created_at: string;
 	login_providers: string[] | null;
@@ -126,7 +144,7 @@ export const adminApi = {
 	adjustCoins: (profileId: string, delta: number, reason: string) =>
 		call<{ coins: number }>("admin_adjust_coins", { p_profile_id: profileId, p_delta: delta, p_reason: reason }),
 	resetRecord: (profileId: string, mode: "classic" | "chaos") => call<{ ok: boolean }>("admin_reset_record", { p_profile_id: profileId, p_mode: mode }),
-	setRecord: (profileId: string, mode: "classic" | "chaos", score: number, reason: string) =>
+	setRecord: (profileId: string, mode: RecordMode, score: number, reason: string) =>
 		call<{ ok: boolean; mode: string; score: number }>("admin_set_record", { p_profile_id: profileId, p_mode: mode, p_score: score, p_reason: reason }),
 	seasonTop: (board: "classic" | "chaos") => call<AdminSeasonRow[]>("admin_season_top", { p_board: board }),
 	setAndroidVersion: (value: AndroidVersionConfig) => call<AndroidVersionConfig>("admin_set_android_version", { p_value: value }),
