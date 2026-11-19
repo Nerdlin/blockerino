@@ -305,14 +305,14 @@ export default function OptionsMenu() {
 								maximumTrackTintColor={currentTheme.textSecondary}
 								thumbTintColor={currentTheme.accent}
 							/>
-							<Text style={[styles.sliderValue, { color: currentTheme.textSecondary }]}>{t(`settings.hapticsLevel${haptics.level}`)}</Text>
+							<Text style={[styles.sliderValue, { color: currentTheme.textSecondary, width: 80 }]} numberOfLines={1}>{t(`settings.hapticsLevel${haptics.level}`)}</Text>
 						</View>
 					)}
 				</View>
 
 				<View style={styles.settingSection}>
 					<Text style={[styles.sectionLabel, { color: currentTheme.accent }]}>{t("settings.effects")}</Text>
-					<Text style={[styles.settingDesc, { color: currentTheme.textSecondary, marginBottom: 10 }]}>{t("settings.effectsDesc")}</Text>
+					<Text style={[styles.settingDesc, { color: currentTheme.textSecondary, marginBottom: 10, textAlign: "center" }]}>{t("settings.effectsDesc")}</Text>
 					<SegmentedControl
 						items={[{ key: "full", label: t("settings.effectsFull") }, { key: "light", label: t("settings.effectsLight") }]}
 						value={effectsProfile}

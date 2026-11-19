@@ -76,3 +76,8 @@ public/site-info.json
 # Gradle caches of the local Expo modules
 modules/*/android/.gradle/
 modules/*/android/build/
+
+# Android perf harness output
+scripts/android-perf/*.sqlite
+scripts/android-perf/line2_*.json
+scripts/android-perf/__pycache__/
