@@ -52,16 +52,18 @@ export function BackgammonGame({ cosmetics, playerName, onRatingChange }: { cosm
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
 	const { width, height } = useWindowDimensions();
+	const { difficulty, setDifficulty, vsBot, setVsBot } = useBotSettings("backgammon");
 	// the board also shrinks to the height that is left after the status, trays, dice and buttons (the window of the
 	// game is 80% of the screen on a desktop), so the roll and undo buttons stay in view without scrolling
 	const m = useMemo(() => {
 		const windowH = width < 600 ? height : height * 0.8;
 		// header, status, trays, pips, dice row, mode switch and room panel take about this much on a phone
-		const maxBoardH = Math.max(200, windowH - (width < 600 ? 500 : 400));
+		// playing a friend puts the room panel (create / code / join) under the board: it takes about 110 more
+		const maxBoardH = Math.max(200, windowH - (width < 600 ? 500 : 400) - (vsBot ? 0 : 110));
 		const maxDiameter = (maxBoardH - 6) / 11.7;
 		const widthByHeight = Math.floor((maxDiameter + 3) * 12.5 + 6);
 		return boardMetrics(Math.min(480, widthByHeight, Math.max(260, width - 28)));
-	}, [width, height]);
+	}, [width, height, vsBot]);
 
 	const [state, setState] = useState<BackgammonState>(() => initialState());
 	// the moves already made in the turn being played, not yet handed over
@@ -77,7 +79,6 @@ export function BackgammonGame({ cosmetics, playerName, onRatingChange }: { cosm
 	const [remoteResult, setRemoteResult] = useState<string | null>(null);
 	const [hint, setHint] = useState<BgMove | null>(null);
 	const ratingSubmittedRef = useRef<string | null>(null);
-	const { difficulty, setDifficulty, vsBot, setVsBot } = useBotSettings("backgammon");
 	const sfx = useGameSfx();
 
 	const stateRef = useRef(state);

@@ -287,7 +287,15 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                     {score > 0 && (
                         <StylizedButton
                             text={t("share.button")}
-                            onClick={handleShare}
+                            // one Share button: the GIF of the finishing moment when the game recorded one, the score card otherwise
+                            onClick={() => {
+                                if (momentLog) {
+                                    playSfx('menuClick');
+                                    setMomentOpen(true);
+                                } else {
+                                    void handleShare();
+                                }
+                            }}
                             disabled={sharing}
                             backgroundColor="rgba(255,255,255,0.08)"
                             borderColor="rgba(255,255,255,0.14)"
@@ -296,19 +304,6 @@ export default function GameOverModal({ score, gameMode, reason }: { score: numb
                         />
                     )}
                 </View>
-                {momentLog && score > 0 && (
-                    <StylizedButton
-                        text={t("moment.button")}
-                        onClick={() => {
-                            playSfx('menuClick');
-                            setMomentOpen(true);
-                        }}
-                        backgroundColor="rgba(255,255,255,0.08)"
-                        borderColor="rgba(255,255,255,0.14)"
-                        style={[styles.secondaryButton, styles.momentButton]}
-                        textStyle={styles.secondaryText}
-                    />
-                )}
             </Animated.View>
 
             {/* where the score went */}
@@ -536,10 +531,6 @@ const styles = StyleSheet.create({
         height: 46,
         margin: 0,
         borderRadius: 12,
-    },
-    momentButton: {
-        flex: 0,
-        alignSelf: 'stretch',
     },
     secondaryText: {
         fontSize: 13,

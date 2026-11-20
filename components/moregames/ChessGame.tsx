@@ -55,6 +55,8 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 	const { t } = useLanguage();
 	const [invite, setInvite] = useAtom(chessInviteAtom);
 	const [chessCom, setChessCom] = useState<ChessComLink | null>(null);
+	// how the "friend" room screen starts: host a room or join a typed code (null: the manual create / join panel)
+	const [roomEntry, setRoomEntry] = useState<{ mode: "host" } | { mode: "join"; code: string } | null>(null);
 	useEffect(() => { void loadChessComLink().then(setChessCom); }, []);
 
 	// An accepted challenge from a friend: join their room as Black right away.
@@ -137,7 +139,8 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 				<ChessFriends
 					control={control}
 					onChallenge={(friend) => void challenge(friend)}
-					onPlayWithCode={() => setScreen("friend")}
+					onCreateRoom={() => { setRoomEntry({ mode: "host" }); setScreen("friend"); }}
+					onJoinCode={(code) => { setRoomEntry({ mode: "join", code }); setScreen("friend"); }}
 					onBack={() => setScreen("lobby")}
 				/>
 			)}
@@ -185,6 +188,8 @@ export function ChessOnlineGame({ cosmetics, playerName, onRatingChange }: { cos
 			)}
 			{screen === "friend" && (
 				<RoomGame
+					key={roomEntry ? `${roomEntry.mode}-${roomEntry.mode === "join" ? roomEntry.code : ""}` : "manual"}
+					entry={roomEntry ?? undefined}
 					control={control}
 					playerName={playerName}
 					cosmetics={cosmetics}

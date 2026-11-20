@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 import { supabase } from "@/constants/Supabase";
 import { fetchFriendsOnline } from "@/constants/Invites";
 import { useLanguage } from "@/constants/Localization";
@@ -28,18 +28,22 @@ interface Row extends ChessFriend {
 export function ChessFriends({
 	control,
 	onChallenge,
-	onPlayWithCode,
+	onCreateRoom,
+	onJoinCode,
 	onBack,
 }: {
 	control: TimeControl;
 	onChallenge: (friend: ChessFriend) => void;
-	onPlayWithCode: () => void;
+	/** Opens a room right away and waits for the friend (the code and the share button are on the next screen). */
+	onCreateRoom: () => void;
+	onJoinCode: (code: string) => void;
 	onBack: () => void;
 }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
 	const [rows, setRows] = useState<Row[] | null>(null);
 	const [signedIn, setSignedIn] = useState(true);
+	const [code, setCode] = useState("");
 
 	useEffect(() => {
 		let active = true;
@@ -105,7 +109,20 @@ export function ChessFriends({
 					);
 				}} />
 			)}
-			<StylizedButton text={t("chess.playWithCode")} onClick={onPlayWithCode} backgroundColor="#1E88E5" style={local.button} textStyle={{ fontSize: 12 }} />
+			{/* a room by code, right here: create one or type a friend's code */}
+			<View style={local.roomRow}>
+				<StylizedButton text={t("common.host")} onClick={onCreateRoom} backgroundColor="#1E88E5" style={local.roomButton} textStyle={{ fontSize: 11 }} />
+				<TextInput
+					value={code}
+					onChangeText={(value) => setCode(value.toUpperCase())}
+					placeholder={t("moregames.codePlaceholder")}
+					placeholderTextColor={currentTheme.textSecondary}
+					autoCapitalize="characters"
+					maxLength={5}
+					style={[local.codeInput, { color: currentTheme.textPrimary, borderColor: "rgba(255,255,255,0.25)" }]}
+				/>
+				<StylizedButton text={t("common.join")} onClick={() => onJoinCode(code)} disabled={code.length < 4} backgroundColor={currentTheme.buttonSecondary} style={local.roomButton} textStyle={{ fontSize: 11 }} />
+			</View>
 		</View>
 	);
 }
@@ -119,5 +136,7 @@ const local = StyleSheet.create({
 	name: { fontFamily: "SilkscreenBold", fontSize: 12 },
 	tiny: { fontFamily: "Silkscreen", fontSize: 9, marginTop: 2 },
 	small: { minWidth: 84, height: 30, minHeight: 30, margin: 0, paddingHorizontal: 8 },
-	button: { minWidth: 160, height: 38, minHeight: 38, margin: 0, marginTop: 8, alignSelf: "center" },
+	roomRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
+	roomButton: { minWidth: 0, width: 90, height: 38, minHeight: 38, margin: 0 },
+	codeInput: { flex: 1, height: 38, borderWidth: 2, borderRadius: 8, textAlign: "center", fontFamily: "Silkscreen", fontSize: 13, backgroundColor: "rgba(0,0,0,0.35)" },
 });
