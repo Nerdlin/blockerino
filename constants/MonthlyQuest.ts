@@ -14,10 +14,68 @@ export interface MonthlyMilestoneDef {
 	medal: boolean;
 }
 
+/** `days: 0` is every day of the month (28 to 31, the server counts it). */
 export const MONTHLY_MILESTONES: MonthlyMilestoneDef[] = [
 	{ days: 10, coins: 500, keys: 2, medal: false },
 	{ days: 20, coins: 1500, keys: 4, medal: true },
+	{ days: 0, coins: 2500, keys: 6, medal: false },
 ];
+
+/** Days in a "2026-11" month. */
+export function daysInMonthKey(month: string): number {
+	const match = /^(\d{4})-(\d{2})$/.exec(month);
+	if (!match) return 30;
+	return new Date(Number(match[1]), Number(match[2]), 0).getDate();
+}
+
+/** The look of the monthly card: it changes with the month, to suit the season. */
+export interface MonthTheme {
+	/** Gradient from the light corner through the middle to the dark one. */
+	from: string;
+	via: string;
+	to: string;
+	/** The thick lower edge. */
+	edge: string;
+	/** Frames of the medals and the highlight text. */
+	accent: string;
+	/** What drifts over the card. */
+	particles: "snow" | "leaf" | "petal" | "heart" | "spark" | "ember" | "pollen";
+	particleColors: string[];
+}
+
+const THEMES: MonthTheme[] = [
+	// January: the new year, fireworks over violet
+	{ from: "#E879F9", via: "#8B5CF6", to: "#3B0764", edge: "#2E1065", accent: "#F0ABFC", particles: "spark", particleColors: ["#FDE047", "#FFFFFF", "#F0ABFC"] },
+	// February: love
+	{ from: "#FDA4AF", via: "#F43F5E", to: "#881337", edge: "#6B0F2A", accent: "#FDA4AF", particles: "heart", particleColors: ["#FFE4E6", "#FDA4AF", "#FFFFFF"] },
+	// March: the first spring green
+	{ from: "#BEF264", via: "#22C55E", to: "#14532D", edge: "#0F3D21", accent: "#BEF264", particles: "petal", particleColors: ["#ECFCCB", "#BEF264", "#FFFFFF"] },
+	// April: blossom
+	{ from: "#F9A8D4", via: "#EC4899", to: "#831843", edge: "#640F34", accent: "#F9A8D4", particles: "petal", particleColors: ["#FFFFFF", "#FBCFE8", "#F9A8D4"] },
+	// May: pollen and young leaves
+	{ from: "#FDE047", via: "#84CC16", to: "#365314", edge: "#273B0E", accent: "#FDE047", particles: "pollen", particleColors: ["#FEF9C3", "#FDE047", "#FFFFFF"] },
+	// June: the sun
+	{ from: "#FDE047", via: "#F59E0B", to: "#B45309", edge: "#8A3F07", accent: "#FDE047", particles: "spark", particleColors: ["#FFFFFF", "#FEF08A", "#FDE047"] },
+	// July: a hot sunset
+	{ from: "#F0ABFC", via: "#D946EF", to: "#F97316", edge: "#B3380D", accent: "#FDBA74", particles: "spark", particleColors: ["#FFFFFF", "#FDBA74", "#F0ABFC"] },
+	// August: late summer gold
+	{ from: "#FCD34D", via: "#FB923C", to: "#BE123C", edge: "#8E0F2D", accent: "#FCD34D", particles: "pollen", particleColors: ["#FEF3C7", "#FCD34D", "#FFFFFF"] },
+	// September: the first leaves
+	{ from: "#FDBA74", via: "#D97706", to: "#78350F", edge: "#5A2A0B", accent: "#FDBA74", particles: "leaf", particleColors: ["#FDBA74", "#F59E0B", "#B45309"] },
+	// October: pumpkin and a purple night
+	{ from: "#FB923C", via: "#7C3AED", to: "#1E1B4B", edge: "#16143A", accent: "#FDBA74", particles: "leaf", particleColors: ["#FB923C", "#FDBA74", "#A78BFA"] },
+	// November: embers and falling leaves, the fire of the streak
+	{ from: "#FBBF24", via: "#F97316", to: "#EF4444", edge: "#B91C1C", accent: "#FBBF24", particles: "ember", particleColors: ["#FEF08A", "#FDBA74", "#FFFFFF"] },
+	// December: snow and the new year, red and green
+	{ from: "#EF4444", via: "#B91C1C", to: "#14532D", edge: "#0F3D21", accent: "#FCA5A5", particles: "snow", particleColors: ["#FFFFFF", "#E2E8F0", "#FFFFFF"] },
+];
+
+/** The theme of a "2026-11" month (the fire for anything unreadable). */
+export function monthTheme(month: string): MonthTheme {
+	const match = /^\d{4}-(\d{2})$/.exec(month);
+	const index = match ? Number(match[1]) - 1 : 10;
+	return THEMES[index >= 0 && index < 12 ? index : 10];
+}
 
 export interface MonthlyMilestone extends MonthlyMilestoneDef {
 	/** 1-based, as the server numbers them. */
@@ -47,7 +105,7 @@ export interface MonthlyClaimResult {
 	wallet: number | null;
 }
 
-function parseMilestones(value: unknown): MonthlyMilestone[] {
+function parseMilestones(value: unknown, month: string): MonthlyMilestone[] {
 	const rows = Array.isArray(value) ? value : [];
 	const fromServer = rows.flatMap((entry) => {
 		if (!entry || typeof entry !== "object") return [];
@@ -60,7 +118,7 @@ function parseMilestones(value: unknown): MonthlyMilestone[] {
 		return [{ index, days, coins, keys, medal: row.medal === true, claimed: row.claimed === true }];
 	});
 	if (fromServer.length > 0) return fromServer.sort((a, b) => a.days - b.days);
-	return MONTHLY_MILESTONES.map((step, i) => ({ ...step, index: i + 1, claimed: false }));
+	return MONTHLY_MILESTONES.map((step, i) => ({ ...step, days: step.days || daysInMonthKey(month), index: i + 1, claimed: false }));
 }
 
 export function parseMonthlyQuest(data: unknown): MonthlyQuestState | null {
@@ -71,7 +129,7 @@ export function parseMonthlyQuest(data: unknown): MonthlyQuestState | null {
 		month: raw.month,
 		endsAt: typeof raw.ends_at === "string" ? raw.ends_at : "",
 		done: typeof raw.done === "number" && Number.isFinite(raw.done) && raw.done >= 0 ? raw.done : 0,
-		milestones: parseMilestones(raw.milestones),
+		milestones: parseMilestones(raw.milestones, raw.month),
 		medals: Array.isArray(raw.medals) ? raw.medals.filter((m): m is string => typeof m === "string" && /^\d{4}-\d{2}$/.test(m)) : [],
 	};
 }
@@ -79,6 +137,11 @@ export function parseMonthlyQuest(data: unknown): MonthlyQuestState | null {
 /** Days with the bonus the last step needs: the full length of the progress bar. */
 export function monthlyGoal(state: Pick<MonthlyQuestState, "milestones">): number {
 	return Math.max(1, ...state.milestones.map((step) => step.days));
+}
+
+/** The step that needs every day of the month. */
+export function isFullMonthStep(step: Pick<MonthlyMilestone, "days">, month: string): boolean {
+	return step.days >= daysInMonthKey(month);
 }
 
 /** Steps that are reached but not taken yet. */

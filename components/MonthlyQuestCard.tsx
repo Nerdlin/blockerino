@@ -12,13 +12,12 @@ import { buzz } from "@/constants/Haptic";
 import { loadShopState, useShopState } from "@/constants/Shop";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { celebrate } from "@/constants/Celebration";
-import { claimMonthlyQuest, daysLeftInMonth, monthlyGoal, useMonthlyQuest, type MonthlyMilestone } from "@/constants/MonthlyQuest";
+import { claimMonthlyQuest, daysLeftInMonth, isFullMonthStep, monthTheme, monthlyGoal, useMonthlyQuest, type MonthTheme, type MonthlyMilestone } from "@/constants/MonthlyQuest";
 
-const PINK = "#D946A8";
 const GOLD = "#FBBF24";
 
 /** A bar that fills up to its share, with a tick at every step; the number sits on it like in the quests of Duolingo. */
-function FillBar({ fraction, label, ticks }: { fraction: number; label: string; ticks: number[] }) {
+function FillBar({ fraction, label, ticks, theme }: { fraction: number; label: string; ticks: number[]; theme: MonthTheme }) {
 	const progress = useRef(new Animated.Value(0)).current;
 	useEffect(() => {
 		const animation = Animated.timing(progress, { toValue: Math.max(0, Math.min(1, fraction)), duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: false });
@@ -27,7 +26,7 @@ function FillBar({ fraction, label, ticks }: { fraction: number; label: string; 
 	}, [progress, fraction]);
 	return (
 		<View style={styles.barTrack}>
-			<Animated.View style={[styles.barFill, { width: progress.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) }]} />
+			<Animated.View style={[styles.barFill, { backgroundColor: theme.via, experimental_backgroundImage: `linear-gradient(180deg, ${theme.from} 0%, ${theme.via} 55%, ${theme.to} 100%)`, width: progress.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) }]} />
 			{ticks.map((tick) => (
 				<View key={tick} style={[styles.tick, { left: `${tick * 100}%` }]} />
 			))}
@@ -36,25 +35,70 @@ function FillBar({ fraction, label, ticks }: { fraction: number; label: string; 
 	);
 }
 
+/** One drifting pixel of the season: snow, leaves, petals, sparks. It falls (or rises, for sparks) and sways. */
+function Drift({ index, theme, width, height }: { index: number; theme: MonthTheme; width: number; height: number }) {
+	const run = useRef(new Animated.Value(0)).current;
+	const spec = useRef(
+		(() => {
+			const seed = (index * 7919 + 104729) % 100000;
+			const r = (k: number) => ((seed * (k + 5)) % 1000) / 1000;
+			const snow = theme.particles === "snow";
+			return {
+				left: r(1) * Math.max(10, width - 8),
+				size: snow ? 3 + Math.round(r(2)) * 2 : 4 + Math.round(r(2) * 2) * 2,
+				delay: Math.round(r(3) * 3000),
+				duration: (snow ? 5200 : 4200) + Math.round(r(4) * 3000),
+				color: theme.particleColors[index % theme.particleColors.length],
+				up: theme.particles === "spark" || theme.particles === "ember" || theme.particles === "pollen",
+				sway: 6 + Math.round(r(5) * 10),
+			};
+		})()
+	).current;
+	useEffect(() => {
+		const loop = Animated.loop(Animated.timing(run, { toValue: 1, duration: spec.duration, delay: spec.delay, easing: Easing.linear, useNativeDriver: true }));
+		loop.start();
+		return () => loop.stop();
+	}, [run, spec]);
+	return (
+		<Animated.View
+			pointerEvents="none"
+			style={{
+				position: "absolute",
+				left: spec.left,
+				top: 0,
+				width: spec.size,
+				height: spec.size,
+				backgroundColor: spec.color,
+				opacity: run.interpolate({ inputRange: [0, 0.1, 0.85, 1], outputRange: [0, 0.9, 0.9, 0] }),
+				transform: [
+					{ translateY: run.interpolate({ inputRange: [0, 1], outputRange: spec.up ? [height, -10] : [-10, height] }) },
+					{ translateX: run.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, spec.sway, 0] }) },
+					{ rotate: run.interpolate({ inputRange: [0, 1], outputRange: ["0deg", spec.up ? "0deg" : "180deg"] }) },
+				],
+			}}
+		/>
+	);
+}
+
 /** One step: its days, what it pays and a button once it is reached. */
-function MilestoneRow({ step, done, busy, onClaim }: { step: MonthlyMilestone; done: number; busy: boolean; onClaim: () => void }) {
+function MilestoneRow({ step, done, busy, onClaim, full, theme }: { step: MonthlyMilestone; done: number; busy: boolean; onClaim: () => void; full: boolean; theme: MonthTheme }) {
 	const { t } = useLanguage();
 	const { currentTheme } = useTheme();
 	const reached = done >= step.days;
 	return (
 		<View style={[styles.stepRow, step.claimed && { opacity: 0.6 }]}>
-			<View style={[styles.stepIcon, { borderColor: reached ? GOLD : "rgba(255,255,255,0.2)", backgroundColor: withAlpha(reached ? GOLD : "#FFFFFF", 0.1) }]}>
-				<UiIcon name={step.medal ? "medalGold" : "gift"} size={27} dimmed={!reached} />
+			<View style={[styles.stepIcon, { borderColor: reached ? theme.accent : "rgba(255,255,255,0.2)", backgroundColor: withAlpha(reached ? theme.accent : "#FFFFFF", 0.12) }]}>
+				<UiIcon name={step.medal ? "medalGold" : full ? "crown" : "gift"} size={27} dimmed={!reached} />
 			</View>
 			<View style={styles.stepText}>
-				<Text style={[styles.stepTitle, { color: currentTheme.textPrimary }]} numberOfLines={1}>{t("monthly.step", { days: step.days })}</Text>
+				<Text style={[styles.stepTitle, { color: currentTheme.textPrimary }]} numberOfLines={1}>{full ? t("monthly.stepFull", { days: step.days }) : t("monthly.step", { days: step.days })}</Text>
 				<View style={styles.rewardLine}>
 					<UiIcon name="coin" size={14} />
 					<Text style={[styles.stepReward, { color: "#FFD700" }]}>+{step.coins}</Text>
 					<UiIcon name="key" size={14} />
 					<Text style={[styles.stepReward, { color: currentTheme.textPrimary }]}>x{step.keys}</Text>
 				</View>
-				{step.medal ? <Text style={styles.stepMedal} numberOfLines={1}>+ {t("monthly.plusMedal")}</Text> : null}
+				{step.medal ? <Text style={[styles.stepMedal, { color: theme.accent }]} numberOfLines={1}>+ {t("monthly.plusMedal")}</Text> : null}
 			</View>
 			{step.claimed ? (
 				<Text style={styles.stepDone}>✓</Text>
@@ -80,6 +124,7 @@ export default function MonthlyQuestCard() {
 
 	if (!signedIn || !state) return null;
 	const goal = monthlyGoal(state);
+	const theme = monthTheme(state.month);
 	const days = daysLeftInMonth(state);
 	const medalOwned = state.medals.includes(state.month);
 
@@ -99,11 +144,12 @@ export default function MonthlyQuestCard() {
 				setNote({ text: t("monthly.claimed", { coins: result.coins }), ok: true });
 				void playSfx("achievement");
 				buzz("success");
+				const fullStep = isFullMonthStep(step, state.month);
 				celebrate({
 					id: `monthly:${state.month}:${step.index}`,
-					icon: result.medal ? "medalGold" : "gift",
-					accent: result.medal ? "#F472B6" : GOLD,
-					title: t(result.medal ? "celebrate.monthlyTitle" : "celebrate.monthlyStepTitle", { days: step.days }),
+					icon: result.medal ? "medalGold" : fullStep ? "crown" : "gift",
+					accent: theme.accent,
+					title: t(result.medal ? "celebrate.monthlyTitle" : fullStep ? "celebrate.monthlyFullTitle" : "celebrate.monthlyStepTitle", { days: step.days }),
 					subtitle: formatSeasonKey(state.month, t, true),
 					coins: result.coins,
 					lines: result.keys > 0 ? [t("pass.reward.keys", { count: result.keys })] : [],
@@ -115,7 +161,7 @@ export default function MonthlyQuestCard() {
 	};
 
 	return (
-		<FadeInView style={[styles.card, { backgroundColor: PINK }]}>
+		<FadeInView style={[styles.card, { borderColor: theme.edge, backgroundColor: theme.via, experimental_backgroundImage: `linear-gradient(160deg, ${theme.from} 0%, ${theme.via} 48%, ${theme.to} 100%)` }]}>
 			<View style={styles.head}>
 				<View style={styles.headText}>
 					<Text style={styles.title} numberOfLines={1}>{t("monthly.title", { month: formatSeasonKey(state.month, t, true) })}</Text>
@@ -127,11 +173,16 @@ export default function MonthlyQuestCard() {
 			</View>
 			<View style={[styles.inner, { backgroundColor: currentTheme.menuBackground }]}>
 				<Text style={[styles.goal, { color: currentTheme.textPrimary }]}>{t("monthly.goal")}</Text>
-				<FillBar fraction={state.done / goal} label={`${Math.min(state.done, goal)} / ${goal}`} ticks={state.milestones.filter((step) => step.days < goal).map((step) => step.days / goal)} />
+				<FillBar theme={theme} fraction={state.done / goal} label={`${Math.min(state.done, goal)} / ${goal}`} ticks={state.milestones.filter((step) => step.days < goal).map((step) => step.days / goal)} />
 				{state.milestones.map((step) => (
-					<MilestoneRow key={step.index} step={step} done={state.done} busy={claiming} onClaim={() => void claim(step)} />
+					<MilestoneRow key={step.index} step={step} done={state.done} busy={claiming} onClaim={() => void claim(step)} full={isFullMonthStep(step, state.month)} theme={theme} />
 				))}
 				{note ? <Text style={[styles.note, { color: note.ok ? "#4ADE80" : "#F87171" }]}>{note.text}</Text> : null}
+			</View>
+			<View style={styles.particles} pointerEvents="none">
+				{Array.from({ length: theme.particles === "snow" ? 16 : 10 }, (_, i) => (
+					<Drift key={i} index={i} theme={theme} width={320} height={300} />
+				))}
 			</View>
 		</FadeInView>
 	);
@@ -148,7 +199,7 @@ export function MonthlyMedalsRow({ medals }: { medals: string[] }) {
 			<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.medalsRow}>
 				{medals.map((month, index) => (
 					<FadeInView key={month} index={index} pop style={styles.medalItem}>
-						<View style={[styles.medalFrame, { borderColor: PINK, backgroundColor: withAlpha(PINK, 0.16) }]}>
+						<View style={[styles.medalFrame, { borderColor: monthTheme(month).via, backgroundColor: withAlpha(monthTheme(month).via, 0.18) }]}>
 							<UiIcon name="medalGold" size={30} />
 						</View>
 						<Text style={[styles.medalMonth, { color: currentTheme.textPrimary }]} numberOfLines={1}>{formatSeasonKey(month, t)}</Text>
@@ -162,10 +213,16 @@ export function MonthlyMedalsRow({ medals }: { medals: string[] }) {
 const styles = StyleSheet.create({
 	card: {
 		width: "100%",
-		borderRadius: 14,
+		borderRadius: 16,
+		borderBottomWidth: 5,
+		overflow: "hidden",
 		padding: 10,
 		marginBottom: 10,
 		gap: 8,
+	},
+	particles: {
+		...StyleSheet.absoluteFillObject,
+		zIndex: 5,
 	},
 	head: {
 		flexDirection: "row",
@@ -217,7 +274,6 @@ const styles = StyleSheet.create({
 		top: 0,
 		bottom: 0,
 		borderRadius: 11,
-		backgroundColor: PINK,
 	},
 	tick: {
 		position: "absolute",
@@ -266,7 +322,7 @@ const styles = StyleSheet.create({
 	stepMedal: {
 		fontFamily: "SilkscreenBold",
 		fontSize: 10,
-		color: "#F472B6",
+		color: "#FBBF24",
 	},
 	stepButton: {
 		minWidth: 0,
