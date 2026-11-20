@@ -48,6 +48,7 @@ import { shouldPauseMusicForAppState, soundManager, useSoundSettings } from "@/c
 import MultiplayerConnectionGate from "@/components/MultiplayerConnectionGate";
 import AchievementsMenu from "@/components/AchievementsMenu";
 import AchievementToastHost from "@/components/AchievementToast";
+import CelebrationHost from "@/components/CelebrationHost";
 import ShopMenu from "@/components/ShopMenu";
 import SeasonResultsMenu from "@/components/SeasonResultsMenu";
 import SeasonPassMenu from "@/components/SeasonPassMenu";
@@ -340,6 +341,7 @@ function AppContent({ bootLanguage }: { bootLanguage: Language }) {
 			<DailyRewardHost />
 			<NotificationsHost />
 			<AchievementToastHost />
+			<CelebrationHost />
 			<PlayerProfileHost />
 			<InviteModeHost />
 			<AccountDeleteHost />

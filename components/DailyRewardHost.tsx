@@ -1,3 +1,4 @@
+import { celebrate } from "@/constants/Celebration";
 import { useCallback, useEffect, useRef, useState } from "react";
 import FadeInView from "./FadeInView";
 import { AppState, StyleSheet, Text, View } from "react-native";
@@ -151,6 +152,7 @@ export default function DailyRewardHost() {
 		setChestDone(false);
 		if (result.state === "claimed") {
 			track("streak_claim", { streak: won.streak, reward: won.reward });
+			if (won.freezesUsed > 0) celebrate({ id: `freeze:${Date.now()}`, icon: "diamond", accent: "#6BC7FF", title: t("celebrate.freezeTitle"), subtitle: t("celebrate.freezeSub", { days: won.freezesUsed }), lines: [t("daily.freezes", { have: won.freezesLeft, cap: status!.freezeCap })] });
 			if (await shouldOfferPush()) setOfferPush(true);
 		}
 	};

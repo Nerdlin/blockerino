@@ -11,6 +11,7 @@ import { useSoundSettings } from "@/constants/Sound";
 import { buzz } from "@/constants/Haptic";
 import { loadShopState, useShopState } from "@/constants/Shop";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
+import { celebrate } from "@/constants/Celebration";
 import { claimMonthlyQuest, daysLeftInMonth, useMonthlyQuest } from "@/constants/MonthlyQuest";
 
 const PINK = "#D946A8";
@@ -60,6 +61,7 @@ export default function MonthlyQuestCard() {
 					await commitShopState({ ...latest, balance: result.wallet }, []);
 				}
 				setNote({ text: t("monthly.claimed", { coins: result.coins }), ok: true });
+				celebrate({ id: `monthly:${state.month}`, icon: "medalGold", accent: "#F472B6", title: t("celebrate.monthlyTitle"), subtitle: formatSeasonKey(state.month, t, true), coins: result.coins, lines: result.keys > 0 ? [t("pass.reward.keys", { count: result.keys })] : [] });
 				void playSfx("achievement");
 				buzz("success");
 			}

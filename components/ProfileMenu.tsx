@@ -14,6 +14,7 @@ import SeasonTitleBadges from "./SeasonTitleBadges";
 import { ProfileBanner, ScoreBadge } from "./ProfileDesign";
 import { useAvatarColor } from "@/constants/AvatarColor";
 import { MonthlyMedalsRow } from "./MonthlyQuestCard";
+import StreakCard from "./StreakCard";
 import { useMonthlyQuest } from "@/constants/MonthlyQuest";
 import { getMySeasonTitles, type SeasonTitle } from "@/constants/SeasonResults";
 import { useLeaderboardPerk } from "@/constants/LeaderboardPerks";
@@ -643,6 +644,7 @@ export default function ProfileMenu() {
 								</View>
 							</View>
 						</ProfileBanner>
+						{session ? <StreakCard /> : null}
 						<SeasonTitleBadges titles={seasonTitles} />
 						<MonthlyMedalsRow medals={monthlyQuest?.medals ?? []} />
 
