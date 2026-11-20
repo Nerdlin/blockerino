@@ -499,6 +499,8 @@ function HeroReward({ tier, free, premium, language }: { tier: number; free: Res
 		candidates[0];
 	const { reward } = best;
 	const item = reward.itemId ? getShopItem(reward.itemId) : undefined;
+	// only a skin is worth a big preview: coins, keys and chests are already shown in the rows below
+	if (!item) return null;
 	const accent = best.premium ? "#FB923C" : GOLD;
 	const title = item
 		? shopItemText(item, language).title
@@ -526,8 +528,6 @@ function HeroReward({ tier, free, premium, language }: { tier: number; free: Res
 					<UiIcon name="coin" size={56} />
 				)}
 			</View>
-			<Text style={[styles.heroTitle, { color: accent }]} numberOfLines={2}>{title}</Text>
-			{item ? <Text style={[styles.rewardSub, { color: currentTheme.textSecondary }]}>{t("pass.exclusive")}</Text> : null}
 		</View>
 	);
 }
