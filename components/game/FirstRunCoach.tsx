@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
 	},
 	steps: {
 		fontFamily: "Silkscreen",
-		fontSize: 10,
+		fontSize: 12,
 	},
 	square: {
 		position: "absolute",

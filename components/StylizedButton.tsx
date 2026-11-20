@@ -84,7 +84,7 @@ export default function StylizedButton({
                     alignSelf: centered ? 'center' : 'flex-start', 
                     borderWidth: 2, 
                     borderColor: borderColor ? borderColor : "transparent",
-                    opacity: disabled ? 0.5 : 1
+                    opacity: disabled ? 0.62 : 1
                 }, 
                 pressed && !disabled ? { transform: [{ scale: 0.96 }], opacity: 0.88 } : null,
                 style

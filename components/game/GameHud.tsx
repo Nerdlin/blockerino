@@ -405,8 +405,8 @@ const styles = StyleSheet.create({
 	comboCaption: {
 		marginTop: 2,
 		fontFamily: 'Silkscreen',
-		fontSize: 8,
-		color: 'rgba(255, 255, 255, 0.6)',
+		fontSize: 10,
+		color: 'rgba(255, 255, 255, 0.85)',
 	},
 	timerBarParent: {
 		width: '100%',

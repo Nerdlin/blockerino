@@ -29,7 +29,7 @@ export function RankChange({ change }: { change: number | null | undefined }) {
 	return (
 		<View style={{ flexDirection: "row", alignItems: "center", gap: 2 }} accessibilityLabel={`${up ? "+" : "-"}${Math.abs(change)}`}>
 			<View style={up ? { ...triangle, borderBottomWidth: 6, borderBottomColor: color } : { ...triangle, borderTopWidth: 6, borderTopColor: color }} />
-			<Text style={{ fontFamily: "SilkscreenBold", fontSize: 9, color }}>{Math.abs(change)}</Text>
+			<Text style={{ fontFamily: "SilkscreenBold", fontSize: 10, color }}>{Math.abs(change)}</Text>
 		</View>
 	);
 }
@@ -110,13 +110,13 @@ const styles = StyleSheet.create({
 	column: { flex: 1, alignItems: "center", gap: 3 },
 	avatar: { borderWidth: 2, borderRadius: 999, padding: 2 },
 	name: { fontSize: 11, maxWidth: "100%" },
-	meta: { fontFamily: "Silkscreen", fontSize: 8, color: "#9CA3AF" },
+	meta: { fontFamily: "Silkscreen", fontSize: 10, color: "#C4C9D4" },
 	step: { width: "100%", borderWidth: 2, borderBottomWidth: 0, borderTopLeftRadius: 6, borderTopRightRadius: 6, gap: 2, backgroundColor: "rgba(255,255,255,0.05)", alignItems: "center", justifyContent: "center" },
 	stepEmpty: { borderColor: "rgba(255,255,255,0.12)", borderStyle: "dashed", backgroundColor: "rgba(255,255,255,0.02)" },
 	place: { fontFamily: "SilkscreenBold", fontSize: 12 },
 	meCard: { width: "94%", flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 2, borderRadius: 10, padding: 10, marginTop: 4, marginBottom: 10, backgroundColor: "rgba(255,255,255,0.04)" },
 	meName: { fontSize: 14, color: "#F3F4F6" },
-	meHint: { fontFamily: "Silkscreen", fontSize: 9, color: "#9CA3AF" },
+	meHint: { fontFamily: "Silkscreen", fontSize: 10, color: "#C4C9D4" },
 	mePlace: { alignItems: "center", minWidth: 56 },
 	mePlaceNumber: { fontFamily: "SilkscreenBold", fontSize: 20 },
 });
