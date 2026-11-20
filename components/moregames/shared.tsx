@@ -9,6 +9,7 @@ import PixelLoader from "@/components/PixelLoader";
 import StylizedButton, { readableTextColor } from "../StylizedButton";
 import { InviteFriendsPanel } from "./InviteFriendsPanel";
 import type { InviteGame } from "@/constants/GameInvite";
+import type { JoinGame } from "@/constants/JoinLink";
 import { cssColors } from "@/constants/Color";
 import { type UiGlyphName } from "@/constants/UiGlyphs";
 import UiIcon from "@/components/UiIcon";
@@ -398,6 +399,7 @@ export function OnlineRoomControls({
 	disabled,
 	inviteGame,
 	inviteHostName,
+	shareGame,
 }: {
 	roomCode: string;
 	setRoomCode: (value: string) => void;
@@ -414,6 +416,8 @@ export function OnlineRoomControls({
 	/** With these two a waiting host can invite a friend into the room. */
 	inviteGame?: InviteGame;
 	inviteHostName?: string;
+	/** Only the "share a link" button, for a game whose friend invites work differently (chess). */
+	shareGame?: JoinGame;
 }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
@@ -433,7 +437,7 @@ export function OnlineRoomControls({
 							<Text style={[styles.codeText, { color: currentTheme.accent }, isMobile && { fontSize: 24 }]} adjustsFontSizeToFit numberOfLines={1}>{roomCode}</Text>
 							<StylizedButton text={t("mp.copy")} onClick={() => Clipboard.setString(roomCode)} backgroundColor={currentTheme.buttonPrimary} style={{ width: 100 }} />
 						</View>
-						{inviteGame && roomCode ? <ShareRoomButton game={inviteGame} code={roomCode} /> : null}
+						{(shareGame ?? inviteGame) && roomCode ? <ShareRoomButton game={(shareGame ?? inviteGame)!} code={roomCode} /> : null}
 	
 						<Text style={[styles.waitingStatus, { color: currentTheme.textSecondary }]}>
 							{playerCount && connectedPlayersCount ? `WAITING FOR PLAYERS (${connectedPlayersCount}/${playerCount})...` : t("mp.waitingFriend")}

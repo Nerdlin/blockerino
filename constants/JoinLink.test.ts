@@ -11,6 +11,7 @@ describe("room links", () => {
 	it("reads the app link and the web game's address", () => {
 		expect(parseJoinLink("com.nerdlin.blockerino://join?g=durak&c=AB12CD")).toEqual({ game: "durak", code: "AB12CD" });
 		expect(parseJoinLink("?join=checkers%3Ax9y8z7")).toEqual({ game: "checkers", code: "X9Y8Z7" });
+		expect(parseJoinLink("com.nerdlin.blockerino://join?g=chess&c=57YDJ")).toEqual({ game: "chess", code: "57YDJ" });
 		expect(parseJoinLink("https://blockerino.aionerdlin.me/?join=versus:2AE841")).toEqual({ game: "versus", code: "2AE841" });
 	});
 

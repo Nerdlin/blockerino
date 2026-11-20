@@ -3,6 +3,8 @@ import { Platform } from "react-native";
 import * as Linking from "expo-linking";
 import { useSetAtom } from "jotai";
 import { gameInviteAtom } from "@/constants/GameInvite";
+import { chessInviteAtom } from "@/constants/chess/ChessInvite";
+import { DEFAULT_TIME_CONTROL } from "@/constants/chess/TimeControls";
 import { parseJoinLink, versusJoinAtom, type JoinTarget } from "@/constants/JoinLink";
 import { AppState, MenuStateType, useSetAppState } from "@/hooks/useAppState";
 
@@ -16,6 +18,7 @@ export default function JoinLinkHost() {
 	const [setAppState] = useSetAppState();
 	const setVersusJoin = useSetAtom(versusJoinAtom);
 	const setGameInvite = useSetAtom(gameInviteAtom);
+	const setChessInvite = useSetAtom(chessInviteAtom);
 	const handled = useRef<string | null>(null);
 
 	useEffect(() => {
@@ -23,6 +26,10 @@ export default function JoinLinkHost() {
 			if (target.game === "versus") {
 				setVersusJoin(target.code);
 				setAppState(new AppState(MenuStateType.MULTIPLAYER, new AppState(MenuStateType.MENU)));
+			} else if (target.game === "chess") {
+				// the host picks the time control and sends it when the game starts, so this one is only a placeholder
+				setChessInvite({ code: target.code, hostName: "Player", control: DEFAULT_TIME_CONTROL });
+				setAppState(new AppState(MenuStateType.MORE_GAMES, new AppState(MenuStateType.MENU)));
 			} else {
 				setGameInvite({ game: target.game, code: target.code, hostName: "" });
 				setAppState(new AppState(MenuStateType.MORE_GAMES, new AppState(MenuStateType.MENU)));
@@ -46,7 +53,7 @@ export default function JoinLinkHost() {
 		if (!target || handled.current === url) return;
 		handled.current = url;
 		open(target);
-	}, [url, setAppState, setVersusJoin, setGameInvite]);
+	}, [url, setAppState, setVersusJoin, setGameInvite, setChessInvite]);
 
 	return null;
 }

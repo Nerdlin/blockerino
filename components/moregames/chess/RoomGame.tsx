@@ -296,6 +296,7 @@ export function RoomGame({
 		return (
 			<View style={{ width: "100%", alignItems: "center", minHeight: 320, justifyContent: "center" }}>
 				<OnlineRoomControls
+					shareGame="chess"
 					roomCode={room.roomCode}
 					setRoomCode={room.setRoomCode}
 					role={room.role}

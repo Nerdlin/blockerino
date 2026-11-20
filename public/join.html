@@ -132,12 +132,12 @@
         var query = new URLSearchParams(location.search);
         var game = (query.get("g") || "").toLowerCase();
         var code = (query.get("c") || "").toUpperCase();
-        var games = ["versus", "durak", "battleship", "tictactoe", "checkers", "backgammon"];
+        var games = ["versus", "chess", "durak", "battleship", "tictactoe", "checkers", "backgammon"];
         var ok = games.indexOf(game) >= 0 && /^[A-Z0-9]{4,12}$/.test(code);
         var lang = (navigator.language || "en").toLowerCase().indexOf("ru") === 0 ? "ru" : "en";
         var names = {
-          en: { versus: "Versus 1v1", durak: "Durak", battleship: "Sea Battle", tictactoe: "Tic-Tac-Toe", checkers: "Checkers", backgammon: "Long Backgammon" },
-          ru: { versus: "Дуэль 1 на 1", durak: "Дурак", battleship: "Морской бой", tictactoe: "Крестики-нолики", checkers: "Шашки", backgammon: "Длинные нарды" },
+          en: { versus: "Versus 1v1", chess: "Chess", durak: "Durak", battleship: "Sea Battle", tictactoe: "Tic-Tac-Toe", checkers: "Checkers", backgammon: "Long Backgammon" },
+          ru: { versus: "Дуэль 1 на 1", chess: "Шахматы", durak: "Дурак", battleship: "Морской бой", tictactoe: "Крестики-нолики", checkers: "Шашки", backgammon: "Длинные нарды" },
         }[lang];
         var text = {
           en: { title: "You are invited!", body: "A friend waits for you in ", app: "Open in the app", web: "Play in the browser", bad: "This link is broken", badBody: "Ask your friend for a new one, or open the game." },

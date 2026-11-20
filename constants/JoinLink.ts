@@ -6,8 +6,9 @@ import { INVITE_GAMES, type InviteGame } from "./GameInvite";
 // phone with the app into the app (com.nerdlin.blockerino://join?g=..&c=..) and everyone else into the web game
 // (/?join=game:CODE). There the game opens the room's screen and joins the room by itself (JoinLinkHost).
 
-export type JoinGame = "versus" | InviteGame;
-export const JOIN_GAMES: JoinGame[] = ["versus", ...INVITE_GAMES];
+// Chess is not an InviteGame (its friend challenge carries a time control and has its own flow), but its room opens by link like the rest.
+export type JoinGame = "versus" | "chess" | InviteGame;
+export const JOIN_GAMES: JoinGame[] = ["versus", "chess", ...INVITE_GAMES];
 
 export interface JoinTarget {
 	game: JoinGame;
