@@ -12,6 +12,7 @@ import UiIcon from "./UiIcon";
 import PerkBadge from "./PerkBadge";
 import SeasonTitleBadges from "./SeasonTitleBadges";
 import { ProfileBanner, ScoreBadge } from "./ProfileDesign";
+import { useAvatarColor } from "@/constants/AvatarColor";
 import { getMySeasonTitles, type SeasonTitle } from "@/constants/SeasonResults";
 import { useLeaderboardPerk } from "@/constants/LeaderboardPerks";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -565,6 +566,7 @@ export default function ProfileMenu() {
 	};
 
 	const [activeTab, setActiveTab] = useState<"stats" | "gifts" | "history" | "friends">("stats");
+	const bannerColor = useAvatarColor(avatarUrl, perk?.tier.color ?? currentTheme.accent);
 	const { badge, refresh: refreshBadge } = useProfileBadge();
 
 	return (
@@ -593,7 +595,7 @@ export default function ProfileMenu() {
 						<ProfileBanner
 							name={playerName || session?.user.email || "?"}
 							nameColor={perk?.tier.color ?? currentTheme.textPrimary}
-							color={perk?.tier.color ?? currentTheme.accent}
+							color={bannerColor}
 							avatarUrl={avatarUrl}
 							onAvatarPress={() => setShowAvatarPopup(true)}
 							avatarBadge={<View style={styles.editAvatarBadge}><PixelIcon name="pencil" size={14} color="#F0AF0C" secondaryColor="#F472B6" /></View>}

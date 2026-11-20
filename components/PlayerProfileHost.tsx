@@ -18,6 +18,7 @@ import { useSoundSettings } from "@/constants/Sound";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { RECORDED_GAME_IDS, emptyGameRecord, gamesPlayed } from "@/constants/GameStats";
+import { useAvatarColor } from "@/constants/AvatarColor";
 import { useLeaderboardPerk } from "@/constants/LeaderboardPerks";
 import { nameFontFamily } from "@/constants/NameFont";
 import { reportAvatar, type AvatarReportReason } from "@/constants/AvatarUpload";
@@ -108,6 +109,8 @@ function PlayerProfileView({ name, onClose }: { name: string; onClose: () => voi
 
 	const profile = load?.kind === "ok" ? load.profile : null;
 	const nameColor = perk?.tier.color ?? currentTheme.textPrimary;
+	// the banner and the frame take the colour of the avatar picture
+	const bannerColor = useAvatarColor(profile?.avatarUrl, profile && profile.elo && profile.elo > 0 ? getEloBadge(profile.elo).color : currentTheme.accent);
 
 	return (
 		<>
@@ -134,7 +137,7 @@ function PlayerProfileView({ name, onClose }: { name: string; onClose: () => voi
 					<ProfileBanner
 						name={profile.name}
 						nameColor={nameColor}
-						color={profile.elo && profile.elo > 0 ? getEloBadge(profile.elo).color : currentTheme.accent}
+						color={bannerColor}
 						avatarUrl={profile.avatarUrl}
 					>
 						{perk && <PerkBadge perk={perk} />}
