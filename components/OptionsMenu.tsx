@@ -80,8 +80,15 @@ export default function OptionsMenu() {
 
 	useEscapeKey(handleButtonPress);
 
+	const [confirmQuit, setConfirmQuit] = useState(false);
 	const handleQuitPress = () => {
 		playSfx('menuClick');
+		// the first tap asks, the second ends the game, so a stray tap does not lose it
+		if (!confirmQuit) {
+			setConfirmQuit(true);
+			setTimeout(() => setConfirmQuit(false), 3000);
+			return;
+		}
 		clearActiveGame();
 		setAppState(MenuStateType.MENU);
 	};
@@ -179,7 +186,7 @@ export default function OptionsMenu() {
 					)}
 					<StylizedButton
 						onClick={handleQuitPress}
-						text={t("settings.endGame")}
+						text={confirmQuit ? t("settings.endGameSure") : t("settings.endGame")}
 						backgroundColor={currentTheme.id === ThemeType.BLUE ? 'rgb(204, 51, 0)' : currentTheme.buttonPrimary}
 						style={isMobile && styles.mobileBottomButton}
 						textStyle={isMobile && styles.mobileBottomButtonText}

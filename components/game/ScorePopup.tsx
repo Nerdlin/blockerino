@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useLanguage } from "@/constants/Localization";
 import { StyleSheet, Text, Platform } from "react-native";
 import Animated, {
 	useSharedValue,
@@ -9,7 +10,19 @@ import Animated, {
 	runOnJS,
 } from "react-native-reanimated";
 
-export function getEncouragingText(points: number): string {
+const RU_WORDS: Record<string, string> = {
+	"Incredible!": "Невероятно!", "Spectacular!": "Зрелищно!", "Unbelievable!": "Не может быть!", "LEGENDARY!": "ЛЕГЕНДАРНО!", "GODLIKE!": "БОЖЕСТВЕННО!",
+	"Amazing!": "Потрясающе!", "Awesome!": "Круто!", "Fantastic!": "Фантастика!", "Superb!": "Великолепно!", "KABOOM!": "БАБАХ!",
+	"Great!": "Здорово!", "Good!": "Хорошо!", "Nice!": "Отлично!", "Super!": "Супер!", "Sweet!": "Класс!",
+	"Cool!": "Круто!", "Combo!": "Комбо!",
+};
+
+export function getEncouragingText(points: number, language: "en" | "ru" = "en"): string {
+	const text = pickEncouragingText(points);
+	return language === "ru" ? RU_WORDS[text] ?? text : text;
+}
+
+function pickEncouragingText(points: number): string {
 	if (points >= 500) {
 		const spectaculars = ["Incredible!", "Spectacular!", "Unbelievable!", "LEGENDARY!", "GODLIKE!"];
 		return spectaculars[Math.floor(Math.random() * spectaculars.length)];
@@ -136,7 +149,8 @@ export function ScorePopup({
 		};
 	});
 
-	const encourages = getEncouragingText(points);
+	const { language } = useLanguage();
+	const encourages = getEncouragingText(points, language === "ru" ? "ru" : "en");
 	const encourageColor = getEncouragingColor(points);
 
 	return (
