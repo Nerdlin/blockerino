@@ -155,7 +155,7 @@ export default function DailyRewardHost() {
 		setChestDone(false);
 		if (result.state === "claimed") {
 			track("streak_claim", { streak: won.streak, reward: won.reward });
-			if (won.freezesUsed > 0) celebrate({ id: `freeze:${Date.now()}`, icon: "diamond", accent: "#6BC7FF", title: t("celebrate.freezeTitle"), subtitle: t("celebrate.freezeSub", { days: won.freezesUsed }), lines: [t("daily.freezes", { have: won.freezesLeft, cap: status!.freezeCap })] });
+			if (won.freezesUsed > 0) celebrate({ id: `freeze:${Date.now()}`, icon: "diamond", accent: "#C084FC", title: t("celebrate.freezeTitle"), subtitle: t("celebrate.freezeSub", { days: won.freezesUsed }), lines: [t("daily.freezes", { have: won.freezesLeft, cap: status!.freezeCap })] });
 			if (await shouldOfferPush()) setOfferPush(true);
 		}
 	};
@@ -193,7 +193,7 @@ export default function DailyRewardHost() {
 							<Text style={styles.freezeGet}>{t("daily.freezeGet", { price: status.freezePrice })}</Text>
 						</Pressable>
 					) : null}
-					{!claimedNow && !alreadyClaimed && status.freezesToUse > 0 ? <Text style={[styles.note, { color: "#6BC7FF", textAlign: "left" }]}>{t("daily.freezeWillUse", { days: status.freezesToUse })}</Text> : null}
+					{!claimedNow && !alreadyClaimed && status.freezesToUse > 0 ? <Text style={[styles.note, { color: "#C084FC", textAlign: "left" }]}>{t("daily.freezeWillUse", { days: status.freezesToUse })}</Text> : null}
 				</View>
 			</View>
 			{freezeNote ? <Text style={[styles.note, { color: "#FF6B6B", marginBottom: 6 }]}>{freezeNote}</Text> : null}
@@ -219,8 +219,8 @@ export default function DailyRewardHost() {
 			)}
 
 			<View style={styles.block}>
-				{claimedNow && claim.freezesUsed > 0 && <FadeInView pop><Text style={[styles.note, { color: "#6BC7FF" }]}>{t("daily.freezeUsed", { days: claim.freezesUsed })}</Text></FadeInView>}
-				{claimedNow && claim.freezeGranted && <FadeInView pop><Text style={[styles.note, { color: "#6BC7FF" }]}>{t("daily.freezeGranted")}</Text></FadeInView>}
+				{claimedNow && claim.freezesUsed > 0 && <FadeInView pop><Text style={[styles.note, { color: "#C084FC" }]}>{t("daily.freezeUsed", { days: claim.freezesUsed })}</Text></FadeInView>}
+				{claimedNow && claim.freezeGranted && <FadeInView pop><Text style={[styles.note, { color: "#C084FC" }]}>{t("daily.freezeGranted")}</Text></FadeInView>}
 				{claimedNow ? (
 					<>
 						<FadeInView pop><Text style={[styles.reward, { color: "#FFD700" }]}>{t("daily.claimed", { coins: claim.reward })}</Text></FadeInView>
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
 	freezeGet: {
 		fontFamily: "SilkscreenBold",
 		fontSize: 12,
-		color: "#38BDF8",
+		color: "#C084FC",
 	},
 	sectionTitle: {
 		fontFamily: "SilkscreenBold",

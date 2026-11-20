@@ -190,7 +190,7 @@ export default function CelebrationHost() {
 				if (reward.keys > 0) lines.push(t("pass.reward.keys", { count: reward.keys }));
 				setQueue((previous) => [
 					...previous.filter((entry) => !entry.id.startsWith("tier:")),
-					{ id: `tier:${pass.season}:${tier}`, icon: item || reward.chest ? "gift" : "starGold", accent: "#38BDF8", title: t("celebrate.tierTitle", { tier }), subtitle: t("celebrate.tierSub"), coins: reward.coins > 0 ? reward.coins : undefined, lines },
+					{ id: `tier:${pass.season}:${tier}`, icon: item || reward.chest ? "gift" : "starGold", accent: "#FBBF24", title: t("celebrate.tierTitle", { tier }), subtitle: t("celebrate.tierSub"), coins: reward.coins > 0 ? reward.coins : undefined, lines },
 				]);
 			} catch {
 				// no celebration this time

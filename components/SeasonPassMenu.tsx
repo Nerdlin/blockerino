@@ -537,8 +537,8 @@ function TileRing({ width, height, fraction }: { width: number; height: number; 
 	const perimeter = 2 * (w + h);
 	return (
 		<Svg width={width} height={height} style={StyleSheet.absoluteFill} pointerEvents="none">
-			<Rect x={2} y={1} width={w} height={h} fill="none" stroke="rgba(34,211,238,0.22)" strokeWidth={3} />
-			<Rect x={2} y={1} width={w} height={h} fill="none" stroke={CYAN} strokeWidth={3} strokeDasharray={`${perimeter * Math.max(0.02, fraction)} ${perimeter}`} />
+			<Rect x={2} y={1} width={w} height={h} fill="none" stroke="rgba(251,191,36,0.22)" strokeWidth={3} />
+			<Rect x={2} y={1} width={w} height={h} fill="none" stroke={GOLD} strokeWidth={3} strokeDasharray={`${perimeter * Math.max(0.02, fraction)} ${perimeter}`} />
 		</Svg>
 	);
 }

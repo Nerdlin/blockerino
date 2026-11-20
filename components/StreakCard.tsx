@@ -23,7 +23,7 @@ export default function StreakCard() {
 				<Text style={[styles.label, { color: alive ? "#FB4B5B" : currentTheme.textSecondary }]}>{t("streak.days")}</Text>
 				<View style={styles.freezeRow}>
 					<FreezeCrystal size={18} dimmed={status.freezes === 0} />
-					<Text style={[styles.freeze, { color: status.freezes > 0 ? "#6BC7FF" : currentTheme.textSecondary }]}>{t("streak.freezes", { have: status.freezes, cap: status.freezeCap })}</Text>
+					<Text style={[styles.freeze, { color: status.freezes > 0 ? "#C084FC" : currentTheme.textSecondary }]}>{t("streak.freezes", { have: status.freezes, cap: status.freezeCap })}</Text>
 				</View>
 			</View>
 			<View style={styles.best}>
