@@ -23,6 +23,8 @@ import { useSoundSettings } from "@/constants/Sound";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useLanguage } from "@/constants/Localization";
 import { shopItemText } from "@/constants/i18n/shopItems";
+import { itemRarity } from "@/constants/Chests";
+import { RARITY_COLORS } from "@/constants/DailyReward";
 
 type ShopTab = ShopCategory | "chests";
 
@@ -203,15 +205,21 @@ function ShopItemCard({
 				? t("shop.toChests")
 				: t("shop.buy", { price: item.price });
 	const disabled = isEquipped || (!isOwned && !chestOnly && !canAfford);
+	// the rarity the chests and the collection use (set by the price), so the shop says it too
+	const rarity = itemRarity(item.price);
+	const rarityColor = RARITY_COLORS[rarity];
 
 	return (
 		<View style={[
 			styles.card,
 			{
-				borderColor: isEquipped ? item.accent : item.chestOnly ? "rgba(255,201,60,0.45)" : "rgba(255,255,255,0.12)",
+				borderColor: isEquipped ? item.accent : rarity === "common" ? "rgba(255,255,255,0.12)" : `${rarityColor}88`,
 				backgroundColor: "rgba(0, 0, 0, 0.38)",
 			},
 		]}>
+			<View style={[styles.rarityTag, { borderColor: rarityColor, backgroundColor: `${rarityColor}22` }]}>
+				<Text style={[styles.rarityText, { color: rarityColor }]}>{t(`chest.kind.${rarity}`)}</Text>
+			</View>
 			<Pressable onPress={onPreview} accessibilityLabel={shopItemText(item, language).title} style={styles.previewTap}>
 				<CosmeticPreview item={item} /* animations play in the preview window only: dozens of animated cards stuttered while scrolling */ />
 			</Pressable>
@@ -378,6 +386,18 @@ const styles = StyleSheet.create({
 	},
 	previewTap: {
 		width: "100%",
+	},
+	rarityTag: {
+		alignSelf: "flex-start",
+		paddingHorizontal: 6,
+		paddingVertical: 2,
+		borderRadius: 6,
+		borderWidth: 1,
+		marginBottom: 6,
+	},
+	rarityText: {
+		fontFamily: "Silkscreen",
+		fontSize: 9,
 	},
 	previewBox: {
 		width: "100%",

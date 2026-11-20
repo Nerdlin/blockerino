@@ -9,6 +9,8 @@ import StylizedButton from "../StylizedButton";
 import ShopPreviewModal from "../ShopPreviewModal";
 import { styles } from "./styles";
 import { shopItemText } from "@/constants/i18n/shopItems";
+import { itemRarity } from "@/constants/Chests";
+import { RARITY_COLORS } from "@/constants/DailyReward";
 
 export const EXTRA_CATEGORIES: { id: ShopCategory; labelKey: string }[] = [
 	// first row: the board games, second row: the rest
@@ -76,9 +78,14 @@ export function ExtraGameShop() {
 						const canAfford = state.balance >= item.price;
 						const buttonText = isEquipped ? t("shop.equipped") : isOwned || item.price === 0 ? t("shop.equip") : t("shop.buy", { price: item.price });
 						const disabled = isEquipped || (!isOwned && !canAfford);
+						const rarity = itemRarity(item.price);
+						const rarityColor = RARITY_COLORS[rarity];
 
 						return (
-							<View key={item.id} style={[{ width: "48%", minWidth: 120, minHeight: 180, borderWidth: 1.5, borderRadius: 10, padding: 8, alignItems: "center", justifyContent: "space-between", borderColor: isEquipped ? item.accent : "rgba(255,255,255,0.12)", backgroundColor: "rgba(0, 0, 0, 0.38)" }]}>
+							<View key={item.id} style={[{ width: "48%", minWidth: 120, minHeight: 180, borderWidth: 1.5, borderRadius: 10, padding: 8, alignItems: "center", justifyContent: "space-between", borderColor: isEquipped ? item.accent : rarity === "common" ? "rgba(255,255,255,0.12)" : `${rarityColor}88`, backgroundColor: "rgba(0, 0, 0, 0.38)" }]}>
+								<View style={{ alignSelf: "flex-start", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, marginBottom: 6, borderColor: rarityColor, backgroundColor: `${rarityColor}22` }}>
+									<Text style={{ fontFamily: "Silkscreen", fontSize: 9, color: rarityColor }}>{t(`chest.kind.${rarity}`)}</Text>
+								</View>
 								<Pressable onPress={() => setPreviewItem(item)} accessibilityLabel={shopItemText(item, language).title} style={{ width: "100%" }}>
 										<CosmeticPreview item={item} />
 									</Pressable>

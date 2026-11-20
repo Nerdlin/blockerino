@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import type { ShopItem } from "@/constants/Shop";
 import {
 	BACKGAMMON_SKINS,
@@ -287,16 +288,60 @@ function MahjongPreview({ item, u }: { item: ShopItem; u: number }) {
 }
 
 // Blockerino's own cosmetics: block skins, backgrounds, music and sound effects.
-function BlockerinoPreview({ item, u, large, animate }: { item: ShopItem; u: number; large: boolean; animate: boolean }) {
-	if (item.category === "background" && item.gradient) {
-		return (
-			<View style={[styles.frame, { height: 46 * u, borderRadius: 6, overflow: "hidden" }]}>
-				{item.gradient.map((color, index) => (
-					<View key={`${item.id}-${index}`} style={{ flex: 1, width: "100%", backgroundColor: color }} />
+
+function seeded(i: number, salt: number): number {
+	const v = Math.sin(i * 12.9898 + salt * 78.233) * 43758.5453;
+	return v - Math.floor(v);
+}
+
+/**
+ * A background as it looks behind the board: the real gradient (top to bottom) and a still frame of the scene that
+ * moves in the game (falling blocks, glowing motes, sunset embers, aurora and snow, a neon grid). Nothing here animates.
+ */
+function BackgroundPreview({ item, u }: { item: ShopItem; u: number }) {
+	const scene = item.scene ?? "classic";
+	const colors = (item.gradient ?? ["#000000", "#000000", "#000000"]) as [string, string, string];
+	const accent = item.accent;
+	const at = (i: number, salt: number) => `${Math.round(seeded(i, salt) * 96)}%` as const;
+	const dot = (i: number, size: number, color: string, opacity: number, glow = false) => (
+		<View
+			key={i}
+			style={{ position: "absolute", left: at(i, 1), top: at(i, 2), width: size, height: size, borderRadius: size, backgroundColor: color, opacity, ...(glow ? { boxShadow: `0 0 ${size * 2}px ${color}` } : null) }}
+		/>
+	);
+	return (
+		<View style={[styles.frame, { height: 64 * u, borderRadius: 6, overflow: "hidden" }]}>
+			<LinearGradient colors={colors} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={StyleSheet.absoluteFill} />
+			{scene === "classic" &&
+				Array.from({ length: 7 }, (_, i) => (
+					<View key={i} style={{ position: "absolute", left: at(i, 3), top: at(i, 4), width: 7 * u, height: 7 * u, backgroundColor: `rgb(${pieceColors[i % pieceColors.length].r}, ${pieceColors[i % pieceColors.length].g}, ${pieceColors[i % pieceColors.length].b})`, opacity: 0.55, borderWidth: 1, borderColor: "rgba(255,255,255,0.35)" }} />
 				))}
-			</View>
-		);
-	}
+			{scene === "ender" && Array.from({ length: 16 }, (_, i) => dot(i, (2 + seeded(i, 5) * 3) * u, accent, 0.45 + seeded(i, 6) * 0.5, true))}
+			{scene === "sunset" && (
+				<>
+					<View style={{ position: "absolute", left: "15%", top: "52%", width: "70%", aspectRatio: 1, borderRadius: 999, backgroundColor: accent, opacity: 0.4, boxShadow: `0 0 ${14 * u}px ${accent}` }} />
+					{Array.from({ length: 9 }, (_, i) => dot(i, (1.5 + seeded(i, 7) * 2) * u, "#FFB347", 0.9))}
+				</>
+			)}
+			{scene === "ice" && (
+				<>
+					<View style={{ position: "absolute", left: "-20%", top: "16%", width: "140%", height: "16%", borderRadius: 999, backgroundColor: accent, opacity: 0.32, transform: [{ rotate: "-8deg" }], boxShadow: `0 0 ${8 * u}px ${accent}` }} />
+					{Array.from({ length: 12 }, (_, i) => dot(i, (1.5 + seeded(i, 8) * 2) * u, "#F0F9FF", 0.85))}
+				</>
+			)}
+			{scene === "cyber" && (
+				<>
+					{[0, 1, 2, 3].map((r) => <View key={`r${r}`} style={{ position: "absolute", left: 0, right: 0, top: `${18 + r * 22}%`, height: 1, backgroundColor: accent, opacity: 0.3 }} />)}
+					{[0, 1, 2, 3, 4, 5].map((c) => <View key={`c${c}`} style={{ position: "absolute", top: 0, bottom: 0, left: `${8 + c * 17}%`, width: 1, backgroundColor: accent, opacity: 0.3 }} />)}
+					<View style={{ position: "absolute", left: 0, right: 0, top: "46%", height: 2 * u, backgroundColor: accent, opacity: 0.8, boxShadow: `0 0 ${6 * u}px ${accent}` }} />
+				</>
+			)}
+		</View>
+	);
+}
+
+function BlockerinoPreview({ item, u, large, animate }: { item: ShopItem; u: number; large: boolean; animate: boolean }) {
+	if (item.category === "background" && item.gradient) return <BackgroundPreview item={item} u={u} />;
 	if (item.category === "music") {
 		return (
 			<Frame u={u}>
