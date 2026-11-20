@@ -585,9 +585,9 @@ export const SKIN_ANIMATIONS: Record<string, SkinAnim> = {
 	},
 	// season pass premium exclusives (December 2026)
 	piece_premium_snowglass: {
-		trail: f(FA, PL, ["#E0F2FE", "#7DD3FC"], 2, 1, 700, 0.8, { g: 0.5 }),
+		trail: f(SP, RG, ["#E0F2FE", "#7DD3FC"], 2, 1, 700, 0.8, { g: 0.5 }),
 		place: f(DR, DO, ["#FFFFFF", "#7DD3FC"], 3, 1, 600, 0.9),
-		clear: f(FA, GM, ["#FFFFFF", "#7DD3FC", "#BAE6FD"], 3, 1, 1100, 1.7, { g: 0.6 }),
+		clear: f(FA, ST, ["#FFFFFF", "#7DD3FC", "#BAE6FD"], 3, 1, 1100, 1.7, { g: 0.6 }),
 		beam: bm(BM_SWELL, ["#FFFFFF", "#7DD3FC"], 3, 640),
 		idle: idle(f(TW, PL, ["#FFFFFF", "#BAE6FD"], 1, 1, 1100, 0), 2500, 4),
 		ex: {
@@ -597,16 +597,16 @@ export const SKIN_ANIMATIONS: Record<string, SkinAnim> = {
 		combo: { fx: f(DR, GM, ["#FFFFFF", "#7DD3FC", "#E0F2FE"], 1, 2, 1500, 2.9), pat: CP_RAIN, base: 10, per: 3, max: 26 },
 	},
 	piece_premium_goldholly: {
-		trail: f(TR, ST, ["#FDE047", "#4ADE80"], 2, 1, 520, 0.9),
+		trail: f(OR, ST, ["#FDE047", "#4ADE80"], 2, 1, 520, 0.9),
 		place: f(BU, ST, ["#FDE047", "#4ADE80", "#FB7185"], 3, 1, 400, 1.2),
-		clear: f(SH, PL, ["#FDE047", "#4ADE80", "#FB7185"], 3, 1, 760, 1.8),
+		clear: f(SH, DO, ["#FDE047", "#4ADE80", "#FB7185"], 3, 1, 760, 1.8),
 		beam: bm(BM_SWEEP, ["#FFFBEB", "#4ADE80"], 2, 500, 2),
-		idle: idle(f(TW, ST, ["#FFFBEB", "#FDE047"], 1, 1, 850, 0), 2300, 4),
+		idle: idle(f(TW, ST, ["#FFFBEB", "#FDE047"], 1, 1, 850, 0), 2100, 4),
 		ex: {
 			place: f(ZZ, DO, ["#FDE047", "#BBF7D0"], 2, 1, 520, 1),
 			clear: f(FO, DO, ["#FDE047", "#FFFBEB", "#FB7185"], 2, 1, 900, 1.6, { g: 1.3 }),
 		},
-		combo: { fx: f(TR, ST, ["#FDE047", "#4ADE80", "#FB7185"], 1, 1, 760, 3), pat: CP_BOTTOM, base: 5, per: 2, max: 20 },
+		combo: { fx: f(BU, PL, ["#FDE047", "#4ADE80", "#FB7185"], 1, 1, 760, 3), pat: CP_BOTTOM, base: 5, per: 2, max: 20 },
 	},
 	piece_season_snowfall: {
 		trail: f(FA, PL, ["#FFFFFF", "#BAE6FD"], 2, 1, 700, 0.8, { g: 0.5 }),

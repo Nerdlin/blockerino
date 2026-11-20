@@ -7,7 +7,7 @@ jest.mock("@react-native-async-storage/async-storage", () => require("@react-nat
 const skins = SHOP_ITEMS.filter((item) => item.category === "piece_skin");
 const themed = skins.filter((item) => item.id !== "piece_classic");
 const chest = themed.filter((item) => item.chestOnly === true);
-const season = themed.filter((item) => item.id.startsWith("piece_season_"));
+const season = themed.filter((item) => item.id.startsWith("piece_season_") || item.id.startsWith("piece_premium_"));
 const exclusive = [...chest, ...season];
 const plain = themed.filter((item) => !exclusive.includes(item));
 const SHOP_THEMED = 60; // the themed skins of the shop and the chests; the season pass skins come on top
@@ -26,7 +26,7 @@ function duplicates(key: (anim: (typeof entries)[number][1]) => string): string[
 describe("skin animations: one table entry per skin", () => {
 	it("has one entry for every themed piece skin (shop, chests and season pass) and nothing else", () => {
 		expect(plain).toHaveLength(SHOP_THEMED - chest.length);
-		expect(season).toHaveLength(8);
+		expect(season).toHaveLength(10);
 		expect(entries).toHaveLength(themed.length);
 		expect(themed).toHaveLength(SHOP_THEMED + season.length);
 		expect(Object.keys(SKIN_ANIMATIONS).sort()).toEqual(themed.map((item) => item.id).sort());
