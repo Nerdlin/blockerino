@@ -24,7 +24,7 @@ import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useLanguage } from "@/constants/Localization";
 import { shopItemText } from "@/constants/i18n/shopItems";
 import { itemRarity } from "@/constants/Chests";
-import { RARITY_COLORS } from "@/constants/DailyReward";
+import { RARITY_COLORS, type Rarity } from "@/constants/DailyReward";
 
 type ShopTab = ShopCategory | "chests";
 
@@ -61,10 +61,24 @@ export default function ShopMenu() {
 		setActiveTab("chests");
 	};
 
-	const items = useMemo(
+	// filters: owned or not, one rarity, cheapest first; they reset with the tab
+	const [ownedFilter, setOwnedFilter] = useState<"all" | "owned" | "notOwned">("all");
+	const [rarityFilter, setRarityFilter] = useState<Rarity | null>(null);
+	const [cheapFirst, setCheapFirst] = useState(false);
+	const allItems = useMemo(
 		() => getVisibleShopItemsByCategory(activeCategory, state.ownedItemIds),
 		[activeCategory, state.ownedItemIds]
 	);
+	const items = useMemo(() => {
+		const owned = new Set(state.ownedItemIds);
+		const list = allItems.filter((item) => {
+			if (ownedFilter === "owned" && !owned.has(item.id)) return false;
+			if (ownedFilter === "notOwned" && owned.has(item.id)) return false;
+			if (rarityFilter && (item.seasonOnly || itemRarity(item.price) !== rarityFilter)) return false;
+			return true;
+		});
+		return cheapFirst ? [...list].sort((a, b) => a.price - b.price) : list;
+	}, [allItems, state.ownedItemIds, ownedFilter, rarityFilter, cheapFirst]);
 	const visibleCatalogCount = useMemo(
 		() => CATEGORIES.reduce((total, category) => (
 			total + (category.id === "chests" ? 0 : getVisibleShopItemsByCategory(category.id, state.ownedItemIds).length)
@@ -144,6 +158,42 @@ export default function ShopMenu() {
 					{shopItemText(equippedItem, language).title}
 				</Text>
 			</View>
+
+			<View style={styles.filters}>
+				<SegmentedControl
+					small
+					items={[{ key: "all", label: t("shop.filter.all") }, { key: "owned", label: t("shop.filter.owned") }, { key: "notOwned", label: t("shop.filter.notOwned") }]}
+					value={ownedFilter}
+					onChange={(key) => { playSfx("menuClick"); setOwnedFilter(key as "all" | "owned" | "notOwned"); }}
+				/>
+				<View style={styles.chipRow}>
+					{(["common", "rare", "epic", "legendary"] as Rarity[]).map((rarity) => {
+						const active = rarityFilter === rarity;
+						const color = RARITY_COLORS[rarity];
+						return (
+							<Pressable
+								key={rarity}
+								accessibilityRole="button"
+								accessibilityState={{ selected: active }}
+								onPress={() => { playSfx("menuClick"); setRarityFilter(active ? null : rarity); }}
+								style={[styles.chip, { borderColor: color }, active && { backgroundColor: `${color}33` }]}
+							>
+								<Text style={[styles.chipText, { color }]}>{t(`chest.kind.${rarity}`)}</Text>
+							</Pressable>
+						);
+					})}
+					<Pressable
+						accessibilityRole="button"
+						accessibilityState={{ selected: cheapFirst }}
+						onPress={() => { playSfx("menuClick"); setCheapFirst((on) => !on); }}
+						style={[styles.chip, { borderColor: currentTheme.textSecondary }, cheapFirst && { backgroundColor: "rgba(255,255,255,0.14)" }]}
+					>
+						<Text style={[styles.chipText, { color: currentTheme.textPrimary }]}>{t("shop.filter.cheapFirst")}</Text>
+					</Pressable>
+				</View>
+			</View>
+
+			{items.length === 0 ? <Text style={[styles.caption, { color: currentTheme.textSecondary, marginTop: 12 }]}>{t("shop.filter.empty")}</Text> : null}
 
 			<View style={[styles.itemsGrid, isMobile && styles.mobileItemsGrid]}>
 				{items.map((item, itemIndex) => (
@@ -370,6 +420,28 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		maxWidth: "100%",
 		textAlign: "center",
+	},
+	filters: {
+		width: "100%",
+		alignItems: "center",
+		gap: 8,
+		marginBottom: 8,
+	},
+	chipRow: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		justifyContent: "center",
+		gap: 6,
+	},
+	chip: {
+		paddingHorizontal: 9,
+		paddingVertical: 5,
+		borderRadius: 8,
+		borderWidth: 1.5,
+	},
+	chipText: {
+		fontFamily: "Silkscreen",
+		fontSize: 10,
 	},
 	itemsGrid: {
 		width: "100%",
