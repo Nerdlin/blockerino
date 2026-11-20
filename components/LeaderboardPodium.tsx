@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import UiIcon from "@/components/UiIcon";
 import { nameFontFamily } from "@/constants/NameFont";
@@ -5,8 +6,10 @@ import { nameFontFamily } from "@/constants/NameFont";
 // The top three of a leaderboard on a podium (second, first, third), shared by the More Games and Versus tables.
 
 export function LeaderboardAvatar({ name, url, size }: { name: string; url?: string | null; size: number }) {
-	if (url && url.startsWith("http")) {
-		return <Image source={{ uri: url }} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: "rgba(255,255,255,0.08)" }} />;
+	// a picture that does not load (a deleted Discord avatar) falls back to the initial, like an account without one
+	const [broken, setBroken] = useState(false);
+	if (url && url.startsWith("http") && !broken) {
+		return <Image onError={() => setBroken(true)} source={{ uri: url }} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: "rgba(255,255,255,0.08)" }} />;
 	}
 	// an emoji avatar (a few characters), or the first letter of the name
 	const emoji = url && url.length <= 8 ? url : null;

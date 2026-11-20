@@ -9,7 +9,7 @@ export const mainmenu: ScreenDictionary = {
 		"mainmenu.betaVersion": "beta version",
 
 		"mainmenu.classicTitle": "Classic 8x8",
-		"mainmenu.classicFlavor": "classical line breaking",
+		"mainmenu.classicFlavor": "classic line clearing",
 
 		"mainmenu.chaosTitle": "Chaos !?",
 		"mainmenu.chaosFlavor": "10x10, 5 piece hand!?",

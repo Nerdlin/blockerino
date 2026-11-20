@@ -198,6 +198,9 @@ export async function getFriendsSeasonLeaderboard(board: SeasonBoard): Promise<G
 
 async function getFriendsLeaderboard(rpc: string, board: SeasonBoard): Promise<GlobalHighScore[]> {
 	try {
+		// a guest has no friends: do not call the server (it answers 401) without a session
+		const { data: { session } } = await getAccountSession();
+		if (!session?.user) return [];
 		const { data, error } = await supabase.rpc(rpc, { p_board: board });
 		if (error || !Array.isArray(data)) return [];
 

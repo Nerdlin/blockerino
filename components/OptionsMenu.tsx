@@ -10,7 +10,7 @@ import { updateService } from "@/constants/UpdateService";
 import { useSoundSettings } from "@/constants/Sound";
 import { HAPTIC_LEVELS, buzz, useHapticSettings } from "@/constants/Haptic";
 import { effectsProfileSetting, useEffectsProfile, type EffectsProfile } from "@/constants/EffectsProfile";
-import { ThemeType, useTheme } from "@/constants/Theme";
+import { ThemeType, opaqueColor, useTheme } from "@/constants/Theme";
 import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, useLanguage, type Language } from "@/constants/Localization";
 import Slider from "@react-native-community/slider";
 import { clearActiveGame } from "@/constants/Storage";
@@ -191,7 +191,7 @@ export default function OptionsMenu() {
 
 	return (
 		<SimplePopupView footer={buttons} style={[
-			{ backgroundColor: currentTheme.menuBackground, justifyContent: "flex-start" },
+			{ backgroundColor: opaqueColor(currentTheme.menuBackground), justifyContent: "flex-start" },
 			isMobile && { width: '92%', height: '85%', paddingHorizontal: 10 }
 		]}>
 			<View style={styles.topBar}>
@@ -499,8 +499,8 @@ const styles = StyleSheet.create({
 		marginBottom: 12,
 	},
 	topBackButton: {
-		width: 84,
-		minWidth: 84,
+		width: 112,
+		minWidth: 112,
 		height: 38,
 		minHeight: 38,
 		margin: 0,
@@ -536,9 +536,11 @@ const styles = StyleSheet.create({
 	},
 	sliderValue: {
 		fontFamily: "Silkscreen",
-		fontSize: 10,
-		width: 40,
+		fontSize: 11,
+		lineHeight: 16,
+		width: 48,
 		textAlign: "right",
+		paddingTop: 2,
 	},
 	themesContainer: {
 		flexDirection: 'row',
