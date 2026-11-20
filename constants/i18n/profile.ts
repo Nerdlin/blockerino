@@ -115,7 +115,7 @@ export const profile: ScreenDictionary = {
 		"profile.title": "Профиль",
 
 		// Tabs
-		"profile.tabStats": "Статистика",
+		"profile.tabStats": "Итоги",
 		"profile.tabGifts": "Подарки",
 		"profile.tabHistory": "История",
 		"profile.tabFriends": "Друзья",
