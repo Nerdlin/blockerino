@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { syncAchievementUnlocks } from "./AchievementRarity";
 import { recordQuestProgress } from "./DailyQuests";
 import { recordGameOutcome } from "./GameStats";
 import { GameModeType } from "@/hooks/useAppState";
@@ -1006,6 +1007,7 @@ const achievementProgressListeners = new Set<() => void>();
 const achievementUnlockListeners = new Set<(achievementIds: string[]) => void>();
 let achievementUnlockTimer: ReturnType<typeof setTimeout> | null = null;
 let achievementUnlockQueue: Promise<void> = Promise.resolve();
+let unlocksReportedThisSession = false;
 
 /** Called whenever stored achievement stats change (e.g. after a piece is placed). */
 export function subscribeToAchievementProgress(listener: () => void): () => void {
@@ -1072,6 +1074,13 @@ export function checkAchievementUnlocks(): Promise<string[]> {
 
 		if (stored === null || newlyUnlocked.length > 0) {
 			await AsyncStorage.setItem(ACHIEVEMENT_UNLOCKED_KEY, JSON.stringify(nextUnlocked));
+		}
+
+		// the server counts how many players have each tier (for the "x% of players" line): report once per session
+		// and again whenever something new is completed
+		if (!unlocksReportedThisSession || newlyUnlocked.length > 0) {
+			unlocksReportedThisSession = true;
+			void syncAchievementUnlocks(rows.filter((row) => row.progress.complete).map((row) => row.id));
 		}
 
 		if (newlyUnlocked.length > 0) {

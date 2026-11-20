@@ -13,6 +13,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { buzz } from "@/constants/Haptic";
 import AchievementIcon from "@/components/AchievementIcon";
+import AchievementRarityLine from "@/components/AchievementRarityLine";
 import { ACHIEVEMENT_DEFINITIONS, subscribeToAchievementUnlocks } from "@/constants/Achievements";
 import { useAtomValue } from "jotai";
 import { dailyRewardOpenAtom } from "@/constants/DailyReward";
@@ -127,6 +128,7 @@ function AchievementToast({ achievementId, onDone }: { achievementId: string; on
 					<Text style={styles.description} numberOfLines={2}>
 						{t(`ach.${achievementId}.unlock`)}
 					</Text>
+					<AchievementRarityLine achievementId={achievementId} />
 				</View>
 			</Pressable>
 		</Animated.View>

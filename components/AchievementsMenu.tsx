@@ -32,6 +32,7 @@ import { loadShopState, useShopState } from "@/constants/Shop";
 import { useLanguage } from "@/constants/Localization";
 import { useSoundSettings } from "@/constants/Sound";
 import { buzz } from "@/constants/Haptic";
+import AchievementRarityLine from "./AchievementRarityLine";
 
 const GROUPS: AchievementGroup[] = ["solo", "versus", "games", "economy"];
 
@@ -280,6 +281,7 @@ function ChainCard({
 				<Text style={[styles.howTo, { color: currentTheme.textSecondary }]} numberOfLines={2}>
 					{t(`ach.${focus.id}.unlock`)}
 				</Text>
+				<AchievementRarityLine achievementId={focus.id} />
 				{!done && (
 					<View style={styles.progressTrack}>
 						<View style={[styles.progressFill, { width: `${progressPercent}%` as `${number}%`, backgroundColor: currentTheme.buttonPrimary }]} />
