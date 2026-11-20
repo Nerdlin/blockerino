@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import UiIcon from "@/components/UiIcon";
-import { LeaderboardAvatar, LeaderboardPodium } from "@/components/LeaderboardPodium";
+import { LeaderboardAvatar, LeaderboardPodium, RankChange } from "@/components/LeaderboardPodium";
+import { rankChange, usePrevRanks } from "@/constants/RankChanges";
 import { useLanguage } from "@/constants/Localization";
 import { nameFontFamily } from "@/constants/NameFont";
 import { getSeasonEndsAt } from "@/constants/SeasonScores";
@@ -26,6 +27,7 @@ export function EloLeaderboardView({ entries, playerName, playerElo, tiers, onOp
 	onOpen: (name: string) => void;
 }) {
 	const { t } = useLanguage();
+	const prevRanks = usePrevRanks("elo");
 	const tierOf = (elo: number) => tiers.find((tier) => elo < tier.max) ?? tiers[tiers.length - 1];
 	const tierName = (tier: EloTier) => t(`mp.tierName.${tier.tier}`);
 	const isMe = (name: string) => name.toLowerCase() === playerName.toLowerCase();
@@ -82,6 +84,7 @@ export function EloLeaderboardView({ entries, playerName, playerElo, tiers, onOp
 							avatarUrl: entry.avatar_url,
 							meta: `${entry.elo} ELO`,
 							isMe: isMe(entry.player_name),
+							change: rankChange(prevRanks, entry.player_name, index + 1),
 						}))}
 					/>
 					{entries.slice(3).map((entry, index) => {
@@ -93,7 +96,10 @@ export function EloLeaderboardView({ entries, playerName, playerElo, tiers, onOp
 								onPress={() => onOpen(entry.player_name)}
 								style={[styles.row, me && { borderColor: tier.color, backgroundColor: "rgba(255,255,255,0.08)" }]}
 							>
-								<Text style={styles.rowRank}>{index + 4}</Text>
+								<View style={styles.rowRankBox}>
+									<Text style={styles.rowRank}>{index + 4}</Text>
+									<RankChange change={rankChange(prevRanks, entry.player_name, index + 4)} />
+								</View>
 								<LeaderboardAvatar name={entry.player_name} url={entry.avatar_url} size={28} />
 								<Text style={[styles.rowName, { fontFamily: nameFontFamily(entry.player_name, me ? "SilkscreenBold" : "Silkscreen") }]} numberOfLines={1}>
 									{entry.player_name}{me ? t("mp.you") : ""}
@@ -128,7 +134,8 @@ const styles = StyleSheet.create({
 	mePlaceLabel: { fontFamily: "Silkscreen", fontSize: 9, color: "#9CA3AF" },
 	empty: { fontFamily: "Silkscreen", fontSize: 11, color: "#9CA3AF", textAlign: "center", marginVertical: 30 },
 	row: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 7, paddingHorizontal: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)", borderRadius: 8, backgroundColor: "rgba(0,0,0,0.2)" },
-	rowRank: { fontFamily: "SilkscreenBold", fontSize: 11, width: 26, textAlign: "center", color: "#9CA3AF" },
+	rowRankBox: { width: 30, alignItems: "center", gap: 1 },
+	rowRank: { fontFamily: "SilkscreenBold", fontSize: 11, textAlign: "center", color: "#9CA3AF" },
 	rowName: { flex: 1, fontSize: 12, color: "#F3F4F6" },
 	tierDot: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.3)" },
 	rowElo: { fontFamily: "SilkscreenBold", fontSize: 13, minWidth: 40, textAlign: "right" },

@@ -17,6 +17,20 @@ export function LeaderboardAvatar({ name, url, size }: { name: string; url?: str
 	);
 }
 
+/** A small arrow and the number of places gained (green, up) or lost (red, down) since the last snapshot; nothing when unchanged or unknown. */
+export function RankChange({ change }: { change: number | null | undefined }) {
+	if (!change) return null;
+	const up = change > 0;
+	const color = up ? "#4ADE80" : "#F87171";
+	const triangle = { width: 0, height: 0, borderLeftWidth: 4, borderRightWidth: 4, borderLeftColor: "transparent", borderRightColor: "transparent" } as const;
+	return (
+		<View style={{ flexDirection: "row", alignItems: "center", gap: 2 }} accessibilityLabel={`${up ? "+" : "-"}${Math.abs(change)}`}>
+			<View style={up ? { ...triangle, borderBottomWidth: 6, borderBottomColor: color } : { ...triangle, borderTopWidth: 6, borderTopColor: color }} />
+			<Text style={{ fontFamily: "SilkscreenBold", fontSize: 9, color }}>{Math.abs(change)}</Text>
+		</View>
+	);
+}
+
 export interface PodiumEntry {
 	key: string;
 	name: string;
@@ -24,6 +38,8 @@ export interface PodiumEntry {
 	/** One short line under the name: wins, a rating... */
 	meta: string;
 	isMe?: boolean;
+	/** Places gained since the last snapshot (see RankChange). */
+	change?: number | null;
 }
 
 // second place on the left, first in the middle and highest, third on the right
@@ -60,6 +76,7 @@ export function LeaderboardPodium({ top, onOpen, metaColor }: { top: PodiumEntry
 						<View style={[styles.step, { height, borderColor: color }]}>
 							<UiIcon name={medal} size={place === 1 ? 27 : 18} />
 							<Text style={[styles.place, { color }]}>{place}</Text>
+							<RankChange change={entry.change} />
 						</View>
 					</Pressable>
 				);

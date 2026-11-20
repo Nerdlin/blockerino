@@ -5,11 +5,11 @@ import { GlobalHighScore } from "@/constants/Supabase";
 import { useTheme } from "@/constants/Theme";
 import { useLanguage, TranslateVars } from "@/constants/Localization";
 import { getLeaderboardTier } from "@/constants/LeaderboardTiers";
-import { LeaderboardAvatar } from "./LeaderboardPodium";
+import { LeaderboardAvatar, RankChange } from "./LeaderboardPodium";
 import UiIcon from "./UiIcon";
 
 /** One row of a score table, in the same card style as the Versus and More Games tables. */
-export default function GlobalScoreRow({ score, rank, highlightTop, hideTime, isMe, accent }: { score: GlobalHighScore; rank: number; highlightTop: boolean; hideTime?: boolean; isMe?: boolean; accent?: string }) {
+export default function GlobalScoreRow({ score, rank, highlightTop, hideTime, isMe, accent, change }: { score: GlobalHighScore; rank: number; highlightTop: boolean; hideTime?: boolean; isMe?: boolean; accent?: string; change?: number | null }) {
     const { t } = useLanguage();
     const { currentTheme } = useTheme();
     const tier = highlightTop ? getLeaderboardTier(rank) : undefined;
@@ -22,6 +22,7 @@ export default function GlobalScoreRow({ score, rank, highlightTop, hideTime, is
         ]}>
             <View style={styles.rank}>
                 {tier?.icon ? <UiIcon name={tier.icon} size={18} /> : <Text style={[styles.rankText, { color: tier?.color ?? currentTheme.textSecondary }]}>{rank}</Text>}
+                <RankChange change={change} />
             </View>
             <LeaderboardAvatar name={score.player_name} url={score.avatar_url} size={28} />
             <View style={styles.nameColumn}>
@@ -80,8 +81,9 @@ const styles = StyleSheet.create({
         minHeight: 46,
     },
     rank: {
-        width: 26,
+        width: 30,
         alignItems: "center",
+        gap: 1,
     },
     rankText: {
         fontSize: 12,

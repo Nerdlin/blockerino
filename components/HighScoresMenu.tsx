@@ -21,6 +21,7 @@ import UiIcon from "./UiIcon";
 import { getFriendsAllTimeLeaderboard, getSeasonBoard, getSeasonEndsAt, getSeasonLeaderboard } from "@/constants/SeasonScores";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { LeaderboardMeCard, LeaderboardPodium } from "./LeaderboardPodium";
+import { rankChange, usePrevRanks } from "@/constants/RankChanges";
 import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
 import { setProfileAuthIntent } from "@/constants/ProfileIntent";
 
@@ -65,6 +66,9 @@ export default function HighScores() {
     }, [popAppState]);
 
     useEscapeKey(handleBack);
+
+    // arrows only on the running season's table (the all-time and friends tables have no snapshots)
+    const prevRanks = usePrevRanks(showSeason && !showFriends && seasonBoard ? (`season_${seasonBoard}` as "season_classic" | "season_chaos") : null);
 
     const refreshScores = useCallback(async (showLoader: boolean = false) => {
         if (refreshInProgress.current) return;
@@ -250,10 +254,11 @@ export default function HighScores() {
                         avatarUrl: score.avatar_url,
                         meta: String(score.score),
                         isMe: isMe(score.player_name),
+                        change: rankChange(prevRanks, score.player_name, idx + 1),
                     }))}
                 />
                 {globalHighScores.slice(3).map((score, idx) => (
-                    <GlobalScoreRow key={score.id || idx} rank={idx + 4} score={score} highlightTop isMe={isMe(score.player_name)} accent={modeColor} />
+                    <GlobalScoreRow key={score.id || idx} rank={idx + 4} score={score} highlightTop isMe={isMe(score.player_name)} accent={modeColor} change={rankChange(prevRanks, score.player_name, idx + 4)} />
                 ))}
             </View>
         )}
