@@ -26,7 +26,7 @@ function duplicates(key: (anim: (typeof entries)[number][1]) => string): string[
 describe("skin animations: one table entry per skin", () => {
 	it("has one entry for every themed piece skin (shop, chests and season pass) and nothing else", () => {
 		expect(plain).toHaveLength(SHOP_THEMED - chest.length);
-		expect(season).toHaveLength(10);
+		expect(season).toHaveLength(12);
 		expect(entries).toHaveLength(themed.length);
 		expect(themed).toHaveLength(SHOP_THEMED + season.length);
 		expect(Object.keys(SKIN_ANIMATIONS).sort()).toEqual(themed.map((item) => item.id).sort());

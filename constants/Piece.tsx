@@ -1000,6 +1000,24 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 				{ r: 186, g: 230, b: 253 },
 				{ r: 199, g: 210, b: 254 },
 			];
+		case "piece_premium_emberleaf":
+			return [
+				{ r: 251, g: 146, b: 60 },
+				{ r: 220, g: 38, b: 38 },
+				{ r: 250, g: 204, b: 21 },
+				{ r: 194, g: 65, b: 12 },
+				{ r: 253, g: 186, b: 116 },
+				{ r: 124, g: 45, b: 18 },
+			];
+		case "piece_premium_harvestmoon":
+			return [
+				{ r: 245, g: 158, b: 11 },
+				{ r: 253, g: 230, b: 138 },
+				{ r: 251, g: 191, b: 36 },
+				{ r: 180, g: 83, b: 9 },
+				{ r: 254, g: 243, b: 199 },
+				{ r: 120, g: 53, b: 15 },
+			];
 		case "piece_premium_goldholly":
 			return [
 				{ r: 253, g: 224, b: 71 },

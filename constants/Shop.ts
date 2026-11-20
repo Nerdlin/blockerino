@@ -818,6 +818,8 @@ const SEASON_PASS_PIECES: ShopItem[] = [
 const SEASON_PREMIUM_PIECES: ShopItem[] = [
 	["piece_premium_snowglass", "Snow Glass", "Glass snowflakes that catch the light.", "#7DD3FC", ["#0C4A6E", "#7DD3FC", "#FFFFFF"]],
 	["piece_premium_goldholly", "Gilded Holly", "Gold, green and red: holly with a golden shine.", "#FDE047", ["#166534", "#4ADE80", "#FDE047"]],
+	["piece_premium_emberleaf", "Ember Leaf", "Autumn leaves in embers of orange, red and gold.", "#FB923C", ["#7C2D12", "#FB923C", "#FACC15"]],
+	["piece_premium_harvestmoon", "Harvest Moon", "A warm golden moon in every block.", "#FBBF24", ["#78350F", "#F59E0B", "#FDE68A"]],
 ].map(([id, title, description, accent, previewColors]) => ({
 	id: id as string,
 	category: "piece_skin" as const,
@@ -832,6 +834,8 @@ const SEASON_PREMIUM_PIECES: ShopItem[] = [
 const SEASON_PREMIUM_BACKGROUNDS: ShopItem[] = [
 	["background_premium_northern", "Northern Lights", "Green and violet curtains of light over a frozen night.", "#5EEAD4", ["#020617", "#0F766E", "#C4B5FD"], ["rgb(2, 6, 23)", "rgb(15, 118, 110)", "rgb(196, 181, 253)"], "ice"],
 	["background_premium_starfall", "Starfall Eve", "Gold stars falling through a deep blue winter sky.", "#FACC15", ["#020617", "#1E3A8A", "#FACC15"], ["rgb(2, 6, 23)", "rgb(30, 58, 138)", "rgb(250, 204, 21)"], "ender"],
+	["background_premium_leaffall", "Leaf Fall", "Rust and amber leaves drifting over a dusk field.", "#FB923C", ["#1C0A04", "#9A3412", "#FBBF24"], ["rgb(28, 10, 4)", "rgb(154, 52, 18)", "rgb(251, 191, 36)"], "sunset"],
+	["background_premium_harvestnight", "Harvest Night", "A violet night with embers of a harvest fire.", "#FDBA74", ["#0B0618", "#6D28D9", "#FDBA74"], ["rgb(11, 6, 24)", "rgb(109, 40, 217)", "rgb(253, 186, 116)"], "cyber"],
 ].map(([id, title, description, accent, previewColors, gradient, scene]) => ({
 	id: id as string,
 	category: "background" as const,

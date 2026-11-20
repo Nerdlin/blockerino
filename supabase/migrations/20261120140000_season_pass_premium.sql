@@ -34,6 +34,10 @@ REVOKE ALL ON public.season_pass_premium_cosmetics FROM anon, authenticated;
 
 -- 2. The first season set: four exclusive skins for December 2026 --------------------------------------------------
 INSERT INTO public.shop_catalog (item_id, price, kind) VALUES
+  ('piece_premium_emberleaf', 0, 'server_only'),
+  ('piece_premium_harvestmoon', 0, 'server_only'),
+  ('background_premium_leaffall', 0, 'server_only'),
+  ('background_premium_harvestnight', 0, 'server_only'),
   ('piece_premium_snowglass', 0, 'server_only'),
   ('piece_premium_goldholly', 0, 'server_only'),
   ('background_premium_northern', 0, 'server_only'),
@@ -41,6 +45,10 @@ INSERT INTO public.shop_catalog (item_id, price, kind) VALUES
 ON CONFLICT (item_id) DO UPDATE SET price = EXCLUDED.price, kind = EXCLUDED.kind;
 
 INSERT INTO public.season_pass_premium_cosmetics (season_key, tier, item_id) VALUES
+  ('2026-11', 8, 'piece_premium_emberleaf'),
+  ('2026-11', 16, 'background_premium_leaffall'),
+  ('2026-11', 24, 'piece_premium_harvestmoon'),
+  ('2026-11', 30, 'background_premium_harvestnight'),
   ('2026-12', 8, 'piece_premium_snowglass'),
   ('2026-12', 16, 'background_premium_northern'),
   ('2026-12', 24, 'piece_premium_goldholly'),

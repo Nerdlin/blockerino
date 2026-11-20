@@ -279,6 +279,7 @@ export type SeasonCosmetics = Record<number, string>;
  * migration's season_pass_premium_cosmetics. A season missing here has no premium track yet.
  */
 export const SEASON_PREMIUM_COSMETICS: Record<string, SeasonCosmetics> = {
+	"2026-11": { 8: "piece_premium_emberleaf", 16: "background_premium_leaffall", 24: "piece_premium_harvestmoon", 30: "background_premium_harvestnight" },
 	"2026-12": { 8: "piece_premium_snowglass", 16: "background_premium_northern", 24: "piece_premium_goldholly", 30: "background_premium_starfall" },
 };
 

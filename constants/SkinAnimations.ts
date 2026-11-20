@@ -596,6 +596,30 @@ export const SKIN_ANIMATIONS: Record<string, SkinAnim> = {
 		},
 		combo: { fx: f(DR, GM, ["#FFFFFF", "#7DD3FC", "#E0F2FE"], 1, 2, 1500, 2.9), pat: CP_RAIN, base: 10, per: 3, max: 26 },
 	},
+	piece_premium_emberleaf: {
+		trail: f(FA, RG, ["#FB923C", "#FACC15"], 2, 1, 760, 0.8, { g: 0.5 }),
+		place: f(DR, DO, ["#FB923C", "#DC2626"], 3, 1, 560, 1),
+		clear: f(FA, PL, ["#FB923C", "#DC2626", "#FACC15"], 3, 1, 1100, 1.7, { g: 0.7 }),
+		beam: bm(BM_SWELL, ["#FB923C", "#DC2626"], 3, 620),
+		idle: idle(f(TW, DO, ["#FDBA74", "#FACC15"], 1, 1, 1000, 0), 2700, 4),
+		ex: {
+			place: f(DR, GM, ["#FACC15", "#FB923C"], 2, 1, 680, 1),
+			clear: f(DR, PL, ["#FB923C", "#FACC15", "#DC2626"], 2, 1, 1200, 1.8, { g: 0.8 }),
+		},
+		combo: { fx: f(FA, ST, ["#FB923C", "#DC2626", "#FACC15"], 1, 2, 1500, 2.9), pat: CP_RAIN, base: 10, per: 3, max: 26 },
+	},
+	piece_premium_harvestmoon: {
+		trail: f(TW, ST, ["#FDE68A", "#F59E0B"], 2, 1, 700, 0.8),
+		place: f(PU, RG, ["#FDE68A", "#F59E0B"], 2, 1, 560, 1),
+		clear: f(TW, DO, ["#FDE68A", "#FBBF24", "#FFFFFF"], 3, 1, 1000, 1.6),
+		beam: bm(BM_WIPE, ["#FDE68A", "#F59E0B"], 3, 600, 2),
+		idle: idle(f(PU, DO, ["#FEF3C7", "#FBBF24"], 1, 1, 1000, 0), 3100, 4),
+		ex: {
+			place: f(OR, GM, ["#FDE68A", "#FFFFFF"], 2, 1, 700, 1),
+			clear: f(SP, RG, ["#FDE68A", "#F59E0B", "#FFFFFF"], 2, 1, 1100, 1.8),
+		},
+		combo: { fx: f(TW, RG, ["#FDE68A", "#FFFFFF", "#F59E0B"], 1, 1, 1100, 3.2), pat: CP_CENTER, base: 5, per: 2, max: 20 },
+	},
 	piece_premium_goldholly: {
 		trail: f(OR, ST, ["#FDE047", "#4ADE80"], 2, 1, 520, 0.9),
 		place: f(BU, ST, ["#FDE047", "#4ADE80", "#FB7185"], 3, 1, 400, 1.2),

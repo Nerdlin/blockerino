@@ -172,6 +172,15 @@ export const SKIN_SPRITES: Record<string, Sprite> = {
 		rows: ["..gg..y.", ".gGGg.yY", "..gg...y", "...y.rr.", "yy.y.rRr", "yYy...rr", ".y..gGg.", "...y.gg."],
 		keys: { g: C("#4ADE80"), G: C("#BBF7D0"), y: C("#FDE047"), Y: C("#FFFBEB"), r: C("#FB7185"), R: C("#FECDD3") },
 	},
+	// season pass, premium track (November 2026): ember leaves and a harvest moon
+	piece_premium_emberleaf: {
+		rows: ["...oo..y", "..ooro..", ".oorrro.", ".orbrro.", "..oobro.", "y..obo..", "....b...", "...b...."],
+		keys: { o: C("#FB923C"), r: C("#DC2626"), y: C("#FACC15"), b: C("#7C2D12") },
+	},
+	piece_premium_harvestmoon: {
+		rows: ["..aaa...", ".aYYa..Y", "aYYa....", "aYa.....", "aYYa....", ".aYYa..Y", "..aaa...", "Y......Y"],
+		keys: { a: C("#F59E0B"), Y: C("#FDE68A") },
+	},
 	piece_season_snowfall: {
 		rows: ["W...W...", "..W...w.", ".W.w..W.", "...W...W", "w...W...", "..W...w.", ".w...W..", "...W...w"],
 	},
