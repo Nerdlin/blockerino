@@ -21,7 +21,7 @@ import { useSoundSettings } from "@/constants/Sound";
 
 const VISIBLE_MS = 4200;
 const ENTER_OFFSET = -180;
-const PARTICLE_COUNT = 10;
+const PARTICLE_COUNT = 6;
 const GOLD = "#F5B50C";
 
 function SparkParticle({ index, progress }: { index: number; progress: { value: number } }) {
@@ -86,10 +86,11 @@ function AchievementToast({ achievementId, onDone }: { achievementId: string; on
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	// only transform and opacity are animated: a shadow that changes every frame made the game stutter while the banner showed
 	const panelStyle = useAnimatedStyle(() => ({
 		transform: [{ translateY: translateY.value }],
-		shadowOpacity: 0.25 + glow.value * 0.55,
 	}));
+	const glowStyle = useAnimatedStyle(() => ({ opacity: 0.12 + glow.value * 0.3 }));
 	const iconStyle = useAnimatedStyle(() => ({ transform: [{ scale: iconScale.value }] }));
 	const shineStyle = useAnimatedStyle(() => ({
 		opacity: shine.value > 0 && shine.value < 1 ? 0.28 : 0,
@@ -101,6 +102,7 @@ function AchievementToast({ achievementId, onDone }: { achievementId: string; on
 			pointerEvents="box-none"
 			style={[styles.host, { top: Math.max(insets.top, 8) + 8 }, panelStyle]}
 		>
+			<Animated.View pointerEvents="none" style={[styles.glow, glowStyle]} />
 			<Pressable onPress={onDone} style={styles.panel} accessibilityRole="alert">
 				<View style={styles.shineClip} pointerEvents="none">
 					<Animated.View style={[styles.shine, shineStyle]} />
@@ -165,10 +167,15 @@ const styles = StyleSheet.create({
 		right: 12,
 		alignItems: "center",
 		zIndex: 10000,
-		elevation: 10000,
-		shadowColor: GOLD,
-		shadowOffset: { width: 0, height: 0 },
-		shadowRadius: 18,
+	},
+	glow: {
+		position: "absolute",
+		top: -6,
+		bottom: -6,
+		left: 6,
+		right: 6,
+		borderRadius: 12,
+		backgroundColor: GOLD,
 	},
 	panel: {
 		width: "100%",
