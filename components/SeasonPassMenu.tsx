@@ -502,14 +502,6 @@ function HeroReward({ tier, free, premium, language }: { tier: number; free: Res
 	// only a skin is worth a big preview: coins, keys and chests are already shown in the rows below
 	if (!item) return null;
 	const accent = best.premium ? "#FB923C" : GOLD;
-	const title = item
-		? shopItemText(item, language).title
-		: reward.chest
-			? t(reward.chest === "big" ? "pass.reward.chestBig" : "pass.reward.chestSmall")
-			: reward.keys > 0
-				? t("pass.reward.keys", { count: reward.keys })
-				: t("pass.reward.coins", { coins: reward.coins });
-	return (
 		<View style={[styles.hero, { borderColor: accent }]}>
 			<View style={styles.heroHead}>
 				<Text style={[styles.heroTier, { color: currentTheme.textPrimary }]}>{t("pass.tierTitle", { tier })}</Text>
