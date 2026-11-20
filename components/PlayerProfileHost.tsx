@@ -10,6 +10,7 @@ import AchievementIcon from "./AchievementIcon";
 import { getEloBadge } from "./MultiplayerMenu";
 import { GameRecordsView } from "./GameRecordsCard";
 import PixelLoader from "./PixelLoader";
+import SegmentedControl from "./SegmentedControl";
 import { opaqueColor, useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { useSoundSettings } from "@/constants/Sound";
@@ -180,7 +181,7 @@ function Header({ profile, nameColor, children }: { profile: PublicProfile; name
 	const ring = profile.elo && profile.elo > 0 ? getEloBadge(profile.elo).color : currentTheme.accent;
 	return (
 		<View style={[styles.header, { borderColor: ring, backgroundColor: currentTheme.emptyBlockBorder }]}>
-			<View style={[styles.avatarRing, { borderColor: ring }]}>
+			<View style={[styles.avatarRing, { borderColor: ring, shadowColor: ring }]}>
 				{avatar && avatar.startsWith("http") ? (
 					<Image source={{ uri: avatar }} style={styles.avatarImage} />
 				) : (
@@ -189,12 +190,10 @@ function Header({ profile, nameColor, children }: { profile: PublicProfile; name
 					</View>
 				)}
 			</View>
-			<View style={styles.headerInfo}>
-				<Text style={[styles.name, { color: nameColor, fontFamily: nameFontFamily(profile.name) }]} numberOfLines={1} adjustsFontSizeToFit>
-					{profile.name}
-				</Text>
-				{children}
-			</View>
+			<Text style={[styles.name, { color: nameColor, fontFamily: nameFontFamily(profile.name) }]} numberOfLines={1} adjustsFontSizeToFit>
+				{profile.name}
+			</Text>
+			<View style={styles.headerInfo}>{children}</View>
 		</View>
 	);
 }
@@ -271,12 +270,22 @@ function Relation({
 function Details({ profile, language }: { profile: PublicProfile; language: string }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
+	const [tab, setTab] = useState<"scores" | "games" | "ach">("scores");
 	const scores = SCORE_MODES.map((mode) => ({ mode, score: profile.highScores?.[mode] ?? 0 })).filter((entry) => entry.score > 0);
 	const since = profile.memberSince ? new Date(profile.memberSince) : null;
 	return (
 		<>
-			<Text style={[styles.sectionTitle, { color: currentTheme.textSecondary }]}>{t("pp.highScores")}</Text>
-			{scores.length === 0 ? (
+			<SegmentedControl
+				small
+				items={[
+					{ key: "scores", label: t("pp.tabScores") },
+					{ key: "games", label: t("pp.tabGames") },
+					{ key: "ach", label: t("pp.tabAch") },
+				]}
+				value={tab}
+				onChange={setTab}
+			/>
+			{tab === "scores" && (scores.length === 0 ? (
 				<Text style={[styles.cardNote, { color: currentTheme.textSecondary }]}>{t("pp.noScores")}</Text>
 			) : (
 				<View style={styles.grid}>
@@ -287,12 +296,11 @@ function Details({ profile, language }: { profile: PublicProfile; language: stri
 						</View>
 					))}
 				</View>
-			)}
+			))}
 
-			<GameRecordsView records={profile.records} title={t("pp.records")} emptyText={t("pp.noRecords")} />
+			{tab === "games" && <GameRecordsView records={profile.records} title={t("pp.records")} emptyText={t("pp.noRecords")} />}
 
-			<Text style={[styles.sectionTitle, { color: currentTheme.textSecondary }]}>{t("pp.rarest")}</Text>
-			{profile.achievements.length === 0 ? (
+			{tab === "ach" && (profile.achievements.length === 0 ? (
 				<Text style={[styles.cardNote, { color: currentTheme.textSecondary }]}>{t("pp.noAchievements")}</Text>
 			) : (
 				<View style={styles.achGrid}>
@@ -309,7 +317,7 @@ function Details({ profile, language }: { profile: PublicProfile; language: stri
 						</View>
 					))}
 				</View>
-			)}
+			))}
 
 			{since && !Number.isNaN(since.getTime()) && (
 				<Text style={[styles.note, { color: currentTheme.textSecondary }]}>
@@ -342,24 +350,24 @@ const styles = StyleSheet.create({
 		gap: 10,
 	},
 	header: {
-		flexDirection: "row",
 		alignItems: "center",
-		gap: 14,
+		gap: 8,
 		width: "100%",
-		padding: 12,
+		paddingVertical: 14,
+		paddingHorizontal: 12,
 		borderRadius: 14,
 		borderWidth: 2,
 	},
 	headerInfo: {
-		flex: 1,
-		alignItems: "flex-start",
-		gap: 6,
+		width: "100%",
+		alignItems: "center",
+		gap: 8,
 	},
 	avatarRing: {
-		width: 84,
-		height: 84,
-		borderRadius: 42,
-		borderWidth: 3,
+		width: 104,
+		height: 104,
+		borderRadius: 52,
+		borderWidth: 4,
 		overflow: "hidden",
 		alignItems: "center",
 		justifyContent: "center",
@@ -478,7 +486,7 @@ const styles = StyleSheet.create({
 	},
 	name: {
 		fontFamily: "Silkscreen",
-		fontSize: 20,
+		fontSize: 22,
 		maxWidth: "100%",
 	},
 	note: {
