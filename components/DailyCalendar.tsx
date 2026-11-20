@@ -54,8 +54,12 @@ export default function DailyCalendar({ calendar, collected, today, weekdays }: 
 
 	return (
 		<View style={styles.wrap} testID="daily-calendar">
-			{weeks.map((week, w) => (
+			{weeks.map((week, w) => {
+				// the days taken in a week are its first cells: one fire bar runs behind them, like a streak calendar on Duolingo
+				const taken = week.filter((entry) => entry.day <= collected).length;
+				return (
 				<View key={w} style={styles.week}>
+					{taken > 0 ? <View pointerEvents="none" style={[styles.fireBar, { width: taken * cell + (taken - 1) * 4, height: cell + 20 }]} /> : null}
 					{week.map((entry) => {
 						const done = entry.day <= collected;
 						const isToday = entry.day === today && !done;
@@ -75,7 +79,7 @@ export default function DailyCalendar({ calendar, collected, today, weekdays }: 
 									const date = dateOfStreakDay(entry.day, today);
 									return (
 										<View style={styles.dateBox}>
-											<Text style={[styles.weekday, done && styles.dimText, (date.getDay() === 0 || date.getDay() === 6) && styles.weekend]} numberOfLines={1}>{weekdays[(date.getDay() + 6) % 7]}</Text>
+											<Text style={[styles.weekday, done && styles.dimText, (date.getDay() === 0 || date.getDay() === 6) && !done && styles.weekend]} numberOfLines={1}>{weekdays[(date.getDay() + 6) % 7]}</Text>
 											<Text style={[styles.dayLabel, done && styles.dimText]} numberOfLines={1}>{date.getDate()}</Text>
 										</View>
 									);
@@ -91,7 +95,8 @@ export default function DailyCalendar({ calendar, collected, today, weekdays }: 
 						return <View key={entry.day}>{isToday ? <TodayGlow>{content}</TodayGlow> : content}</View>;
 					})}
 				</View>
-			))}
+				);
+			})}
 		</View>
 	);
 }
@@ -104,6 +109,18 @@ const styles = StyleSheet.create({
 	week: {
 		flexDirection: "row",
 		gap: 4,
+		position: "relative",
+	},
+	fireBar: {
+		position: "absolute",
+		left: 0,
+		top: 0,
+		borderRadius: 16,
+		borderWidth: 2,
+		borderBottomWidth: 4,
+		borderColor: "#B91C1C",
+		backgroundColor: "#F97316",
+		experimental_backgroundImage: "linear-gradient(180deg, #FDBA3B 0%, #F97316 50%, #EF4444 100%)",
 	},
 	cell: {
 		borderRadius: 6,
@@ -123,8 +140,8 @@ const styles = StyleSheet.create({
 		backgroundColor: "rgba(255,215,0,0.16)",
 	},
 	doneCell: {
-		backgroundColor: "rgba(0,200,80,0.12)",
-		borderColor: "rgba(0,200,80,0.45)",
+		backgroundColor: "transparent",
+		borderColor: "transparent",
 	},
 	todayCell: {
 		borderColor: GOLD,
@@ -151,14 +168,14 @@ const styles = StyleSheet.create({
 		color: GOLD,
 	},
 	dimText: {
-		opacity: 0.45,
+		color: "#FFF3D6",
 	},
 	tick: {
 		position: "absolute",
 		right: 2,
 		top: 0,
 		fontSize: 10,
-		color: "#00C850",
+		color: "#FFFFFF",
 		fontWeight: "bold",
 	},
 });

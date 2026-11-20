@@ -18,6 +18,7 @@ import { syncLocalHighScores } from "@/constants/LocalScoreSync";
 import GlobalScoreRow from "./GlobalScoreRow";
 import SegmentedControl, { type SegmentItem } from "./SegmentedControl";
 import UiIcon from "./UiIcon";
+import ScoreGainPill from "./ScoreGainPill";
 import { getFriendsAllTimeLeaderboard, getSeasonBoard, getSeasonEndsAt, getSeasonLeaderboard } from "@/constants/SeasonScores";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { LeaderboardMeCard, LeaderboardPodium } from "./LeaderboardPodium";
@@ -171,6 +172,27 @@ export default function HighScores() {
     const myName = (signedIn && accountName) || playerName;
     const isMe = (name: string) => Boolean(myName) && name.toLowerCase() === myName.toLowerCase();
     const myIndex = globalHighScores.findIndex((score) => isMe(score.player_name));
+    // the score on this board since the last time it was looked at: a growth floats over the row as "+N"
+    const [gain, setGain] = useState<number | null>(null);
+    const myBoardScore = myIndex >= 0 ? globalHighScores[myIndex].score : null;
+    useEffect(() => {
+        if (myBoardScore === null || !isActive) return;
+        let cancelled = false;
+        const key = `SCORE_SEEN:${gameMode}:${scope}`;
+        void (async () => {
+            try {
+                const stored = await AsyncStorage.getItem(key);
+                const seen = stored === null ? null : Number(stored);
+                if (stored === null || myBoardScore !== seen) await AsyncStorage.setItem(key, String(myBoardScore));
+                if (!cancelled && seen !== null && Number.isFinite(seen) && myBoardScore > seen) setGain(myBoardScore - seen);
+            } catch {
+                // no pill this time
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [myBoardScore, gameMode, scope, isActive]);
     const modeColor = gameMode === GameModeType.Chaos ? "#7C3AED" : currentModeConfig.challenge?.color ?? currentTheme.buttonPrimary;
 
     const modeItems: SegmentItem<GameModeType>[] = MAIN_LEADERBOARD_GAME_MODES.map((mode) => ({
@@ -216,6 +238,8 @@ export default function HighScores() {
             </Pressable>
         </View>
         {(localBestScore > 0 || myIndex >= 0) && (
+            <View style={{ width: '100%', alignItems: 'center' }}>
+            {gain !== null ? <ScoreGainPill key={`${gameMode}-${scope}-${gain}`} gain={gain} onDone={() => setGain(null)} /> : null}
             <LeaderboardMeCard
                 name={myName || t("hs.enterNickname")}
                 avatarUrl={myIndex >= 0 ? globalHighScores[myIndex].avatar_url : null}
@@ -224,6 +248,7 @@ export default function HighScores() {
                 placeHint={myIndex >= 0 ? String(globalHighScores[myIndex].score) : t("hs.notInTop")}
                 color={modeColor}
             />
+            </View>
         )}
 
         {authChecked && !signedIn && (

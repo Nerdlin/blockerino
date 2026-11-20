@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { useAtomValue } from "jotai";
 import StreakFlame from "./StreakFlame";
-import UiIcon from "./UiIcon";
+import FreezeCrystal from "./FreezeCrystal";
 import FadeInView from "./FadeInView";
 import { CountUp } from "./ProfileDesign";
 import { useTheme } from "@/constants/Theme";
@@ -22,7 +22,7 @@ export default function StreakCard() {
 				<CountUp value={status.streak} style={[styles.number, { color: alive ? "#FB4B5B" : currentTheme.textSecondary }]} />
 				<Text style={[styles.label, { color: alive ? "#FB4B5B" : currentTheme.textSecondary }]}>{t("streak.days")}</Text>
 				<View style={styles.freezeRow}>
-					<UiIcon name="diamond" size={18} dimmed={status.freezes === 0} />
+					<FreezeCrystal size={18} dimmed={status.freezes === 0} />
 					<Text style={[styles.freeze, { color: status.freezes > 0 ? "#6BC7FF" : currentTheme.textSecondary }]}>{t("streak.freezes", { have: status.freezes, cap: status.freezeCap })}</Text>
 				</View>
 			</View>
