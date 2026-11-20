@@ -13,8 +13,10 @@ import { useMoreGamesBack } from "../MoreGamesBack";
 
 const GRADE_COLORS: Record<MoveGrade, string> = { best: "#4ADE80", good: "#A3A3A3", inaccuracy: "#FACC15", mistake: "#FB923C", blunder: "#EF4444" };
 const GRADE_MARKS: Record<MoveGrade, string> = { best: "!", good: "", inaccuracy: "?!", mistake: "?", blunder: "??" };
-// a fixed depth, not a time limit: a search cut off mid-iteration gives scores that swing from move to move
-const DEPTH = 15;
+// a fixed depth, not a time limit: a search cut off mid-iteration gives scores that swing from move to move.
+// 12 plies grade moves as well as 15 for a review (the bad ones are lost by far more than the depth changes) and are
+// several times faster on a phone: a game of 50 positions took about as many seconds as it has moves at depth 15.
+const DEPTH = 12;
 
 /** Review of a finished game: Stockfish grades every move and shows what it would have played instead. */
 export function GameReview({ history, myColor, cosmetics, onClose }: { history: readonly string[]; myColor: Color; cosmetics: ExtraGameCosmetics; onClose: () => void }) {
@@ -50,7 +52,8 @@ export function GameReview({ history, myColor, cosmetics, onClose }: { history: 
 					// the side to move is mated, or it is a draw
 					if (chess.isCheckmate()) cp = side === "w" ? -1000 : 1000;
 				} else {
-					const result = await engine.search(fen, { depth: DEPTH });
+					// a forced move has one answer: a shallow search is enough for the score
+					const result = await engine.search(fen, { depth: chess.moves().length === 1 ? 8 : DEPTH });
 					cp = toWhiteCp(result, side);
 					bestMove = result.bestMove;
 				}
