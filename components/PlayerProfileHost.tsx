@@ -128,17 +128,18 @@ function PlayerProfileView({ name, onClose }: { name: string; onClose: () => voi
 			)}
 			{profile && (
 				<View style={styles.column}>
-					<Header profile={profile} nameColor={nameColor} />
-					{perk && <PerkBadge perk={perk} />}
-
-					<Relation
-						profile={profile}
-						signedIn={signedIn}
-						busy={busy}
-						onAdd={() => profile.userId && act(() => sendFriendRequestTo(profile.userId as string))}
-						onAccept={() => profile.friendRowId && act(() => acceptFriendRequest(profile.friendRowId as string))}
-						onDelete={() => profile.friendRowId && act(() => deleteFriendRow(profile.friendRowId as string))}
-					/>
+					{/* who they are on the left, what they are and what you can do on the right */}
+					<Header profile={profile} nameColor={nameColor}>
+						{perk && <PerkBadge perk={perk} />}
+						<Relation
+							profile={profile}
+							signedIn={signedIn}
+							busy={busy}
+							onAdd={() => profile.userId && act(() => sendFriendRequestTo(profile.userId as string))}
+							onAccept={() => profile.friendRowId && act(() => acceptFriendRequest(profile.friendRowId as string))}
+							onDelete={() => profile.friendRowId && act(() => deleteFriendRow(profile.friendRowId as string))}
+						/>
+					</Header>
 					{failed && <Text style={[styles.note, { color: "#F87171" }]}>{t("pp.friendFailed")}</Text>}
 					{signedIn && profile.userId && profile.relation !== "self" && profile.avatarUrl?.startsWith("http") ? (
 						<ReportAvatar userId={profile.userId} />
@@ -156,7 +157,7 @@ function PlayerProfileView({ name, onClose }: { name: string; onClose: () => voi
 	);
 }
 
-function Header({ profile, nameColor }: { profile: PublicProfile; nameColor: string }) {
+function Header({ profile, nameColor, children }: { profile: PublicProfile; nameColor: string; children?: React.ReactNode }) {
 	const { currentTheme } = useTheme();
 	const avatar = profile.avatarUrl;
 	const ring = profile.elo && profile.elo > 0 ? getEloBadge(profile.elo).color : currentTheme.accent;
@@ -171,9 +172,12 @@ function Header({ profile, nameColor }: { profile: PublicProfile; nameColor: str
 					</View>
 				)}
 			</View>
-			<Text style={[styles.name, { color: nameColor, fontFamily: nameFontFamily(profile.name) }]} numberOfLines={1} adjustsFontSizeToFit>
-				{profile.name}
-			</Text>
+			<View style={styles.headerInfo}>
+				<Text style={[styles.name, { color: nameColor, fontFamily: nameFontFamily(profile.name) }]} numberOfLines={1} adjustsFontSizeToFit>
+					{profile.name}
+				</Text>
+				{children}
+			</View>
 		</View>
 	);
 }
@@ -261,7 +265,7 @@ function Details({ profile, language }: { profile: PublicProfile; language: stri
 					<>
 						<UiIcon name={badge.icon} size={36} />
 						<View>
-							<Text style={[styles.heroTier, { color: badge.color }]}>{badge.tier.toUpperCase()}</Text>
+							<Text style={[styles.heroTier, { color: badge.color }]}>{t(`mp.tierName.${badge.tier}`)}</Text>
 							<Text style={[styles.heroValue, { color: currentTheme.textPrimary }]}>{t("pp.versusRating", { elo: profile.elo as number })}</Text>
 						</View>
 					</>
@@ -337,15 +341,21 @@ const styles = StyleSheet.create({
 		gap: 10,
 	},
 	header: {
+		flexDirection: "row",
 		alignItems: "center",
-		gap: 8,
+		gap: 14,
 		width: "100%",
 	},
+	headerInfo: {
+		flex: 1,
+		alignItems: "flex-start",
+		gap: 6,
+	},
 	avatarRing: {
-		width: 96,
-		height: 96,
-		borderRadius: 48,
-		borderWidth: 4,
+		width: 76,
+		height: 76,
+		borderRadius: 38,
+		borderWidth: 3,
 		overflow: "hidden",
 		alignItems: "center",
 		justifyContent: "center",
@@ -430,8 +440,8 @@ const styles = StyleSheet.create({
 	},
 	name: {
 		fontFamily: "Silkscreen",
-		fontSize: 24,
-		maxWidth: "90%",
+		fontSize: 20,
+		maxWidth: "100%",
 	},
 	note: {
 		fontFamily: "Silkscreen",
@@ -443,7 +453,9 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 	},
 	action: {
-		minWidth: 150,
+		minWidth: 0,
+		minHeight: 34,
+		paddingHorizontal: 12,
 		margin: 0,
 	},
 	actionRow: {

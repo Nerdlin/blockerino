@@ -589,6 +589,8 @@ export default function ProfileMenu() {
 					<PixelLoader size="large" color={currentTheme.accent} />
 				) : (session || (playerName && !showAuth)) ? (
 					<View style={[styles.profileContainer, isMobile && styles.mobileProfileContainer]}>
+						{/* the avatar and who the player is share a row, so the whole profile fits one screen */}
+						<View style={styles.heroRow}>
 						<FadeInView pop>
 						<Pressable onPress={() => setShowAvatarPopup(true)} style={{ position: "relative" }}>
 							{avatarUrl && avatarUrl.startsWith("http") ? (
@@ -601,6 +603,7 @@ export default function ProfileMenu() {
 							<View style={styles.editAvatarBadge}><PixelIcon name="pencil" size={14} color="#F0AF0C" secondaryColor="#F472B6" /></View>
 						</Pressable>
 						</FadeInView>
+						<View style={styles.heroInfo}>
 						{editingName ? (
 							<TextInput
 								testID="profile-name-input"
@@ -628,6 +631,8 @@ export default function ProfileMenu() {
 						)}
 						{nameError ? <Text style={[styles.errorText, { textAlign: "center" }]}>{nameError}</Text> : (editingName && session ? <Text style={{ fontFamily: "Silkscreen", color: currentTheme.textSecondary, fontSize: 11, textAlign: "center" }}>{t("profile.rename.hint")}</Text> : null)}
 						{perk && <PerkBadge perk={perk} />}
+						</View>
+						</View>
 						<SeasonTitleBadges titles={seasonTitles} />
 
 						<SegmentedControl
@@ -641,7 +646,7 @@ export default function ProfileMenu() {
 							value={activeTab}
 							onChange={(tab) => { playSfx('menuClick'); setActiveTab(tab); void refreshBadge(); }}
 						/>
-						<View style={{ height: 12 }} />
+						<View style={{ height: 8 }} />
 
 						{activeTab === "gifts" && (
 							<FadeInView key="gifts" style={styles.tabContentContainer}>
@@ -688,20 +693,22 @@ export default function ProfileMenu() {
 
 						{session ? (
 							<>
-								<StylizedButton 
-									onClick={handleLogout}
-									text={t("profile.logOut")}
-									backgroundColor="rgb(204, 51, 0)"
-									style={{ marginTop: 20 }}
-								/>
-
-								<StylizedButton
-									onClick={() => { playSfx('menuClick'); setDeleteAccountOpen(true); }}
-									text={t("acct.open")}
-									backgroundColor="rgb(90, 30, 30)"
-									style={{ marginTop: 6, minHeight: 36 }}
-									textStyle={{ fontSize: 11 }}
-								/>
+								<View style={styles.footerRow}>
+									<StylizedButton
+										onClick={handleLogout}
+										text={t("profile.logOut")}
+										backgroundColor="rgb(204, 51, 0)"
+										style={styles.footerButton}
+										textStyle={{ fontSize: 13 }}
+									/>
+									<StylizedButton
+										onClick={() => { playSfx('menuClick'); setDeleteAccountOpen(true); }}
+										text={t("acct.open")}
+										backgroundColor="rgb(90, 30, 30)"
+										style={styles.footerButton}
+										textStyle={{ fontSize: 11 }}
+									/>
+								</View>
 							</>
 						) : (
 							// a guest has nothing to sign out of: the button leads to the sign-in form
@@ -1016,33 +1023,61 @@ const styles = StyleSheet.create({
 	welcomeText: {
 		fontSize: 18,
 		fontFamily: 'Silkscreen',
-		marginBottom: 20,
-		textAlign: 'center',
+		marginBottom: 0,
+		textAlign: 'left',
+		flexShrink: 1,
+	},
+	heroRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 14,
+		width: '100%',
+		paddingHorizontal: 6,
+		marginBottom: 4,
+	},
+	heroInfo: {
+		flex: 1,
+		alignItems: 'flex-start',
+		gap: 4,
+	},
+	footerRow: {
+		flexDirection: 'row',
+		gap: 8,
+		justifyContent: 'center',
+		marginTop: 14,
+		width: '100%',
+	},
+	footerButton: {
+		flex: 1,
+		minWidth: 0,
+		minHeight: 38,
+		margin: 0,
 	},
 	statsContainer: {
 		flexDirection: 'row',
 		justifyContent: 'center',
 		width: '100%',
-		gap: 15,
+		gap: 8,
 		flexWrap: 'wrap',
 	},
 	statBox: {
 		alignItems: 'center',
 		justifyContent: 'center',
-		padding: 15,
+		padding: 10,
 		borderWidth: 1.5,
 		borderRadius: 12,
-		minWidth: 100,
+		width: '31%',
+		minWidth: 90,
 	},
 	mobileStatBox: {
-		minWidth: 130,
-		paddingHorizontal: 10,
-		paddingVertical: 12,
+		minWidth: 0,
+		paddingHorizontal: 6,
+		paddingVertical: 10,
 	},
 	statValue: {
-		fontSize: 24,
+		fontSize: 20,
 		fontFamily: 'SilkscreenBold',
-		marginBottom: 5,
+		marginBottom: 3,
 	},
 	statLabel: {
 		fontSize: 10,
@@ -1105,12 +1140,12 @@ const styles = StyleSheet.create({
 		borderColor: '#FFD700',
 		alignItems: 'center',
 		justifyContent: 'center',
-		marginBottom: 16,
+		marginBottom: 0,
 		overflow: 'hidden',
 	},
 	editAvatarBadge: {
 		position: 'absolute',
-		bottom: 16,
+		bottom: -4,
 		right: 0,
 		width: 28,
 		height: 28,

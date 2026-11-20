@@ -22,7 +22,6 @@ export default function SeasonTitleBadges({ titles }: { titles: SeasonTitle[] })
 
 	return (
 		<View style={styles.container}>
-			<Text style={[styles.header, { color: currentTheme.textSecondary }]}>{t("season.titlesHeader")}</Text>
 			<View style={styles.tiles}>
 				{titles.map((title) => {
 					const tier = getLeaderboardTier(title.rank);
@@ -34,12 +33,11 @@ export default function SeasonTitleBadges({ titles }: { titles: SeasonTitle[] })
 							testID={`season-title-${title.seasonKey}-${title.board}`}
 							style={[styles.tile, { borderColor: color, backgroundColor: tier?.background ?? "rgba(255,255,255,0.06)" }]}
 						>
-							<View style={[styles.medal, { borderColor: color }]}>
-								<UiIcon name={tier?.icon ?? "star"} size={20} />
+							<UiIcon name={tier?.icon ?? "star"} size={18} />
+							<View>
+								<Text style={[styles.place, { color }]} numberOfLines={1}>{place} · {t(`perk.board.${title.board}`)}</Text>
+								<Text style={[styles.season, { color: currentTheme.textSecondary }]} numberOfLines={1}>{formatSeasonKey(title.seasonKey, t)}</Text>
 							</View>
-							<Text style={[styles.place, { color }]} numberOfLines={1}>{place}</Text>
-							<Text style={[styles.board, { color: currentTheme.textPrimary }]} numberOfLines={1}>{t(`perk.board.${title.board}`)}</Text>
-							<Text style={[styles.season, { color: currentTheme.textSecondary }]} numberOfLines={1}>{formatSeasonKey(title.seasonKey, t)}</Text>
 						</View>
 					);
 				})}
@@ -52,8 +50,8 @@ const styles = StyleSheet.create({
 	container: {
 		alignItems: "center",
 		gap: 6,
-		marginTop: 8,
-		marginBottom: 4,
+		marginTop: 4,
+		marginBottom: 2,
 		width: "100%",
 	},
 	header: {
@@ -64,15 +62,15 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		flexWrap: "wrap",
 		justifyContent: "center",
-		gap: 8,
+		gap: 6,
 	},
 	tile: {
-		width: 96,
+		flexDirection: "row",
 		alignItems: "center",
-		gap: 2,
-		paddingVertical: 8,
-		paddingHorizontal: 4,
-		borderRadius: 10,
+		gap: 6,
+		paddingVertical: 4,
+		paddingHorizontal: 8,
+		borderRadius: 8,
 		borderWidth: 1.5,
 	},
 	medal: {
