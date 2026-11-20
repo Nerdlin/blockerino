@@ -13,6 +13,8 @@ import PerkBadge from "./PerkBadge";
 import SeasonTitleBadges from "./SeasonTitleBadges";
 import { ProfileBanner, ScoreBadge } from "./ProfileDesign";
 import { useAvatarColor } from "@/constants/AvatarColor";
+import { MonthlyMedalsRow } from "./MonthlyQuestCard";
+import { useMonthlyQuest } from "@/constants/MonthlyQuest";
 import { getMySeasonTitles, type SeasonTitle } from "@/constants/SeasonResults";
 import { useLeaderboardPerk } from "@/constants/LeaderboardPerks";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -567,6 +569,7 @@ export default function ProfileMenu() {
 
 	const [activeTab, setActiveTab] = useState<"stats" | "gifts" | "history" | "friends">("stats");
 	const bannerColor = useAvatarColor(avatarUrl, perk?.tier.color ?? currentTheme.accent);
+	const { state: monthlyQuest } = useMonthlyQuest();
 	const { badge, refresh: refreshBadge } = useProfileBadge();
 
 	return (
@@ -641,6 +644,7 @@ export default function ProfileMenu() {
 							</View>
 						</ProfileBanner>
 						<SeasonTitleBadges titles={seasonTitles} />
+						<MonthlyMedalsRow medals={monthlyQuest?.medals ?? []} />
 
 						<SegmentedControl
 							small
