@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/constants/Supabase";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useAtom } from "jotai";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -8,14 +8,16 @@ import PerkBadge from "./PerkBadge";
 import UiIcon from "./UiIcon";
 import AchievementIcon from "./AchievementIcon";
 import { getEloBadge } from "./MultiplayerMenu";
-import { GameRecordsView } from "./GameRecordsCard";
 import PixelLoader from "./PixelLoader";
 import SegmentedControl from "./SegmentedControl";
+import { AchievementMedal, GameRow, ProfileBanner, ScoreBadge, Section, StatCell } from "./ProfileDesign";
+import { rarityPercent, rarityClass, useAchievementRarity } from "@/constants/AchievementRarity";
 import { opaqueColor, useTheme } from "@/constants/Theme";
 import { useLanguage } from "@/constants/Localization";
 import { useSoundSettings } from "@/constants/Sound";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
+import { RECORDED_GAME_IDS, emptyGameRecord, gamesPlayed } from "@/constants/GameStats";
 import { useLeaderboardPerk } from "@/constants/LeaderboardPerks";
 import { nameFontFamily } from "@/constants/NameFont";
 import { reportAvatar, type AvatarReportReason } from "@/constants/AvatarUpload";
@@ -129,19 +131,24 @@ function PlayerProfileView({ name, onClose }: { name: string; onClose: () => voi
 			)}
 			{profile && (
 				<View style={styles.column}>
-					{/* who they are on the left, what they are and what you can do on the right */}
-					<Header profile={profile} nameColor={nameColor}>
+					<ProfileBanner
+						name={profile.name}
+						nameColor={nameColor}
+						color={profile.elo && profile.elo > 0 ? getEloBadge(profile.elo).color : currentTheme.accent}
+						avatarUrl={profile.avatarUrl}
+					>
 						{perk && <PerkBadge perk={perk} />}
 						<VersusChip profile={profile} />
-						<Relation
-							profile={profile}
-							signedIn={signedIn}
-							busy={busy}
-							onAdd={() => profile.userId && act(() => sendFriendRequestTo(profile.userId as string))}
-							onAccept={() => profile.friendRowId && act(() => acceptFriendRequest(profile.friendRowId as string))}
-							onDelete={() => profile.friendRowId && act(() => deleteFriendRow(profile.friendRowId as string))}
-						/>
-					</Header>
+						<MemberSince profile={profile} language={language} />
+					</ProfileBanner>
+					<Relation
+						profile={profile}
+						signedIn={signedIn}
+						busy={busy}
+						onAdd={() => profile.userId && act(() => sendFriendRequestTo(profile.userId as string))}
+						onAccept={() => profile.friendRowId && act(() => acceptFriendRequest(profile.friendRowId as string))}
+						onDelete={() => profile.friendRowId && act(() => deleteFriendRow(profile.friendRowId as string))}
+					/>
 					{failed && <Text style={[styles.note, { color: "#F87171" }]}>{t("pp.friendFailed")}</Text>}
 					{signedIn && profile.userId && profile.relation !== "self" && profile.avatarUrl?.startsWith("http") ? (
 						<ReportAvatar userId={profile.userId} />
@@ -175,26 +182,15 @@ function VersusChip({ profile }: { profile: PublicProfile }) {
 	);
 }
 
-function Header({ profile, nameColor, children }: { profile: PublicProfile; nameColor: string; children?: React.ReactNode }) {
+function MemberSince({ profile, language }: { profile: PublicProfile; language: string }) {
 	const { currentTheme } = useTheme();
-	const avatar = profile.avatarUrl;
-	const ring = profile.elo && profile.elo > 0 ? getEloBadge(profile.elo).color : currentTheme.accent;
+	const { t } = useLanguage();
+	const since = profile.memberSince ? new Date(profile.memberSince) : null;
+	if (!since || Number.isNaN(since.getTime())) return null;
 	return (
-		<View style={[styles.header, { borderColor: ring, backgroundColor: currentTheme.emptyBlockBorder }]}>
-			<View style={[styles.avatarRing, { borderColor: ring, shadowColor: ring }]}>
-				{avatar && avatar.startsWith("http") ? (
-					<Image source={{ uri: avatar }} style={styles.avatarImage} />
-				) : (
-					<View style={styles.avatarFallback}>
-						<Text style={styles.avatarText}>{avatar || profile.name.charAt(0).toUpperCase()}</Text>
-					</View>
-				)}
-			</View>
-			<Text style={[styles.name, { color: nameColor, fontFamily: nameFontFamily(profile.name) }]} numberOfLines={1} adjustsFontSizeToFit>
-				{profile.name}
-			</Text>
-			<View style={styles.headerInfo}>{children}</View>
-		</View>
+		<Text style={[styles.note, { color: currentTheme.textSecondary }]}>
+			{t("pp.memberSince", { date: since.toLocaleDateString(language === "ru" ? "ru-RU" : "en-US", { year: "numeric", month: "long" }) })}
+		</Text>
 	);
 }
 
@@ -267,63 +263,88 @@ function Relation({
 	}
 }
 
-function Details({ profile, language }: { profile: PublicProfile; language: string }) {
+function Details({ profile }: { profile: PublicProfile; language: string }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
-	const [tab, setTab] = useState<"scores" | "games" | "ach">("scores");
+	const rarity = useAchievementRarity();
+	const totals = RECORDED_GAME_IDS.reduce(
+		(sum, id) => {
+			const record = profile.records[id] ?? emptyGameRecord();
+			return { wins: sum.wins + record.wins + record.botWins, games: sum.games + gamesPlayed(record) };
+		},
+		{ wins: 0, games: 0 }
+	);
+	const peopleGames = RECORDED_GAME_IDS.reduce((sum, id) => sum + (profile.records[id]?.wins ?? 0) + (profile.records[id]?.losses ?? 0) + (profile.records[id]?.draws ?? 0), 0);
+	const [opponents, setOpponents] = useState<"people" | "bots">(peopleGames > 0 ? "people" : "bots");
+	const rated = !!profile.elo && profile.elo > 0;
+	const badge = rated ? getEloBadge(profile.elo as number) : null;
 	const scores = SCORE_MODES.map((mode) => ({ mode, score: profile.highScores?.[mode] ?? 0 })).filter((entry) => entry.score > 0);
-	const since = profile.memberSince ? new Date(profile.memberSince) : null;
+	const rows = RECORDED_GAME_IDS.map((id) => {
+		const record = profile.records[id] ?? emptyGameRecord();
+		return opponents === "people"
+			? { id, wins: record.wins, draws: record.draws, losses: record.losses }
+			: { id, wins: record.botWins, draws: record.botDraws, losses: record.botLosses };
+	}).filter((row) => row.wins + row.draws + row.losses > 0);
+
 	return (
 		<>
-			<SegmentedControl
-				small
-				items={[
-					{ key: "scores", label: t("pp.tabScores") },
-					{ key: "games", label: t("pp.tabGames") },
-					{ key: "ach", label: t("pp.tabAch") },
-				]}
-				value={tab}
-				onChange={setTab}
-			/>
-			{tab === "scores" && (scores.length === 0 ? (
-				<Text style={[styles.cardNote, { color: currentTheme.textSecondary }]}>{t("pp.noScores")}</Text>
-			) : (
-				<View style={styles.grid}>
-					{scores.map((entry) => (
-						<View key={entry.mode} style={[styles.tile, { borderColor: MODE_COLORS[entry.mode], backgroundColor: currentTheme.emptyBlockBorder }]}>
-							<Text style={[styles.tileValue, { color: MODE_COLORS[entry.mode] }]} numberOfLines={1} adjustsFontSizeToFit>{entry.score}</Text>
-							<Text style={[styles.tileLabel, { color: currentTheme.textSecondary }]} numberOfLines={1}>{t(`pp.mode.${entry.mode}`)}</Text>
-						</View>
-					))}
+			<Section label={t("pp.overview")} index={0}>
+				<View style={styles.statGrid}>
+					<StatCell icon={badge?.icon ?? "shield"} value={rated ? (profile.elo as number) : undefined} text={rated ? undefined : "-"} label={badge ? t(`mp.tierName.${badge.tier}`) : t("pp.noRatingShort")} color={badge?.color} />
+					<StatCell icon="starGold" value={totals.wins} label={t("pp.statWins")} />
+					<StatCell icon="dice" value={totals.games} label={t("pp.statGames")} />
+					<StatCell icon="scales" value={totals.games > 0 ? Math.round((totals.wins / totals.games) * 100) : 0} label={t("pp.statRate")} />
 				</View>
-			))}
+			</Section>
 
-			{tab === "games" && <GameRecordsView records={profile.records} title={t("pp.records")} emptyText={t("pp.noRecords")} />}
+			<Section label={t("pp.highScores")} index={1}>
+				{scores.length === 0 ? (
+					<Text style={[styles.cardNote, { color: currentTheme.textSecondary }]}>{t("pp.noScores")}</Text>
+				) : (
+					<View style={styles.grid}>
+						{scores.map((entry) => (
+							<ScoreBadge key={entry.mode} value={entry.score} label={t(`pp.mode.${entry.mode}`)} color={MODE_COLORS[entry.mode]} />
+						))}
+					</View>
+				)}
+			</Section>
 
-			{tab === "ach" && (profile.achievements.length === 0 ? (
-				<Text style={[styles.cardNote, { color: currentTheme.textSecondary }]}>{t("pp.noAchievements")}</Text>
-			) : (
-				<View style={styles.achGrid}>
-					{profile.achievements.map((item) => (
-						<View key={item.id} style={[styles.achCard, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
-							<AchievementIcon achievementId={item.id} size={40} />
-							<Text style={[styles.achTitle, { color: currentTheme.textPrimary }]} numberOfLines={2}>
-								{t(`ach.${item.id}.title`)}
-							</Text>
-							<View style={styles.reward}>
-								<UiIcon name="coin" size={12} />
-								<Text style={[styles.lineValue, { color: currentTheme.accent }]}>{item.reward}</Text>
-							</View>
-						</View>
-					))}
-				</View>
-			))}
+			<Section label={t("pp.gamesTitle")} index={2}>
+				<SegmentedControl
+					small
+					items={[{ key: "people", label: t("record.people") }, { key: "bots", label: t("record.bots") }]}
+					value={opponents}
+					onChange={setOpponents}
+				/>
+				{rows.length === 0 ? (
+					<Text style={[styles.cardNote, { color: currentTheme.textSecondary }]}>{t("pp.noRecords")}</Text>
+				) : (
+					rows.map((row, index) => (
+						<GameRow key={`${opponents}-${row.id}`} name={row.id === "versus" ? t("record.versus") : t(`moregames.label.${row.id}`)} wins={row.wins} draws={row.draws} losses={row.losses} delay={index * 60} />
+					))
+				)}
+			</Section>
 
-			{since && !Number.isNaN(since.getTime()) && (
-				<Text style={[styles.note, { color: currentTheme.textSecondary }]}>
-					{t("pp.memberSince", { date: since.toLocaleDateString(language === "ru" ? "ru-RU" : "en-US", { year: "numeric", month: "long" }) })}
-				</Text>
-			)}
+			<Section label={t("pp.achTitle")} index={3}>
+				{profile.achievements.length === 0 ? (
+					<Text style={[styles.cardNote, { color: currentTheme.textSecondary }]}>{t("pp.noAchievements")}</Text>
+				) : (
+					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.medalRow}>
+						{profile.achievements.map((item) => {
+							const percent = rarityPercent(rarity, item.id);
+							return (
+								<AchievementMedal
+									key={item.id}
+									id={item.id}
+									title={t(`ach.${item.id}.title`)}
+									percent={percent}
+									tag={percent !== null && rarityClass(percent) === "epic" ? t("ach.rarity.epic") : null}
+								/>
+							);
+						})}
+					</ScrollView>
+				)}
+			</Section>
 		</>
 	);
 }
@@ -413,6 +434,17 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		flexWrap: "wrap",
 		gap: 8,
+	},
+	statGrid: {
+		width: "100%",
+		flexDirection: "row",
+		flexWrap: "wrap",
+		columnGap: 12,
+		rowGap: 6,
+	},
+	medalRow: {
+		gap: 10,
+		paddingVertical: 2,
 	},
 	tile: {
 		flexGrow: 1,
