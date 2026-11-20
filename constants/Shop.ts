@@ -22,6 +22,8 @@ export interface ShopItem {
 	secret?: boolean;
 	/** Only chests give it (server catalog kind 'server_only' with a price that sets its rarity); never sold. */
 	chestOnly?: boolean;
+	/** Only the premium season pass gives it (server catalog kind 'server_only', price 0); shown in the shop, never sold. */
+	seasonOnly?: boolean;
 }
 
 export interface EquippedCosmetics {
@@ -811,6 +813,38 @@ const SEASON_PASS_PIECES: ShopItem[] = [
 	secret: true,
 }));
 
+// Premium track exclusives (migration 20261120140000): unlike the free pass skins they are listed in the shop for everybody,
+// with "only from the season pass" on them, so players know what the premium track holds.
+const SEASON_PREMIUM_PIECES: ShopItem[] = [
+	["piece_premium_snowglass", "Snow Glass", "Glass snowflakes that catch the light.", "#7DD3FC", ["#0C4A6E", "#7DD3FC", "#FFFFFF"]],
+	["piece_premium_goldholly", "Gilded Holly", "Gold, green and red: holly with a golden shine.", "#FDE047", ["#166534", "#4ADE80", "#FDE047"]],
+].map(([id, title, description, accent, previewColors]) => ({
+	id: id as string,
+	category: "piece_skin" as const,
+	title: title as string,
+	description: description as string,
+	price: 0,
+	accent: accent as string,
+	previewColors: previewColors as string[],
+	seasonOnly: true,
+}));
+
+const SEASON_PREMIUM_BACKGROUNDS: ShopItem[] = [
+	["background_premium_northern", "Northern Lights", "Green and violet curtains of light over a frozen night.", "#5EEAD4", ["#020617", "#0F766E", "#C4B5FD"], ["rgb(2, 6, 23)", "rgb(15, 118, 110)", "rgb(196, 181, 253)"], "ice"],
+	["background_premium_starfall", "Starfall Eve", "Gold stars falling through a deep blue winter sky.", "#FACC15", ["#020617", "#1E3A8A", "#FACC15"], ["rgb(2, 6, 23)", "rgb(30, 58, 138)", "rgb(250, 204, 21)"], "ender"],
+].map(([id, title, description, accent, previewColors, gradient, scene]) => ({
+	id: id as string,
+	category: "background" as const,
+	title: title as string,
+	description: description as string,
+	price: 0,
+	accent: accent as string,
+	previewColors: previewColors as string[],
+	gradient: gradient as [string, string, string],
+	scene: scene as BackgroundScene,
+	seasonOnly: true,
+}));
+
 const SEASON_PASS_BACKGROUNDS: ShopItem[] = [
 	["background_season_horizon", "Season Horizon", "A sunrise horizon over a dark sea.", "#FB923C", ["#0C0A1C", "#9A3412", "#FDBA74"], ["rgb(12, 10, 28)", "rgb(154, 52, 18)", "rgb(253, 186, 116)"], "sunset"],
 	["background_season_zenith", "Season Zenith", "The sky at its highest point, for those who finish the pass.", "#A5F3FC", ["#020617", "#1E40AF", "#A5F3FC"], ["rgb(2, 6, 23)", "rgb(30, 64, 175)", "rgb(165, 243, 252)"], "ice"],
@@ -857,6 +891,8 @@ export const SHOP_ITEMS: ShopItem[] = dedupeShopItems([
 	...CHEST_EXCLUSIVE_BACKGROUNDS,
 	...SEASON_PASS_PIECES,
 	...SEASON_PASS_BACKGROUNDS,
+	...SEASON_PREMIUM_PIECES,
+	...SEASON_PREMIUM_BACKGROUNDS,
 ]);
 
 const SHOP_ITEM_MAP = new Map(SHOP_ITEMS.map((item) => [item.id, item]));

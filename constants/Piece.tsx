@@ -991,6 +991,24 @@ function getExactPieceSkinPalette(pieceSkinId: string): Color[] | null {
 				{ r: 165, g: 243, b: 252 },
 				{ r: 232, g: 121, b: 249 },
 			];
+		case "piece_premium_snowglass":
+			return [
+				{ r: 224, g: 242, b: 254 },
+				{ r: 125, g: 211, b: 252 },
+				{ r: 255, g: 255, b: 255 },
+				{ r: 56, g: 189, b: 248 },
+				{ r: 186, g: 230, b: 253 },
+				{ r: 199, g: 210, b: 254 },
+			];
+		case "piece_premium_goldholly":
+			return [
+				{ r: 253, g: 224, b: 71 },
+				{ r: 74, g: 222, b: 128 },
+				{ r: 251, g: 113, b: 133 },
+				{ r: 255, g: 251, b: 235 },
+				{ r: 22, g: 163, b: 74 },
+				{ r: 254, g: 240, b: 138 },
+			];
 		case "piece_season_snowfall":
 			return [
 				{ r: 219, g: 234, b: 254 },

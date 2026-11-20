@@ -37,7 +37,7 @@ const CATEGORIES: { id: ShopTab; labelKey: string }[] = [
 ];
 
 export default function ShopMenu() {
-	const [setAppState] = useSetAppState();
+	const [setAppState, appendAppState] = useSetAppState();
 	const { currentTheme } = useTheme();
 	const { state, equip, purchaseAndEquip } = useShopState();
 	const { playSfx } = useSoundSettings();
@@ -50,6 +50,11 @@ export default function ShopMenu() {
 	const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
 	const [collectionOpen, setCollectionOpen] = useState(false);
 	const collection = useCollectionSummary(state.ownedItemIds);
+	const toPass = () => {
+		playSfx("menuClick");
+		setPreviewItem(null);
+		appendAppState(MenuStateType.SEASON_PASS);
+	};
 	const toChests = () => {
 		playSfx("menuClick");
 		setPreviewItem(null);
@@ -148,7 +153,7 @@ export default function ShopMenu() {
 						isOwned={state.ownedItemIds.includes(item.id)}
 						isEquipped={state.equipped[item.category] === item.id}
 						canAfford={state.balance >= item.price}
-						onPress={() => (item.chestOnly && !state.ownedItemIds.includes(item.id) ? toChests() : handleItemPress(item))}
+						onPress={() => (item.seasonOnly && !state.ownedItemIds.includes(item.id) ? toPass() : item.chestOnly && !state.ownedItemIds.includes(item.id) ? toChests() : handleItemPress(item))}
 						onPreview={() => setPreviewItem(item)}
 					/>
 					</FadeInView>
@@ -162,6 +167,7 @@ export default function ShopMenu() {
 				equipped={previewItem ? state.equipped[previewItem.category] === previewItem.id : false}
 				canAfford={previewItem ? state.balance >= previewItem.price : false}
 				onConfirm={async (item) => {
+					if (item.seasonOnly && !state.ownedItemIds.includes(item.id)) return toPass();
 					if (item.chestOnly && !state.ownedItemIds.includes(item.id)) return toChests();
 					await handleItemPress(item);
 					setPreviewItem(null);
@@ -196,29 +202,34 @@ function ShopItemCard({
 }) {
 	const { currentTheme } = useTheme();
 	const { t, language } = useLanguage();
+	const seasonOnly = item.seasonOnly === true && !isOwned;
 	const chestOnly = item.chestOnly === true && !isOwned;
 	const buttonText = isEquipped
 		? t("shop.equipped")
-		: isOwned || item.price === 0
-			? t("shop.equip")
-			: chestOnly
-				? t("shop.toChests")
-				: t("shop.buy", { price: item.price });
-	const disabled = isEquipped || (!isOwned && !chestOnly && !canAfford);
+		: seasonOnly
+			? t("shop.toPass")
+			: isOwned || item.price === 0
+				? t("shop.equip")
+				: chestOnly
+					? t("shop.toChests")
+					: t("shop.buy", { price: item.price });
+	const disabled = isEquipped || (!isOwned && !chestOnly && !seasonOnly && !canAfford);
 	// the rarity the chests and the collection use (set by the price), so the shop says it too
 	const rarity = itemRarity(item.price);
-	const rarityColor = RARITY_COLORS[rarity];
+	// a season-pass exclusive has no price to rate: it is marked with the season instead, in gold
+	const rarityColor = item.seasonOnly ? "#FFC93C" : RARITY_COLORS[rarity];
+	const tagText = item.seasonOnly ? t("shop.seasonTag") : t(`chest.kind.${rarity}`);
 
 	return (
 		<View style={[
 			styles.card,
 			{
-				borderColor: isEquipped ? item.accent : rarity === "common" ? "rgba(255,255,255,0.12)" : `${rarityColor}88`,
+				borderColor: isEquipped ? item.accent : rarity === "common" && !item.seasonOnly ? "rgba(255,255,255,0.12)" : `${rarityColor}88`,
 				backgroundColor: "rgba(0, 0, 0, 0.38)",
 			},
 		]}>
 			<View style={[styles.rarityTag, { borderColor: rarityColor, backgroundColor: `${rarityColor}22` }]}>
-				<Text style={[styles.rarityText, { color: rarityColor }]}>{t(`chest.kind.${rarity}`)}</Text>
+				<Text style={[styles.rarityText, { color: rarityColor }]}>{tagText}</Text>
 			</View>
 			<Pressable onPress={onPreview} accessibilityLabel={shopItemText(item, language).title} style={styles.previewTap}>
 				<CosmeticPreview item={item} /* animations play in the preview window only: dozens of animated cards stuttered while scrolling */ />
@@ -229,13 +240,13 @@ function ShopItemCard({
 			<Text style={[styles.itemDescription, { color: currentTheme.textSecondary }]} numberOfLines={2}>
 				{shopItemText(item, language).description}
 			</Text>
-			<Text style={[styles.itemStatus, { color: isOwned ? item.accent : chestOnly ? "#FFC93C" : currentTheme.textSecondary }]}>
-				{isOwned ? t("shop.owned") : chestOnly ? t("shop.chestOnly") : null}
+			<Text style={[styles.itemStatus, { color: isOwned ? item.accent : chestOnly || seasonOnly ? "#FFC93C" : currentTheme.textSecondary }]}>
+				{isOwned ? t("shop.owned") : seasonOnly ? t("shop.seasonOnly") : chestOnly ? t("shop.chestOnly") : null}
 			</Text>
 			<StylizedButton
 				text={buttonText}
 				onClick={onPress}
-				backgroundColor={isOwned ? item.accent : chestOnly ? "#B8860B" : currentTheme.buttonPrimary}
+				backgroundColor={isOwned ? item.accent : chestOnly || seasonOnly ? "#B8860B" : currentTheme.buttonPrimary}
 				disabled={disabled}
 				style={styles.cardButton}
 				textStyle={styles.cardButtonText}

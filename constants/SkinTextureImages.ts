@@ -52,6 +52,8 @@ export const SKIN_TEXTURE_IMAGES: Record<string, number> = {
 	piece_paper_cut: require("../assets/images/skin-textures/piece_paper_cut.png"),
 	piece_peach_soda: require("../assets/images/skin-textures/piece_peach_soda.png"),
 	piece_pearl_shell: require("../assets/images/skin-textures/piece_pearl_shell.png"),
+	piece_premium_goldholly: require("../assets/images/skin-textures/piece_premium_goldholly.png"),
+	piece_premium_snowglass: require("../assets/images/skin-textures/piece_premium_snowglass.png"),
 	piece_radioactive: require("../assets/images/skin-textures/piece_radioactive.png"),
 	piece_royal_velvet: require("../assets/images/skin-textures/piece_royal_velvet.png"),
 	piece_ruby_cut: require("../assets/images/skin-textures/piece_ruby_cut.png"),

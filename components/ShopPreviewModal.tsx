@@ -31,11 +31,13 @@ export default function ShopPreviewModal({
 	const { t, language } = useLanguage();
 	if (!item) return null;
 
-	const free = item.price === 0;
+	const seasonOnly = item.seasonOnly === true && !owned;
+	// a season exclusive costs 0 but is not free: only the pass hands it out
+	const free = item.price === 0 && !seasonOnly;
 	const chestOnly = item.chestOnly === true && !owned;
-	const actionText = equipped ? t("shop.equipped") : owned || free ? t("shop.equip") : chestOnly ? t("shop.toChests") : t("shop.buy", { price: item.price });
-	const disabled = equipped || (!owned && !free && !chestOnly && !canAfford);
-	const giftable = onGift && !free && !item.chestOnly && !item.secret;
+	const actionText = equipped ? t("shop.equipped") : seasonOnly ? t("shop.toPass") : owned || free ? t("shop.equip") : chestOnly ? t("shop.toChests") : t("shop.buy", { price: item.price });
+	const disabled = equipped || (!owned && !free && !chestOnly && !seasonOnly && !canAfford);
+	const giftable = onGift && !free && !item.chestOnly && !item.seasonOnly && !item.secret;
 
 	return (
 		<Modal transparent animationType="fade" visible onRequestClose={onClose}>
@@ -47,17 +49,18 @@ export default function ShopPreviewModal({
 					</View>
 					<Text style={[styles.description, { color: currentTheme.textSecondary }]}>{shopItemText(item, language).description}</Text>
 					<Text style={[styles.status, { color: owned ? item.accent : currentTheme.accent }]}>
-						{owned ? t("shop.owned") : free ? t("shop.price", { price: 0 }) : chestOnly ? t("shop.chestOnly") : t("shop.price", { price: item.price })}
+						{owned ? t("shop.owned") : seasonOnly ? t("shop.seasonOnly") : free ? t("shop.price", { price: 0 }) : chestOnly ? t("shop.chestOnly") : t("shop.price", { price: item.price })}
 					</Text>
 					{chestOnly && <Text style={[styles.hint, { color: "#FFC93C" }]}>{t("shop.chestOnlyHint")}</Text>}
-					{!owned && !free && !chestOnly && !canAfford && (
+					{seasonOnly && <Text style={[styles.hint, { color: "#FFC93C" }]}>{t("shop.seasonOnlyHint")}</Text>}
+					{!owned && !free && !chestOnly && !seasonOnly && !canAfford && (
 						<Text style={[styles.hint, { color: "#F87171" }]}>{t("shop.notEnough")}</Text>
 					)}
 					<View style={styles.buttons}>
 						<StylizedButton
 							text={actionText}
 							onClick={() => onConfirm(item)}
-							backgroundColor={owned || free ? item.accent : chestOnly ? "#B8860B" : currentTheme.buttonPrimary}
+							backgroundColor={owned || free ? item.accent : chestOnly || seasonOnly ? "#B8860B" : currentTheme.buttonPrimary}
 							disabled={disabled}
 							style={styles.button}
 							textStyle={styles.buttonText}

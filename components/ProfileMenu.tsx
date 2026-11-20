@@ -9,6 +9,7 @@ import PixelLoader from "@/components/PixelLoader";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import SegmentedControl from "./SegmentedControl";
+import UiIcon from "./UiIcon";
 import PerkBadge from "./PerkBadge";
 import SeasonTitleBadges from "./SeasonTitleBadges";
 import { getMySeasonTitles, type SeasonTitle } from "@/constants/SeasonResults";
@@ -631,6 +632,16 @@ export default function ProfileMenu() {
 						)}
 						{nameError ? <Text style={[styles.errorText, { textAlign: "center" }]}>{nameError}</Text> : (editingName && session ? <Text style={{ fontFamily: "Silkscreen", color: currentTheme.textSecondary, fontSize: 11, textAlign: "center" }}>{t("profile.rename.hint")}</Text> : null)}
 						{perk && <PerkBadge perk={perk} />}
+						<View style={styles.heroChips}>
+							<View style={[styles.heroChip, { borderColor: currentTheme.gridBorder }]}>
+								<UiIcon name="coin" size={14} />
+								<Text style={[styles.heroChipText, { color: currentTheme.accent }]}>{shopState.balance}</Text>
+							</View>
+							<View style={[styles.heroChip, { borderColor: currentTheme.gridBorder }]}>
+								<Text style={[styles.heroChipLabel, { color: currentTheme.textSecondary }]}>{t("profile.elo")}</Text>
+								<Text style={[styles.heroChipText, { color: currentTheme.accent }]}>{playerElo !== null ? playerElo : "—"}</Text>
+							</View>
+						</View>
 						</View>
 						</View>
 						<SeasonTitleBadges titles={seasonTitles} />
@@ -657,22 +668,14 @@ export default function ProfileMenu() {
 						{activeTab === "stats" && (
 							<View style={styles.statsContainer}>
 								<FadeInView index={0} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
-									<AnimatedNumber value={shopState.balance} style={[styles.statValue, { color: currentTheme.accent }]} />
-									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.coins")}</Text>
-								</FadeInView>
-								<FadeInView index={1} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
-									{playerElo !== null ? <AnimatedNumber value={playerElo} style={[styles.statValue, { color: currentTheme.accent }]} /> : <Text style={[styles.statValue, { color: currentTheme.accent }]}>N/A</Text>}
-									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.elo")}</Text>
-								</FadeInView>
-								<FadeInView index={2} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
 									<AnimatedNumber value={classicScore} style={[styles.statValue, { color: currentTheme.accent }]} />
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.classic")}</Text>
 								</FadeInView>
-								<FadeInView index={3} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
+								<FadeInView index={1} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
 									<AnimatedNumber value={chaosScore} style={[styles.statValue, { color: currentTheme.accent }]} />
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.chaos")}</Text>
 								</FadeInView>
-								<FadeInView index={4} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
+								<FadeInView index={2} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
 									<AnimatedNumber value={gamesPlayed} style={[styles.statValue, { color: currentTheme.accent }]} />
 									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.matches")}</Text>
 								</FadeInView>
@@ -1030,15 +1033,43 @@ const styles = StyleSheet.create({
 	heroRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 14,
+		gap: 16,
 		width: '100%',
-		paddingHorizontal: 6,
-		marginBottom: 4,
+		padding: 12,
+		marginBottom: 6,
+		borderRadius: 14,
+		borderWidth: 1.5,
+		borderColor: 'rgba(255,255,255,0.12)',
+		backgroundColor: 'rgba(255,255,255,0.04)',
 	},
 	heroInfo: {
 		flex: 1,
 		alignItems: 'flex-start',
 		gap: 4,
+	},
+	heroChips: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 6,
+		marginTop: 2,
+	},
+	heroChip: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 5,
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 8,
+		borderWidth: 1.5,
+		backgroundColor: 'rgba(255,255,255,0.05)',
+	},
+	heroChipLabel: {
+		fontFamily: 'Silkscreen',
+		fontSize: 10,
+	},
+	heroChipText: {
+		fontFamily: 'SilkscreenBold',
+		fontSize: 13,
 	},
 	footerRow: {
 		flexDirection: 'row',

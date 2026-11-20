@@ -131,6 +131,7 @@ function PlayerProfileView({ name, onClose }: { name: string; onClose: () => voi
 					{/* who they are on the left, what they are and what you can do on the right */}
 					<Header profile={profile} nameColor={nameColor}>
 						{perk && <PerkBadge perk={perk} />}
+						<VersusChip profile={profile} />
 						<Relation
 							profile={profile}
 							signedIn={signedIn}
@@ -157,12 +158,28 @@ function PlayerProfileView({ name, onClose }: { name: string; onClose: () => voi
 	);
 }
 
+/** The Versus rank as a small chip: its medal, the tier and the rating. */
+function VersusChip({ profile }: { profile: PublicProfile }) {
+	const { currentTheme } = useTheme();
+	const { t } = useLanguage();
+	const rated = !!profile.elo && profile.elo > 0;
+	const badge = rated ? getEloBadge(profile.elo as number) : null;
+	return (
+		<View style={[styles.versusChip, { borderColor: badge?.color ?? currentTheme.gridBorder }]}>
+			{badge ? <UiIcon name={badge.icon} size={18} /> : null}
+			<Text style={[styles.versusText, { color: badge?.color ?? currentTheme.textSecondary }]} numberOfLines={1}>
+				{badge ? `${t(`mp.tierName.${badge.tier}`)} · ${profile.elo}` : t("pp.noRating")}
+			</Text>
+		</View>
+	);
+}
+
 function Header({ profile, nameColor, children }: { profile: PublicProfile; nameColor: string; children?: React.ReactNode }) {
 	const { currentTheme } = useTheme();
 	const avatar = profile.avatarUrl;
 	const ring = profile.elo && profile.elo > 0 ? getEloBadge(profile.elo).color : currentTheme.accent;
 	return (
-		<View style={styles.header}>
+		<View style={[styles.header, { borderColor: ring, backgroundColor: currentTheme.emptyBlockBorder }]}>
 			<View style={[styles.avatarRing, { borderColor: ring }]}>
 				{avatar && avatar.startsWith("http") ? (
 					<Image source={{ uri: avatar }} style={styles.avatarImage} />
@@ -204,9 +221,9 @@ function ReportAvatar({ userId }: { userId: string }) {
 	return (
 		<View style={styles.column}>
 			<Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("pp.reportTitle")}</Text>
-			<StylizedButton text={t("pp.reportInappropriate")} onClick={() => void send("inappropriate")} backgroundColor="rgb(200,50,50)" style={styles.action} />
-			<StylizedButton text={t("pp.reportPersonal")} onClick={() => void send("personal")} backgroundColor="rgb(200,50,50)" style={styles.action} />
-			<StylizedButton text={t("pp.reportOther")} onClick={() => void send("other")} backgroundColor="rgb(150,150,150)" style={styles.action} />
+			<StylizedButton text={t("pp.reportInappropriate")} onClick={() => void send("inappropriate")} backgroundColor="rgb(200,50,50)" style={styles.action} textStyle={styles.actionText} />
+			<StylizedButton text={t("pp.reportPersonal")} onClick={() => void send("personal")} backgroundColor="rgb(200,50,50)" style={styles.action} textStyle={styles.actionText} />
+			<StylizedButton text={t("pp.reportOther")} onClick={() => void send("other")} backgroundColor="rgb(150,150,150)" style={styles.action} textStyle={styles.actionText} />
 		</View>
 	);
 }
@@ -236,18 +253,18 @@ function Relation({
 	}
 	switch (profile.relation) {
 		case "friend":
-			return <StylizedButton text={t("pp.removeFriend")} onClick={onDelete} disabled={busy} backgroundColor="rgb(200,50,50)" style={styles.action} />;
+			return <StylizedButton text={t("pp.removeFriend")} onClick={onDelete} disabled={busy} backgroundColor="rgb(200,50,50)" style={styles.action} textStyle={styles.actionText} />;
 		case "pending_out":
-			return <StylizedButton text={t("pp.requestSent")} onClick={onDelete} disabled={busy} backgroundColor="rgb(150,150,150)" style={styles.action} />;
+			return <StylizedButton text={t("pp.requestSent")} onClick={onDelete} disabled={busy} backgroundColor="rgb(150,150,150)" style={styles.action} textStyle={styles.actionText} />;
 		case "pending_in":
 			return (
 				<View style={styles.actionRow}>
-					<StylizedButton text={t("pp.accept")} onClick={onAccept} disabled={busy} backgroundColor="rgb(50,200,50)" style={styles.action} />
-					<StylizedButton text={t("pp.decline")} onClick={onDelete} disabled={busy} backgroundColor="rgb(200,50,50)" style={styles.action} />
+					<StylizedButton text={t("pp.accept")} onClick={onAccept} disabled={busy} backgroundColor="rgb(50,200,50)" style={styles.action} textStyle={styles.actionText} />
+					<StylizedButton text={t("pp.decline")} onClick={onDelete} disabled={busy} backgroundColor="rgb(200,50,50)" style={styles.action} textStyle={styles.actionText} />
 				</View>
 			);
 		default:
-			return <StylizedButton text={t("pp.addFriend")} onClick={onAdd} disabled={busy} backgroundColor={currentTheme.buttonPrimary} style={styles.action} />;
+			return <StylizedButton text={t("pp.addFriend")} onClick={onAdd} disabled={busy} backgroundColor={currentTheme.buttonPrimary} style={styles.action} textStyle={styles.actionText} />;
 	}
 }
 
@@ -256,24 +273,8 @@ function Details({ profile, language }: { profile: PublicProfile; language: stri
 	const { t } = useLanguage();
 	const scores = SCORE_MODES.map((mode) => ({ mode, score: profile.highScores?.[mode] ?? 0 })).filter((entry) => entry.score > 0);
 	const since = profile.memberSince ? new Date(profile.memberSince) : null;
-	const rated = !!profile.elo && profile.elo > 0;
-	const badge = rated ? getEloBadge(profile.elo as number) : null;
 	return (
 		<>
-			<View style={[styles.hero, { borderColor: badge?.color ?? currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
-				{badge ? (
-					<>
-						<UiIcon name={badge.icon} size={36} />
-						<View>
-							<Text style={[styles.heroTier, { color: badge.color }]}>{t(`mp.tierName.${badge.tier}`)}</Text>
-							<Text style={[styles.heroValue, { color: currentTheme.textPrimary }]}>{t("pp.versusRating", { elo: profile.elo as number })}</Text>
-						</View>
-					</>
-				) : (
-					<Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("pp.noRating")}</Text>
-				)}
-			</View>
-
 			<Text style={[styles.sectionTitle, { color: currentTheme.textSecondary }]}>{t("pp.highScores")}</Text>
 			{scores.length === 0 ? (
 				<Text style={[styles.cardNote, { color: currentTheme.textSecondary }]}>{t("pp.noScores")}</Text>
@@ -294,11 +295,11 @@ function Details({ profile, language }: { profile: PublicProfile; language: stri
 			{profile.achievements.length === 0 ? (
 				<Text style={[styles.cardNote, { color: currentTheme.textSecondary }]}>{t("pp.noAchievements")}</Text>
 			) : (
-				<View style={styles.achList}>
+				<View style={styles.achGrid}>
 					{profile.achievements.map((item) => (
-						<View key={item.id} style={[styles.achRow, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
-							<AchievementIcon achievementId={item.id} size={36} />
-							<Text style={[styles.lineLabel, { color: currentTheme.textPrimary }]} numberOfLines={2}>
+						<View key={item.id} style={[styles.achCard, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
+							<AchievementIcon achievementId={item.id} size={40} />
+							<Text style={[styles.achTitle, { color: currentTheme.textPrimary }]} numberOfLines={2}>
 								{t(`ach.${item.id}.title`)}
 							</Text>
 							<View style={styles.reward}>
@@ -345,6 +346,9 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: 14,
 		width: "100%",
+		padding: 12,
+		borderRadius: 14,
+		borderWidth: 2,
 	},
 	headerInfo: {
 		flex: 1,
@@ -352,9 +356,9 @@ const styles = StyleSheet.create({
 		gap: 6,
 	},
 	avatarRing: {
-		width: 76,
-		height: 76,
-		borderRadius: 38,
+		width: 84,
+		height: 84,
+		borderRadius: 42,
 		borderWidth: 3,
 		overflow: "hidden",
 		alignItems: "center",
@@ -422,9 +426,43 @@ const styles = StyleSheet.create({
 		fontFamily: "Silkscreen",
 		fontSize: 9,
 	},
-	achList: {
+	achGrid: {
 		width: "100%",
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 8,
+	},
+	achCard: {
+		flexGrow: 1,
+		flexBasis: "30%",
+		minWidth: 96,
+		alignItems: "center",
+		gap: 4,
+		borderWidth: 1.5,
+		borderRadius: 10,
+		paddingVertical: 8,
+		paddingHorizontal: 6,
+	},
+	achTitle: {
+		fontFamily: "Silkscreen",
+		fontSize: 9,
+		textAlign: "center",
+		minHeight: 24,
+	},
+	versusChip: {
+		flexDirection: "row",
+		alignItems: "center",
 		gap: 6,
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 8,
+		borderWidth: 1.5,
+		backgroundColor: "rgba(255,255,255,0.05)",
+	},
+	versusText: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 11,
+		flexShrink: 1,
 	},
 	achRow: {
 		flexDirection: "row",
@@ -457,6 +495,9 @@ const styles = StyleSheet.create({
 		minHeight: 34,
 		paddingHorizontal: 12,
 		margin: 0,
+	},
+	actionText: {
+		fontSize: 11,
 	},
 	actionRow: {
 		flexDirection: "row",

@@ -45,6 +45,11 @@ import {
 	tierXp,
 	totalRewards,
 	type XpSource,
+	PREMIUM_COSMETIC_COINS,
+	PREMIUM_PRICE,
+	PREMIUM_REWARDS,
+	SEASON_PREMIUM_COSMETICS,
+	claimablePremiumTiers,
 } from "./SeasonPass";
 import { recordGameOutcome } from "./GameStats";
 import { SHOP_ITEMS, getShopItem } from "./Shop";
@@ -339,6 +344,27 @@ describe("rewards", () => {
 		}
 	});
 
+	it("has the premium table, price and skins of the premium migration", () => {
+		const premiumSql = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", "20261120140000_season_pass_premium.sql"), "utf8").replace(/\r\n/g, "\n");
+		const start = premiumSql.indexOf("FUNCTION public.season_pass_premium_reward");
+		const rows = [...premiumSql.slice(start, premiumSql.indexOf("$$;", start)).matchAll(/WHEN (\d+) THEN '(\{[^']*\})'::jsonb/g)];
+		expect(rows).toHaveLength(TIER_COUNT);
+		for (const [, tier, json] of rows) {
+			const parsed = JSON.parse(json) as { coins?: number; keys?: number; chest?: string; cosmetic?: boolean };
+			expect({ tier: Number(tier), coins: parsed.coins ?? 0, keys: parsed.keys ?? 0, chest: parsed.chest ?? null, cosmetic: parsed.cosmetic === true })
+				.toEqual(PREMIUM_REWARDS[Number(tier) - 1]);
+		}
+		expect(premiumSql).toContain(`AS $$ SELECT ${PREMIUM_PRICE}; $$;`);
+		for (const [season, set] of Object.entries(SEASON_PREMIUM_COSMETICS)) {
+			for (const [tier, id] of Object.entries(set)) {
+				expect(premiumSql).toContain(`('${season}', ${tier}, '${id}')`);
+				expect(premiumSql).toContain(`('${id}', 0, 'server_only')`);
+				expect(getShopItem(id)?.seasonOnly).toBe(true);
+			}
+		}
+		for (const [tier, coins] of Object.entries(PREMIUM_COSMETIC_COINS)) expect(premiumSql).toContain(`WHEN ${tier} THEN ${coins}`);
+	});
+
 	it("has the seasons' skins and the replacement coins of the migration", () => {
 		const block = SQL.slice(SQL.indexOf("INSERT INTO public.season_pass_cosmetics"));
 		const rows = [...block.slice(0, block.indexOf(";")).matchAll(/\('(\d{4}-\d{2})', (\d+), '([a-z0-9_]+)'\)/g)];
@@ -422,7 +448,15 @@ describe("the pass as the server answers", () => {
 		expect(parseSeasonPassState(answer)).toEqual({
 			season: "2026-12", endsAt: Date.parse("2027-01-01T00:00:00Z"), xp: 420, tier: 2, claimed: [1], todayXp: 120, dailyCap: 350,
 			cosmetics: { 10: "piece_season_snowfall", 18: "background_season_frostlake" },
+			premium: { available: false, unlocked: false, price: PREMIUM_PRICE, claimed: [], cosmetics: {} },
 		});
+	});
+
+	it("reads the premium track", () => {
+		const state = parseSeasonPassState({ ...answer, premium: { available: true, unlocked: true, price: 2000, claimed: [1, 99], cosmetics: { "8": "piece_premium_snowglass" } } })!;
+		expect(state.premium).toEqual({ available: true, unlocked: true, price: 2000, claimed: [1], cosmetics: { 8: "piece_premium_snowglass" } });
+		expect(claimablePremiumTiers(state)).toEqual([2]);
+		expect(claimablePremiumTiers({ ...state, premium: { ...state.premium, unlocked: false } })).toEqual([]);
 	});
 
 	it("shows the set the server names even when the device knows another, and the device's own set when it names none", () => {

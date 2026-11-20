@@ -229,7 +229,58 @@ export const TIER_REWARDS: TierReward[] = [
 /** Coins a cosmetic tier pays when its season has no set, or the player owns the skin already (season_pass_cosmetic_coins). */
 export const COSMETIC_FALLBACK_COINS: Record<number, number> = { 10: 100, 18: 150, 25: 200, 30: 300 };
 
+// ---- premium track ---------------------------------------------------------------------------------------------------
+
+/** Coins that open the premium track of a season (season_pass_premium_price). */
+export const PREMIUM_PRICE = 2000;
+
+const premiumReward = reward;
+/** Mirrors public.season_pass_premium_reward() (a jest test compares them). */
+export const PREMIUM_REWARDS: TierReward[] = [
+	premiumReward(1, { coins: 30 }),
+	premiumReward(2, { keys: 1 }),
+	premiumReward(3, { coins: 30 }),
+	premiumReward(4, { coins: 40 }),
+	premiumReward(5, { chest: "small" }),
+	premiumReward(6, { coins: 40 }),
+	premiumReward(7, { coins: 50 }),
+	premiumReward(8, { cosmetic: true }),
+	premiumReward(9, { coins: 50 }),
+	premiumReward(10, { coins: 50 }),
+	premiumReward(11, { coins: 60 }),
+	premiumReward(12, { keys: 1 }),
+	premiumReward(13, { coins: 60 }),
+	premiumReward(14, { coins: 60 }),
+	premiumReward(15, { chest: "small" }),
+	premiumReward(16, { cosmetic: true }),
+	premiumReward(17, { coins: 70 }),
+	premiumReward(18, { coins: 70 }),
+	premiumReward(19, { coins: 80 }),
+	premiumReward(20, { coins: 80 }),
+	premiumReward(21, { coins: 80 }),
+	premiumReward(22, { coins: 90 }),
+	premiumReward(23, { keys: 1 }),
+	premiumReward(24, { cosmetic: true }),
+	premiumReward(25, { coins: 100 }),
+	premiumReward(26, { coins: 100 }),
+	premiumReward(27, { coins: 110 }),
+	premiumReward(28, { coins: 120 }),
+	premiumReward(29, { coins: 120 }),
+	premiumReward(30, { coins: 150, chest: "big", cosmetic: true }),
+];
+
+/** Coins a premium skin tier pays when the skin is owned already (season_pass_premium_cosmetic_coins). */
+export const PREMIUM_COSMETIC_COINS: Record<number, number> = { 8: 100, 16: 150, 24: 200, 30: 300 };
+
 export type SeasonCosmetics = Record<number, string>;
+
+/**
+ * The exclusive skins of each season's premium track (blocks at 8 and 24, backgrounds at 16 and 30). Mirrors the
+ * migration's season_pass_premium_cosmetics. A season missing here has no premium track yet.
+ */
+export const SEASON_PREMIUM_COSMETICS: Record<string, SeasonCosmetics> = {
+	"2026-12": { 8: "piece_premium_snowglass", 16: "background_premium_northern", 24: "piece_premium_goldholly", 30: "background_premium_starfall" },
+};
 
 /**
  * The skins each season hands out, by tier (blocks at 10 and 25, backgrounds at 18 and 30). Mirrors the migration's
@@ -257,9 +308,9 @@ export interface ResolvedReward {
 }
 
 /** What a tier pays in a season: a cosmetic tier without a skin pays coins instead. */
-export function resolveReward(entry: TierReward, cosmetics: SeasonCosmetics): ResolvedReward {
+export function resolveReward(entry: TierReward, cosmetics: SeasonCosmetics, fallback: Record<number, number> = COSMETIC_FALLBACK_COINS): ResolvedReward {
 	const itemId = entry.cosmetic ? cosmetics[entry.tier] ?? null : null;
-	const coins = entry.coins + (entry.cosmetic && !itemId ? COSMETIC_FALLBACK_COINS[entry.tier] ?? 0 : 0);
+	const coins = entry.coins + (entry.cosmetic && !itemId ? fallback[entry.tier] ?? 0 : 0);
 	return { tier: entry.tier, coins, keys: entry.keys, chest: entry.chest, itemId };
 }
 
@@ -306,6 +357,27 @@ export interface SeasonPassState {
 	dailyCap: number;
 	/** The season's skins by tier, as the server holds them. */
 	cosmetics: SeasonCosmetics;
+	premium: PremiumState;
+}
+
+export interface PremiumState {
+	/** The season has a premium track (a set of exclusive skins). */
+	available: boolean;
+	unlocked: boolean;
+	price: number;
+	claimed: number[];
+	cosmetics: SeasonCosmetics;
+}
+
+function parsePremium(value: unknown): PremiumState {
+	const row = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+	return {
+		available: row.available === true,
+		unlocked: row.unlocked === true,
+		price: Math.max(1, Math.floor(num(row.price) ?? PREMIUM_PRICE)),
+		claimed: Array.isArray(row.claimed) ? row.claimed.filter((n): n is number => Number.isInteger(n) && n >= 1 && n <= TIER_COUNT) : [],
+		cosmetics: parseCosmetics(row.cosmetics),
+	};
 }
 
 function parseCosmetics(value: unknown): SeasonCosmetics {
@@ -340,6 +412,7 @@ export function parseSeasonPassState(data: unknown): SeasonPassState | null {
 		todayXp: Math.max(0, Math.floor(num(row.today_xp) ?? 0)),
 		dailyCap: Math.max(1, Math.floor(num(row.daily_cap) ?? DAILY_XP_CAP)),
 		cosmetics: row.cosmetics === undefined ? cosmeticsForSeason(row.season) : parseCosmetics(row.cosmetics),
+		premium: parsePremium(row.premium),
 	};
 }
 
@@ -347,6 +420,13 @@ export function parseSeasonPassState(data: unknown): SeasonPassState | null {
 export function claimableTiers(state: Pick<SeasonPassState, "tier" | "claimed"> | null): number[] {
 	if (!state) return [];
 	const claimed = new Set(state.claimed);
+	return Array.from({ length: Math.min(state.tier, TIER_COUNT) }, (_, i) => i + 1).filter((tier) => !claimed.has(tier));
+}
+
+/** Premium tiers reached and not claimed yet; none while the premium track is closed. */
+export function claimablePremiumTiers(state: Pick<SeasonPassState, "tier" | "premium"> | null): number[] {
+	if (!state || !state.premium.unlocked) return [];
+	const claimed = new Set(state.premium.claimed);
 	return Array.from({ length: Math.min(state.tier, TIER_COUNT) }, (_, i) => i + 1).filter((tier) => !claimed.has(tier));
 }
 
@@ -420,12 +500,12 @@ export interface TierClaim {
 
 export type TierClaimResult =
 	| { status: "ok"; claim: TierClaim }
-	| { status: "locked" | "already" | "guest" | "failed" };
+	| { status: "locked" | "already" | "guest" | "failed" | "not_premium" };
 
 export function parseTierClaim(data: unknown): TierClaimResult {
 	if (!data || typeof data !== "object") return { status: "failed" };
 	const row = data as Record<string, unknown>;
-	if (row.status === "locked" || row.status === "already") return { status: row.status };
+	if (row.status === "locked" || row.status === "already" || row.status === "not_premium") return { status: row.status };
 	if (row.status === "guest" || row.status === "unauthenticated") return { status: "guest" };
 	const tier = num(row.claimed_tier);
 	if (row.status !== "ok" || tier === null) return { status: "failed" };
@@ -461,6 +541,45 @@ export async function claimSeasonPassTier(tier: number): Promise<TierClaimResult
 		return result;
 	} catch {
 		return { status: "failed" };
+	}
+}
+
+/** Claims one premium tier (the same answer as a free one). */
+export async function claimSeasonPassPremiumTier(tier: number): Promise<TierClaimResult> {
+	try {
+		const { data: { session } } = await getAccountSession();
+		if (!session?.user) return { status: "guest" };
+		const { data, error } = await supabase.rpc("season_pass_claim_premium", { p_tier: tier });
+		if (error) return { status: "failed" };
+		const result = parseTierClaim(data);
+		if (result.status === "ok") {
+			if (result.claim.pass) publishSeasonPass(result.claim.pass);
+			publishChestState(result.claim.chestState);
+		}
+		return result;
+	} catch {
+		return { status: "failed" };
+	}
+}
+
+export type UnlockPremiumResult = { status: "ok" | "already" | "poor" | "unavailable" | "guest" | "failed"; wallet: number | null };
+
+/** Opens the premium track of this season for coins. On ok the answer holds the balance now. */
+export async function unlockSeasonPassPremium(): Promise<UnlockPremiumResult> {
+	try {
+		const { data: { session } } = await getAccountSession();
+		if (!session?.user) return { status: "guest", wallet: null };
+		const { data, error } = await supabase.rpc("season_pass_unlock_premium");
+		if (error || !data || typeof data !== "object") return { status: "failed", wallet: null };
+		const row = data as Record<string, unknown>;
+		const pass = parseSeasonPassState(row);
+		if (pass) publishSeasonPass(pass);
+		const wallet = num(row.wallet);
+		if (row.status === "ok" || row.status === "already" || row.status === "poor" || row.status === "unavailable") return { status: row.status, wallet };
+		if (row.status === "guest" || row.status === "unauthenticated") return { status: "guest", wallet: null };
+		return { status: "failed", wallet: null };
+	} catch {
+		return { status: "failed", wallet: null };
 	}
 }
 

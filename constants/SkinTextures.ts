@@ -163,6 +163,15 @@ export const SKIN_SPRITES: Record<string, Sprite> = {
 		rows: ["W......W", ".W.ww.W.", "..wWWw..", ".wWYYWw.", ".wWYYWw.", "..wWWw..", ".W.ww.W.", "W......W"],
 		keys: { Y: C("#F0ABFC") },
 	},
+	// season pass, premium track (December 2026): glass snowflakes and gilded holly
+	piece_premium_snowglass: {
+		rows: ["W...W...", ".W.w.W..", "..wCw...", "WwCcCwW.", "..wCw...", ".W.w.W..", "W...W..c", "....c..."],
+		keys: { C: C("#E0F2FE"), c: C("#7DD3FC") },
+	},
+	piece_premium_goldholly: {
+		rows: ["..gg..y.", ".gGGg.yY", "..gg...y", "...y.rr.", "yy.y.rRr", "yYy...rr", ".y..gGg.", "...y.gg."],
+		keys: { g: C("#4ADE80"), G: C("#BBF7D0"), y: C("#FDE047"), Y: C("#FFFBEB"), r: C("#FB7185"), R: C("#FECDD3") },
+	},
 	piece_season_snowfall: {
 		rows: ["W...W...", "..W...w.", ".W.w..W.", "...W...W", "w...W...", "..W...w.", ".w...W..", "...W...w"],
 	},
