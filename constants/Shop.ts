@@ -75,16 +75,16 @@ export const FREE_SHOP_ITEM_IDS = Object.values(DEFAULT_EQUIPPED_COSMETICS);
 
 const BASE_SHOP_ITEMS: ShopItem[] = [
 	// EXTRA GAMES
-	{ id: "chess_piece_classic", category: "chess_piece", title: "Classic", description: "Standard pixel chess pieces.", price: 0, accent: "#C4B5FD", previewColors: ["#FFF", "#000"] },
+	{ id: "chess_piece_classic", category: "chess_piece", title: "Classic", description: "Standard chess pieces.", price: 0, accent: "#C4B5FD", previewColors: ["#FFF", "#000"] },
 	{ id: "chess_piece_royal", category: "chess_piece", title: "Royal", description: "Ornate pieces fit for a king.", price: 500, accent: "#C4B5FD", previewColors: ["#FDE047", "#000"] },
 	{ id: "chess_piece_club", category: "chess_piece", title: "Club", description: "Heavy tournament style pieces.", price: 800, accent: "#C4B5FD", previewColors: ["#D1D5DB", "#1F2937"] },
 	{ id: "chess_piece_neon", category: "chess_piece", title: "Neon", description: "Glowing cyan and deep violet pieces.", price: 650, accent: "#C4B5FD", previewColors: ["#67E8F9", "#581C87"] },
 	{ id: "chess_piece_ember", category: "chess_piece", title: "Ember", description: "Warm cream pieces against deep ember red.", price: 700, accent: "#C4B5FD", previewColors: ["#FED7AA", "#7F1D1D"] },
 	{ id: "chess_piece_frost", category: "chess_piece", title: "Frost", description: "Icy white pieces against midnight blue.", price: 850, accent: "#C4B5FD", previewColors: ["#E0F2FE", "#1E3A8A"] },
 	
-	{ id: "chess_board_slate", category: "chess_board", title: "Arcade", description: "Classic light and dark pixel tiles.", price: 0, accent: "#8B5CF6", previewColors: ["#E2E8F0", "#475569"] },
+	{ id: "chess_board_slate", category: "chess_board", title: "Classic", description: "Classic light and dark tiles.", price: 0, accent: "#8B5CF6", previewColors: ["#E2E8F0", "#475569"] },
 	{ id: "chess_board_violet", category: "chess_board", title: "Violet", description: "Deep purple and lavender tiles.", price: 300, accent: "#8B5CF6", previewColors: ["#C4B5FD", "#7C3AED"] },
-	{ id: "chess_board_walnut", category: "chess_board", title: "Pixel Wood", description: "Warm wood-toned pixel tiles.", price: 600, accent: "#8B5CF6", previewColors: ["#FDE68A", "#92400E"] },
+	{ id: "chess_board_walnut", category: "chess_board", title: "Wood", description: "Warm wood-toned tiles.", price: 600, accent: "#8B5CF6", previewColors: ["#FDE68A", "#92400E"] },
 	{ id: "chess_board_emerald", category: "chess_board", title: "Emerald", description: "Tournament green and cream tiles.", price: 450, accent: "#8B5CF6", previewColors: ["#EEEED2", "#769656"] },
 	{ id: "chess_board_ice", category: "chess_board", title: "Ice", description: "Cool frosted blue tiles.", price: 550, accent: "#8B5CF6", previewColors: ["#DEEAF6", "#5B8DB8"] },
 	{ id: "chess_board_candy", category: "chess_board", title: "Candy", description: "Sweet pink and blush tiles.", price: 700, accent: "#8B5CF6", previewColors: ["#FCE7F3", "#D9619A"] },
@@ -113,7 +113,7 @@ const BASE_SHOP_ITEMS: ShopItem[] = [
 	{ id: "mahjong_theme_ruby", category: "mahjong_theme", title: "Ruby Tiles", description: "Pale tiles carved in ruby red.", price: 650, accent: "#2DD4BF", previewColors: ["#FEF2F2"] },
 	{ id: "mahjong_theme_sakura", category: "mahjong_theme", title: "Sakura Tiles", description: "Blossom pink tiles on a plum table.", price: 750, accent: "#2DD4BF", previewColors: ["#FDF2F8"] },
 
-	{ id: "checkers_skin_classic", category: "checkers_skin", title: "Pixel Wood", description: "Wood-toned tiles with cream and black chips.", price: 0, accent: "#FACC15", previewColors: ["#E8D2A6", "#8B5A2B"] },
+	{ id: "checkers_skin_classic", category: "checkers_skin", title: "Wood", description: "Wood-toned tiles with cream and black chips.", price: 0, accent: "#FACC15", previewColors: ["#E8D2A6", "#8B5A2B"] },
 	{ id: "checkers_skin_marble", category: "checkers_skin", title: "Stone Hall", description: "Cool gray tiles with white and slate chips.", price: 450, accent: "#FACC15", previewColors: ["#F1F5F9", "#64748B"] },
 	{ id: "checkers_skin_tournament", category: "checkers_skin", title: "Tournament Green", description: "The green and cream of a club table.", price: 550, accent: "#FACC15", previewColors: ["#EEEED2", "#769656"] },
 	{ id: "checkers_skin_candy", category: "checkers_skin", title: "Candy Shop", description: "Pink squares with sugar and berry pieces.", price: 650, accent: "#FACC15", previewColors: ["#FCE7F3", "#DB2777"] },
@@ -141,6 +141,16 @@ const BASE_SHOP_ITEMS: ShopItem[] = [
 	{ id: "chess_board_sand", category: "chess_board", title: "Desert Sand", description: "Warm sand and terracotta.", price: 500, accent: "#8B5CF6", previewColors: ["#FDE68A", "#B45309"] },
 	{ id: "chess_board_mono", category: "chess_board", title: "Monochrome", description: "Plain black and white, nothing else.", price: 800, accent: "#8B5CF6", previewColors: ["#F5F5F5", "#262626"] },
 	{ id: "chess_board_royal", category: "chess_board", title: "Royal Velvet", description: "Purple velvet and gold squares.", price: 1450, accent: "#8B5CF6", previewColors: ["#FDE68A", "#6B21A8"] },
+	// pixel skins: the squares, chips and points are drawn like blocks of the puzzle
+	{ id: "chess_board_pixel_arcade", category: "chess_board", title: "Pixel Arcade", description: "Light and dark pixel tiles with a block bevel.", price: 500, accent: "#8B5CF6", previewColors: ["#E2E8F0", "#475569"] },
+	{ id: "chess_board_pixel_wood", category: "chess_board", title: "Pixel Wood", description: "Warm wood-toned pixel tiles.", price: 700, accent: "#8B5CF6", previewColors: ["#FDE68A", "#92400E"] },
+	{ id: "chess_board_pixel_neon", category: "chess_board", title: "Pixel Neon", description: "Cyan and violet arcade tiles.", price: 1000, accent: "#8B5CF6", previewColors: ["#A5F3FC", "#7E22CE"] },
+	{ id: "checkers_skin_pixel_wood", category: "checkers_skin", title: "Pixel Wood", description: "Pixel tiles and chips in wood tones.", price: 600, accent: "#FACC15", previewColors: ["#E8D2A6", "#8B5A2B"] },
+	{ id: "checkers_skin_pixel_neon", category: "checkers_skin", title: "Pixel Neon", description: "A dark pixel board with glowing cyan and pink chips.", price: 800, accent: "#FACC15", previewColors: ["#1E1B4B", "#0F172A"] },
+	{ id: "checkers_skin_pixel_gold", category: "checkers_skin", title: "Pixel Gold", description: "Gold and onyx pixel chips.", price: 1200, accent: "#FACC15", previewColors: ["#FEF3C7", "#92400E"] },
+	{ id: "backgammon_skin_pixel_wood", category: "backgammon_skin", title: "Pixel Walnut", description: "Stepped pixel points on a walnut board.", price: 600, accent: "#E0A96D", previewColors: ["#E8D2A6", "#A0522D"] },
+	{ id: "backgammon_skin_pixel_neon", category: "backgammon_skin", title: "Pixel Neon", description: "Dark pixel board, glowing cyan and pink chips.", price: 800, accent: "#E0A96D", previewColors: ["#155E75", "#86198F"] },
+	{ id: "backgammon_skin_pixel_gold", category: "backgammon_skin", title: "Pixel Gold", description: "Gold and onyx pixel board.", price: 1200, accent: "#E0A96D", previewColors: ["#FDE68A", "#B45309"] },
 	{ id: "sea_skin_arctic", category: "sea_skin", title: "Arctic Sea", description: "Ice floes and cold blue water.", price: 450, accent: "#38BDF8", previewColors: ["#E0F2FE"] },
 	{ id: "sea_skin_toxic", category: "sea_skin", title: "Toxic Bay", description: "Green glowing water of a strange bay.", price: 600, accent: "#38BDF8", previewColors: ["#1A2E05"] },
 	{ id: "sea_skin_night", category: "sea_skin", title: "Night Raid", description: "A dark sea under a violet sky.", price: 750, accent: "#38BDF8", previewColors: ["#1E1B4B"] },

@@ -8,6 +8,7 @@ import {
 	CHESS_PIECE_COLORS,
 	isPixelPieceSet,
 	MAHJONG_THEMES,
+	pixelTile,
 	SEA_SKINS,
 	SUDOKU_THEMES,
 } from "./moregames/cosmetics";
@@ -15,7 +16,7 @@ import { createFilledBlockStyle, pieceColors } from "@/constants/Piece";
 import SkinnedBlock from "./SkinnedBlock";
 import { SkinPreviewFx } from "./SkinFx";
 import PixelChessPiece from "./moregames/chess/PixelChessPiece";
-import { PixelPoint } from "./moregames/backgammon/PixelPoint";
+import { FlatPoint, PixelPoint } from "./moregames/backgammon/PixelPoint";
 
 // Little scenes that show a shop item the way it looks in its own game: the board and pieces for chess, a radar
 // grid for Sea Battle, a card back and face, a sudoku board and a mahjong table. `large` is the version shown in
@@ -71,7 +72,7 @@ function ChessBoardPreview({ item, u }: { item: ShopItem; u: number }) {
 				{[0, 1, 2].map((row) => (
 					<View key={row} style={{ flexDirection: "row" }}>
 						{[0, 1, 2, 3, 4].map((col) => (
-							<View key={col} style={{ width: cell, height: cell, backgroundColor: (row + col) % 2 === 0 ? colors.light : colors.dark }} />
+							<View key={col} style={[{ width: cell, height: cell, backgroundColor: (row + col) % 2 === 0 ? colors.light : colors.dark }, "pixel" in colors && pixelTile((row + col) % 2 === 0 ? colors.light : colors.dark, cell)]} />
 						))}
 					</View>
 				))}
@@ -118,7 +119,7 @@ function CheckersPreview({ item, u }: { item: ShopItem; u: number }) {
 						{[0, 1, 2, 3, 4, 5].map((col) => {
 							const dark = (row + col) % 2 === 1;
 							return (
-								<View key={col} style={[styles.cellCenter, { width: cell, height: cell, backgroundColor: dark ? skin.dark : skin.light }]}>
+								<View key={col} style={[styles.cellCenter, { width: cell, height: cell, backgroundColor: dark ? skin.dark : skin.light }, skin.pixel && pixelTile(dark ? skin.dark : skin.light, cell)]}>
 									{dark && row !== 1 ? piece(row === 2) : null}
 								</View>
 							);
@@ -147,7 +148,9 @@ function BackgammonPreview({ item, u }: { item: ShopItem; u: number }) {
 						{[0, 1, 2, 3, 4, 5].map((col) => (
 							<View key={col} style={{ width: pw, height: ph, alignItems: "center", justifyContent: top ? "flex-start" : "flex-end" }}>
 								<View style={{ position: "absolute", top: 0 }}>
-									<PixelPoint width={pw} height={ph} color={(col + (top ? 0 : 1)) % 2 === 0 ? skin.pointA : skin.pointB} down={top} steps={7} />
+									{skin.pixel
+										? <PixelPoint width={pw} height={ph} color={(col + (top ? 0 : 1)) % 2 === 0 ? skin.pointA : skin.pointB} down={top} steps={7} />
+										: <FlatPoint width={pw} height={ph} color={(col + (top ? 0 : 1)) % 2 === 0 ? skin.pointA : skin.pointB} down={top} />}
 								</View>
 								{col === 0 ? checker(top, 0) : col === 5 ? <>{checker(!top, 1)}{checker(!top, 2)}</> : null}
 							</View>

@@ -5,7 +5,7 @@ import { BACKGAMMON_SKINS, tone } from "../cosmetics";
 
 export type BackgammonSkin = (typeof BACKGAMMON_SKINS)[keyof typeof BACKGAMMON_SKINS];
 
-/** A checker: a round chip with a lit top-left rim and a shaded bottom-right one, like a game block. */
+/** A checker: a round chip. Pixel skins give it a lit top-left rim and a shaded bottom-right one, like a game block. */
 export function Checker({ side, d, skin, rim, rimWidth = 2 }: { side: Side; d: number; skin: BackgammonSkin; rim?: string; rimWidth?: number }) {
 	const colors = side === "w" ? skin.white : skin.black;
 	return (
@@ -18,7 +18,7 @@ export function Checker({ side, d, skin, rim, rimWidth = 2 }: { side: Side; d: n
 					borderRadius: d / 2,
 					backgroundColor: colors.fill,
 					borderWidth: rimWidth,
-					...(rim ? { borderColor: rim } : { borderTopColor: tone(colors.fill, 0.45), borderLeftColor: tone(colors.fill, 0.3), borderBottomColor: colors.rim, borderRightColor: colors.rim }),
+					...(rim ? { borderColor: rim } : skin.pixel ? { borderTopColor: tone(colors.fill, 0.45), borderLeftColor: tone(colors.fill, 0.3), borderBottomColor: colors.rim, borderRightColor: colors.rim } : { borderColor: colors.rim }),
 				},
 				skin.glow && { shadowColor: colors.fill, shadowOpacity: 0.9, shadowRadius: d * 0.18, elevation: 6 },
 			]}

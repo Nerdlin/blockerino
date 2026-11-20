@@ -12,14 +12,14 @@ export const DIE_PIPS: Record<number, number[]> = {
 	6: [0, 2, 3, 5, 6, 8],
 };
 
-export function PixelDie({ value, size, dim }: { value: number | null; size: number; dim?: boolean }) {
+export function PixelDie({ value, size, dim, pixel = true }: { value: number | null; size: number; dim?: boolean; pixel?: boolean }) {
 	const face = "#F8FAFC";
 	const pip = Math.max(3, Math.round(size * 0.17));
 	const pad = Math.round(size * 0.14);
 	const pips = value ? DIE_PIPS[value] ?? [] : [];
 	const cell = (size - pad * 2 - 4) / 3;
 	return (
-		<View style={[local.die, { width: size, height: size, borderRadius: Math.round(size * 0.14), backgroundColor: face, opacity: dim ? 0.35 : 1 }, pixelTile(face, size)]}>
+		<View style={[local.die, { width: size, height: size, borderRadius: Math.round(size * 0.14), backgroundColor: face, opacity: dim ? 0.35 : 1 }, pixel && pixelTile(face, size)]}>
 			{pips.map((index) => (
 				<View
 					key={index}
@@ -29,6 +29,7 @@ export function PixelDie({ value, size, dim }: { value: number | null; size: num
 						top: pad + Math.floor(index / 3) * cell + (cell - pip) / 2,
 						width: pip,
 						height: pip,
+						borderRadius: pixel ? 0 : pip / 2,
 						backgroundColor: value === 1 ? "#DC2626" : "#111827",
 					}}
 				/>
@@ -41,7 +42,7 @@ export function PixelDie({ value, size, dim }: { value: number | null; size: num
  * The two dice. While `rolling` they tumble through random faces and bounce; they settle on the rolled values. A die
  * already played shows dim, and a double says how many of its four are left.
  */
-export function Dice({ dice, rolling, remaining, size, rollMs }: { dice: [number, number] | null; rolling: boolean; remaining: number[]; size: number; rollMs: number }) {
+export function Dice({ dice, rolling, remaining, size, rollMs, pixel = true }: { dice: [number, number] | null; rolling: boolean; remaining: number[]; size: number; rollMs: number; pixel?: boolean }) {
 	const [faces, setFaces] = useState<[number, number]>([1, 1]);
 	const tumble = useRef(new Animated.Value(0)).current;
 
@@ -72,7 +73,7 @@ export function Dice({ dice, rolling, remaining, size, rollMs }: { dice: [number
 		<View style={local.row} accessibilityLabel={dice ? `${dice[0]} ${dice[1]}` : undefined}>
 			{([0, 1] as const).map((index) => (
 				<Animated.View key={index} style={rolling ? { transform: [{ translateY: bounce }, { rotate: spins[index] }] } : undefined}>
-					<PixelDie value={shown ? shown[index] : null} size={size} dim={!rolling && (dice === null || used(index))} />
+					<PixelDie pixel={pixel} value={shown ? shown[index] : null} size={size} dim={!rolling && (dice === null || used(index))} />
 				</Animated.View>
 			))}
 			{double && !rolling && remaining.length > 0 ? <Text style={local.times}>{`×${remaining.length}`}</Text> : null}

@@ -23,3 +23,15 @@ function PixelPointView({ width, height, color, down, steps = 9 }: { width: numb
 }
 
 export const PixelPoint = memo(PixelPointView);
+
+/** The same point as a plain smooth triangle (the skins that are not pixel). */
+function FlatPointView({ width, height, color, down }: { width: number; height: number; color: string; down: boolean }) {
+	const edge = { borderLeftWidth: width / 2, borderRightWidth: width / 2, borderLeftColor: "transparent", borderRightColor: "transparent" } as const;
+	return (
+		<View pointerEvents="none" style={{ width, height, overflow: "hidden" }}>
+			<View style={down ? { ...edge, borderTopWidth: height, borderTopColor: color } : { ...edge, borderBottomWidth: height, borderBottomColor: color }} />
+		</View>
+	);
+}
+
+export const FlatPoint = memo(FlatPointView);

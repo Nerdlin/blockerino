@@ -49,8 +49,8 @@ function PieceView({ piece, cell, skin, borderColor, borderWidth = 2 }: { piece:
 				borderRadius: cell * 0.39,
 				backgroundColor: colors.fill,
 				borderWidth,
-				// a lit top-left rim and a shaded bottom-right one, like a game block
-				...(borderColor ? { borderColor } : { borderTopColor: tone(colors.fill, 0.45), borderLeftColor: tone(colors.fill, 0.3), borderBottomColor: colors.rim, borderRightColor: colors.rim }),
+				// pixel skins: a lit top-left rim and a shaded bottom-right one, like a game block; the others have one even rim
+				...(borderColor ? { borderColor } : skin.pixel ? { borderTopColor: tone(colors.fill, 0.45), borderLeftColor: tone(colors.fill, 0.3), borderBottomColor: colors.rim, borderRightColor: colors.rim } : { borderColor: colors.rim }),
 			},
 			skin.glow && { shadowColor: colors.fill, shadowOpacity: 0.9, shadowRadius: cell * 0.18, elevation: 6 },
 		]}>
@@ -391,7 +391,7 @@ export function CheckersGame({ cosmetics, playerName, onRatingChange }: { cosmet
 							style={[
 								local.square,
 								{ width: cell, height: cell, backgroundColor: dark ? skin.dark : skin.light },
-								pixelTile(dark ? skin.dark : skin.light, cell),
+								skin.pixel && pixelTile(dark ? skin.dark : skin.light, cell),
 								dark && lastSquares.has(square) && { backgroundColor: "#A0723F" },
 								dark && hintSquares.has(square) && { backgroundColor: "#3F8F4F" },
 							]}

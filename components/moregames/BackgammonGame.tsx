@@ -22,7 +22,7 @@ import { BACKGAMMON_SKINS, type ExtraGameCosmetics } from "./cosmetics";
 import { useIncomingGameInvite } from "@/constants/GameInvite";
 import { buzz, useGameSfx, useOutcomeSound } from "./feedback";
 import { boardMetrics, moverRelOf, pointAt, pointRect, slotPosition, trayTarget, viewRelOf } from "./backgammon/layout";
-import { PixelPoint } from "./backgammon/PixelPoint";
+import { FlatPoint, PixelPoint } from "./backgammon/PixelPoint";
 import { Dice } from "./backgammon/Dice";
 import { Checker, SlideChecker, Tray } from "./backgammon/Parts";
 
@@ -538,7 +538,9 @@ export function BackgammonGame({ cosmetics, playerName, onRatingChange }: { cosm
 					const lit = viewRel === selectedView ? "rgba(250,204,21,0.30)" : targetViews.has(viewRel) ? "rgba(74,222,128,0.34)" : hintViews.has(viewRel) ? "rgba(63,143,79,0.55)" : null;
 					return (
 						<View key={viewRel} testID={`backgammon-point-${viewRel}`} pointerEvents="none" style={{ position: "absolute", left: rect.x, top: rect.y, width: rect.w, height: rect.h }}>
-							<PixelPoint width={rect.w} height={rect.h} color={viewRel % 2 === 0 ? skin.pointA : skin.pointB} down={rect.top} />
+							{skin.pixel
+								? <PixelPoint width={rect.w} height={rect.h} color={viewRel % 2 === 0 ? skin.pointA : skin.pointB} down={rect.top} />
+								: <FlatPoint width={rect.w} height={rect.h} color={viewRel % 2 === 0 ? skin.pointA : skin.pointB} down={rect.top} />}
 							{lit ? <View style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, backgroundColor: lit, borderWidth: targetViews.has(viewRel) ? 2 : 0, borderColor: "#4ADE80" }} /> : null}
 						</View>
 					);
@@ -582,7 +584,7 @@ export function BackgammonGame({ cosmetics, playerName, onRatingChange }: { cosm
 			<Text style={[local.pips, { color: currentTheme.textSecondary }]} numberOfLines={1}>{pipsLine}</Text>
 
 			<View style={local.diceRow}>
-				<Dice dice={state.dice} rolling={rolling} remaining={remaining} size={Math.max(36, Math.min(52, Math.round(m.col * 1.3)))} rollMs={ROLL_MS} />
+				<Dice dice={state.dice} rolling={rolling} remaining={remaining} size={Math.max(36, Math.min(52, Math.round(m.col * 1.3)))} rollMs={ROLL_MS} pixel={skin.pixel} />
 				<View style={{ gap: 6 }}>
 					<StylizedButton text={t("backgammon.roll")} onClick={rollNow} disabled={!canRoll} backgroundColor="#16A34A" style={[styles.resetButton, local.actionButton]} textStyle={styles.smallButtonText} />
 					<View style={{ flexDirection: "row", gap: 6 }}>

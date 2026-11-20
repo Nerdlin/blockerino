@@ -36,7 +36,16 @@ export const CHESS_BOARD_COLORS = {
 	sand: { light: "#FDE68A", dark: "#B45309" },
 	mono: { light: "#F5F5F5", dark: "#404040" },
 	royal: { light: "#FDE68A", dark: "#6B21A8" },
-} as const satisfies Record<string, { light: string; dark: string }>;
+	// pixel boards: squares with the bevel of a block of the puzzle
+	pixel_arcade: { light: "#E2E8F0", dark: "#475569", pixel: true },
+	pixel_wood: { light: "#FDE68A", dark: "#92400E", pixel: true },
+	pixel_neon: { light: "#A5F3FC", dark: "#7E22CE", pixel: true },
+} as const satisfies Record<string, { light: string; dark: string; pixel?: boolean }>;
+
+/** Whether a chess board skin draws block-bevelled squares (the others are flat). */
+export function isPixelBoard(key: keyof typeof CHESS_BOARD_COLORS): boolean {
+	return "pixel" in CHESS_BOARD_COLORS[key];
+}
 
 export const CHESS_PIECE_COLORS = {
 	classic: { white: "#FFFFFF", black: "#111827", heavy: false },
@@ -141,28 +150,34 @@ export const SUDOKU_THEMES = {
 	},
 } as const satisfies Record<string, SudokuPalette>;
 
-/** Checkers: the board's squares and the two sides' pieces. */
+/** Checkers: the board's squares and the two sides' pieces. `pixel` skins have block-bevelled squares and chips; the others are flat. */
 export const CHECKERS_SKINS = {
-	classic: { light: "#E8D2A6", dark: "#8B5A2B", white: { fill: "#F5F1E6", rim: "#B9AE97" }, black: { fill: "#2B2B2E", rim: "#0E0E10" }, glow: false },
-	marble: { light: "#F1F5F9", dark: "#64748B", white: { fill: "#FFFFFF", rim: "#CBD5E1" }, black: { fill: "#1E293B", rim: "#0F172A" }, glow: false },
-	tournament: { light: "#EEEED2", dark: "#769656", white: { fill: "#FFFDF5", rim: "#D6CFB4" }, black: { fill: "#7F1D1D", rim: "#450A0A" }, glow: false },
-	candy: { light: "#FCE7F3", dark: "#DB2777", white: { fill: "#FFFFFF", rim: "#F9A8D4" }, black: { fill: "#831843", rim: "#500724" }, glow: false },
-	neon: { light: "#1E1B4B", dark: "#0F172A", white: { fill: "#22D3EE", rim: "#A5F3FC" }, black: { fill: "#F472B6", rim: "#FBCFE8" }, glow: true },
-	gold: { light: "#FEF3C7", dark: "#92400E", white: { fill: "#FACC15", rim: "#FEF08A" }, black: { fill: "#1C1917", rim: "#A16207" }, glow: true },
-} as const satisfies Record<string, { light: string; dark: string; white: { fill: string; rim: string }; black: { fill: string; rim: string }; glow: boolean }>;
+	classic: { light: "#E8D2A6", dark: "#8B5A2B", white: { fill: "#F5F1E6", rim: "#B9AE97" }, black: { fill: "#2B2B2E", rim: "#0E0E10" }, glow: false, pixel: false },
+	marble: { light: "#F1F5F9", dark: "#64748B", white: { fill: "#FFFFFF", rim: "#CBD5E1" }, black: { fill: "#1E293B", rim: "#0F172A" }, glow: false, pixel: false },
+	tournament: { light: "#EEEED2", dark: "#769656", white: { fill: "#FFFDF5", rim: "#D6CFB4" }, black: { fill: "#7F1D1D", rim: "#450A0A" }, glow: false, pixel: false },
+	candy: { light: "#FCE7F3", dark: "#DB2777", white: { fill: "#FFFFFF", rim: "#F9A8D4" }, black: { fill: "#831843", rim: "#500724" }, glow: false, pixel: false },
+	neon: { light: "#1E1B4B", dark: "#0F172A", white: { fill: "#22D3EE", rim: "#A5F3FC" }, black: { fill: "#F472B6", rim: "#FBCFE8" }, glow: true, pixel: false },
+	gold: { light: "#FEF3C7", dark: "#92400E", white: { fill: "#FACC15", rim: "#FEF08A" }, black: { fill: "#1C1917", rim: "#A16207" }, glow: true, pixel: false },
+	pixel_wood: { light: "#E8D2A6", dark: "#8B5A2B", white: { fill: "#F5F1E6", rim: "#B9AE97" }, black: { fill: "#2B2B2E", rim: "#0E0E10" }, glow: false, pixel: true },
+	pixel_neon: { light: "#1E1B4B", dark: "#0F172A", white: { fill: "#22D3EE", rim: "#A5F3FC" }, black: { fill: "#F472B6", rim: "#FBCFE8" }, glow: true, pixel: true },
+	pixel_gold: { light: "#FEF3C7", dark: "#92400E", white: { fill: "#FACC15", rim: "#FEF08A" }, black: { fill: "#1C1917", rim: "#A16207" }, glow: true, pixel: true },
+} as const satisfies Record<string, { light: string; dark: string; white: { fill: string; rim: string }; black: { fill: string; rim: string }; glow: boolean; pixel: boolean }>;
 
 /**
  * Long backgammon: the frame and field of the board, the two alternating colours of the points and both sides' checkers.
  * Every shop item id (without its category prefix) has an entry here.
  */
 export const BACKGAMMON_SKINS = {
-	classic: { frame: "#3B2412", field: "#5B3A1E", pointA: "#E8D2A6", pointB: "#A0522D", white: { fill: "#F5F1E6", rim: "#B9AE97" }, black: { fill: "#2B2B2E", rim: "#0E0E10" }, glow: false },
-	stone: { frame: "#1E293B", field: "#475569", pointA: "#F1F5F9", pointB: "#94A3B8", white: { fill: "#FFFFFF", rim: "#CBD5E1" }, black: { fill: "#1E293B", rim: "#0F172A" }, glow: false },
-	felt: { frame: "#3F2A14", field: "#14532D", pointA: "#F5E6B8", pointB: "#B91C1C", white: { fill: "#FFFDF5", rim: "#D6CFB4" }, black: { fill: "#7F1D1D", rim: "#450A0A" }, glow: false },
-	midnight: { frame: "#0F0D2E", field: "#1E1B4B", pointA: "#A5B4FC", pointB: "#4338CA", white: { fill: "#E0E7FF", rim: "#A5B4FC" }, black: { fill: "#111827", rim: "#6366F1" }, glow: false },
-	neon: { frame: "#0E7490", field: "#0B1020", pointA: "#155E75", pointB: "#86198F", white: { fill: "#22D3EE", rim: "#A5F3FC" }, black: { fill: "#F472B6", rim: "#FBCFE8" }, glow: true },
-	gold: { frame: "#A16207", field: "#451A03", pointA: "#FDE68A", pointB: "#B45309", white: { fill: "#FACC15", rim: "#FEF08A" }, black: { fill: "#1C1917", rim: "#A16207" }, glow: true },
-} as const satisfies Record<string, { frame: string; field: string; pointA: string; pointB: string; white: { fill: string; rim: string }; black: { fill: string; rim: string }; glow: boolean }>;
+	classic: { frame: "#3B2412", field: "#5B3A1E", pointA: "#E8D2A6", pointB: "#A0522D", white: { fill: "#F5F1E6", rim: "#B9AE97" }, black: { fill: "#2B2B2E", rim: "#0E0E10" }, glow: false, pixel: false },
+	stone: { frame: "#1E293B", field: "#475569", pointA: "#F1F5F9", pointB: "#94A3B8", white: { fill: "#FFFFFF", rim: "#CBD5E1" }, black: { fill: "#1E293B", rim: "#0F172A" }, glow: false, pixel: false },
+	felt: { frame: "#3F2A14", field: "#14532D", pointA: "#F5E6B8", pointB: "#B91C1C", white: { fill: "#FFFDF5", rim: "#D6CFB4" }, black: { fill: "#7F1D1D", rim: "#450A0A" }, glow: false, pixel: false },
+	midnight: { frame: "#0F0D2E", field: "#1E1B4B", pointA: "#A5B4FC", pointB: "#4338CA", white: { fill: "#E0E7FF", rim: "#A5B4FC" }, black: { fill: "#111827", rim: "#6366F1" }, glow: false, pixel: false },
+	neon: { frame: "#0E7490", field: "#0B1020", pointA: "#155E75", pointB: "#86198F", white: { fill: "#22D3EE", rim: "#A5F3FC" }, black: { fill: "#F472B6", rim: "#FBCFE8" }, glow: true, pixel: false },
+	gold: { frame: "#A16207", field: "#451A03", pointA: "#FDE68A", pointB: "#B45309", white: { fill: "#FACC15", rim: "#FEF08A" }, black: { fill: "#1C1917", rim: "#A16207" }, glow: true, pixel: false },
+	pixel_wood: { frame: "#3B2412", field: "#5B3A1E", pointA: "#E8D2A6", pointB: "#A0522D", white: { fill: "#F5F1E6", rim: "#B9AE97" }, black: { fill: "#2B2B2E", rim: "#0E0E10" }, glow: false, pixel: true },
+	pixel_neon: { frame: "#0E7490", field: "#0B1020", pointA: "#155E75", pointB: "#86198F", white: { fill: "#22D3EE", rim: "#A5F3FC" }, black: { fill: "#F472B6", rim: "#FBCFE8" }, glow: true, pixel: true },
+	pixel_gold: { frame: "#A16207", field: "#451A03", pointA: "#FDE68A", pointB: "#B45309", white: { fill: "#FACC15", rim: "#FEF08A" }, black: { fill: "#1C1917", rim: "#A16207" }, glow: true, pixel: true },
+} as const satisfies Record<string, { frame: string; field: string; pointA: string; pointB: string; white: { fill: string; rim: string }; black: { fill: string; rim: string }; glow: boolean; pixel: boolean }>;
 
 export interface ExtraGameCosmetics {
 	chessPieces: keyof typeof CHESS_PIECE_COLORS;
