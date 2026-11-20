@@ -48,18 +48,27 @@ export function dateOfStreakDay(day: number, today: number, now: Date = new Date
 
 export default function DailyCalendar({ calendar, collected, today, weekdays }: { calendar: CalendarDay[]; collected: number; today: number; weekdays: string[] }) {
 	const { width } = useWindowDimensions();
-	const cell = Math.max(30, Math.min(48, Math.floor((Math.min(width * 0.9, 480) - 56) / 7)));
+	const cell = Math.max(32, Math.min(50, Math.floor((Math.min(width * 0.9, 480) - 60) / 7)));
+	const rowHeight = cell + 4;
 	const weeks: CalendarDay[][] = [];
 	for (let i = 0; i < calendar.length; i += 7) weeks.push(calendar.slice(i, i + 7));
 
 	return (
 		<View style={styles.wrap} testID="daily-calendar">
+			{/* the weekdays once, over the columns */}
+			<View style={styles.week}>
+				{(weeks[0] ?? []).map((entry) => (
+					<Text key={entry.day} style={[styles.headDay, { width: cell }]} numberOfLines={1}>
+						{weekdays[(dateOfStreakDay(entry.day, today).getDay() + 6) % 7]}
+					</Text>
+				))}
+			</View>
 			{weeks.map((week, w) => {
 				// the days taken in a week are its first cells: one fire bar runs behind them, like a streak calendar on Duolingo
 				const taken = week.filter((entry) => entry.day <= collected).length;
 				return (
 				<View key={w} style={styles.week}>
-					{taken > 0 ? <View pointerEvents="none" style={[styles.fireBar, { width: taken * cell + (taken - 1) * 4, height: cell + 20 }]} /> : null}
+					{taken > 0 ? <View pointerEvents="none" style={[styles.fireBar, { width: taken * cell + (taken - 1) * 4, height: rowHeight }]} /> : null}
 					{week.map((entry) => {
 						const done = entry.day <= collected;
 						const isToday = entry.day === today && !done;
@@ -68,28 +77,15 @@ export default function DailyCalendar({ calendar, collected, today, weekdays }: 
 							<View
 								style={[
 									styles.cell,
-									{ width: cell, height: cell + 20 },
+									{ width: cell, height: rowHeight },
 									entry.chest && styles.chestCell,
 									big && styles.bigCell,
 									done && styles.doneCell,
 									isToday && styles.todayCell,
 								]}
 							>
-								{(() => {
-									const date = dateOfStreakDay(entry.day, today);
-									return (
-										<View style={styles.dateBox}>
-											<Text style={[styles.weekday, done && styles.dimText, (date.getDay() === 0 || date.getDay() === 6) && !done && styles.weekend]} numberOfLines={1}>{weekdays[(date.getDay() + 6) % 7]}</Text>
-											<Text style={[styles.dayLabel, done && styles.dimText]} numberOfLines={1}>{date.getDate()}</Text>
-										</View>
-									);
-								})()}
-								{entry.chest ? (
-									<PixelChest size={Math.round(cell * 0.62)} kind={entry.chest} open={done} />
-								) : (
-									<Text style={[styles.coins, { fontSize: cell >= 40 ? 11 : 9 }, done && styles.dimText]} numberOfLines={1}>{entry.coins}</Text>
-								)}
-								{done && <Text style={styles.tick}>✓</Text>}
+								<Text style={[styles.dayLabel, { fontSize: cell >= 42 ? 15 : 13 }, done && styles.dimText]} numberOfLines={1}>{dateOfStreakDay(entry.day, today).getDate()}</Text>
+								{entry.chest ? <PixelChest size={Math.round(cell * 0.4)} kind={entry.chest} open={done} /> : null}
 							</View>
 						);
 						return <View key={entry.day}>{isToday ? <TodayGlow>{content}</TodayGlow> : content}</View>;
@@ -123,12 +119,13 @@ const styles = StyleSheet.create({
 		experimental_backgroundImage: "linear-gradient(180deg, #FDBA3B 0%, #F97316 50%, #EF4444 100%)",
 	},
 	cell: {
-		borderRadius: 6,
+		borderRadius: 14,
 		borderWidth: 2,
 		borderColor: "rgba(255,255,255,0.14)",
 		backgroundColor: "rgba(255,255,255,0.05)",
 		alignItems: "center",
-		justifyContent: "space-evenly",
+		justifyContent: "center",
+		gap: 1,
 		paddingVertical: 2,
 	},
 	chestCell: {
@@ -159,9 +156,14 @@ const styles = StyleSheet.create({
 		color: "#FF8A8A",
 	},
 	dayLabel: {
-		fontFamily: "Silkscreen",
-		fontSize: 8,
-		color: "rgba(255,255,255,0.7)",
+		fontFamily: "SilkscreenBold",
+		color: "rgba(255,255,255,0.75)",
+	},
+	headDay: {
+		textAlign: "center",
+		fontFamily: "SilkscreenBold",
+		fontSize: 11,
+		color: "rgba(255,255,255,0.45)",
 	},
 	coins: {
 		fontFamily: "Silkscreen",

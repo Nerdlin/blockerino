@@ -1,7 +1,10 @@
 import { celebrate } from "@/constants/Celebration";
+import StreakFlame from "./StreakFlame";
+import FreezeCrystal from "./FreezeCrystal";
+import { CountUp } from "./ProfileDesign";
 import { useCallback, useEffect, useRef, useState } from "react";
 import FadeInView from "./FadeInView";
-import { AppState, StyleSheet, Text, View } from "react-native";
+import { AppState, Pressable, StyleSheet, Text, View } from "react-native";
 import { useAtom } from "jotai";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -172,11 +175,29 @@ export default function DailyRewardHost() {
 
 	return (
 		<SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
-			<View style={styles.flame}>
-				<UiIcon name="fire" size={36} />
+			<Text style={[styles.screenTitle, { color: currentTheme.textPrimary }]}>{t("daily.title")}</Text>
+			{/* the streak like on Duolingo: the days in huge red numbers, a big flame beside them */}
+			<View style={styles.hero}>
+				<View style={styles.heroText}>
+					<CountUp value={shownStreak} style={styles.heroNumber} />
+					<Text style={styles.heroLabel}>{t("streak.days")}!</Text>
+				</View>
+				<StreakFlame size={72} dimmed={shownStreak === 0} />
 			</View>
-			<Text style={[styles.title, { color: currentTheme.buttonPrimary }]}>{t("daily.title")}</Text>
-			<Text style={[styles.note, { color: currentTheme.textSecondary, marginBottom: 10 }]}>{t("daily.rules")}</Text>
+			<View style={[styles.freezeCard, { borderColor: "rgba(255,255,255,0.18)" }]}>
+				<FreezeCrystal size={36} dimmed={status.freezes === 0} />
+				<View style={styles.freezeText}>
+					<Text style={[styles.freezeLine, { color: currentTheme.textPrimary }]}>{t("daily.freezeCard", { have: status.freezes, cap: status.freezeCap })}</Text>
+					{!chest && status.freezes < status.freezeCap ? (
+						<Pressable onPress={() => void onBuyFreeze()} accessibilityRole="button">
+							<Text style={styles.freezeGet}>{t("daily.freezeGet", { price: status.freezePrice })}</Text>
+						</Pressable>
+					) : null}
+					{!claimedNow && !alreadyClaimed && status.freezesToUse > 0 ? <Text style={[styles.note, { color: "#6BC7FF", textAlign: "left" }]}>{t("daily.freezeWillUse", { days: status.freezesToUse })}</Text> : null}
+				</View>
+			</View>
+			{freezeNote ? <Text style={[styles.note, { color: "#FF6B6B", marginBottom: 6 }]}>{freezeNote}</Text> : null}
+			<Text style={[styles.sectionTitle, { color: currentTheme.textPrimary }]}>{t("daily.calendar")}</Text>
 
 			{chest ? (
 				// the server already rolled the prize: the roulette stops on it, then the prize card shows
@@ -198,9 +219,6 @@ export default function DailyRewardHost() {
 			)}
 
 			<View style={styles.block}>
-				<Text style={[styles.line, { color: currentTheme.textPrimary }]}>{t("daily.streakDay", { days: shownStreak })}</Text>
-				<Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("daily.freezes", { have: status.freezes, cap: status.freezeCap })}</Text>
-				{!claimedNow && !alreadyClaimed && status.freezesToUse > 0 && <Text style={[styles.note, { color: "#6BC7FF" }]}>{t("daily.freezeWillUse", { days: status.freezesToUse })}</Text>}
 				{claimedNow && claim.freezesUsed > 0 && <FadeInView pop><Text style={[styles.note, { color: "#6BC7FF" }]}>{t("daily.freezeUsed", { days: claim.freezesUsed })}</Text></FadeInView>}
 				{claimedNow && claim.freezeGranted && <FadeInView pop><Text style={[styles.note, { color: "#6BC7FF" }]}>{t("daily.freezeGranted")}</Text></FadeInView>}
 				{claimedNow ? (
@@ -219,13 +237,7 @@ export default function DailyRewardHost() {
 					<Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("daily.toChest", { days: daysToChest })}</Text>
 				)}
 				{failed && <Text style={[styles.note, { color: "#FF6B6B" }]}>{t("daily.failed")}</Text>}
-				{!chest && status.freezes < status.freezeCap && (
-					<>
-						<Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("daily.freezeInfo")}</Text>
-						<StylizedButton text={t("daily.freezeBuy", { price: status.freezePrice })} onClick={() => void onBuyFreeze()} backgroundColor={currentTheme.buttonSecondary} textStyle={{ fontSize: 12 }} />
-					</>
-				)}
-				{freezeNote && <Text style={[styles.note, { color: "#FF6B6B" }]}>{freezeNote}</Text>}
+				{!chest ? <Text style={[styles.note, { color: currentTheme.textSecondary, fontSize: 9 }]}>{t("daily.rules")}</Text> : null}
 				{offerPush && <Text style={[styles.note, { color: currentTheme.textPrimary, marginTop: 8 }]}>{t("notif.pushOffer")}</Text>}
 				{pushNote && <Text style={[styles.note, { color: currentTheme.textSecondary, marginTop: 8 }]}>{pushNote}</Text>}
 			</View>
@@ -250,9 +262,63 @@ export default function DailyRewardHost() {
 }
 
 const styles = StyleSheet.create({
-	flame: {
+	screenTitle: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 16,
+		textAlign: "center",
+		marginBottom: 6,
+	},
+	hero: {
+		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "space-between",
+		alignSelf: "stretch",
+		paddingHorizontal: 8,
+		marginBottom: 6,
+	},
+	heroText: {
+		flex: 1,
+	},
+	heroNumber: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 52,
+		color: "#FB4B5B",
+	},
+	heroLabel: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 16,
+		color: "#FB4B5B",
+	},
+	freezeCard: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 14,
+		alignSelf: "stretch",
+		padding: 10,
+		borderWidth: 2,
+		borderBottomWidth: 4,
+		borderRadius: 16,
+		marginBottom: 12,
+	},
+	freezeText: {
+		flex: 1,
+		gap: 4,
+	},
+	freezeLine: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 13,
+	},
+	freezeGet: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 12,
+		color: "#38BDF8",
+	},
+	sectionTitle: {
+		fontFamily: "SilkscreenBold",
+		fontSize: 18,
+		alignSelf: "flex-start",
 		marginBottom: 8,
+		paddingHorizontal: 4,
 	},
 	title: {
 		fontFamily: "Silkscreen",
@@ -262,8 +328,9 @@ const styles = StyleSheet.create({
 	},
 	block: {
 		alignItems: "center",
-		gap: 6,
-		marginBottom: 16,
+		gap: 4,
+		marginTop: 8,
+		marginBottom: 8,
 	},
 	line: {
 		fontFamily: "Silkscreen",

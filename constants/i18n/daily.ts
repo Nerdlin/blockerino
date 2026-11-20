@@ -4,6 +4,9 @@ export const daily: ScreenDictionary = {
 	en: {
 		"daily.title": "Daily reward",
 		"celebrate.ok": "Awesome!",
+		"daily.freezeCard": "Freezes: {have} of {cap}",
+		"daily.freezeGet": "GET MORE · {price} coins",
+		"daily.calendar": "Calendar",
 		"celebrate.tierTitle": "Pass level {tier}!",
 		"celebrate.tierSub": "A new reward is waiting",
 		"celebrate.monthlyTitle": "Month medal!",
@@ -43,6 +46,9 @@ export const daily: ScreenDictionary = {
 	},
 	ru: {
 		"celebrate.ok": "Круто!",
+		"daily.freezeCard": "Заморозки: {have} из {cap}",
+		"daily.freezeGet": "ПОЛУЧИТЬ БОЛЬШЕ · {price} монет",
+		"daily.calendar": "Календарь",
 		"celebrate.tierTitle": "Уровень пропуска: {tier}!",
 		"celebrate.tierSub": "Тебя ждёт новая награда",
 		"celebrate.monthlyTitle": "Медаль месяца!",
