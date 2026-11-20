@@ -47,6 +47,8 @@ const CYAN = "#38BDF8";
 const GREEN = "#22C55E";
 const RULE_ORDER: XpSource[] = ["classic", "chaos", "challenge", "level", "versus", "more_win", "more_play", "quest_task", "quest_bonus"];
 const BAR_BLOCKS = 20;
+const TILE_W = 64;
+const TILE_STEP = TILE_W + 6;
 
 /** The season pass: progress, the 30 tiers with their rewards and a claim button where one is waiting. */
 export default function SeasonPassMenu() {
@@ -63,10 +65,10 @@ export default function SeasonPassMenu() {
 	const [failed, setFailed] = useState(false);
 	const [howOpen, setHowOpen] = useState(false);
 	const [reveal, setReveal] = useState<TierClaim[] | null>(null);
-	const scrollRef = useRef<ScrollView>(null);
-	const trackY = useRef(0);
-	const rowY = useRef<Record<number, number>>({});
-	const scrolled = useRef(false);
+	// the tier whose reward the big card shows (null: the one that matters)
+	const [selected, setSelected] = useState<number | null>(null);
+	const railRef = useRef<ScrollView>(null);
+	const railOpened = useRef(false);
 
 	const handleBack = useCallback(() => popAppState(), [popAppState]);
 	useEscapeKey(handleBack);
@@ -101,17 +103,14 @@ export default function SeasonPassMenu() {
 	const seasonKey = state?.season ?? new Date().toISOString().slice(0, 7);
 	const cosmetics = cosmeticsForSeason(seasonKey, state?.cosmetics);
 
-	// the track opens on the tier that matters: the first one waiting for a claim, else the next one to earn
+	// the pass opens on the tier that matters: the first one waiting for a claim, else the next one to earn
 	const focusTier = waiting[0] ?? upNext ?? TIER_COUNT;
-	const scrollToFocus = useCallback(() => {
-		const y = rowY.current[focusTier];
-		if (y === undefined || scrolled.current || load !== "ready" || !state) return;
-		scrolled.current = true;
-		scrollRef.current?.scrollTo({ y: Math.max(0, trackY.current + y - 110), animated: false });
-	}, [focusTier, load, state]);
+	const shownTier = selected ?? focusTier;
 	useEffect(() => {
-		scrollToFocus();
-	}, [scrollToFocus]);
+		if (railOpened.current || load !== "ready" || !state) return;
+		railOpened.current = true;
+		railRef.current?.scrollTo({ x: Math.max(0, (focusTier - 1) * TILE_STEP - 110), animated: false });
+	}, [focusTier, load, state]);
 
 	/** The wallet, the items and the keys the server answers with become the player's own. */
 	const apply = async (claim: TierClaim) => {
@@ -159,7 +158,7 @@ export default function SeasonPassMenu() {
 	const dayFull = state ? state.todayXp >= state.dailyCap : false;
 
 	return (
-		<SimplePopupView scrollRef={scrollRef} hideScrollbar style={[{ justifyContent: "flex-start", backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
+		<SimplePopupView hideScrollbar style={[{ justifyContent: "flex-start", backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
 			<View style={styles.topBar}>
 				<StylizedButton text={t("pass.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.backButton} textStyle={styles.backText} />
 			</View>
@@ -219,6 +218,48 @@ export default function SeasonPassMenu() {
 			)}
 			{failed && <Text style={styles.failText}>{t("pass.failed")}</Text>}
 
+
+			{/* the whole pass at a glance: one tile per tier, the free reward on top of its number */}
+			<ScrollView ref={railRef} horizontal showsHorizontalScrollIndicator={false} style={styles.rail} contentContainerStyle={styles.railContent}>
+				{TIER_REWARDS.map((entry) => {
+					const reward = resolveReward(entry, cosmetics);
+					const claimed = state?.claimed.includes(reward.tier) ?? false;
+					const ready = !claimed && reward.tier <= tier;
+					const isNext = !claimed && !ready && reward.tier === upNext && state !== null;
+					return (
+						<TierTile
+							key={reward.tier}
+							reward={reward}
+							status={claimed ? "claimed" : ready ? "ready" : isNext ? "next" : "locked"}
+							selected={reward.tier === shownTier}
+							onPress={() => { playSfx("menuClick"); setSelected(reward.tier); }}
+						/>
+					);
+				})}
+			</ScrollView>
+
+			{/* the chosen tier, big */}
+			<View style={styles.track}>
+				{(() => {
+					const reward = resolveReward(TIER_REWARDS[shownTier - 1], cosmetics);
+					const claimed = state?.claimed.includes(reward.tier) ?? false;
+					const ready = !claimed && reward.tier <= tier;
+					const isNext = !claimed && !ready && reward.tier === upNext && state !== null;
+					return (
+						<TierRow
+							reward={reward}
+							claimed={claimed}
+							ready={ready}
+							isNext={isNext}
+							busy={busy === reward.tier || busy === "all"}
+							disabled={busy !== null || !signedIn}
+							progress={isNext ? progress.fraction : 0}
+							language={language}
+							onClaim={() => void claimTiers([reward.tier])}
+						/>
+					);
+				})()}
+			</View>
 			<Pressable onPress={() => setHowOpen((open) => !open)} accessibilityRole="button" style={styles.howHead}>
 				<Text style={[styles.howTitle, { color: currentTheme.textPrimary }]}>{t("pass.how")}</Text>
 				<Text style={[styles.howTitle, { color: currentTheme.textSecondary }]}>{howOpen ? "-" : "+"}</Text>
@@ -237,30 +278,6 @@ export default function SeasonPassMenu() {
 					</Text>
 				</View>
 			</Collapsible>
-
-			<View style={styles.track} onLayout={(event) => { trackY.current = event.nativeEvent.layout.y; scrollToFocus(); }}>
-				{TIER_REWARDS.map((entry) => {
-					const reward = resolveReward(entry, cosmetics);
-					const claimed = state?.claimed.includes(reward.tier) ?? false;
-					const ready = !claimed && reward.tier <= tier;
-					const isNext = !claimed && !ready && reward.tier === upNext && state !== null;
-					return (
-						<View key={reward.tier} onLayout={(event) => { rowY.current[reward.tier] = event.nativeEvent.layout.y; scrollToFocus(); }}>
-							<TierRow
-								reward={reward}
-								claimed={claimed}
-								ready={ready}
-								isNext={isNext}
-								busy={busy === reward.tier || busy === "all"}
-								disabled={busy !== null || !signedIn}
-								progress={isNext ? progress.fraction : 0}
-								language={language}
-								onClaim={() => void claimTiers([reward.tier])}
-							/>
-						</View>
-					);
-				})}
-			</View>
 			<Text style={[styles.endNote, { color: currentTheme.textSecondary }]}>{t("pass.endsNote")}</Text>
 		</SimplePopupView>
 	);
@@ -363,6 +380,46 @@ function TierRow({ reward, claimed, ready, isNext, busy, disabled, progress, lan
 	);
 }
 
+type TileStatus = "claimed" | "ready" | "next" | "locked";
+
+/** One tier of the rail: a FREE tag, the reward and the tier number underneath, coloured by where the player stands. */
+function TierTile({ reward, status, selected, onPress }: { reward: ResolvedReward; status: TileStatus; selected: boolean; onPress: () => void }) {
+	const { t } = useLanguage();
+	const item = reward.itemId ? getShopItem(reward.itemId) : undefined;
+	const color = status === "ready" ? GOLD : status === "next" ? CYAN : status === "claimed" ? GREEN : "rgba(255,255,255,0.28)";
+	const amount = reward.coins > 0 ? `+${reward.coins}` : reward.keys > 0 ? `x${reward.keys}` : "";
+	return (
+		<Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={t("pass.tierTitle", { tier: reward.tier })} style={styles.tileWrap}>
+			<View style={styles.tileTag}>
+				<Text style={styles.tileTagText} numberOfLines={1} adjustsFontSizeToFit>{t("pass.freeTag")}</Text>
+			</View>
+			<View
+				style={[
+					styles.tile,
+					{ borderColor: selected ? "#FFFFFF" : color },
+					status === "locked" && { opacity: 0.72 },
+					status === "claimed" && { backgroundColor: "rgba(34,197,94,0.12)" },
+					status === "ready" && { backgroundColor: "rgba(255,201,60,0.14)", boxShadow: `0 0 10px ${GOLD}` },
+				]}
+			>
+				{item ? (
+					<View style={styles.tilePreview}><CosmeticPreview item={item} /></View>
+				) : reward.chest ? (
+					<PixelChest size={34} kind={reward.chest} />
+				) : reward.keys > 0 ? (
+					<UiIcon name="key" size={34} />
+				) : (
+					<UiIcon name="coin" size={34} />
+				)}
+				{amount ? <Text style={[styles.tileAmount, { color: reward.coins > 0 ? "#FFD700" : "#FFFFFF" }]}>{amount}</Text> : null}
+			</View>
+			<View style={[styles.tileNum, { backgroundColor: status === "locked" ? "rgba(255,255,255,0.1)" : color }]}>
+				<Text style={[styles.tileNumText, { color: status === "locked" ? "#D4D4D8" : "#0B0B12" }]}>{reward.tier}</Text>
+			</View>
+		</Pressable>
+	);
+}
+
 /** What the claims gave: each chest spins its roulette in turn, then one summary of the rest. */
 function ClaimReveal({ claims, onClose }: { claims: TierClaim[]; onClose: () => void }) {
 	const { t, language } = useLanguage();
@@ -448,7 +505,17 @@ const styles = StyleSheet.create({
 	ruleRow: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
 	ruleName: { flex: 1, fontFamily: "Silkscreen", fontSize: 10 },
 	ruleXp: { fontFamily: "Silkscreen", fontSize: 10 },
-	track: { width: "94%", gap: 6, marginTop: 4 },
+	track: { width: "94%", gap: 6, marginTop: 6 },
+	rail: { width: "100%", flexGrow: 0, marginTop: 6 },
+	railContent: { paddingHorizontal: 8, paddingVertical: 4, gap: 6 },
+	tileWrap: { width: TILE_W, alignItems: "stretch" },
+	tileTag: { height: 16, backgroundColor: "#F4F5F7", alignItems: "center", justifyContent: "center", paddingHorizontal: 2 },
+	tileTagText: { fontFamily: "SilkscreenBold", fontSize: 8, color: "#101014" },
+	tile: { height: 74, borderWidth: 2, borderTopWidth: 0, alignItems: "center", justifyContent: "center", gap: 2, backgroundColor: "rgba(0,0,0,0.45)", overflow: "hidden" },
+	tilePreview: { width: "100%", paddingHorizontal: 2 },
+	tileAmount: { fontFamily: "SilkscreenBold", fontSize: 10 },
+	tileNum: { height: 18, alignItems: "center", justifyContent: "center" },
+	tileNumText: { fontFamily: "SilkscreenBold", fontSize: 11 },
 	rowWrap: { flexDirection: "row", alignItems: "stretch", gap: 8 },
 	badge: { width: 38, alignItems: "center", justifyContent: "center", borderWidth: 2, backgroundColor: "rgba(0,0,0,0.35)" },
 	badgeReady: { backgroundColor: "rgba(255,201,60,0.18)" },
