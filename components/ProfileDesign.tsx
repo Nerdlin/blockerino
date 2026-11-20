@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import FadeInView from "./FadeInView";
 import UiIcon from "./UiIcon";
 import AchievementIcon from "./AchievementIcon";
@@ -77,12 +77,20 @@ export function ProfileBanner({
 	color,
 	avatarUrl,
 	children,
+	onAvatarPress,
+	avatarBadge,
+	nameNode,
 }: {
 	name: string;
 	nameColor: string;
 	color: string;
 	avatarUrl: string | null;
 	children?: ReactNode;
+	/** Own profile: tapping the picture changes it. */
+	onAvatarPress?: () => void;
+	avatarBadge?: ReactNode;
+	/** Own profile: replaces the plain name with an editable one. */
+	nameNode?: ReactNode;
 }) {
 	const squares = useRef(bannerSquares(name)).current;
 	return (
@@ -93,20 +101,25 @@ export function ProfileBanner({
 				))}
 			</View>
 			<FadeInView pop>
-				<View style={[styles.avatarRing, { borderColor: color }]}>
-					{avatarUrl && avatarUrl.startsWith("http") ? (
-						<Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-					) : (
-						<View style={styles.avatarFallback}>
-							<Text style={styles.avatarText}>{avatarUrl || name.charAt(0).toUpperCase()}</Text>
-						</View>
-					)}
-				</View>
+				<Pressable disabled={!onAvatarPress} onPress={onAvatarPress} style={styles.avatarWrap}>
+					<View style={[styles.avatarRing, { borderColor: color }]}>
+						{avatarUrl && avatarUrl.startsWith("http") ? (
+							<Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+						) : (
+							<View style={styles.avatarFallback}>
+								<Text style={styles.avatarText}>{avatarUrl || name.charAt(0).toUpperCase()}</Text>
+							</View>
+						)}
+					</View>
+					{avatarBadge}
+				</Pressable>
 			</FadeInView>
 			<FadeInView delay={120} style={styles.bannerText}>
-				<Text style={[styles.name, { color: nameColor, fontFamily: nameFontFamily(name) }]} numberOfLines={1} adjustsFontSizeToFit>
-					{name}
-				</Text>
+				{nameNode ?? (
+					<Text style={[styles.name, { color: nameColor, fontFamily: nameFontFamily(name) }]} numberOfLines={1} adjustsFontSizeToFit>
+						{name}
+					</Text>
+				)}
 				{children}
 			</FadeInView>
 		</View>
@@ -227,6 +240,9 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: 8,
 	},
+	avatarWrap: {
+		position: "relative",
+	},
 	avatarRing: {
 		width: 104,
 		height: 104,
@@ -287,8 +303,8 @@ const styles = StyleSheet.create({
 	},
 	scoreBadge: {
 		flexGrow: 1,
-		flexBasis: "30%",
-		minWidth: 92,
+		flexBasis: "28%",
+		minWidth: 82,
 		alignItems: "center",
 		gap: 2,
 		paddingVertical: 10,

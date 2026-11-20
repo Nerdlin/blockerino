@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Svg, { Rect } from "react-native-svg";
 import PixelLoader from "@/components/PixelLoader";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -290,6 +291,7 @@ export default function SeasonPassMenu() {
 								status={claimed ? "claimed" : ready ? "ready" : isNext ? "next" : "locked"}
 								selected={reward.tier === shownTier}
 								onPress={select}
+								progress={isNext && state ? tierProgress(state.xp).fraction : undefined}
 							/>
 							{premiumEntry && (
 								<TierTile reward={premiumEntry} premium locked={!premiumOpen} status={premiumStatus} selected={reward.tier === shownTier} onPress={select} />
@@ -528,7 +530,21 @@ function HeroReward({ tier, free, premium, language }: { tier: number; free: Res
 type TileStatus = "claimed" | "ready" | "next" | "locked";
 
 /** One tier of the rail: a FREE tag, the reward and the tier number underneath, coloured by where the player stands. */
-function TierTile({ reward, status, selected, onPress, premium = false, locked = false }: { reward: ResolvedReward; status: TileStatus; selected: boolean; onPress: () => void; premium?: boolean; locked?: boolean }) {
+/** The outline of the tile that is next, filled as far as the XP into the tier (starts at the top left, runs clockwise). */
+function TileRing({ width, height, fraction }: { width: number; height: number; fraction: number }) {
+	const w = Math.max(0, width - 4);
+	const h = Math.max(0, height - 2);
+	const perimeter = 2 * (w + h);
+	return (
+		<Svg width={width} height={height} style={StyleSheet.absoluteFill} pointerEvents="none">
+			<Rect x={2} y={1} width={w} height={h} fill="none" stroke="rgba(34,211,238,0.22)" strokeWidth={3} />
+			<Rect x={2} y={1} width={w} height={h} fill="none" stroke={CYAN} strokeWidth={3} strokeDasharray={`${perimeter * Math.max(0.02, fraction)} ${perimeter}`} />
+		</Svg>
+	);
+}
+
+function TierTile({ reward, status, selected, onPress, premium = false, locked = false, progress }: { reward: ResolvedReward; status: TileStatus; selected: boolean; onPress: () => void; premium?: boolean; locked?: boolean; progress?: number }) {
+	const [box, setBox] = useState({ w: 0, h: 0 });
 	const { t } = useLanguage();
 	const item = reward.itemId ? getShopItem(reward.itemId) : undefined;
 	const color = status === "ready" ? GOLD : status === "next" ? CYAN : status === "claimed" ? GREEN : premium ? "rgba(251,146,60,0.45)" : "rgba(255,255,255,0.28)";
@@ -546,7 +562,9 @@ function TierTile({ reward, status, selected, onPress, premium = false, locked =
 					status === "claimed" && { backgroundColor: "rgba(34,197,94,0.12)" },
 					status === "ready" && { backgroundColor: "rgba(255,201,60,0.14)", boxShadow: `0 0 10px ${GOLD}` },
 				]}
+				onLayout={(event) => setBox({ w: event.nativeEvent.layout.width, h: event.nativeEvent.layout.height })}
 			>
+				{status === "next" && progress !== undefined && box.w > 0 ? <TileRing width={box.w} height={box.h} fraction={progress} /> : null}
 				{item ? (
 					<View style={styles.tilePreview}><CosmeticPreview item={item} /></View>
 				) : reward.chest ? (

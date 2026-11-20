@@ -1,5 +1,4 @@
 import { GameModeType, useAppState } from "@/hooks/useAppState";
-import AnimatedNumber from "./AnimatedNumber";
 import { useSetAtom } from "jotai";
 import { deleteAccountOpenAtom } from "./AccountDeleteHost";
 import FadeInView from "./FadeInView";
@@ -12,6 +11,7 @@ import SegmentedControl from "./SegmentedControl";
 import UiIcon from "./UiIcon";
 import PerkBadge from "./PerkBadge";
 import SeasonTitleBadges from "./SeasonTitleBadges";
+import { ProfileBanner, ScoreBadge } from "./ProfileDesign";
 import { getMySeasonTitles, type SeasonTitle } from "@/constants/SeasonResults";
 import { useLeaderboardPerk } from "@/constants/LeaderboardPerks";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -590,60 +590,54 @@ export default function ProfileMenu() {
 					<PixelLoader size="large" color={currentTheme.accent} />
 				) : (session || (playerName && !showAuth)) ? (
 					<View style={[styles.profileContainer, isMobile && styles.mobileProfileContainer]}>
-						{/* the avatar and who the player is share a row, so the whole profile fits one screen */}
-						<View style={styles.heroRow}>
-						<FadeInView pop>
-						<Pressable onPress={() => setShowAvatarPopup(true)} style={{ position: "relative" }}>
-							{avatarUrl && avatarUrl.startsWith("http") ? (
-								<Image source={{ uri: avatarUrl }} style={[styles.avatarPlaceholder, { backgroundColor: "transparent" }]} />
-							) : (
-								<View style={styles.avatarPlaceholder}>
-									<Text style={styles.avatarText}>{avatarUrl || (playerName ? playerName.charAt(0).toUpperCase() : '?')}</Text>
+						<ProfileBanner
+							name={playerName || session?.user.email || "?"}
+							nameColor={perk?.tier.color ?? currentTheme.textPrimary}
+							color={perk?.tier.color ?? currentTheme.accent}
+							avatarUrl={avatarUrl}
+							onAvatarPress={() => setShowAvatarPopup(true)}
+							avatarBadge={<View style={styles.editAvatarBadge}><PixelIcon name="pencil" size={14} color="#F0AF0C" secondaryColor="#F472B6" /></View>}
+							nameNode={
+								editingName ? (
+									<TextInput
+										testID="profile-name-input"
+										autoFocus
+										value={nameDraft}
+										onChangeText={setNameDraft}
+										onBlur={() => void saveName()}
+										onSubmitEditing={() => void saveName()}
+										maxLength={20}
+										placeholder={t("profile.playerNamePlaceholder")}
+										placeholderTextColor={currentTheme.textSecondary}
+										style={[styles.input, { color: currentTheme.textPrimary, borderColor: currentTheme.gridBorder, textAlign: "center", maxWidth: 260 }]}
+									/>
+								) : (
+									<Pressable
+										testID="profile-name"
+										onPress={() => { setNameDraft(playerName); setNameError(null); setEditingName(true); }}
+										style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+									>
+										<Text style={[styles.welcomeText, { color: perk?.tier.color ?? currentTheme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
+											{playerName || session?.user.email}
+										</Text>
+										<PixelIcon name="pencil" size={16} color="#F0AF0C" secondaryColor="#F472B6" />
+									</Pressable>
+								)
+							}
+						>
+							{nameError ? <Text style={[styles.errorText, { textAlign: "center" }]}>{nameError}</Text> : (editingName && session ? <Text style={{ fontFamily: "Silkscreen", color: currentTheme.textSecondary, fontSize: 11, textAlign: "center" }}>{t("profile.rename.hint")}</Text> : null)}
+							{perk && <PerkBadge perk={perk} />}
+							<View style={styles.heroChips}>
+								<View style={[styles.heroChip, { borderColor: currentTheme.gridBorder }]}>
+									<UiIcon name="coin" size={14} />
+									<Text style={[styles.heroChipText, { color: currentTheme.accent }]}>{shopState.balance}</Text>
 								</View>
-							)}
-							<View style={styles.editAvatarBadge}><PixelIcon name="pencil" size={14} color="#F0AF0C" secondaryColor="#F472B6" /></View>
-						</Pressable>
-						</FadeInView>
-						<View style={styles.heroInfo}>
-						{editingName ? (
-							<TextInput
-								testID="profile-name-input"
-								autoFocus
-								value={nameDraft}
-								onChangeText={setNameDraft}
-								onBlur={() => void saveName()}
-								onSubmitEditing={() => void saveName()}
-								maxLength={20}
-								placeholder={t("profile.playerNamePlaceholder")}
-								placeholderTextColor={currentTheme.textSecondary}
-								style={[styles.input, { color: currentTheme.textPrimary, borderColor: currentTheme.gridBorder, textAlign: "center", maxWidth: 260 }]}
-							/>
-						) : (
-							<Pressable
-								testID="profile-name"
-								onPress={() => { setNameDraft(playerName); setNameError(null); setEditingName(true); }}
-								style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
-							>
-								<Text style={[styles.welcomeText, { color: perk?.tier.color ?? currentTheme.textPrimary }]}>
-									{playerName || session?.user.email}
-								</Text>
-								<PixelIcon name="pencil" size={16} color="#F0AF0C" secondaryColor="#F472B6" />
-							</Pressable>
-						)}
-						{nameError ? <Text style={[styles.errorText, { textAlign: "center" }]}>{nameError}</Text> : (editingName && session ? <Text style={{ fontFamily: "Silkscreen", color: currentTheme.textSecondary, fontSize: 11, textAlign: "center" }}>{t("profile.rename.hint")}</Text> : null)}
-						{perk && <PerkBadge perk={perk} />}
-						<View style={styles.heroChips}>
-							<View style={[styles.heroChip, { borderColor: currentTheme.gridBorder }]}>
-								<UiIcon name="coin" size={14} />
-								<Text style={[styles.heroChipText, { color: currentTheme.accent }]}>{shopState.balance}</Text>
+								<View style={[styles.heroChip, { borderColor: currentTheme.gridBorder }]}>
+									<Text style={[styles.heroChipLabel, { color: currentTheme.textSecondary }]}>{t("profile.elo")}</Text>
+									<Text style={[styles.heroChipText, { color: currentTheme.accent }]}>{playerElo !== null ? playerElo : "—"}</Text>
+								</View>
 							</View>
-							<View style={[styles.heroChip, { borderColor: currentTheme.gridBorder }]}>
-								<Text style={[styles.heroChipLabel, { color: currentTheme.textSecondary }]}>{t("profile.elo")}</Text>
-								<Text style={[styles.heroChipText, { color: currentTheme.accent }]}>{playerElo !== null ? playerElo : "—"}</Text>
-							</View>
-						</View>
-						</View>
-						</View>
+						</ProfileBanner>
 						<SeasonTitleBadges titles={seasonTitles} />
 
 						<SegmentedControl
@@ -667,18 +661,9 @@ export default function ProfileMenu() {
 
 						{activeTab === "stats" && (
 							<View style={styles.statsContainer}>
-								<FadeInView index={0} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
-									<AnimatedNumber value={classicScore} style={[styles.statValue, { color: currentTheme.accent }]} />
-									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.classic")}</Text>
-								</FadeInView>
-								<FadeInView index={1} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
-									<AnimatedNumber value={chaosScore} style={[styles.statValue, { color: currentTheme.accent }]} />
-									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.chaos")}</Text>
-								</FadeInView>
-								<FadeInView index={2} style={[styles.statBox, isMobile && styles.mobileStatBox, { borderColor: currentTheme.gridBorder, backgroundColor: currentTheme.emptyBlockBorder }]}>
-									<AnimatedNumber value={gamesPlayed} style={[styles.statValue, { color: currentTheme.accent }]} />
-									<Text style={[styles.statLabel, { color: currentTheme.textSecondary }]}>{t("profile.matches")}</Text>
-								</FadeInView>
+								<ScoreBadge value={classicScore} label={t("profile.classic")} color="#FF5A5A" />
+								<ScoreBadge value={chaosScore} label={t("profile.chaos")} color="#A78BFA" />
+								<ScoreBadge value={gamesPlayed} label={t("profile.matches")} color="#FFD700" />
 							</View>
 						)}
 

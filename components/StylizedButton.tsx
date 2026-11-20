@@ -31,6 +31,26 @@ export function readableTextColor(background: string | undefined): string | unde
     return luminance > 0.42 ? "#111111" : undefined;
 }
 
+// The lower edge of a key: the fill, darker. Colours it cannot read get a plain dark edge.
+export function darkerEdge(background: string | undefined): string {
+    const value = (background ?? "").trim().toLowerCase();
+    let r: number, g: number, b: number;
+    const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/.exec(value);
+    if (hex) {
+        const h = hex[1].length === 3 ? hex[1].split("").map((ch) => ch + ch).join("") : hex[1];
+        r = parseInt(h.slice(0, 2), 16);
+        g = parseInt(h.slice(2, 4), 16);
+        b = parseInt(h.slice(4, 6), 16);
+    } else {
+        const rgb = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/.exec(value);
+        if (!rgb) return "rgba(0,0,0,0.45)";
+        r = Number(rgb[1]);
+        g = Number(rgb[2]);
+        b = Number(rgb[3]);
+    }
+    return `rgb(${Math.round(r * 0.62)}, ${Math.round(g * 0.62)}, ${Math.round(b * 0.62)})`;
+}
+
 export default function StylizedButton({
     text, 
     onClick, 
@@ -86,7 +106,7 @@ export default function StylizedButton({
                     borderColor: borderColor ? borderColor : "transparent",
                     opacity: disabled ? 0.62 : 1
                 }, 
-                pressed && !disabled ? { transform: [{ scale: 0.96 }], opacity: 0.88 } : null,
+                pressed && !disabled ? { transform: [{ translateY: 3 }], borderBottomWidth: 2, opacity: 0.95 } : null,
                 style
             ]}
         >
