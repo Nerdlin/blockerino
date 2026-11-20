@@ -157,6 +157,10 @@ export default function SeasonPassMenu() {
 		else void refresh();
 	};
 
+	// the big preview shows the most notable reward of the chosen tier: a skin first, then a chest, keys, coins
+	const heroFree = state ? resolveReward(TIER_REWARDS[shownTier - 1], cosmetics) : null;
+	const heroPremium = state && premium?.available ? resolveReward(PREMIUM_REWARDS[shownTier - 1], premium.cosmetics, PREMIUM_COSMETIC_COINS) : null;
+
 	const claimTiers = (tiers: number[]) => claimItems(tiers.map((tier) => ({ tier, premium: false })));
 
 	/** Opens the premium track for coins; the balance the server answers with becomes the player's own. */
@@ -190,7 +194,22 @@ export default function SeasonPassMenu() {
 	const dayFull = state ? state.todayXp >= state.dailyCap : false;
 
 	return (
-		<SimplePopupView hideScrollbar style={[{ justifyContent: "flex-start", backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
+		<SimplePopupView
+			hideScrollbar
+			footer={state && premium && premium.available && !premium.unlocked ? (
+				<View style={styles.premiumFooter}>
+					<StylizedButton
+						text={unlocking ? t("pass.claiming") : t("pass.premiumUnlock", { price: premium.price })}
+						onClick={() => void unlockPremium()}
+						backgroundColor={shop.balance >= premium.price ? "#EA580C" : "#7C3A12"}
+						disabled={unlocking || busy !== null}
+						style={styles.premiumButton}
+						textStyle={styles.claimAllText}
+					/>
+					{poor && <Text style={styles.failText}>{t("pass.premiumPoor", { price: premium.price })}</Text>}
+				</View>
+			) : undefined}
+			style={[{ justifyContent: "flex-start", backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
 			<View style={styles.topBar}>
 				<StylizedButton text={t("pass.back")} onClick={handleBack} backgroundColor={cssColors.spaceGray} style={styles.backButton} textStyle={styles.backText} />
 			</View>
@@ -238,6 +257,8 @@ export default function SeasonPassMenu() {
 				</View>
 			)}
 
+			{heroFree && <HeroReward tier={shownTier} free={heroFree} premium={heroPremium} language={language} />}
+
 			{waiting.length + premiumWaiting.length > 0 && (
 				<StylizedButton
 					text={busy === "all" ? t("pass.claiming") : t("pass.claimAll", { count: waiting.length + premiumWaiting.length })}
@@ -250,30 +271,6 @@ export default function SeasonPassMenu() {
 			)}
 			{failed && <Text style={styles.failText}>{t("pass.failed")}</Text>}
 
-
-			{state && premium && premium.available && !premium.unlocked && (
-				<View style={styles.premiumCard}>
-					<Text style={styles.premiumTitle}>{t("pass.premiumTitle")}</Text>
-					<Text style={[styles.premiumText, { color: currentTheme.textSecondary }]}>{t("pass.premiumText")}</Text>
-					<View style={styles.premiumSkins}>
-						{Object.values(premium.cosmetics).map((id) => {
-							const item = getShopItem(id);
-							return item ? <View key={id} style={styles.premiumSkin}><CosmeticPreview item={item} /></View> : null;
-						})}
-					</View>
-					<StylizedButton
-						text={unlocking ? t("pass.claiming") : t("pass.premiumUnlock", { price: premium.price })}
-						onClick={() => void unlockPremium()}
-						backgroundColor={shop.balance >= premium.price ? "#EA580C" : "#7C3A12"}
-						disabled={unlocking || busy !== null}
-						style={styles.premiumButton}
-						textStyle={styles.claimAllText}
-					/>
-					{poor && <Text style={styles.failText}>{t("pass.premiumPoor", { price: premium.price })}</Text>}
-				</View>
-			)}
-			{state && premium && !premium.available && <Text style={[styles.note, { color: currentTheme.textSecondary, marginTop: 8, paddingHorizontal: 12 }]}>{t("pass.premiumSoon")}</Text>}
-			{state && premiumOpen && <Text style={[styles.note, { color: "#FB923C", marginTop: 8 }]}>{t("pass.premiumOpen")}</Text>}
 
 			{/* the whole pass at a glance: one column per tier, the free reward on top of the premium one */}
 			<ScrollView ref={railRef} horizontal showsHorizontalScrollIndicator={false} style={styles.rail} contentContainerStyle={styles.railContent}>
@@ -351,6 +348,21 @@ export default function SeasonPassMenu() {
 					);
 				})()}
 			</View>
+			{state && premium && premium.available && !premium.unlocked && (
+				<View style={styles.premiumCard}>
+					<Text style={styles.premiumTitle}>{t("pass.premiumTitle")}</Text>
+					<Text style={[styles.premiumText, { color: currentTheme.textSecondary }]}>{t("pass.premiumText")}</Text>
+					<View style={styles.premiumSkins}>
+						{Object.values(premium.cosmetics).map((id) => {
+							const item = getShopItem(id);
+							return item ? <View key={id} style={styles.premiumSkin}><CosmeticPreview item={item} /></View> : null;
+						})}
+					</View>
+				</View>
+			)}
+			{state && premium && !premium.available && <Text style={[styles.note, { color: currentTheme.textSecondary, marginTop: 8, paddingHorizontal: 12 }]}>{t("pass.premiumSoon")}</Text>}
+			{state && premiumOpen && <Text style={[styles.note, { color: "#FB923C", marginTop: 8 }]}>{t("pass.premiumOpen")}</Text>}
+
 			<Pressable onPress={() => setHowOpen((open) => !open)} accessibilityRole="button" style={styles.howHead}>
 				<Text style={[styles.howTitle, { color: currentTheme.textPrimary }]}>{t("pass.how")}</Text>
 				<Text style={[styles.howTitle, { color: currentTheme.textSecondary }]}>{howOpen ? "-" : "+"}</Text>
@@ -473,6 +485,53 @@ function TierRow({ reward, claimed, ready, isNext, busy, disabled, progress, lan
 	);
 }
 
+/** The chosen tier's best reward at full size, with the track it belongs to. */
+function HeroReward({ tier, free, premium, language }: { tier: number; free: ResolvedReward; premium: ResolvedReward | null; language: "en" | "ru" }) {
+	const { t } = useLanguage();
+	const { currentTheme } = useTheme();
+	const candidates: { reward: ResolvedReward; premium: boolean }[] = [];
+	if (premium) candidates.push({ reward: premium, premium: true });
+	candidates.push({ reward: free, premium: false });
+	const best =
+		candidates.find((c) => c.reward.itemId) ??
+		candidates.find((c) => c.reward.chest) ??
+		candidates.find((c) => c.reward.keys > 0) ??
+		candidates[0];
+	const { reward } = best;
+	const item = reward.itemId ? getShopItem(reward.itemId) : undefined;
+	const accent = best.premium ? "#FB923C" : GOLD;
+	const title = item
+		? shopItemText(item, language).title
+		: reward.chest
+			? t(reward.chest === "big" ? "pass.reward.chestBig" : "pass.reward.chestSmall")
+			: reward.keys > 0
+				? t("pass.reward.keys", { count: reward.keys })
+				: t("pass.reward.coins", { coins: reward.coins });
+	return (
+		<View style={[styles.hero, { borderColor: accent }]}>
+			<View style={styles.heroHead}>
+				<Text style={[styles.heroTier, { color: currentTheme.textPrimary }]}>{t("pass.tierTitle", { tier })}</Text>
+				<View style={[styles.heroTag, { backgroundColor: accent }]}>
+					<Text style={styles.heroTagText}>{best.premium ? t("pass.premiumTag") : t("pass.freeTag")}</Text>
+				</View>
+			</View>
+			<View style={styles.heroVisual}>
+				{item ? (
+					<View style={{ width: "100%" }}><CosmeticPreview item={item} large /></View>
+				) : reward.chest ? (
+					<PixelChest size={56} kind={reward.chest} />
+				) : reward.keys > 0 ? (
+					<UiIcon name="key" size={56} />
+				) : (
+					<UiIcon name="coin" size={56} />
+				)}
+			</View>
+			<Text style={[styles.heroTitle, { color: accent }]} numberOfLines={2}>{title}</Text>
+			{item ? <Text style={[styles.rewardSub, { color: currentTheme.textSecondary }]}>{t("pass.exclusive")}</Text> : null}
+		</View>
+	);
+}
+
 type TileStatus = "claimed" | "ready" | "next" | "locked";
 
 /** One tier of the rail: a FREE tag, the reward and the tier number underneath, coloured by where the player stands. */
@@ -584,9 +643,9 @@ const styles = StyleSheet.create({
 	failText: { fontFamily: "Silkscreen", fontSize: 11, color: "#FF6B6B", textAlign: "center", marginVertical: 4 },
 	smallButton: { minWidth: 0, height: 36, margin: 0, paddingHorizontal: 16, borderRadius: 8 },
 	smallText: { fontSize: 12 },
-	panel: { width: "94%", padding: 12, gap: 8, borderRadius: 10, borderWidth: 2, borderColor: "rgba(255,255,255,0.18)", backgroundColor: "rgba(255,255,255,0.05)" },
+	panel: { width: "94%", padding: 10, gap: 5, borderRadius: 10, borderWidth: 2, borderColor: "rgba(255,255,255,0.18)", backgroundColor: "rgba(255,255,255,0.05)" },
 	tierLine: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
-	tierBig: { fontFamily: "Silkscreen", fontSize: 17, color: "#FFFFFF" },
+	tierBig: { fontFamily: "Silkscreen", fontSize: 15, color: "#FFFFFF" },
 	xpTotal: { fontFamily: "Silkscreen", fontSize: 13, color: CYAN },
 	note: { fontFamily: "Silkscreen", fontSize: 10, lineHeight: 15, textAlign: "center" },
 	bar: { flexDirection: "row", gap: 2, padding: 3, borderWidth: 2, borderColor: "rgba(255,255,255,0.35)", backgroundColor: "rgba(0,0,0,0.35)" },
@@ -602,6 +661,14 @@ const styles = StyleSheet.create({
 	track: { width: "94%", gap: 6, marginTop: 6 },
 	rail: { width: "100%", flexGrow: 0, marginTop: 6 },
 	railColumn: { width: TILE_W, gap: 6 },
+	hero: { width: "94%", marginTop: 10, padding: 12, gap: 8, borderRadius: 12, borderWidth: 2, backgroundColor: "rgba(255,255,255,0.04)", alignItems: "center" },
+	heroHead: { width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+	heroTier: { fontFamily: "SilkscreenBold", fontSize: 14 },
+	heroTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 5 },
+	heroTagText: { fontFamily: "SilkscreenBold", fontSize: 10, color: "#101014" },
+	heroVisual: { width: "100%", minHeight: 72, alignItems: "center", justifyContent: "center" },
+	heroTitle: { fontFamily: "SilkscreenBold", fontSize: 15, textAlign: "center" },
+	premiumFooter: { width: "100%", alignItems: "center", gap: 4 },
 	tileTagPremium: { backgroundColor: "#EA580C" },
 	tileLock: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.45)" },
 	trackLabel: { fontFamily: "SilkscreenBold", fontSize: 10, marginTop: 6 },
