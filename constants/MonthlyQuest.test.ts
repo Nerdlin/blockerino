@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { MONTHLY_REWARD, MONTHLY_TARGET, daysLeftInMonth, parseMonthlyQuest } from "./MonthlyQuest";
+import { MONTHLY_KEYS, MONTHLY_REWARD, MONTHLY_TARGET, daysLeftInMonth, parseMonthlyQuest } from "./MonthlyQuest";
 
 jest.mock("@react-native-async-storage/async-storage", () => require("@react-native-async-storage/async-storage/jest/async-storage-mock"));
 
@@ -9,6 +9,7 @@ describe("monthly quest", () => {
 		const sql = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", "20261120160000_monthly_quest.sql"), "utf8");
 		expect(sql).toContain(`monthly_quest_target() RETURNS integer LANGUAGE sql IMMUTABLE AS $$ SELECT ${MONTHLY_TARGET}; $$`);
 		expect(sql).toContain(`monthly_quest_reward() RETURNS integer LANGUAGE sql IMMUTABLE AS $$ SELECT ${MONTHLY_REWARD}; $$`);
+		expect(sql).toContain(`monthly_quest_keys() RETURNS integer LANGUAGE sql IMMUTABLE AS $$ SELECT ${MONTHLY_KEYS}; $$`);
 	});
 
 	it("reads the server answer and drops what does not fit", () => {

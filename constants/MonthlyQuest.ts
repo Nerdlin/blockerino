@@ -3,11 +3,12 @@ import { supabase } from "./Supabase";
 import { getAccountSession } from "./AccountSession";
 
 // The monthly quest: the daily bonus (all three daily quests) on 10 different days of a month earns that month's medal,
-// 300 coins and a chest key. The server counts the days and pays (monthly_quest migration); the target and the reward
+// 600 coins and 2 chest keys. The server counts the days and pays (monthly_quest migration); the target and the reward
 // below are mirrored there and a jest test compares both.
 
 export const MONTHLY_TARGET = 10;
-export const MONTHLY_REWARD = 300;
+export const MONTHLY_REWARD = 600;
+export const MONTHLY_KEYS = 2;
 
 export interface MonthlyQuestState {
 	month: string;

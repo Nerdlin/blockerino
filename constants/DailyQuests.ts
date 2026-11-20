@@ -16,7 +16,7 @@ export interface QuestDefinition {
 }
 
 export const BONUS_QUEST_ID = "bonus";
-export const BONUS_REWARD = 50;
+export const BONUS_REWARD = 75;
 export const QUESTS_PER_DAY = 3;
 
 /** Ids and rewards are mirrored in the daily_quests migration; a jest test compares both. */
@@ -27,21 +27,21 @@ export const QUEST_POOL: QuestDefinition[] = [
 	{ id: "games_4", kind: "games", target: 4, reward: 40 },
 	{ id: "pieces_40", kind: "pieces", target: 40, reward: 20 },
 	{ id: "pieces_100", kind: "pieces", target: 100, reward: 40 },
-	{ id: "botWin_1", kind: "botWin", target: 1, reward: 30 },
-	{ id: "botWin_2", kind: "botWin", target: 2, reward: 50 },
-	{ id: "versus_1", kind: "versus", target: 1, reward: 40 },
+	{ id: "botWin_1", kind: "botWin", target: 1, reward: 20 },
+	{ id: "botWin_2", kind: "botWin", target: 2, reward: 35 },
+	{ id: "versus_1", kind: "versus", target: 1, reward: 60 },
 	{ id: "moreWin_1", kind: "moreWin", target: 1, reward: 30 },
 	{ id: "moreWin_2", kind: "moreWin", target: 2, reward: 50 },
 	{ id: "lines_25", kind: "lines", target: 25, reward: 30 },
-	{ id: "lines_70", kind: "lines", target: 70, reward: 50 },
-	{ id: "games_1", kind: "games", target: 1, reward: 10 },
+	{ id: "lines_70", kind: "lines", target: 70, reward: 55 },
+	{ id: "games_1", kind: "games", target: 1, reward: 15 },
 	{ id: "games_3", kind: "games", target: 3, reward: 30 },
 	{ id: "pieces_70", kind: "pieces", target: 70, reward: 30 },
-	{ id: "pieces_150", kind: "pieces", target: 150, reward: 50 },
-	{ id: "chessWin_1", kind: "chessWin", target: 1, reward: 30 },
-	{ id: "chessWin_2", kind: "chessWin", target: 2, reward: 50 },
-	{ id: "durakWin_1", kind: "durakWin", target: 1, reward: 30 },
-	{ id: "seaWin_1", kind: "seaWin", target: 1, reward: 30 },
+	{ id: "pieces_150", kind: "pieces", target: 150, reward: 55 },
+	{ id: "chessWin_1", kind: "chessWin", target: 1, reward: 35 },
+	{ id: "chessWin_2", kind: "chessWin", target: 2, reward: 55 },
+	{ id: "durakWin_1", kind: "durakWin", target: 1, reward: 35 },
+	{ id: "seaWin_1", kind: "seaWin", target: 1, reward: 35 },
 	{ id: "puzzle_1", kind: "puzzle", target: 1, reward: 30 },
 	{ id: "puzzle_2", kind: "puzzle", target: 2, reward: 50 },
 	{ id: "rescue_1", kind: "rescue", target: 1, reward: 30 },

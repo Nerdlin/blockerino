@@ -1,5 +1,5 @@
 -- Monthly quest: finish all three daily quests (the daily bonus) on 10 different days of a month and take the month's
--- medal, 300 coins and a chest key. The medals stay on the profile for good (a collection, one per month).
+-- medal, 600 coins and 2 chest keys. The medals stay on the profile for good (a collection, one per month).
 --   * Progress is counted from daily_quest_claims (the 'bonus' claim exists once per account and day, so it cannot be
 --     farmed beyond the daily limits already there).
 --   * The reward is paid once per month (monthly_quest_medals primary key), by the server.
@@ -18,9 +18,11 @@ ALTER TABLE public.monthly_quest_medals ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.monthly_quest_medals FROM anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.monthly_quest_target() RETURNS integer LANGUAGE sql IMMUTABLE AS $$ SELECT 10; $$;
-CREATE OR REPLACE FUNCTION public.monthly_quest_reward() RETURNS integer LANGUAGE sql IMMUTABLE AS $$ SELECT 300; $$;
+CREATE OR REPLACE FUNCTION public.monthly_quest_reward() RETURNS integer LANGUAGE sql IMMUTABLE AS $$ SELECT 600; $$;
+CREATE OR REPLACE FUNCTION public.monthly_quest_keys() RETURNS integer LANGUAGE sql IMMUTABLE AS $$ SELECT 2; $$;
 REVOKE ALL ON FUNCTION public.monthly_quest_target() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.monthly_quest_reward() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.monthly_quest_keys() FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public._monthly_quest_state(p_user uuid)
 RETURNS jsonb
@@ -87,9 +89,9 @@ BEGIN
   IF v_inserted = 0 THEN RETURN public._monthly_quest_state(auth.uid()) || jsonb_build_object('status', 'already'); END IF;
 
   UPDATE public.profiles SET coins = coins + public.monthly_quest_reward() WHERE id = v_profile.id RETURNING coins INTO v_wallet;
-  PERFORM public._grant_keys(v_profile.id, 1);
+  PERFORM public._grant_keys(v_profile.id, public.monthly_quest_keys());
 
-  RETURN public._monthly_quest_state(auth.uid()) || jsonb_build_object('status', 'ok', 'coins', public.monthly_quest_reward(), 'keys', 1, 'wallet', v_wallet);
+  RETURN public._monthly_quest_state(auth.uid()) || jsonb_build_object('status', 'ok', 'coins', public.monthly_quest_reward(), 'keys', public.monthly_quest_keys(), 'wallet', v_wallet);
 END;
 $$;
 
