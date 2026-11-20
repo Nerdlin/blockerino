@@ -19,12 +19,13 @@ export function emailConfirmRedirect(language: string, platform: string = Platfo
  */
 export function passwordResetRedirect(language: string, platform: string = Platform.OS): string {
 	if (platform === "web" && typeof window !== "undefined" && window.location?.origin) return `${window.location.origin}/`;
-	return emailConfirmRedirect(language, platform);
+	// type=recovery makes the landing page and the app say "set a new password" instead of "email confirmed"
+	return `${emailConfirmRedirect(language, platform)}&type=recovery`;
 }
 
 /** The one-time code of a link that opened the app from the page, or null when the URL is something else. */
-export function emailConfirmCode(url: string | null | undefined): { code: string | null } | null {
+export function emailConfirmCode(url: string | null | undefined): { code: string | null; recovery: boolean } | null {
 	if (!url || !url.includes("email-confirmed")) return null;
 	const match = /[?&]code=([^&#]+)/.exec(url);
-	return { code: match ? decodeURIComponent(match[1]) : null };
+	return { code: match ? decodeURIComponent(match[1]) : null, recovery: /[?&]type=recovery\b/.test(url) };
 }

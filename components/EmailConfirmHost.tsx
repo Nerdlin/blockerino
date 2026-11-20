@@ -33,6 +33,8 @@ export default function EmailConfirmHost() {
 					signedIn = false;
 				}
 			}
+			// a password-reset link: the recovery session opens the new-password window (PasswordRecoveryHost), nothing to confirm
+			if (link.recovery && signedIn) return;
 			gameAlert(t("profile.emailConfirmedTitle"), t(signedIn ? "profile.emailConfirmedIn" : "profile.emailConfirmedSignIn"), [
 				// the profile opens on top of the menu, so its Back button has somewhere to return to
 				{ text: t("dialog.ok"), onPress: () => setAppState(new AppState(MenuStateType.PROFILE, new AppState(MenuStateType.MENU))) },

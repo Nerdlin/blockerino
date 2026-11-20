@@ -193,7 +193,7 @@ export default function RootLayout() {
 			<Stack screenOptions={{headerShown: false, autoHideHomeIndicator: true}} />
 			{error && (
 				<View style={{ position: 'absolute', top: 50, left: 10, right: 10, backgroundColor: 'rgba(160,0,0,0.9)', padding: 10, zIndex: 9999, borderRadius: 8 }}>
-					<Text style={{ color: 'white' }}>Discord: {error.message}</Text>
+					<Text style={{ fontFamily: 'Silkscreen', color: 'white' }}>Discord: {error.message}</Text>
 				</View>
 			)}
 		</>

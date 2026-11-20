@@ -1092,7 +1092,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
                                 <Text style={{ fontSize: 18, marginRight: 6 }}>{opponentAvatar}</Text>
                             ) : (
                                 <View style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}>
-                                    <Text style={{ fontSize: 12, color: '#fff' }}>{opponentName.charAt(0).toUpperCase()}</Text>
+                                    <Text style={{ fontFamily: 'SilkscreenBold', fontSize: 12, color: '#fff' }}>{opponentName.charAt(0).toUpperCase()}</Text>
                                 </View>
                             )}
                             <Text style={[styles.opponentNameText, { color: opponentPerk?.tier.color ?? currentTheme.textPrimary, flexShrink: 1 }]} numberOfLines={1}>
@@ -1264,7 +1264,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 										<Text style={{ fontSize: 18, marginRight: 6 }}>{playerAvatar}</Text>
 									) : (
 										<View style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}>
-											<Text style={{ fontSize: 12, color: '#fff' }}>Y</Text>
+											<Text style={{ fontFamily: 'SilkscreenBold', fontSize: 12, color: '#fff' }}>Y</Text>
 										</View>
 									)}
 									<Text style={[styles.playerNameText, { color: currentTheme.textPrimary, marginBottom: 0 }]}>
@@ -1339,7 +1339,7 @@ export default function MultiplayerGame({ roomId, myRole, opponentName, gameMode
 											<Text style={{ fontSize: 18, marginRight: 6 }}>{opponentAvatar}</Text>
 										) : (
 											<View style={{ width: 24, height: 24, borderRadius: 12, marginRight: 6, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}>
-												<Text style={{ fontSize: 12, color: '#fff' }}>{opponentName.charAt(0).toUpperCase()}</Text>
+												<Text style={{ fontFamily: 'SilkscreenBold', fontSize: 12, color: '#fff' }}>{opponentName.charAt(0).toUpperCase()}</Text>
 											</View>
 										)}
 										<Text style={[styles.opponentNameText, { color: opponentPerk?.tier.color ?? currentTheme.textSecondary, flexShrink: 1 }]}>

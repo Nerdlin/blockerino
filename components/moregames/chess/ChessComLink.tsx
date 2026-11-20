@@ -156,7 +156,7 @@ const local = StyleSheet.create({
 	big: { fontFamily: "SilkscreenBold", fontSize: 18 },
 	buttons: { flexDirection: "row", gap: 10 },
 	button: { minWidth: 120, height: 42, minHeight: 42, margin: 0 },
-	input: { width: "100%", borderWidth: 2, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, textAlign: "center" },
+	input: { width: "100%", borderWidth: 2, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontFamily: "Silkscreen", fontSize: 16, textAlign: "center" },
 	importBox: { width: "100%", borderWidth: 2, borderRadius: 10, padding: 12, gap: 8, alignItems: "center", backgroundColor: "rgba(255,255,255,0.03)" },
 	importTitle: { fontFamily: "SilkscreenBold", fontSize: 12, textAlign: "center" },
 	codeRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: "rgba(0,0,0,0.35)" },

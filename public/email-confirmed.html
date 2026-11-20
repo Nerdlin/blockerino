@@ -137,11 +137,12 @@
         var isAndroid = /android/i.test(navigator.userAgent);
         var from = get("from") || (isAndroid ? "android" : "web");
         var code = get("code");
+        var recovery = get("type") === "recovery";
 
         var text = {
           en: {
-            okTitle: "Email confirmed",
-            okText: "Your Blockerino account is ready. Go back to the game and keep playing.",
+            okTitle: recovery ? "Reset your password" : "Email confirmed",
+            okText: recovery ? "Go back to the game: it will ask for your new password." : "Your Blockerino account is ready. Go back to the game and keep playing.",
             badTitle: "The link did not work",
             badText: "It has expired or was already used. Open the game and sign in; if it asks, request a new letter.",
             app: "Back to the game",
@@ -149,8 +150,8 @@
             openApp: "Open the app",
           },
           ru: {
-            okTitle: "Почта подтверждена",
-            okText: "Аккаунт Blockerino готов. Вернитесь в игру и продолжайте играть.",
+            okTitle: recovery ? "Сброс пароля" : "Почта подтверждена",
+            okText: recovery ? "Вернитесь в игру: она попросит новый пароль." : "Аккаунт Blockerino готов. Вернитесь в игру и продолжайте играть.",
             badTitle: "Ссылка не сработала",
             badText: "Она устарела или уже была использована. Откройте игру и войдите; если попросит, запросите письмо ещё раз.",
             app: "Вернуться в игру",
@@ -165,7 +166,7 @@
         document.getElementById("title").textContent = failed ? text.badTitle : text.okTitle;
         document.getElementById("text").textContent = failed ? text.badText : text.okText;
 
-        var suffix = code && !failed ? "?code=" + encodeURIComponent(code) : "";
+        var suffix = code && !failed ? "?code=" + encodeURIComponent(code) + (recovery ? "&type=recovery" : "") : "";
         var appUrl = "com.nerdlin.blockerino://email-confirmed" + suffix;
         var webUrl = "/" + suffix;
         var primary = document.getElementById("primary");

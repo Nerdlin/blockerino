@@ -626,7 +626,7 @@ export default function ProfileMenu() {
 								<PixelIcon name="pencil" size={16} color="#F0AF0C" secondaryColor="#F472B6" />
 							</Pressable>
 						)}
-						{nameError ? <Text style={[styles.errorText, { textAlign: "center" }]}>{nameError}</Text> : (editingName && session ? <Text style={{ color: currentTheme.textSecondary, fontSize: 11, textAlign: "center" }}>{t("profile.rename.hint")}</Text> : null)}
+						{nameError ? <Text style={[styles.errorText, { textAlign: "center" }]}>{nameError}</Text> : (editingName && session ? <Text style={{ fontFamily: "Silkscreen", color: currentTheme.textSecondary, fontSize: 11, textAlign: "center" }}>{t("profile.rename.hint")}</Text> : null)}
 						{perk && <PerkBadge perk={perk} />}
 						<SeasonTitleBadges titles={seasonTitles} />
 
@@ -645,7 +645,7 @@ export default function ProfileMenu() {
 
 						{activeTab === "gifts" && (
 							<FadeInView key="gifts" style={styles.tabContentContainer}>
-								{session ? <GiftChestsPanel /> : <Text style={{ color: currentTheme.textSecondary, fontSize: 12, textAlign: "center", marginBottom: 12 }}>{t("chest.needAccount")}</Text>}
+								{session ? <GiftChestsPanel /> : <Text style={{ fontFamily: "Silkscreen", color: currentTheme.textSecondary, fontSize: 12, textAlign: "center", marginBottom: 12 }}>{t("chest.needAccount")}</Text>}
 							</FadeInView>
 						)}
 
@@ -804,7 +804,7 @@ export default function ProfileMenu() {
 						/>
 
 						{IN_DISCORD_ACTIVITY ? (
-							<Text style={{ color: currentTheme.textSecondary, fontSize: 12, textAlign: "center", marginTop: 10 }}>
+							<Text style={{ fontFamily: "Silkscreen", color: currentTheme.textSecondary, fontSize: 12, textAlign: "center", marginTop: 10 }}>
 								{t("profile.discordActivityAuthHint")}
 							</Text>
 						) : (
@@ -931,7 +931,7 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 		paddingVertical: 4,
 	},
-	inputLabel: { fontSize: 14, marginBottom: 8 },
+	inputLabel: { fontFamily: "Silkscreen", fontSize: 14, marginBottom: 8 },
 	perksBox: {
 		width: "100%",
 		marginBottom: 12,
