@@ -4,7 +4,7 @@ import { FRAME_GUARD_SCRIPT } from "./FrameGuard";
 function run(opts: { framed: boolean; hostname?: string; search?: string; ancestors?: string[] }): boolean {
 	let blocked = false;
 	const self = {};
-	const win = { self, top: opts.framed ? {} : self };
+	const win = { self, top: opts.framed ? {} : self, stop: () => {} };
 	const location = { hostname: opts.hostname ?? "blockerino.aionerdlin.me", search: opts.search ?? "", ancestorOrigins: opts.ancestors };
 	const doc = { open: () => { blocked = true; }, write: () => {}, close: () => {} };
 	new Function("window", "location", "document", FRAME_GUARD_SCRIPT)(win, location, doc);
@@ -34,5 +34,15 @@ describe("frame guard", () => {
 	it("allows our own domain to frame it", () => {
 		expect(run({ framed: true, ancestors: ["https://aionerdlin.me"] })).toBe(false);
 		expect(run({ framed: true, ancestors: ["https://blockerino.aionerdlin.me"] })).toBe(false);
+	});
+});
+
+describe("frame guard script as an inline <script>", () => {
+	it("contains nothing the HTML exporter or the HTML parser would rewrite", () => {
+		// the exporter injects its scripts at "</body>"; a stray "</script" would end the tag early
+		expect(FRAME_GUARD_SCRIPT.toLowerCase()).not.toContain("</body");
+		expect(FRAME_GUARD_SCRIPT.toLowerCase()).not.toContain("</script");
+		expect(FRAME_GUARD_SCRIPT.toLowerCase()).not.toContain("<script");
+		expect(() => new Function(FRAME_GUARD_SCRIPT)).not.toThrow();
 	});
 });
