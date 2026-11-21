@@ -1,5 +1,6 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
+import { FRAME_GUARD_SCRIPT } from '../constants/FrameGuard';
 
 // Static HTML shell for the web build. Search engines and AI crawlers do not run the game's JavaScript,
 // so the structured data and a plain-text summary live here, in the HTML they actually read.
@@ -28,6 +29,7 @@ export default function Root({ children }: PropsWithChildren) {
 		<html lang="en">
 			<head>
 				<meta charSet="utf-8" />
+				<script dangerouslySetInnerHTML={{ __html: FRAME_GUARD_SCRIPT }} />
 				<meta httpEquiv="X-UA-Compatible" content="IE=edge" />
 				<ScrollViewStyleReset />
 				<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
