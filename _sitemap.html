@@ -2,7 +2,7 @@
 if(window.top===window.self)return;
 var h=location.hostname,q=location.search;
 var discord=/(^|\.)discordsays\.com$/i.test(h)||(/[?&]frame_id=/.test(q)&&/[?&]instance_id=/.test(q));
-var ok=/^https:\/\/([a-z0-9-]+\.)*(discord\.com|discordsays\.com|aionerdlin\.me)$/i;
+var ok=/^https:\/\/([a-z0-9-]+\.)*(discord\.com|discordsays\.com|aionerdlin\.me|jungleyard\.com)$/i;
 var ao=location.ancestorOrigins,own=false;
 if(ao&&ao.length){own=true;for(var i=0;i<ao.length;i++){if(!ok.test(ao[i]))own=false;}}
 if(discord||own)return;
