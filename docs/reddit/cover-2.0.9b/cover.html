@@ -1,0 +1,62 @@
+<!doctype html><meta charset="utf-8">
+<style>
+@font-face{font-family:P2P;src:url("../../../assets/fonts/PressStart2P-Regular.ttf")}
+@font-face{font-family:Silk;src:url("../../../assets/fonts/Silkscreen-Regular.ttf")}
+@font-face{font-family:SilkB;src:url("../../../assets/fonts/Silkscreen-Bold.ttf")}
+@font-face{font-family:Mono;src:url("../../../assets/fonts/PixelifySans-Ru.ttf")}
+*{box-sizing:border-box;margin:0}
+body{width:1280px;height:640px;background:radial-gradient(circle at 20% 10%,#2a1a5c 0,#150c2e 35%,#0a0716 70%);position:relative;overflow:hidden;font-family:Silk}
+.grid{position:absolute;inset:0;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:32px 32px}
+.glow{position:absolute;right:-80px;bottom:-120px;width:520px;height:420px;background:radial-gradient(#ff3b3b55,transparent 70%)}
+.frame{position:absolute;inset:14px;border:4px solid #ff3b3b;border-radius:10px}
+h1{position:absolute;left:72px;top:88px;font:52px P2P;color:#fff;letter-spacing:2px;text-shadow:5px 5px 0 #e11d48}
+.badge{position:absolute;left:72px;top:168px;background:#ffd700;color:#111;padding:10px 18px;font:28px P2P;box-shadow:5px 5px 0 #b8860b;border-radius:4px}
+.sub{position:absolute;left:72px;top:250px;width:640px;font:22px/40px Silk;color:#e8e6ff;letter-spacing:3px;text-transform:uppercase}
+.sub b{color:#ffd700;font-family:SilkB}
+.ru .sub{font:24px/40px Mono;letter-spacing:1px}
+.ru .sub b{font-family:Mono;font-weight:bold}
+.ru .card h2{font-size:17px;line-height:26px}
+.tags{position:absolute;left:72px;top:420px;display:flex;gap:14px}
+.tag{padding:11px 14px;font:15px SilkB;border-radius:4px;color:#111;letter-spacing:3px;text-transform:uppercase}
+.ru .tag{font:bold 15px Mono;letter-spacing:1px}
+.card{position:absolute;left:782px;top:64px;width:432px;height:508px;background:#10101e;border:3px solid #2c2c48;border-radius:28px;transform:rotate(2.6deg);box-shadow:0 24px 60px #0008;padding:26px}
+.card h2{font:22px P2P;color:#ffd700;text-align:center;letter-spacing:2px;margin-top:6px}
+.card .s{font:15px Silk;color:#9aa3c7;text-align:center;margin-top:10px;letter-spacing:2px;text-transform:uppercase}
+.ru .card .s{font:14px Mono}
+.tiers{display:flex;gap:10px;justify-content:center;margin-top:22px}
+.t{width:60px;height:60px;border-radius:50%;border:3px solid #7dd3fc;background:#1ea7e0;display:flex;flex-direction:column;align-items:center;justify-content:center;font:16px P2P;color:#fff}
+.t i{display:block;width:16px;height:16px;margin-top:5px;background:#ffd700;border:2px solid #b8860b;border-radius:50%}
+.t.k i{border-radius:2px;background:#e8e6ff;border-color:#9aa3c7;width:18px;height:8px}
+.t.sk i{border-radius:2px;background:#4ade80;border-color:#166534}
+.t.off{background:#14142a;border-color:#2c2c48;color:#444}
+.row{display:flex;gap:14px;margin-top:30px}
+.box{flex:1;height:140px;border-radius:8px;padding:12px;text-align:center}
+.b1{border:3px solid #ffd700;background:#1a1730}
+.b2{border:3px solid #ff8a3d;background:#1a1730}
+.box .n{font:22px P2P;margin-top:8px}
+.b1 .n{color:#ffd700}
+.box .l{font:12px SilkB;letter-spacing:2px;margin-top:10px;text-transform:uppercase}
+.ru .box .l{font:bold 12px Mono;letter-spacing:1px}
+.b1 .l{color:#ffd700}.b2 .l{color:#ff8a3d}
+.tri{display:flex;justify-content:center;margin-top:8px;gap:3px}
+.tri span{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:36px solid #ff8a3d}
+.tri span:nth-child(even){border-bottom-color:#ffd9b0}
+.bar{margin-top:30px;border:3px solid #1ea7e0;background:#12243a;border-radius:8px;padding:18px 20px;font:15px Silk;color:#7dd3fc;letter-spacing:2px;text-transform:uppercase;display:flex;gap:14px;align-items:center}
+.ru .bar{font:14px Mono}
+.gif{background:#1ea7e0;color:#06121f;font:12px P2P;padding:8px 10px;border-radius:4px}
+</style>
+<body class="LANG">
+<div class="grid"></div><div class="glow"></div><div class="frame"></div>
+<h1>BLOCKERINO</h1>
+<div class="badge">BADGE</div>
+<div class="sub">SUB</div>
+<div class="tags"><div class="tag" style="background:#ffb300">T1</div><div class="tag" style="background:#4ade80">T2</div><div class="tag" style="background:#8c9eff">T3</div></div>
+<div class="card">
+  <h2>H2</h2><div class="s">S1</div>
+  <div class="tiers"><div class="t">1<i></i></div><div class="t k">2<i></i></div><div class="t sk">3<i></i></div><div class="t">4<i></i></div><div class="t off">5</div></div>
+  <div class="row">
+    <div class="box b1"><div class="n">60+</div><div class="l">L1</div></div>
+    <div class="box b2"><div class="tri"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="l">L2</div></div>
+  </div>
+  <div class="bar"><span class="gif">GIF</span><span>BAR</span></div>
+</div>

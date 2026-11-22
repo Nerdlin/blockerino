@@ -81,3 +81,16 @@ modules/*/android/build/
 scripts/android-perf/*.sqlite
 scripts/android-perf/line2_*.json
 scripts/android-perf/__pycache__/
+
+# Local tool folders and caches
+.codex-attachments/
+.impeccable/
+
+# Promo material stays on this computer: videos and images (the text kits in docs/reddit are tracked)
+docs/reddit/*.mp4
+docs/reddit/*.jpg
+docs/reddit/*.png
+docs/reddit/cover-*/*.png
+docs/jungleyard/
+docs/qa/
+docs/ux-audit/
