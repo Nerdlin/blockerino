@@ -2,12 +2,12 @@
 // protection is the response header set at the edge (X-Frame-Options / frame-ancestors, see docs/frame-protection.md);
 // GitHub Pages cannot set headers, so this inline script is the second line. It runs before the app starts.
 // Allowed: not framed at all, Discord Activities (discordsays.com proxy or the frame_id/instance_id parameters Discord adds),
-// and pages on our own domain. Anything else gets a short notice with a link to the official site.
+// our own domain and jungleyard.com (its page for the game is run by the maker). Anything else gets a short notice with a link to the official site.
 export const FRAME_GUARD_SCRIPT = String.raw`(function(){try{
 if(window.top===window.self)return;
 var h=location.hostname,q=location.search;
 var discord=/(^|\.)discordsays\.com$/i.test(h)||(/[?&]frame_id=/.test(q)&&/[?&]instance_id=/.test(q));
-var ok=/^https:\/\/([a-z0-9-]+\.)*(discord\.com|discordsays\.com|aionerdlin\.me)$/i;
+var ok=/^https:\/\/([a-z0-9-]+\.)*(discord\.com|discordsays\.com|aionerdlin\.me|jungleyard\.com)$/i;
 var ao=location.ancestorOrigins,own=false;
 if(ao&&ao.length){own=true;for(var i=0;i<ao.length;i++){if(!ok.test(ao[i]))own=false;}}
 if(discord||own)return;

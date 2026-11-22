@@ -17,18 +17,26 @@ describe("frame guard", () => {
 	});
 
 	it("blocks a foreign page that frames the game", () => {
-		expect(run({ framed: true, ancestors: ["https://www.jungleyard.com"] })).toBe(true);
+		expect(run({ framed: true, ancestors: ["https://aggregator.example"] })).toBe(true);
 		expect(run({ framed: true, ancestors: ["https://discord.com.evil.example"] })).toBe(true);
 		expect(run({ framed: true })).toBe(true); // browsers without ancestorOrigins
 	});
 
 	it("blocks when any ancestor in the chain is foreign", () => {
-		expect(run({ framed: true, ancestors: ["https://discord.com", "https://www.jungleyard.com"] })).toBe(true);
+		expect(run({ framed: true, ancestors: ["https://discord.com", "https://aggregator.example"] })).toBe(true);
 	});
 
 	it("allows Discord Activities", () => {
 		expect(run({ framed: true, hostname: "123456.discordsays.com", ancestors: ["https://discord.com"] })).toBe(false);
 		expect(run({ framed: true, search: "?frame_id=1&instance_id=2" })).toBe(false);
+	});
+
+	it("allows Jungleyard (the maker's own listing) but not look-alike domains", () => {
+		expect(run({ framed: true, ancestors: ["https://www.jungleyard.com"] })).toBe(false);
+		expect(run({ framed: true, ancestors: ["https://jungleyard.com"] })).toBe(false);
+		expect(run({ framed: true, ancestors: ["https://jungleyard.com.evil.example"] })).toBe(true);
+		expect(run({ framed: true, ancestors: ["https://notjungleyard.com"] })).toBe(true);
+		expect(run({ framed: true, ancestors: ["http://www.jungleyard.com"] })).toBe(true);
 	});
 
 	it("allows our own domain to frame it", () => {
