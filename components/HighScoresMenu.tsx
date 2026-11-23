@@ -25,7 +25,6 @@ import { LeaderboardMeCard, LeaderboardPodium } from "./LeaderboardPodium";
 import { rankChange, usePrevRanks } from "@/constants/RankChanges";
 import { useOpenPlayerProfile } from "@/constants/PlayerProfile";
 import { setProfileAuthIntent } from "@/constants/ProfileIntent";
-import { fetchServerBoard, getServerBoardGuild, serverBoardToScores, type ServerBoardView } from "@/constants/ServerBoard";
 
 const LEADERBOARD_LIMIT = 100;
 const LEADERBOARD_REFRESH_MS = 30000;
@@ -47,14 +46,10 @@ export default function HighScores() {
     // Secret states
     const currentModeConfig = getGameModeConfig(gameMode);
     const localBestScore = highScores[0]?.score ?? 0;
-    const [scope, setScope] = useState<"season" | "alltime" | "friends" | "server">("season");
-    // the Discord server's table: only when the game is opened in a server's voice channel
-    const serverGuild = getServerBoardGuild();
-    const [serverView, setServerView] = useState<ServerBoardView | null>(null);
+    const [scope, setScope] = useState<"season" | "alltime" | "friends">("season");
     const { checked: authChecked, signedIn, name: accountName } = useAccountIdentity();
     const openProfile = useOpenPlayerProfile();
     const seasonBoard = getSeasonBoard(gameMode);
-    const showServer = scope === "server" && seasonBoard !== null && serverGuild !== null && signedIn;
     const showSeason = scope === "season" && seasonBoard !== null;
     const showFriends = scope === "friends" && seasonBoard !== null && signedIn;
     const seasonDaysLeft = Math.ceil((getSeasonEndsAt().getTime() - Date.now()) / 86400000);
@@ -86,15 +81,9 @@ export default function HighScores() {
 
         try {
             await syncLocalHighScores();
-            let nextServerView: ServerBoardView | null = null;
             const [localScores, remoteScores] = await Promise.all([
                 getHighScores(gameMode, true, true, LEADERBOARD_LIMIT),
-                showServer && seasonBoard
-                    ? fetchServerBoard(seasonBoard).then((view) => {
-                        nextServerView = view;
-                        return view ? serverBoardToScores(view, seasonBoard) : [];
-                    })
-                    : showFriends && seasonBoard
+                showFriends && seasonBoard
                     ? getFriendsAllTimeLeaderboard(seasonBoard)
                     : showSeason && seasonBoard
                         ? getSeasonLeaderboard(seasonBoard, LEADERBOARD_LIMIT)
@@ -105,14 +94,13 @@ export default function HighScores() {
 
             setHighScores(localScores);
             setGlobalHighScores(remoteScores);
-            setServerView(nextServerView);
         } finally {
             refreshInProgress.current = false;
             if (showLoader && isMounted.current) {
                 setLoading(false);
             }
         }
-    }, [gameMode, showSeason, showFriends, showServer, seasonBoard]);
+    }, [gameMode, showSeason, showFriends, seasonBoard]);
 
     useEffect(() => {
         isMounted.current = true;
@@ -212,10 +200,9 @@ export default function HighScores() {
         label: mode === GameModeType.Chaos ? t("mp.chaos") : mode === GameModeType.Classic ? t("mp.classic") : getGameModeConfig(mode).shortTitle,
         color: mode === GameModeType.Chaos ? "#7C3AED" : getGameModeConfig(mode).challenge?.color ?? currentTheme.buttonPrimary,
     }));
-    const scopeItems: SegmentItem<"season" | "friends" | "alltime" | "server">[] = [
+    const scopeItems: SegmentItem<"season" | "friends" | "alltime">[] = [
         { key: "season", label: t("hs.scopeSeason") },
         ...(signedIn ? [{ key: "friends" as const, label: t("hs.scopeFriends") }] : []),
-        ...(signedIn && serverGuild ? [{ key: "server" as const, label: t("discord.serverTab") }] : []),
         { key: "alltime", label: t("hs.scopeAllTime") },
     ];
 
@@ -250,17 +237,6 @@ export default function HighScores() {
                 <Text style={[styles.seasonLink, { color: currentTheme.accent }]}>{t("hs.pastSeasonShort")}</Text>
             </Pressable>
         </View>
-        {showServer && (
-            <View style={styles.serverInfo}>
-                <Text style={[styles.seasonEndsText, { color: currentTheme.textPrimary }]}>{t("discord.thisServer")}</Text>
-                {serverView?.myRank != null ? (
-                    <Text style={[styles.seasonEndsText, { color: currentTheme.accent }]}>
-                        {t("discord.serverYourPlace", { place: serverView.myRank })}
-                        {serverView.gap ? `  ·  ${t("discord.serverGap", { points: serverView.gap.points, place: serverView.gap.place })}` : `  ·  ${t("discord.serverLeader")}`}
-                    </Text>
-                ) : null}
-            </View>
-        )}
         {(localBestScore > 0 || myIndex >= 0) && (
             <View style={{ width: '100%', alignItems: 'center' }}>
             {gain !== null ? <ScoreGainPill key={`${gameMode}-${scope}-${gain}`} gain={gain} onDone={() => setGain(null)} /> : null}
@@ -316,7 +292,7 @@ export default function HighScores() {
         { !hasScores && !loading &&
             <>
                 <Text style={[styles.noScoresText, { color: currentTheme.textPrimary }, isMobile && { fontSize: 20 }]}>
-                    {showServer ? t("discord.serverEmpty") : showFriends ? t("hs.noFriendsScores") : showSeason ? t("hs.noSeasonScores") : t("hs.noGlobalScores")}
+                    {showFriends ? t("hs.noFriendsScores") : showSeason ? t("hs.noSeasonScores") : t("hs.noGlobalScores")}
                 </Text>
                 <StylizedButton text={t("hs.play", { mode: currentModeConfig.shortTitle })} onClick={() => {
                     setAppState(gameMode)
@@ -412,11 +388,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         marginTop: 10,
-        marginBottom: 6,
-    },
-    serverInfo: {
-        alignItems: "center",
-        gap: 2,
         marginBottom: 6,
     },
     seasonLink: {
