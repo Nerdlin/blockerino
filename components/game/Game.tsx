@@ -26,6 +26,7 @@ import { useAtom, useSetAtom } from 'jotai';
 import FirstRunCoach from './FirstRunCoach';
 import { firstRunCoachAtom, markFirstRunDone } from '@/constants/FirstRun';
 import { track } from '@/constants/Analytics';
+import { useDiscordGamePresence } from '@/hooks/useDiscordGamePresence';
 import SecondChanceModal from '../SecondChanceModal';
 import { applySecondChancePenalty, canUseSecondChance, getSecondChanceCost, SECOND_CHANCE_COSTS } from '@/constants/SecondChance';
 import { getRandomPieceColor } from '@/constants/Piece';
@@ -147,6 +148,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 
 	// Time Attack mode timer remaining state
 	const timeRemaining = useSharedValue(level ? level.time ?? 0 : validInitialState ? validInitialState.timeRemaining ?? getInitialTimeRemaining(gameMode) : getInitialTimeRemaining(gameMode));
+	useDiscordGamePresence(gameMode, score, timeRemaining);
 	const movesRemaining = useSharedValue(level ? level.moves ?? 0 : validInitialState ? validInitialState.movesRemaining ?? getInitialMovesRemaining(gameMode) : getInitialMovesRemaining(gameMode));
 	// what a level run has done: lines cleared, best combo, gems still on the board
 	const levelLines = useSharedValue(0);
@@ -231,6 +233,16 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				setCoachActive(false);
 				void markFirstRunDone();
 			}
+			// Usage statistics: where players leave. A game left before it ended says how long it lasted and how far it got.
+			if (!isGameOverRef.current) {
+				track("game_exit", {
+					mode: gameMode,
+					score: Math.floor(score.value),
+					seconds: Math.round((Date.now() - gameStartedAtRef.current) / 1000),
+					lines: clearedLinesRef.current,
+					first_run: firstRunGameRef.current,
+				});
+			}
 		};
 		// Only on leaving the game.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -239,6 +251,16 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 	const isGameOverRef = useRef(false);
 	// when this game began on this device: the season pass wants a minimum length (a resumed game counts from the resume)
 	const gameStartedAtRef = useRef(Date.now());
+	// whether this is the new player's very first game, and how many lines it has cleared (statistics only)
+	const firstRunGameRef = useRef(coachActive);
+	const clearedLinesRef = useRef(0);
+	const onLinesCleared = (lines: number) => {
+		if (!isMountedRef.current) return;
+		clearedLinesRef.current += lines;
+		if (firstRunGameRef.current && clearedLinesRef.current === lines) {
+			track("first_run_first_clear", { seconds: Math.round((Date.now() - gameStartedAtRef.current) / 1000) });
+		}
+	};
 	const secondChanceDecisionLockedRef = useRef(false);
 
 	const updateActiveCombo = (val: number) => {
@@ -518,6 +540,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 				
 				 // Улучшенный звук разрушения линий с учетом комбо
 				runOnJS(playComboSound)(combo.value);
+				runOnJS(onLinesCleared)(linesBroken);
 				runOnJS(updateActiveCombo)(combo.value);
 				
 				if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.vibrate) {
