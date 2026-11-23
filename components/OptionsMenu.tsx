@@ -20,6 +20,7 @@ import { useRouter, type Href } from "expo-router";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import { PROFILE_VISIBILITIES, getProfileVisibility, setProfileVisibility, type ProfileVisibility } from "@/constants/PlayerProfile";
 import { disablePush, enablePush, isPushEnabled, isPushSupported } from "@/constants/Notifications";
+import { getServerBoardGuild, getServerBoardHidden, setServerBoardHidden } from "@/constants/ServerBoard";
 
 // Green means on and grey means off; red is never an "on" colour.
 const SWITCH_TRACK = { false: "#4B5563", true: "#10B981" };
@@ -122,6 +123,16 @@ export default function OptionsMenu() {
 	};
 
 	const { signedIn } = useAccountIdentity();
+	// "hide me from the server table": only in a Discord server, for a signed-in player; the server keeps the flag
+	const inDiscordServer = getServerBoardGuild() !== null;
+	const [hideFromServer, setHideFromServer] = useState(false);
+	useEffect(() => {
+		if (inDiscordServer && signedIn) void getServerBoardHidden().then(setHideFromServer);
+	}, [inDiscordServer, signedIn]);
+	const handleHideFromServer = async (value: boolean) => {
+		setHideFromServer(value);
+		if (!(await setServerBoardHidden(value))) setHideFromServer(!value);
+	};
 	const [visibility, setVisibility] = useState<ProfileVisibility>("everyone");
 	const [visibilityNote, setVisibilityNote] = useState<string | null>(null);
 	useEffect(() => {
@@ -354,6 +365,21 @@ export default function OptionsMenu() {
 							trackColor={SWITCH_TRACK}
 						/>
 					</SettingLabel>
+
+					{inDiscordServer && signedIn && (
+						<SettingLabel
+							title={t("discord.hideMe")}
+							description={t("discord.hideMeHint")}
+							labelStyle={{ color: currentTheme.textPrimary }}
+							descStyle={{ color: currentTheme.textSecondary }}
+						>
+							<Switch
+								value={hideFromServer}
+								onValueChange={(value) => void handleHideFromServer(value)}
+								trackColor={SWITCH_TRACK}
+							/>
+						</SettingLabel>
+					)}
 
 					<View style={styles.visibilityBlock}>
 						<Text style={[styles.settingTitle, { color: currentTheme.textPrimary }]}>{t("pp.visibility")}</Text>

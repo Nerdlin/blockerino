@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase, type GlobalHighScore } from "./Supabase";
 import { getAccountSession } from './AccountSession';
+import { submitGuildScore } from './ServerBoard';
 
 // Monthly leaderboard seasons for Classic and Chaos. A season is a UTC calendar month and is
 // keyed 'YYYY-MM', matching public.current_season_key() on the server.
@@ -139,6 +140,8 @@ export async function recordSeasonScore(gameMode: string, score: number): Promis
 		const { data: { session } } = await getAccountSession();
 		if (!session?.user) return;
 		await submitSeasonScoreOrQueue(gameMode, score, session.user.id);
+		// in a Discord server's voice channel the run also counts for that server's table (does nothing elsewhere)
+		void submitGuildScore(gameMode, score);
 	} catch (error) {
 		console.error("Error recording season score:", error);
 	}

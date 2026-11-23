@@ -9,6 +9,7 @@ import { trackDiscordFail, trackDiscordOpen, type DiscordFailStage } from '@/con
 import { attachDiscordParticipants, setDiscordSelfId } from '@/constants/DiscordParticipants';
 import { setDiscordPresenceLocale } from '@/constants/DiscordPresence';
 import { normalizeDiscordLocale } from '@/constants/DiscordLocale';
+import { setServerBoardGuild } from '@/constants/ServerBoard';
 
 const discordClientId = process.env.EXPO_PUBLIC_DISCORD_CLIENT_ID;
 
@@ -133,6 +134,7 @@ export function useDiscordSDK() {
       // Counted as soon as the Activity page starts, before the SDK handshake: a player who never gets in
       // (timeout, no consent) is part of the funnel too. The server id comes from the page address.
       trackDiscordOpen(discordSdk);
+      setServerBoardGuild((discordSdk as { guildId?: unknown }).guildId);
       let stage: DiscordFailStage = 'ready';
       try {
         await withDiscordTimeout(discordSdk.ready());
