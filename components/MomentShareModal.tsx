@@ -20,6 +20,7 @@ import {
 	type MomentFile,
 	type MomentShareResult,
 } from "@/constants/ShareMoment";
+import { isDiscordSdkAvailable, pickAndShareDiscordImage } from "@/hooks/useDiscordSDK";
 
 type Phase = "building" | "ready" | "failed";
 
@@ -114,6 +115,19 @@ export default function MomentShareModal({
 		setBusy(false);
 	};
 
+	// Inside a Discord Activity: Discord takes only a picture on its own servers, so the player picks the saved GIF in Discord's
+	// file window and Discord then opens its "share as a message" window (the player chooses the channel there).
+	const canSendToDiscord = discord && isDiscordSdkAvailable();
+	const handleDiscord = async () => {
+		if (busy) return;
+		setBusy(true);
+		setNote(t("discord.shareHint"));
+		const result = await pickAndShareDiscordImage();
+		track("moment_share", { source, result: result === "shared" ? "discord" : "discord_failed", platform: Platform.OS });
+		setNote(result === "shared" ? t("discord.shareDone") : t("discord.shareFailed"));
+		setBusy(false);
+	};
+
 	const handleLink = async () => {
 		if (busy) return;
 		setBusy(true);
@@ -164,6 +178,9 @@ export default function MomentShareModal({
 							backgroundColor={currentTheme.buttonPrimary}
 							style={styles.button}
 						/>
+					)}
+					{phase === "ready" && canSendToDiscord && (
+						<StylizedButton text={t("discord.shareToChat")} onClick={handleDiscord} disabled={busy} backgroundColor={currentTheme.buttonPrimary} style={styles.button} />
 					)}
 					{phase === "failed" && (
 						<StylizedButton text={t("moment.sendLink")} onClick={handleLink} disabled={busy} backgroundColor={currentTheme.buttonPrimary} style={styles.button} />
