@@ -24,7 +24,6 @@ import { chests } from "./chests";
 import { moment } from "./moment";
 import { seasonpass } from "./seasonpass";
 import { options } from "./options";
-import { dailygoal } from "./dailygoal";
 import { discord } from "./discord";
 
 export type ScreenDictionary = { en: Record<string, string>; ru: Record<string, string> };
@@ -53,7 +52,6 @@ const modules: ScreenDictionary[] = [
 	moment,
 	seasonpass,
 	options,
-	dailygoal,
 	discord,
 ];
 
