@@ -9,6 +9,19 @@ import { getSeasonEndsAt } from "./SeasonScores";
 import { subscribeToOutcomes, type GameOutcome } from "./GameStats";
 import { onQuestsClaimed } from "./DailyQuests";
 import { isOnline } from "./NetworkStatus";
+import { loadLastKnown, saveLastKnown } from "./LastKnown";
+
+/** The pass as last saved for this player (shown, marked with its age, while there is no network). */
+export async function loadSavedSeasonPass(): Promise<{ state: SeasonPassState; savedAt: number } | null> {
+	try {
+		const { data: { session } } = await getAccountSession();
+		if (!session?.user) return null;
+		const saved = await loadLastKnown<SeasonPassState>(`pass:${session.user.id}`);
+		return saved ? { state: saved.value, savedAt: saved.savedAt } : null;
+	} catch {
+		return null;
+	}
+}
 
 // The free season pass: 30 tiers for every leaderboard season (a UTC month, the same key and end the leaderboards use).
 // XP comes from play; the server owns it (supabase/migrations/20261118130000_season_pass.sql) and so does every
@@ -479,7 +492,10 @@ export async function syncSeasonPass(): Promise<SeasonPassState | null> {
 		const { data, error } = await supabase.rpc("season_pass_sync");
 		if (error) return null;
 		const state = parseSeasonPassState(data);
-		if (state) publishSeasonPass(state);
+		if (state) {
+			publishSeasonPass(state);
+			void saveLastKnown(`pass:${session.user.id}`, state);
+		}
 		return state;
 	} catch {
 		return null;

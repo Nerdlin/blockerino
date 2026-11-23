@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import { StyleSheet, Text, View, Pressable, TextInput, useWindowDimensions } from "react-native";
 import PixelLoader from "@/components/PixelLoader";
 import OfflineNotice from "@/components/OfflineNotice";
+import SavedDataNote from "@/components/SavedDataNote";
+import { loadLastKnown, saveLastKnown } from "@/constants/LastKnown";
 import { isOnline } from "@/constants/NetworkStatus";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
@@ -43,6 +45,7 @@ export default function HighScores() {
     const [ gameMode, setGameMode ] = useState(GameModeType.Classic);
     const [ loading, setLoading ] = useState(false);
     const [ offline, setOffline ] = useState(false);
+    const [ savedAt, setSavedAt ] = useState<number | null>(null);
     const [ syncing, setSyncing ] = useState(false);
     const [ playerName, setPlayerName ] = useState('');
     
@@ -86,9 +89,16 @@ export default function HighScores() {
             // No network: show what is on the device and say so, instead of waiting for requests to time out.
             const online = await isOnline();
             if (isMounted.current) setOffline(!online);
+            const boardKey = `board:${gameMode}:${showFriends ? "friends" : showSeason ? "season" : "all"}:${seasonBoard ?? ""}`;
             if (!online) {
                 const offlineScores = await getHighScores(gameMode, true, true, LEADERBOARD_LIMIT);
-                if (isMounted.current) setHighScores(offlineScores);
+                const saved = await loadLastKnown<GlobalHighScore[]>(boardKey);
+                if (isMounted.current) {
+                    setHighScores(offlineScores);
+                    // the last table the server gave, marked with its age, instead of an empty one
+                    if (saved) setGlobalHighScores(saved.value);
+                    setSavedAt(saved?.savedAt ?? null);
+                }
                 return;
             }
             await syncLocalHighScores();
@@ -105,6 +115,8 @@ export default function HighScores() {
 
             setHighScores(localScores);
             setGlobalHighScores(remoteScores);
+            setSavedAt(null);
+            if (remoteScores.length > 0) void saveLastKnown(boardKey, remoteScores);
         } finally {
             refreshInProgress.current = false;
             if (showLoader && isMounted.current) {
@@ -278,6 +290,7 @@ export default function HighScores() {
         )}
 
         {offline && <OfflineNotice feature="records" compact onRetry={() => void refreshScores(true)} checking={loading} />}
+        {offline && savedAt !== null && <SavedDataNote savedAt={savedAt} />}
 
         {loading && <PixelLoader size="large" color={currentTheme.textPrimary} />}
 

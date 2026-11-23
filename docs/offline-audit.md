@@ -48,9 +48,14 @@ Dev-only noise: red "Network request failed" toasts come from the auth client's 
 
 Tests: `ConnectivityCache.test.ts`, `OfflineMessages.test.ts`, `MusicCache.test.ts`, `AccountSessionStored.test.ts` (+ the existing suite).
 
+## Second round (the user approved the ideas)
+
+- **Last known data.** `constants/LastKnown.ts` keeps the last server answer on the device with its time; `ageLabel` (pure, tested) words it as "saved data from 00:21 / yesterday / 03.11". Used for the Records table and the Season pass (`phone-saved-records-offline.png`, `phone-saved-pass-offline.png`). The pass shown offline can be old, so claiming still needs the network.
+- **Chess lobby.** Offline, "Start game" and "Play with a friend" are dimmed and inactive with a short notice; bots, puzzles and chess.com stay usable.
+
 ## Not done / ideas
 
-- Chess lobby online buttons and the friends list have no offline hint yet.
-- Showing last-known data offline (profile, records, pass) needs a small cache per screen.
-- Purchases, claims and gifts offline would need a queue and server-side idempotency, so they were left alone.
+- The profile has no saved copy yet (it is shown as the notice only).
+- A queue for rewards, gifts and purchases: the daily reward is already offered automatically on reconnect (the server counts the day, and a repeated claim answers "already"); a real queue for gifts and pass tiers needs server-side idempotency checks, and purchases should stay online so coins cannot be spent twice.
+- Pre-downloading music (for example the chosen pack on Wi-Fi): the project cannot tell Wi-Fi from mobile data (no network-type library), so only played songs are saved.
 - The auth client still retries its token refresh in the background for ~30 s after a cold offline start (only the log is noisy; screens no longer wait for it).

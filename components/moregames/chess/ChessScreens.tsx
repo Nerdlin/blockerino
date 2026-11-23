@@ -14,6 +14,8 @@ import StylizedButton from "../../StylizedButton";
 import Animated, { FadeIn, ZoomIn } from "react-native-reanimated";
 import { BotAvatar } from "./BotAvatar";
 import { PixelIcon } from "./PixelIcon";
+import OfflineNotice from "@/components/OfflineNotice";
+import { useOnlineStatus } from "@/constants/NetworkStatus";
 import { ChessComLink } from "@/constants/chess/ChessCom";
 
 export function ChessLobby({
@@ -39,6 +41,9 @@ export function ChessLobby({
 }) {
 	const { currentTheme } = useTheme();
 	const { t } = useLanguage();
+	// online matches and friends need the server; bots, puzzles and chess.com do not (chess.com is reached on its own)
+	const { online } = useOnlineStatus();
+	const offline = online === false;
 	return (
 		<View style={local.screen}>
 			<Text style={[local.sectionTitle, { color: currentTheme.textPrimary }]}>{t("chess.ratings")}</Text>
@@ -66,9 +71,10 @@ export function ChessLobby({
 				<Text style={[local.chevron, { color: currentTheme.accent }]}>{">"}</Text>
 			</Pressable>
 
-			<StylizedButton text={t("chess.startGame")} onClick={onStart} backgroundColor="#2E9E4F" style={local.startButton} textStyle={{ fontSize: 15 }} />
+			{offline && <OfflineNotice feature="chessOnline" compact />}
+			<StylizedButton text={t("chess.startGame")} onClick={offline ? () => undefined : onStart} backgroundColor={offline ? "#4B5563" : "#2E9E4F"} style={[local.startButton, offline && { opacity: 0.5 }]} textStyle={{ fontSize: 15 }} />
 
-			<Pressable testID="chess-play-friend" accessibilityRole="button" accessibilityLabel={t("chess.playFriend")} onPress={onPlayFriend} style={[local.menuRow, { borderColor: "rgba(255,255,255,0.18)" }]}>
+			<Pressable testID="chess-play-friend" accessibilityRole="button" accessibilityState={{ disabled: offline }} accessibilityLabel={t("chess.playFriend")} onPress={offline ? undefined : onPlayFriend} style={[local.menuRow, { borderColor: "rgba(255,255,255,0.18)" }, offline && { opacity: 0.45 }]}>
 				<PixelIcon name="friends" size={26} />
 				<Text style={[local.menuTitle, { color: currentTheme.textPrimary, flex: 1 }]}>{t("chess.playFriend")}</Text>
 				<Text style={[local.chevron, { color: currentTheme.textSecondary }]}>{">"}</Text>

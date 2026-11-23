@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Svg, { Rect } from "react-native-svg";
 import PixelLoader from "@/components/PixelLoader";
 import OfflineNotice from "@/components/OfflineNotice";
+import SavedDataNote from "@/components/SavedDataNote";
 import { useOnlineStatus } from "@/constants/NetworkStatus";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -45,6 +46,8 @@ import {
 	tierCost,
 	tierProgress,
 	useSeasonPass,
+	loadSavedSeasonPass,
+	publishSeasonPass,
 	type ResolvedReward,
 	type TierClaim,
 	type XpSource,
@@ -104,6 +107,21 @@ export default function SeasonPassMenu() {
 			cancelled = true;
 		};
 	}, [checked, signedIn, refresh, online !== false]);
+
+	// offline: the pass as last saved on this device, with its age
+	const [savedAt, setSavedAt] = useState<number | null>(null);
+	useEffect(() => {
+		if (!signedIn || online !== false || pass) return;
+		let cancelled = false;
+		void loadSavedSeasonPass().then((saved) => {
+			if (cancelled || !saved) return;
+			publishSeasonPass(saved.state);
+			setSavedAt(saved.savedAt);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [signedIn, online, pass]);
 
 	const state = signedIn ? pass : null;
 	const tier = state?.tier ?? 0;
@@ -239,6 +257,7 @@ export default function SeasonPassMenu() {
 
 			{signedIn && online !== false && load === "loading" && !state && <PixelLoader size="large" color={currentTheme.textPrimary} />}
 			{signedIn && online === false && <OfflineNotice feature="pass" compact onRetry={recheckNet} checking={checkingNet} />}
+			{signedIn && online === false && savedAt !== null && <SavedDataNote savedAt={savedAt} />}
 			{signedIn && online !== false && load === "failed" && !state && (
 				<View style={styles.failBox}>
 					<Text style={styles.failText}>{t("pass.failed")}</Text>
