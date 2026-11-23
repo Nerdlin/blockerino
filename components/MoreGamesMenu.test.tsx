@@ -38,6 +38,7 @@ import {
 	resolveDurakCardTarget,
 	generateSudoku,
 	countSudokuSolutions,
+	createMahjongDeal,
 	createMahjongTiles,
 	isMahjongTileFree,
 	shuffleMahjongTiles,
@@ -273,26 +274,22 @@ describe("puzzle and chess regressions", () => {
 	});
 
 	it("generates Mahjong layouts that can be fully cleared", () => {
-		// Symbols repeat on a 62-tile board, so a careless pick can dead-end; a clear order must still exist.
-		const solvable = (tiles: ReturnType<typeof createMahjongTiles>, failed: Set<string>): boolean => {
-			if (tiles.every((tile) => tile.removed)) return true;
-			const key = tiles.map((tile) => (tile.removed ? "0" : "1")).join("");
-			if (failed.has(key)) return false;
-			const free = tiles.filter((tile) => isMahjongTileFree(tile, tiles));
-			for (let i = 0; i < free.length; i++) {
-				for (let j = i + 1; j < free.length; j++) {
-					if (free[i].matchKey !== free[j].matchKey) continue;
-					free[i].removed = free[j].removed = true;
-					const ok = solvable(tiles, failed);
-					free[i].removed = free[j].removed = false;
-					if (ok) return true;
-				}
+		// Every deal comes with the removal order it was built from. Replaying that order is a proof that the board can be
+		// cleared: each step takes two matching tiles that are both free at that moment. (The test used to search for a
+		// solution again with a plain depth-first search; with repeating symbols that search sometimes needed millions of
+		// steps and made the whole run hang, although the game itself deals a board in about 15 ms.)
+		for (let attempt = 0; attempt < 200; attempt++) {
+			const { tiles, order } = createMahjongDeal();
+			expect(order.length * 2).toBe(tiles.length);
+			for (const [a, b] of order) {
+				expect(tiles[a].removed).toBe(false);
+				expect(tiles[b].removed).toBe(false);
+				expect(tiles[a].matchKey).toBe(tiles[b].matchKey);
+				expect(isMahjongTileFree(tiles[a], tiles)).toBe(true);
+				expect(isMahjongTileFree(tiles[b], tiles)).toBe(true);
+				tiles[a].removed = tiles[b].removed = true;
 			}
-			failed.add(key);
-			return false;
-		};
-		for (let attempt = 0; attempt < 30; attempt++) {
-			expect(solvable(createMahjongTiles(), new Set())).toBe(true);
+			expect(tiles.every((tile) => tile.removed)).toBe(true);
 		}
 	});
 

@@ -42,7 +42,7 @@ export { CHESS_BOARD_COLORS, CHESS_PIECE_COLORS, MAHJONG_THEMES, CARD_SKINS, SEA
 export { getDurakPayout, getDurakNetPrize, useMiniGameRoom } from "./moregames/shared";
 export { getTicTacToeWinner } from "./moregames/TicTacToeGame";
 export { countSudokuSolutions, generateSudoku } from "./moregames/SudokuGame";
-export { createMahjongTiles, isMahjongTileFree, shuffleMahjongTiles } from "./moregames/MahjongGame";
+export { createMahjongDeal, createMahjongTiles, isMahjongTileFree, shuffleMahjongTiles } from "./moregames/MahjongGame";
 export { createRandomFleet, getShipCells, isShipPlacementValid, getRepeatedShotReply, getSunkShipCells, getCrossedCells, getBattleGridSize } from "./moregames/BattleshipGame";
 export { restoreChessGame } from "./moregames/ChessGame";
 export { createDurakState, canBeatDurakCard, resolveDurakCardTarget, drawDurakCards, betFromPosition, positionFromBet } from "./moregames/DurakGame";

@@ -63,8 +63,13 @@ export function isLayoutIndexFree(index: number, present: boolean[]): boolean {
 }
 
 // Builds a guaranteed-solvable board: pairs are laid down in the reverse of a valid
-// removal order, so at least one winning sequence always exists.
+// removal order, so at least one winning sequence always exists. The order comes back with the tiles: replaying it
+// proves the board can be cleared (the tests use that instead of searching for a solution again).
 export function createMahjongTiles(): MahjongTile[] {
+	return createMahjongDeal().tiles;
+}
+
+export function createMahjongDeal(): { tiles: MahjongTile[]; order: [number, number][] } {
 	const count = MAHJONG_LAYOUT.length;
 	const symbols: string[] = new Array(count).fill("");
 	const present = new Array<boolean>(count).fill(true);
@@ -95,7 +100,7 @@ export function createMahjongTiles(): MahjongTile[] {
 		symbols[b] = symbol;
 	});
 
-	return MAHJONG_LAYOUT.map(([x, y, z], index) => ({
+	const tiles = MAHJONG_LAYOUT.map(([x, y, z], index) => ({
 		id: `${index}-${index}`,
 		symbol: symbols[index],
 		matchKey: symbols[index],
@@ -104,6 +109,7 @@ export function createMahjongTiles(): MahjongTile[] {
 		z,
 		removed: false,
 	}));
+	return { tiles, order };
 }
 
 export function isMahjongTileFree(tile: MahjongTile, tiles: MahjongTile[]) {
