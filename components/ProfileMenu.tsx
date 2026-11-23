@@ -6,6 +6,8 @@ import { track } from "@/constants/Analytics";
 import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, Image, Pressable } from "react-native";
 import PixelLoader from "@/components/PixelLoader";
 import OfflineNotice from "@/components/OfflineNotice";
+import SavedDataNote from "@/components/SavedDataNote";
+import { loadLastKnown, saveLastKnown, type LastKnown } from "@/constants/LastKnown";
 import { isOnline, useOnlineStatus } from "@/constants/NetworkStatus";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
@@ -134,6 +136,14 @@ function clearWebAuthCallbackParams() {
 	}
 }
 
+interface SavedProfile {
+	name: string;
+	classic: number;
+	chaos: number;
+	elo: number | null;
+	games: number;
+}
+
 export default function ProfileMenu() {
 	const [ , , , popAppState ] = useAppState();
 	const { width } = useWindowDimensions();
@@ -145,6 +155,8 @@ export default function ProfileMenu() {
 	const [session, setSession] = useState<Session | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [offline, setOffline] = useState(false);
+	// what the profile showed the last time it loaded, for the offline view
+	const [savedProfile, setSavedProfile] = useState<LastKnown<SavedProfile> | null>(null);
 	const { online, recheck, checking: recheckingNet } = useOnlineStatus();
 	// flips when the network goes away or comes back, which loads the profile again
 	const offlineNow = online === false;
@@ -327,11 +339,16 @@ export default function ProfileMenu() {
 		}
 
 		// Offline the session lookup would wait for the auth refresh to time out; say so at once instead.
-		void isOnline().then((reachable) => {
+		void isOnline().then(async (reachable) => {
 			if (!mounted) return;
 			setOffline(!reachable);
 			if (!reachable) {
-				setLoading(false);
+				const { data: { session: saved } } = await getAccountSession();
+				const copy = saved?.user ? await loadLastKnown<SavedProfile>(`profile:${saved.user.id}`) : null;
+				if (mounted) {
+					setSavedProfile(copy);
+					setLoading(false);
+				}
 				return;
 			}
 			return getAccountSession().then(async ({ data: { session } }) => {
@@ -357,6 +374,13 @@ export default function ProfileMenu() {
 			listener.subscription.unsubscribe();
 		};
 	}, [hydrateSession, offlineNow]);
+
+	// keep the numbers the profile shows, so the offline view has something to show
+	const savedUserId = session?.user.id;
+	useEffect(() => {
+		if (!savedUserId || loading || offline || !playerName) return;
+		void saveLastKnown<SavedProfile>(`profile:${savedUserId}`, { name: playerName, classic: classicScore, chaos: chaosScore, elo: playerElo, games: gamesPlayed });
+	}, [savedUserId, loading, offline, playerName, classicScore, chaosScore, playerElo, gamesPlayed]);
 
 	const handleButtonPress = () => {
 		playSfx('menuClick');
@@ -610,7 +634,18 @@ export default function ProfileMenu() {
 				{loading ? (
 					<PixelLoader size="large" color={currentTheme.accent} />
 				) : offline ? (
-					<OfflineNotice feature="profile" onRetry={recheck} checking={recheckingNet} />
+					<>
+						<OfflineNotice feature="profile" onRetry={recheck} checking={recheckingNet} />
+						{savedProfile && (
+							<View style={styles.savedProfile}>
+								<SavedDataNote savedAt={savedProfile.savedAt} />
+								<Text style={[styles.savedName, { color: currentTheme.textPrimary }]}>{savedProfile.value.name}</Text>
+								<Text style={[styles.savedLine, { color: currentTheme.textSecondary }]}>{t("profile.classic")}: {savedProfile.value.classic}</Text>
+								<Text style={[styles.savedLine, { color: currentTheme.textSecondary }]}>{t("profile.chaos")}: {savedProfile.value.chaos}</Text>
+								{savedProfile.value.elo !== null && <Text style={[styles.savedLine, { color: currentTheme.textSecondary }]}>{t("profile.elo")}: {savedProfile.value.elo}</Text>}
+							</View>
+						)}
+					</>
 				) : (session || (playerName && !showAuth)) ? (
 					<View style={[styles.profileContainer, isMobile && styles.mobileProfileContainer]}>
 						<ProfileBanner
@@ -922,6 +957,9 @@ export default function ProfileMenu() {
 }
 
 const styles = StyleSheet.create({
+	savedProfile: { alignItems: "center", gap: 6, marginTop: 8 },
+	savedName: { fontFamily: "Silkscreen", fontSize: 20, textAlign: "center" },
+	savedLine: { fontFamily: "Silkscreen", fontSize: 13, textAlign: "center" },
 	confirmBox: {
 		alignSelf: "stretch",
 		gap: 6,

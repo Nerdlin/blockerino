@@ -550,6 +550,7 @@ export async function claimSeasonPassTier(tier: number): Promise<TierClaimResult
 	try {
 		const { data: { session } } = await getAccountSession();
 		if (!session?.user) return { status: "guest" };
+		if (!(await isOnline())) return { status: "failed" };
 		const { data, error } = await supabase.rpc("season_pass_claim", { p_tier: tier });
 		if (error) return { status: "failed" };
 		const result = parseTierClaim(data);
@@ -568,6 +569,7 @@ export async function claimSeasonPassPremiumTier(tier: number): Promise<TierClai
 	try {
 		const { data: { session } } = await getAccountSession();
 		if (!session?.user) return { status: "guest" };
+		if (!(await isOnline())) return { status: "failed" };
 		const { data, error } = await supabase.rpc("season_pass_claim_premium", { p_tier: tier });
 		if (error) return { status: "failed" };
 		const result = parseTierClaim(data);

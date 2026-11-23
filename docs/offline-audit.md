@@ -55,7 +55,7 @@ Tests: `ConnectivityCache.test.ts`, `OfflineMessages.test.ts`, `MusicCache.test.
 
 ## Not done / ideas
 
-- The profile has no saved copy yet (it is shown as the notice only).
-- A queue for rewards, gifts and purchases: the daily reward is already offered automatically on reconnect (the server counts the day, and a repeated claim answers "already"); a real queue for gifts and pass tiers needs server-side idempotency checks, and purchases should stay online so coins cannot be spent twice.
+- The profile now also keeps a saved copy (name, Classic, Chaos, Elo) shown with its age offline (`phone-saved-profile-offline.png`).
+- **Queue of actions without a network: decided against, on purpose.** The daily reward is offered by itself on reconnect (the server counts the UTC day; a repeat answers "already"). A season-pass claim rolls its prize (chests) on the server and the player has to see it, so there is nothing to queue: the claim now fails at once offline with the offline text and works when the network is back (the server already answers "already" to a repeat, so no migration is needed). Gifts and purchases spend coins, so they stay online so that coins cannot be spent twice or a gift sent to a friend who has since been removed.
 - Pre-downloading music (for example the chosen pack on Wi-Fi): the project cannot tell Wi-Fi from mobile data (no network-type library), so only played songs are saved.
 - The auth client still retries its token refresh in the background for ~30 s after a cold offline start (only the log is noisy; screens no longer wait for it).

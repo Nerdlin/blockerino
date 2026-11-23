@@ -7,6 +7,7 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 const mockRpc = jest.fn();
 const mockGetSession = jest.fn();
 jest.mock("./Supabase", () => ({ supabase: { rpc: (...args: unknown[]) => mockRpc(...args), auth: { getSession: () => mockGetSession() } } }));
+jest.mock("./NetworkStatus", () => ({ isOnline: async () => true }));
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {

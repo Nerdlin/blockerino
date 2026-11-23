@@ -293,7 +293,7 @@ export default function SeasonPassMenu() {
 					textStyle={styles.claimAllText}
 				/>
 			)}
-			{failed && <Text style={styles.failText}>{t("pass.failed")}</Text>}
+			{failed && <Text style={styles.failText}>{online === false ? t("offline.body.pass") : t("pass.failed")}</Text>}
 
 
 			{/* the whole pass at a glance: one column per tier, the free reward on top of the premium one */}
