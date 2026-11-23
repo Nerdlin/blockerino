@@ -23,6 +23,7 @@ import { DEFAULT_ELO, getJoinRoomUpdate, isPlayerNameReady, isVisiblePublicRoom,
 import { useLanguage } from "@/constants/Localization";
 import UiIcon from "@/components/UiIcon";
 import VersusFriendsStrip from "./VersusFriendsStrip";
+import DiscordActivityPanel from "./DiscordActivityPanel";
 import { EloLeaderboardView } from "./EloLeaderboardView";
 import { noteAchievementHighWater } from "@/constants/Achievements";
 import { checkRankUp } from "@/constants/RankUp";
@@ -897,6 +898,7 @@ export default function MultiplayerMenu({ onStartGame }: MultiplayerMenuProps) {
                         <StylizedButton text={t("mp.joinByCode")} onClick={handleJoinRoom} backgroundColor={currentTheme.buttonPrimary} style={{ minWidth: 100, height: 32 }} textStyle={{ fontSize: 13 }} />
                     </View>
 
+                    {signedIn && playerId !== "" && <DiscordActivityPanel userId={playerId} />}
                     {signedIn && playerId !== "" && <VersusFriendsStrip userId={playerId} />}
 
                     <View style={styles.publicRoomsHeaderRow}>

@@ -14,6 +14,7 @@ export class DiscordSDK {
     authenticate: async (_options: Parameters<import('@discord/embedded-app-sdk').DiscordSDK['commands']['authenticate']>[0]): Promise<{ user: { id?: string; global_name?: string | null; username: string } | null }> => ({ user: null }),
   };
   guildId: string | null = null;
+  instanceId = '';
   platform = 'unknown';
   subscribe = async (_event: string, _listener: (data: { participants: unknown[] }) => void): Promise<unknown> => ({});
   constructor(clientId: string) {}

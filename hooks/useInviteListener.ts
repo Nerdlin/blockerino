@@ -15,6 +15,10 @@ import { chessInviteAtom, parseChessInvite } from '@/constants/chess/ChessInvite
 import { formatTimeControl } from '@/constants/chess/TimeControls';
 import { gameInviteAtom, parseGameInvite } from '@/constants/GameInvite';
 import { getAccountSession, accountSessionOf } from '@/constants/AccountSession';
+import { getDiscordInstanceId, isDiscordSdkAvailable } from '@/hooks/useDiscordSDK';
+import { getDiscordSelfId } from '@/constants/DiscordParticipants';
+import { startDiscordDuelChannel, sendDiscordDuelEvent } from '@/constants/DiscordDuelChannel';
+import { DISCORD_DUEL_BUSY, DISCORD_DUEL_DECLINED } from '@/constants/DiscordDuel';
 
 // An invite reaches a player in two ways: live (a realtime message, while the app is open) and as a push (the app was
 // closed; opening it from the push brings the invite back from the server). Both end in the same popup; a room is
@@ -41,11 +45,16 @@ export function useInviteListener(
         return () => authListener.subscription.unsubscribe();
     }, []);
 
-    const presentInvite = useCallback((roomId: string, hostName: string, mode: GameModeType) => {
+    const presentInvite = useCallback((roomId: string, hostName: string, mode: GameModeType, answerVia?: (event: 'invite_declined' | 'invite_busy') => void) => {
         if (!userId || shownRooms.current.has(roomId)) return;
         shownRooms.current.add(roomId);
-        // The host waits for an answer; tell them "no" or "busy" (the room row names the host).
+        // The host waits for an answer; tell them "no" or "busy" (the room row names the host). A challenge that came over the
+        // Discord Activity channel is answered on that channel, the host is not necessarily a friend.
         const answer = (event: 'invite_declined' | 'invite_busy') => {
+            if (answerVia) {
+                answerVia(event);
+                return;
+            }
             void supabase.from('matchmaking_rooms').select('player1_id').eq('id', roomId).maybeSingle().then(({ data }) => {
                 const hostId = typeof data?.player1_id === 'string' ? data.player1_id : null;
                 if (hostId) void sendInviteBroadcast(hostId, event, { roomId });
@@ -173,6 +182,23 @@ export function useInviteListener(
             if (inbox) realtime.removeChannel(inbox);
         };
     }, [userId, foreground, presentInvite, setIncomingInvite, setChessInvite, setGameInvite, setAppState, setOutgoingInvite, t]);
+
+    // Duel challenges from the others in this Discord Activity (voice channel), see constants/DiscordDuel.ts.
+    useEffect(() => {
+        if (!userId || !isDiscordSdkAvailable()) return;
+        const selfId = getDiscordSelfId();
+        return startDiscordDuelChannel(getDiscordInstanceId(), selfId, {
+            onInvite: (invite) => presentInvite(invite.roomId, invite.hostName, invite.mode, (event) => {
+                void sendDiscordDuelEvent(event === 'invite_busy' ? DISCORD_DUEL_BUSY : DISCORD_DUEL_DECLINED, { to: invite.fromId, roomId: invite.roomId });
+            }),
+            onDeclined: (roomId) => setOutgoingInvite((current) => (current && current.roomId === roomId && current.status === 'waiting' ? { ...current, status: 'declined' } : current)),
+            onBusy: (roomId) => setOutgoingInvite((current) => {
+                if (!current || current.roomId !== roomId || current.status !== 'waiting') return current;
+                void supabase.from('matchmaking_rooms').delete().eq('id', roomId).eq('status', 'waiting');
+                return { ...current, status: 'busy' };
+            }),
+        });
+    }, [userId, presentInvite, setOutgoingInvite]);
 
     // Invites that came as a push while the app was closed: asked at launch and whenever the app comes back.
     useEffect(() => {

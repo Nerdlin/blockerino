@@ -62,6 +62,10 @@ export function setDiscordSelfId(id: string | null | undefined): void {
 	listeners.forEach((listener) => listener());
 }
 
+export function getDiscordSelfId(): string | null {
+	return selfId;
+}
+
 /** The others in the Activity (the player is left out when known). */
 export function getOtherParticipants(): DiscordParticipant[] {
 	return selfId ? participants.filter((person) => person.id !== selfId) : participants;

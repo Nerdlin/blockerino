@@ -54,6 +54,12 @@ export function getDiscordGuildId(): string | null {
   return typeof id === 'string' && /^d{5,25}$/.test(id) ? id : null;
 }
 
+/** The id of this Activity instance (everyone in the same voice channel session shares it). */
+export function getDiscordInstanceId(): string | null {
+  const id = discordSdk && isActivityRuntime() ? (discordSdk as { instanceId?: unknown }).instanceId : null;
+  return typeof id === 'string' ? id : null;
+}
+
 /** Opens Discord's own "invite friends to this Activity" dialog. Resolves false when Discord refuses it
  *  (a DM, or no permission to create invites). */
 export async function openDiscordInviteDialog(): Promise<boolean> {

@@ -15,16 +15,19 @@ import { GameModeType } from "@/hooks/useAppState";
 // friend (push when their app is closed, a live message when it is open) and then waits for the answer in
 // InviteModeHost; the game starts only when the friend joins. A friend in a duel right now is not invited.
 // Used by the friends list and by the friends strip of the Versus lobby.
+/** Hands the invitation to the friend by some other road than their inbox (the Discord Activity channel); true when it went out. */
+export type InviteDelivery = (room: { id: string }, myName: string, mode: GameModeType) => Promise<boolean>;
+
 export function useFriendInvite(userId: string) {
 	const { t } = useLanguage();
 	const askInviteMode = useSetAtom(inviteModeRequestAtom);
 	const setOutgoingInvite = useSetAtom(outgoingInviteAtom);
 	const [busy, setBusy] = useState(false);
 
-	const sendInvite = async (friendId: string, friendName: string, gameMode: GameModeType) => {
+	const sendInvite = async (friendId: string, friendName: string, gameMode: GameModeType, deliver?: InviteDelivery) => {
 		setBusy(true);
 
-		if (await isFriendInDuel(friendId)) {
+		if (!deliver && await isFriendInDuel(friendId)) {
 			gameAlert(t("friends.inviteBusyTitle"), t("friends.inviteBusy", { name: friendName }));
 			setBusy(false);
 			return;
@@ -55,14 +58,17 @@ export function useFriendInvite(userId: string) {
 			return;
 		}
 
-		void notifyInvite(room.id, friendId);
+		if (!deliver) void notifyInvite(room.id, friendId);
 
 		// 2. Send the invitation to the friend's private inbox (and the old public one for older builds).
-		const sendResult = (await sendInviteBroadcast(friendId, "1v1_invite", {
-			roomId: room.id,
-			hostName: myName,
-			gameMode: gameMode,
-		})) ? "ok" : "error";
+		const sent = deliver
+			? await deliver(room, myName, gameMode)
+			: await sendInviteBroadcast(friendId, "1v1_invite", {
+				roomId: room.id,
+				hostName: myName,
+				gameMode: gameMode,
+			});
+		const sendResult = sent ? "ok" : "error";
 
 		if (sendResult !== "ok") {
 			await supabase.from("matchmaking_rooms").delete().eq("id", room.id).eq("status", "waiting");
@@ -77,9 +83,9 @@ export function useFriendInvite(userId: string) {
 		setBusy(false);
 	};
 
-	const inviteFriend = (friendId: string, friendName: string) => {
+	const inviteFriend = (friendId: string, friendName: string, deliver?: InviteDelivery) => {
 		if (busy) return;
-		askInviteMode({ friendName, onPick: (mode) => void sendInvite(friendId, friendName, mode) });
+		askInviteMode({ friendName, onPick: (mode) => void sendInvite(friendId, friendName, mode, deliver) });
 	};
 
 	return { inviteFriend, busy };
