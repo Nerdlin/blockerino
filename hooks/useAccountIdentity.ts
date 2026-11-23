@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/constants/Supabase";
 import { getAccountSession } from '@/constants/AccountSession';
+import { isOnline } from "@/constants/NetworkStatus";
 
 const PLAYER_NAME_KEY = "PLAYER_NAME";
 
@@ -21,6 +22,8 @@ async function loadIdentity(): Promise<AccountIdentity> {
 
 		let name: string | null = null;
 		try {
+			// offline the query would wait for the auth refresh to give up; the saved nickname below is used instead
+			if (!(await isOnline())) throw new Error("offline");
 			const { data: rows } = await supabase.from("profiles").select("player_name").eq("auth_user_id", user.id).limit(1);
 			name = (rows?.[0]?.player_name as string | undefined)?.trim() || null;
 		} catch {}

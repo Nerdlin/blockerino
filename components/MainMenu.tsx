@@ -17,6 +17,8 @@ import { useAccountIdentity } from "@/hooks/useAccountIdentity";
 import AndroidTesterBanner from "./AndroidTesterBanner";
 import { badgeLabel, badgeTotal, useProfileBadge } from "@/constants/ProfileBadge";
 import { claimableTiers, useSeasonPass } from "@/constants/SeasonPass";
+import { useOnlineStatus } from "@/constants/NetworkStatus";
+import { offlineBadgeKey } from "@/constants/OfflineMessages";
 
 const CHAOS_VIOLET = "#7C3AED";
 
@@ -42,6 +44,8 @@ export default function MainMenu() {
 	const streakStatus = useAtomValue(dailyRewardStatusAtom);
 	const setDailyRewardOpen = useSetAtom(dailyRewardOpenAtom);
 	const { signedIn } = useAccountIdentity();
+	const { online } = useOnlineStatus();
+	const offlineKey = offlineBadgeKey(online);
 	// a green dot on the pass button while a tier waits to be claimed
 	const { pass: seasonPass } = useSeasonPass();
 	const passReady = signedIn && claimableTiers(seasonPass).length > 0;
@@ -80,11 +84,24 @@ export default function MainMenu() {
 			<Text style={styles.shopBalanceText}>{shopBalance}</Text>
 		</Pressable>
 
-		{streakStatus && (
+		{streakStatus ? (
 			<Pressable onPress={() => setDailyRewardOpen(true)} style={styles.streakButton}>
 				<UiIcon name="fire" size={18} dimmed={streakStatus.streak === 0} />
 				<Text style={[styles.streakText, streakStatus.claimedToday ? styles.streakDone : styles.streakPending]}>{streakStatus.streak}</Text>
 			</Pressable>
+		) : signedIn && offlineKey ? (
+			// the reward cannot be fetched without a network: keep the chip, say why when it is tapped
+			<Pressable onPress={() => setDailyRewardOpen(true)} style={styles.streakButton} accessibilityLabel={t("offline.dailyChip")}>
+				<UiIcon name="fire" size={18} dimmed />
+				<Text style={[styles.streakText, styles.streakPending]}>?</Text>
+			</Pressable>
+		) : null}
+
+		{offlineKey && (
+			<View style={styles.offlineBadge} accessibilityRole="alert">
+				<Text style={styles.offlineBadgeTitle}>● {t(offlineKey)}</Text>
+				<Text style={styles.offlineBadgeHint}>{t("offline.hint")}</Text>
+			</View>
 		)}
 
 		<Pressable
@@ -545,6 +562,31 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		zIndex: 20,
 		paddingHorizontal: 8,
+	},
+	offlineBadge: {
+		position: "absolute",
+		bottom: 110,
+		left: 16,
+		right: 16,
+		borderRadius: 10,
+		backgroundColor: "rgba(20, 20, 20, 0.92)",
+		borderWidth: 1,
+		borderColor: "rgba(255, 107, 107, 0.7)",
+		paddingVertical: 6,
+		paddingHorizontal: 10,
+		zIndex: 20,
+	},
+	offlineBadgeTitle: {
+		fontFamily: "Silkscreen",
+		fontSize: 12,
+		color: "#FF6B6B",
+	},
+	offlineBadgeHint: {
+		fontFamily: "Silkscreen",
+		fontSize: 9,
+		lineHeight: 13,
+		color: "rgba(255, 255, 255, 0.75)",
+		marginTop: 2,
 	},
 	streakText: {
 		fontFamily: "Silkscreen",

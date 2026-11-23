@@ -4,6 +4,8 @@ import SimplePopupView from "./SimplePopupView";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { StyleSheet, Text, View, Pressable, TextInput, useWindowDimensions } from "react-native";
 import PixelLoader from "@/components/PixelLoader";
+import OfflineNotice from "@/components/OfflineNotice";
+import { isOnline } from "@/constants/NetworkStatus";
 import StylizedButton from "./StylizedButton";
 import { cssColors } from "@/constants/Color";
 import { GameModeType, MenuStateType, useAppStateValue, useSetAppState } from "@/hooks/useAppState";
@@ -40,6 +42,7 @@ export default function HighScores() {
     const [ globalHighScores, setGlobalHighScores ] = useState<GlobalHighScore[]>([]);
     const [ gameMode, setGameMode ] = useState(GameModeType.Classic);
     const [ loading, setLoading ] = useState(false);
+    const [ offline, setOffline ] = useState(false);
     const [ syncing, setSyncing ] = useState(false);
     const [ playerName, setPlayerName ] = useState('');
     
@@ -80,6 +83,14 @@ export default function HighScores() {
         }
 
         try {
+            // No network: show what is on the device and say so, instead of waiting for requests to time out.
+            const online = await isOnline();
+            if (isMounted.current) setOffline(!online);
+            if (!online) {
+                const offlineScores = await getHighScores(gameMode, true, true, LEADERBOARD_LIMIT);
+                if (isMounted.current) setHighScores(offlineScores);
+                return;
+            }
             await syncLocalHighScores();
             const [localScores, remoteScores] = await Promise.all([
                 getHighScores(gameMode, true, true, LEADERBOARD_LIMIT),
@@ -266,6 +277,8 @@ export default function HighScores() {
             </Pressable>
         )}
 
+        {offline && <OfflineNotice feature="records" compact onRetry={() => void refreshScores(true)} checking={loading} />}
+
         {loading && <PixelLoader size="large" color={currentTheme.textPrimary} />}
 
         {!loading && hasScores && (
@@ -289,7 +302,7 @@ export default function HighScores() {
         )}
 
 
-        { !hasScores && !loading &&
+        { !hasScores && !loading && !offline &&
             <>
                 <Text style={[styles.noScoresText, { color: currentTheme.textPrimary }, isMobile && { fontSize: 20 }]}>
                     {showFriends ? t("hs.noFriendsScores") : showSeason ? t("hs.noSeasonScores") : t("hs.noGlobalScores")}

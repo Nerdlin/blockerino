@@ -12,6 +12,9 @@ import CollectionMenu from "./CollectionMenu";
 import { useCollectionSummary } from "@/constants/Collection";
 import { MenuStateType, useSetAppState } from "@/hooks/useAppState";
 import { useTheme } from "@/constants/Theme";
+import OfflineNotice from "@/components/OfflineNotice";
+import { useOnlineStatus } from "@/constants/NetworkStatus";
+import { SHOP_OFFLINE_ERROR } from "@/constants/Shop";
 import {
 	ShopCategory,
 	ShopItem,
@@ -40,6 +43,7 @@ export default function ShopMenu() {
 	const [setAppState, appendAppState] = useSetAppState();
 	const { currentTheme } = useTheme();
 	const { state, equip, purchaseAndEquip } = useShopState();
+	const { online } = useOnlineStatus();
 	const { playSfx } = useSoundSettings();
 	const { t, language } = useLanguage();
 	const { width } = useWindowDimensions();
@@ -108,7 +112,7 @@ export default function ShopMenu() {
 			setMessage(isOwned ? t("shop.equippedMsg", { name: shopItemText(item, language).title }) : t("shop.boughtMsg", { name: shopItemText(item, language).title }));
 		} else {
 			playSfx("invalidPlacement");
-			setMessage(result.error ?? t("shop.couldNotBuy"));
+			setMessage(result.error === SHOP_OFFLINE_ERROR ? t("offline.body.shop") : result.error ?? t("shop.couldNotBuy"));
 		}
 	};
 
@@ -131,6 +135,7 @@ export default function ShopMenu() {
 						<AnimatedNumber value={state.balance} style={[styles.balance, { color: currentTheme.accent }]} />
 					</View>
 				</View>
+				{online === false && <OfflineNotice feature="shop" compact />}
 				<Text style={[styles.caption, { color: currentTheme.textSecondary }]}>{message}</Text>
 				<Pressable
 					onPress={() => { playSfx("menuClick"); setCollectionOpen(true); }}

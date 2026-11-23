@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './Supabase';
+import { isOnline } from './NetworkStatus';
 
 // A guest gets an invisible anonymous account for online matches only (rooms and match channels can then tell
 // players apart). Everywhere else the game treats that session as "not signed in".
@@ -8,8 +9,37 @@ export function isAnonymousSession(session: Session | null | undefined): boolean
 	return Boolean(session?.user?.is_anonymous);
 }
 
+/** The session as the auth client saved it (JSON in storage); null when it is missing or broken. Pure. */
+export function sessionFromStoredValue(raw: string | null | undefined): Session | null {
+	if (!raw) return null;
+	try {
+		const value = JSON.parse(raw);
+		const session = value && typeof value === "object" && "currentSession" in value ? value.currentSession : value;
+		if (session && typeof session === "object" && typeof session.access_token === "string" && session.user && typeof session.user.id === "string") return session as Session;
+	} catch {
+		// unreadable: treat as no saved session
+	}
+	return null;
+}
+
+async function readSavedSession(): Promise<Session | null> {
+	try {
+		const auth = supabase.auth as unknown as { storage?: { getItem(key: string): Promise<string | null> | string | null }; storageKey?: string };
+		if (!auth.storage || !auth.storageKey) return null;
+		return sessionFromStoredValue(await auth.storage.getItem(auth.storageKey));
+	} catch {
+		return null;
+	}
+}
+
 /** The session of a signed-in player; a guest's anonymous session reads as none. Same shape as auth.getSession(). */
 export async function getAccountSession(): ReturnType<typeof supabase.auth.getSession> {
+	// Offline, supabase.auth.getSession() tries to refresh an expired token and waits ~30 s before giving up, which
+	// freezes every screen that asks who the player is. Use the saved session as it is instead.
+	if (!(await isOnline())) {
+		const saved = await readSavedSession();
+		if (saved) return { data: { session: isAnonymousSession(saved) ? null : saved }, error: null } as Awaited<ReturnType<typeof supabase.auth.getSession>>;
+	}
 	const result = await supabase.auth.getSession();
 	if (isAnonymousSession(result.data.session)) {
 		return { ...result, data: { session: null } } as Awaited<ReturnType<typeof supabase.auth.getSession>>;

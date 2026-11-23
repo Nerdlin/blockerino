@@ -5,6 +5,7 @@ import { supabase } from "./Supabase";
 import { track } from "./Analytics";
 import { noteCoinBalance } from "./Achievements";
 import { getAccountSession } from './AccountSession';
+import { isOnline } from './NetworkStatus';
 
 export type ShopCategory = "piece_skin" | "background" | "music" | "sfx" | "chess_piece" | "chess_board" | "sea_skin" | "card_skin" | "sudoku_theme" | "mahjong_theme" | "checkers_skin" | "backgammon_skin";
 export type BackgroundScene = "classic" | "ender" | "sunset" | "ice" | "cyber";
@@ -1317,6 +1318,8 @@ export async function purchaseShopItemOnServer(itemId: string): Promise<ServerPu
 	try {
 		const { data: { session } } = await getAccountSession();
 		if (!session?.user) return { kind: "guest" };
+		// no network: answer at once instead of waiting for the request to fail
+		if (!(await isOnline())) return { kind: "offline" };
 
 		const { data, error } = await supabase.rpc("purchase_shop_item", { p_item_id: itemId });
 		if (error || !data || typeof data !== "object") return { kind: "offline" };
@@ -1332,6 +1335,9 @@ export async function purchaseShopItemOnServer(itemId: string): Promise<ServerPu
 		return { kind: "offline" };
 	}
 }
+
+/** The error a purchase returns without a network; the shop screen shows its own translated text for it. */
+export const SHOP_OFFLINE_ERROR = "You need to be online to buy items.";
 
 const SERVER_PURCHASE_ERRORS: Record<string, string> = {
 	not_enough_coins: "Not enough coins.",
@@ -1396,7 +1402,7 @@ export function useShopState() {
 			server = await purchaseShopItemOnServer(itemId);
 		}
 		if (server.kind === "offline") {
-			return { ok: false, state: current, error: "You need to be online to buy items." };
+			return { ok: false, state: current, error: SHOP_OFFLINE_ERROR };
 		}
 		if (server.kind === "guest") return local;
 		if (server.status !== "purchased" && server.status !== "owned") {

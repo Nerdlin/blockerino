@@ -5,6 +5,8 @@ import FadeInView from "./FadeInView";
 import { track } from "@/constants/Analytics";
 import { Platform, StyleSheet, Text, View, TextInput, useWindowDimensions, ScrollView, Image, Pressable } from "react-native";
 import PixelLoader from "@/components/PixelLoader";
+import OfflineNotice from "@/components/OfflineNotice";
+import { isOnline, useOnlineStatus } from "@/constants/NetworkStatus";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import SegmentedControl from "./SegmentedControl";
@@ -142,6 +144,10 @@ export default function ProfileMenu() {
 
 	const [session, setSession] = useState<Session | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [offline, setOffline] = useState(false);
+	const { online, recheck, checking: recheckingNet } = useOnlineStatus();
+	// flips when the network goes away or comes back, which loads the profile again
+	const offlineNow = online === false;
 	const [authMode, setAuthMode] = useState<"login" | "register">(() => consumeProfileAuthIntent() ?? "login");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -320,11 +326,20 @@ export default function ProfileMenu() {
 			clearWebAuthCallbackParams();
 		}
 
-		getAccountSession().then(async ({ data: { session } }) => {
-			if (mounted) {
-				await hydrateSession(session, { force: true });
+		// Offline the session lookup would wait for the auth refresh to time out; say so at once instead.
+		void isOnline().then((reachable) => {
+			if (!mounted) return;
+			setOffline(!reachable);
+			if (!reachable) {
 				setLoading(false);
+				return;
 			}
+			return getAccountSession().then(async ({ data: { session } }) => {
+				if (mounted) {
+					await hydrateSession(session, { force: true });
+					setLoading(false);
+				}
+			});
 		});
 
 		const { data: listener } = supabase.auth.onAuthStateChange((event, rawSession) => {
@@ -341,7 +356,7 @@ export default function ProfileMenu() {
 			mounted = false;
 			listener.subscription.unsubscribe();
 		};
-	}, [hydrateSession]);
+	}, [hydrateSession, offlineNow]);
 
 	const handleButtonPress = () => {
 		playSfx('menuClick');
@@ -594,6 +609,8 @@ export default function ProfileMenu() {
 			<ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
 				{loading ? (
 					<PixelLoader size="large" color={currentTheme.accent} />
+				) : offline ? (
+					<OfflineNotice feature="profile" onRetry={recheck} checking={recheckingNet} />
 				) : (session || (playerName && !showAuth)) ? (
 					<View style={[styles.profileContainer, isMobile && styles.mobileProfileContainer]}>
 						<ProfileBanner

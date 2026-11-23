@@ -12,6 +12,7 @@ import { startAnalytics } from "@/constants/Analytics";
 import { startCrashReporting } from "@/constants/CrashReports";
 import { startPlayGamesSync } from "@/constants/PlayGamesSync";
 import { setupNotifications } from "@/constants/Notifications";
+import { isOnline } from "@/constants/NetworkStatus";
 
 // Suppress warnings from third-party libraries
 LogBox.ignoreLogs([
@@ -68,6 +69,8 @@ export default function RootLayout() {
 			if (syncInProgress) return;
 			syncInProgress = true;
 			try {
+				// No network: keep the queue as it is and try again later, without failing requests and error logs.
+				if (!(await isOnline())) return;
 				await syncLocalHighScores();
 				await Promise.all([
 					flushPendingGlobalHighScores(),
@@ -90,18 +93,26 @@ export default function RootLayout() {
 		// Register service worker on web platform
 		if (Platform.OS === 'web' && typeof window !== 'undefined' && navigator && 'serviceWorker' in navigator) {
 			window.addEventListener('online', syncPendingScores);
-			window.addEventListener('load', () => {
+			// This effect runs after the page's "load" event has already fired, so waiting for "load" never registered
+			// the worker: register now, and remember what the page loaded so the next visit can work offline.
+			const registerServiceWorker = () => {
 				const swPath = window.location.pathname.startsWith('/blockerino')
 					? '/blockerino/service-worker.js'
 					: '/service-worker.js';
 				navigator.serviceWorker.register(swPath)
+					.then(() => navigator.serviceWorker.ready)
 					.then((reg) => {
-						console.log('Service Worker registered successfully with scope:', reg.scope);
+						const urls = performance.getEntriesByType('resource')
+							.map((entry) => entry.name)
+							.filter((url) => url.startsWith(window.location.origin) && !url.includes('/supabase/') && !url.includes('/music/'));
+						reg.active?.postMessage({ type: 'cache-urls', urls: [window.location.href, ...urls] });
 					})
 					.catch((err) => {
-						console.error('Service Worker registration failed:', err);
+						console.warn('Service Worker registration failed:', err);
 					});
-			});
+			};
+			if (document.readyState === 'complete') registerServiceWorker();
+			else window.addEventListener('load', registerServiceWorker, { once: true });
 		}
 
 		return () => {

@@ -17,6 +17,8 @@ import { MenuStateType, useAppStateValue } from "@/hooks/useAppState";
 import { track } from "@/constants/Analytics";
 import { enablePush, markPushOffered, shouldOfferPush } from "@/constants/Notifications";
 import DailyCalendar from "./DailyCalendar";
+import OfflineNotice from "./OfflineNotice";
+import { isOnline, useOnlineStatus } from "@/constants/NetworkStatus";
 import ChestRoulette from "./ChestRoulette";
 import { ChestOdds, ChestPrizeCard, LuckyHourNote, useLuckyHour } from "./ChestParts";
 import {
@@ -56,7 +58,17 @@ export default function DailyRewardHost() {
 	const commitRef = useRef(commit);
 	commitRef.current = commit;
 
+	const { online, recheck, checking } = useOnlineStatus();
+	// set when a refresh was skipped for lack of a network, so the reward is offered as soon as it returns
+	const refreshPending = useRef(false);
+
 	const refresh = useCallback(async () => {
+		// Offline: do not wait for the auth refresh to time out (about 30 s); try again when the network is back.
+		if (!(await isOnline())) {
+			refreshPending.current = true;
+			return;
+		}
+		refreshPending.current = false;
 		const next = await fetchDailyRewardStatus();
 		setStatus(next);
 		if (next && !next.claimedToday && offeredDay.current !== utcDay()) {
@@ -85,6 +97,21 @@ export default function DailyRewardHost() {
 			authSub.subscription.unsubscribe();
 		};
 	}, [refresh, setOpen, setStatus]);
+
+	useEffect(() => {
+		if (online === true && refreshPending.current) void refresh();
+	}, [online, refresh]);
+
+	// The streak chip was tapped without a network: say so instead of showing nothing.
+	if (open && !status && online === false && appState.current === MenuStateType.MENU) {
+		return (
+			<SimplePopupView style={[{ backgroundColor: opaqueColor(currentTheme.menuBackground) }]}>
+				<Text style={[styles.screenTitle, { color: currentTheme.textPrimary }]}>{t("daily.title")}</Text>
+				<OfflineNotice feature="daily" onRetry={recheck} checking={checking} />
+				<StylizedButton text={t("daily.ok")} onClick={() => setOpen(false)} backgroundColor={currentTheme.buttonPrimary} />
+			</SimplePopupView>
+		);
+	}
 
 	if (!open || !status || appState.current !== MenuStateType.MENU) return null;
 
@@ -236,7 +263,7 @@ export default function DailyRewardHost() {
 				{!chest && daysToChest !== null && daysToChest > 0 && (
 					<Text style={[styles.note, { color: currentTheme.textSecondary }]}>{t("daily.toChest", { days: daysToChest })}</Text>
 				)}
-				{failed && <Text style={[styles.note, { color: "#FF6B6B" }]}>{t("daily.failed")}</Text>}
+				{failed && <Text style={[styles.note, { color: "#FF6B6B" }]}>{online === false ? t("offline.body.daily") : t("daily.failed")}</Text>}
 				{!chest ? <Text style={[styles.note, { color: currentTheme.textSecondary, fontSize: 9 }]}>{t("daily.rules")}</Text> : null}
 				{offerPush && <Text style={[styles.note, { color: currentTheme.textPrimary, marginTop: 8 }]}>{t("notif.pushOffer")}</Text>}
 				{pushNote && <Text style={[styles.note, { color: currentTheme.textSecondary, marginTop: 8 }]}>{pushNote}</Text>}

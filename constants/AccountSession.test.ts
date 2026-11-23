@@ -1,5 +1,6 @@
 const mockGetSession = jest.fn();
 const mockSignInAnonymously = jest.fn();
+jest.mock("./NetworkStatus", () => ({ isOnline: async () => true }));
 jest.mock("./Supabase", () => ({ supabase: { auth: { getSession: (...a: unknown[]) => mockGetSession(...a), signInAnonymously: (...a: unknown[]) => mockSignInAnonymously(...a) } } }));
 
 import { accountSessionOf, ensureOnlineIdentity, getAccountSession, isAnonymousSession } from "./AccountSession";

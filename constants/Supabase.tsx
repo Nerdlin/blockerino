@@ -4,6 +4,7 @@ import { AppState, Platform } from 'react-native';
 import { createClient, processLock, User } from '@supabase/supabase-js';
 import { getStaleRoomCutoffs, ROOM_CLEANUP_RPC } from './Multiplayer';
 import { isDiscordActivityLocation } from './DiscordEnvironment';
+import { notifyNetworkFailure } from './NetworkFailure';
 
 // Supabase configuration
 function isDiscordEmbed(): boolean {
@@ -40,7 +41,20 @@ function getSupabaseAuthStorage() {
     return Platform.OS === 'web' ? webStorage : AsyncStorage;
 }
 
+// A request that fails with a network error tells constants/NetworkStatus.ts the player is offline, so screens stop
+// asking for a few seconds instead of each waiting for its own failure.
+const reportingFetch: typeof fetch = async (input, init) => {
+    try {
+        return await fetch(input, init);
+    } catch (error) {
+        const aborted = (error as { name?: string } | null)?.name === 'AbortError';
+        if (!aborted) notifyNetworkFailure();
+        throw error;
+    }
+};
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { fetch: reportingFetch },
     auth: {
         storage: getSupabaseAuthStorage(),
         autoRefreshToken: true,

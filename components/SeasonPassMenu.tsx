@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Svg, { Rect } from "react-native-svg";
 import PixelLoader from "@/components/PixelLoader";
+import OfflineNotice from "@/components/OfflineNotice";
+import { useOnlineStatus } from "@/constants/NetworkStatus";
 import SimplePopupView from "./SimplePopupView";
 import StylizedButton from "./StylizedButton";
 import UiIcon from "./UiIcon";
@@ -65,6 +67,7 @@ export default function SeasonPassMenu() {
 	const { checked, signedIn } = useAccountIdentity();
 	const { state: shop, commit } = useShopState();
 	const { pass, refresh } = useSeasonPass();
+	const { online, recheck: recheckNet, checking: checkingNet } = useOnlineStatus();
 	const [load, setLoad] = useState<"loading" | "ready" | "failed">("loading");
 	const [now, setNow] = useState(() => new Date());
 	// a tier being claimed: its number for the free track, minus its number for the premium one
@@ -100,7 +103,7 @@ export default function SeasonPassMenu() {
 		return () => {
 			cancelled = true;
 		};
-	}, [checked, signedIn, refresh]);
+	}, [checked, signedIn, refresh, online !== false]);
 
 	const state = signedIn ? pass : null;
 	const tier = state?.tier ?? 0;
@@ -234,8 +237,9 @@ export default function SeasonPassMenu() {
 				</Pressable>
 			)}
 
-			{signedIn && load === "loading" && !state && <PixelLoader size="large" color={currentTheme.textPrimary} />}
-			{signedIn && load === "failed" && !state && (
+			{signedIn && online !== false && load === "loading" && !state && <PixelLoader size="large" color={currentTheme.textPrimary} />}
+			{signedIn && online === false && <OfflineNotice feature="pass" compact onRetry={recheckNet} checking={checkingNet} />}
+			{signedIn && online !== false && load === "failed" && !state && (
 				<View style={styles.failBox}>
 					<Text style={styles.failText}>{t("pass.failed")}</Text>
 					<StylizedButton text={t("pass.retry")} onClick={() => { setLoad("loading"); void refresh().then((s) => setLoad(s ? "ready" : "failed")); }} backgroundColor={currentTheme.buttonPrimary} style={styles.smallButton} textStyle={styles.smallText} />

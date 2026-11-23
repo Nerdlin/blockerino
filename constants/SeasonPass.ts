@@ -8,6 +8,7 @@ import { parseChestState, publishChestState, type ChestState } from "./Chests";
 import { getSeasonEndsAt } from "./SeasonScores";
 import { subscribeToOutcomes, type GameOutcome } from "./GameStats";
 import { onQuestsClaimed } from "./DailyQuests";
+import { isOnline } from "./NetworkStatus";
 
 // The free season pass: 30 tiers for every leaderboard season (a UTC month, the same key and end the leaderboards use).
 // XP comes from play; the server owns it (supabase/migrations/20261118130000_season_pass.sql) and so does every
@@ -474,6 +475,7 @@ export async function syncSeasonPass(): Promise<SeasonPassState | null> {
 			publishSeasonPass(null);
 			return null;
 		}
+		if (!(await isOnline())) return null;
 		const { data, error } = await supabase.rpc("season_pass_sync");
 		if (error) return null;
 		const state = parseSeasonPassState(data);

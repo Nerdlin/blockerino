@@ -50,7 +50,7 @@ export default function MultiplayerConnectionGate({
 		<SimplePopupView style={[styles.popup, { backgroundColor: currentTheme.menuBackground }]}>
 			<Text style={[styles.title, { color: currentTheme.textPrimary }]}>{t("online.required")}</Text>
 			<Text style={[styles.message, { color: currentTheme.textSecondary }]}>
-				Multiplayer, rooms, ELO rating, and ELO leaderboard need an internet connection.
+				{t("online.duelNeeds")}
 			</Text>
 
 			{checking && (
@@ -63,13 +63,8 @@ export default function MultiplayerConnectionGate({
 			{!checking && (
 				<View style={styles.statusBlock}>
 					<Text style={[styles.status, { color: currentTheme.textSecondary }]}>
-						{lastChecked ? "Connection check failed." : "No connection detected."}
+						{lastChecked ? t("online.checkFailed") : t("online.notDetected")}
 					</Text>
-					{connectionResult?.message && (
-						<Text style={[styles.detail, { color: currentTheme.textSecondary }]}>
-							{connectionResult.code ? `${connectionResult.code}: ` : ""}{connectionResult.message}
-						</Text>
-					)}
 				</View>
 			)}
 

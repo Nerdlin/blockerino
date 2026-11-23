@@ -1,5 +1,6 @@
 import { createAudioPlayer, AudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { playlistForPack, songUrl } from './MusicCatalog';
+import { resolveMusicSource } from './MusicCache';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { atom, useAtom, useAtomValue } from 'jotai';
 import { shopLoadedAtom, shopStateAtom } from './Shop';
@@ -751,9 +752,19 @@ class SoundManager {
 
   private async loadMusicSafely(key: MusicTrackKey): Promise<AudioPlayer | null> {
     try {
-      const soundResource = key.startsWith('remote:')
-        ? { uri: songUrl(key.slice('remote:'.length), Platform.OS === 'web') }
-        : getSoundResource(key as SoundType);
+      let soundResource: ReturnType<typeof getSoundResource> | { uri: string } | null;
+      if (key.startsWith('remote:')) {
+        const songId = key.slice('remote:'.length);
+        // a song played before is on the device; offline and never played, there is nothing to load
+        const uri = await resolveMusicSource(songId, songUrl(songId, Platform.OS === 'web'));
+        if (!uri) {
+          console.log(`Song "${songId}" is not saved and there is no network`);
+          return null;
+        }
+        soundResource = { uri };
+      } else {
+        soundResource = getSoundResource(key as SoundType);
+      }
       if (!soundResource) {
         console.log(`Resource not found for music "${key}"`);
         return null;
@@ -865,8 +876,15 @@ class SoundManager {
     const requestId = this.musicRequestId;
     try {
       const previousKey = this.currentMusicKey;
-      const nextKey = nextPlaylistTrack(previousKey, Math.random, this.playlist);
-      const next = await this.getOrLoadMusic(nextKey);
+      let nextKey = nextPlaylistTrack(previousKey, Math.random, this.playlist);
+      let next = await this.getOrLoadMusic(nextKey);
+      if (!next && nextKey.startsWith('remote:')) {
+        // not saved and offline: continue with the songs inside the app
+        this.playlist = MUSIC_PLAYLIST;
+        this.playlistPack = null;
+        nextKey = nextPlaylistTrack(previousKey, Math.random, this.playlist);
+        next = await this.getOrLoadMusic(nextKey);
+      }
       if (!next || requestId !== this.musicRequestId || !this.musicPlaying) return;
       const previous = this.musicTracks.get(previousKey);
       if (previous) {
@@ -1083,13 +1101,21 @@ class SoundManager {
       // A new pack always starts one of its songs, never the song that is playing now: some packs share a song,
       // and keeping it made a pack change sound as if nothing happened. The same pack (volume change, return from
       // the background) keeps its song.
-      const musicKey = playlist
+      let musicKey = playlist
         ? (!packChanged && this.playlist.includes(this.currentMusicKey)
           ? this.currentMusicKey
           : nextPlaylistTrack(this.currentMusicKey, Math.random, this.playlist))
         : getMusicTrackKey(musicPackId);
-      const nextMusic = await this.getOrLoadMusic(musicKey);
+      let nextMusic = await this.getOrLoadMusic(musicKey);
       if (requestId !== this.musicRequestId) return;
+      if (!nextMusic && musicKey.startsWith('remote:')) {
+        // a pack song that is neither saved on the device nor reachable: the songs inside the app play instead
+        this.playlist = MUSIC_PLAYLIST;
+        this.playlistPack = null;
+        musicKey = nextPlaylistTrack(this.currentMusicKey, Math.random, this.playlist);
+        nextMusic = await this.getOrLoadMusic(musicKey);
+        if (requestId !== this.musicRequestId) return;
+      }
       if (!nextMusic) return;
 
       if (musicKey !== this.currentMusicKey) {

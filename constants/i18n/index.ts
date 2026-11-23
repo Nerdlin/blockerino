@@ -25,6 +25,7 @@ import { moment } from "./moment";
 import { seasonpass } from "./seasonpass";
 import { options } from "./options";
 import { discord } from "./discord";
+import { offline } from "./offline";
 
 export type ScreenDictionary = { en: Record<string, string>; ru: Record<string, string> };
 
@@ -53,6 +54,7 @@ const modules: ScreenDictionary[] = [
 	seasonpass,
 	options,
 	discord,
+	offline,
 ];
 
 export const moduleTranslations: Record<Language, Record<string, string>> = {
