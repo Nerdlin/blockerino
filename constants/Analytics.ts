@@ -3,6 +3,7 @@ import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
 import { AppState as NativeAppState, Platform } from "react-native";
 import { supabase } from "./Supabase";
+import { isDiscordActivityRuntime } from "./DiscordEnvironment";
 
 // First-party usage statistics. Events go to our own Supabase table (see the analytics_events migration),
 // never to a third party. Nothing personal is sent: a random device id the app makes for itself, screens,
@@ -130,7 +131,16 @@ function currentSessionId(now: number): string {
 	return sessionId;
 }
 
-export function track(name: string, props?: EventProps): void {
+/** Properties every event carries by itself: the Discord Activity is told apart from the plain web game, so a funnel
+ *  (opened the Activity -> started a game -> finished it) can be cut by where it was played. */
+function baseProps(): EventProps {
+	return isDiscordActivityRuntime() ? { via: "discord" } : {};
+}
+
+/** `flush: true` sends the queue right away: for events whose page may be closed within seconds (an Activity is
+ *  closed with the voice channel, the 20-second timer would never fire). */
+export function track(name: string, props?: EventProps, options?: { flush?: boolean }): void {
+	const base = baseProps();
 	void (async () => {
 		try {
 			if (!(await isAnalyticsEnabled())) return;
@@ -143,11 +153,11 @@ export function track(name: string, props?: EventProps): void {
 				session_id: currentSessionId(now),
 				platform: Platform.OS,
 				app_version: Constants.expoConfig?.version ?? "unknown",
-				props: sanitizeProps(props),
+				props: sanitizeProps({ ...base, ...props }),
 			});
 			if (queue.length > MAX_QUEUE) queue = queue.slice(-MAX_QUEUE);
 			await persistQueue();
-			if (queue.length >= FLUSH_AT) void flushAnalytics();
+			if (options?.flush || queue.length >= FLUSH_AT) void flushAnalytics();
 		} catch {
 			// never let statistics break the app
 		}

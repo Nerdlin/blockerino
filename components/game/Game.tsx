@@ -26,6 +26,7 @@ import { useAtom, useSetAtom } from 'jotai';
 import FirstRunCoach from './FirstRunCoach';
 import { firstRunCoachAtom, markFirstRunDone } from '@/constants/FirstRun';
 import { track } from '@/constants/Analytics';
+import { useDiscordGamePresence } from '@/hooks/useDiscordGamePresence';
 import SecondChanceModal from '../SecondChanceModal';
 import { applySecondChancePenalty, canUseSecondChance, getSecondChanceCost, SECOND_CHANCE_COSTS } from '@/constants/SecondChance';
 import { getRandomPieceColor } from '@/constants/Piece';
@@ -147,6 +148,7 @@ export const Game = (({gameMode, initialState}: {gameMode: GameModeType, initial
 
 	// Time Attack mode timer remaining state
 	const timeRemaining = useSharedValue(level ? level.time ?? 0 : validInitialState ? validInitialState.timeRemaining ?? getInitialTimeRemaining(gameMode) : getInitialTimeRemaining(gameMode));
+	useDiscordGamePresence(gameMode, score, timeRemaining);
 	const movesRemaining = useSharedValue(level ? level.moves ?? 0 : validInitialState ? validInitialState.movesRemaining ?? getInitialMovesRemaining(gameMode) : getInitialMovesRemaining(gameMode));
 	// what a level run has done: lines cleared, best combo, gems still on the board
 	const levelLines = useSharedValue(0);

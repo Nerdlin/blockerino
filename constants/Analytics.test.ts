@@ -99,6 +99,26 @@ describe("track and flush", () => {
 		expect(mockStore.has("ANALYTICS_QUEUE")).toBe(false);
 	});
 
+	it("sends right away with flush: true, without waiting for the timer", async () => {
+		track("discord_open", { discord_surface: "dm" }, { flush: true });
+		await settle();
+		expect(mockRpc).toHaveBeenCalledTimes(1);
+		expect(mockRpc.mock.calls[0][1].p_events[0]).toMatchObject({ name: "discord_open" });
+	});
+
+	it("tags events from a Discord Activity with via: discord, and no others", async () => {
+		const original = (global as { window?: unknown }).window;
+		(global as { window?: unknown }).window = { location: { hostname: "123.discordsays.com", search: "" } };
+		track("game_start", { mode: "classic" });
+		(global as { window?: unknown }).window = original;
+		track("game_start", { mode: "chaos" });
+		await settle();
+		await flushAnalytics();
+		const events = mockRpc.mock.calls[0][1].p_events;
+		expect(events[0].props).toEqual({ via: "discord", mode: "classic" });
+		expect(events[1].props).toEqual({ mode: "chaos" });
+	});
+
 	it("sends at most 50 events per call", async () => {
 		for (let i = 0; i < 120; i += 1) track("tick");
 		await settle();

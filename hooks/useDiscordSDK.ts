@@ -5,7 +5,10 @@ import { supabase } from '@/constants/Supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isDiscordActivityLocation, withDiscordTimeout } from '@/constants/DiscordEnvironment';
 import { attachDiscordPresence } from '@/constants/DiscordPresence';
-import { trackDiscordOpen } from '@/constants/DiscordUsage';
+import { trackDiscordFail, trackDiscordOpen, type DiscordFailStage } from '@/constants/DiscordUsage';
+import { attachDiscordParticipants, setDiscordSelfId } from '@/constants/DiscordParticipants';
+import { setDiscordPresenceLocale } from '@/constants/DiscordPresence';
+import { normalizeDiscordLocale } from '@/constants/DiscordLocale';
 
 const discordClientId = process.env.EXPO_PUBLIC_DISCORD_CLIENT_ID;
 
@@ -40,6 +43,58 @@ export async function openExternalLink(url: string): Promise<void> {
   }
 }
 
+/** True once the Discord SDK is up in this page (an Activity). */
+export function isDiscordSdkAvailable(): boolean {
+  return !!discordSdk && isActivityRuntime();
+}
+
+/** The server this Activity was opened in; null in a DM / group chat or outside Discord. */
+export function getDiscordGuildId(): string | null {
+  const id = discordSdk && isActivityRuntime() ? (discordSdk as { guildId?: unknown }).guildId : null;
+  return typeof id === 'string' && /^d{5,25}$/.test(id) ? id : null;
+}
+
+/** Opens Discord's own "invite friends to this Activity" dialog. Resolves false when Discord refuses it
+ *  (a DM, or no permission to create invites). */
+export async function openDiscordInviteDialog(): Promise<boolean> {
+  if (!discordSdk || !isActivityRuntime()) return false;
+  try {
+    await discordSdk.commands.openInviteDialog();
+    return true;
+  } catch (e) {
+    console.warn('Discord openInviteDialog failed:', e);
+    return false;
+  }
+}
+
+/** Asks the player to pick an image (Discord uploads it to its CDN) and opens the "share as a message" dialog for it.
+ *  The GIF itself cannot be handed to Discord from code: Discord only takes a CDN address, so the player picks the saved file. */
+export async function pickAndShareDiscordImage(): Promise<'shared' | 'failed'> {
+  if (!discordSdk || !isActivityRuntime()) return 'failed';
+  try {
+    const { image_url } = await discordSdk.commands.initiateImageUpload();
+    if (!image_url) return 'failed';
+    await discordSdk.commands.openShareMomentDialog({ mediaUrl: image_url });
+    return 'shared';
+  } catch (e) {
+    console.warn('Discord share failed:', e);
+    return 'failed';
+  }
+}
+
+async function readDiscordLocale(): Promise<string> {
+  try {
+    if (discordSdk) {
+      const { locale } = await withDiscordTimeout(discordSdk.commands.userSettingsGetLocale(), 4000);
+      if (locale) return locale;
+    }
+  } catch {
+    // fall back to the page language below
+  }
+  const fromUrl = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('locale') : null;
+  return fromUrl || (typeof navigator !== 'undefined' ? navigator.language : '') || 'en';
+}
+
 export function useDiscordSDK() {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -69,10 +124,16 @@ export function useDiscordSDK() {
         return;
       }
       
+      // Counted as soon as the Activity page starts, before the SDK handshake: a player who never gets in
+      // (timeout, no consent) is part of the funnel too. The server id comes from the page address.
+      trackDiscordOpen(discordSdk);
+      let stage: DiscordFailStage = 'ready';
       try {
         await withDiscordTimeout(discordSdk.ready());
         console.log("Discord SDK is ready!");
-        trackDiscordOpen(discordSdk);
+        void attachDiscordParticipants(discordSdk);
+        void readDiscordLocale().then((locale) => setDiscordPresenceLocale(normalizeDiscordLocale(locale)));
+        stage = 'authorize';
         
         // 1. Authorize with Discord Client
         const { code } = await withDiscordTimeout(discordSdk.commands.authorize({
@@ -84,6 +145,7 @@ export function useDiscordSDK() {
         }));
         
         // 2. Exchange token via Supabase Edge Function
+        stage = 'exchange';
         const { data: exchangeData, error: exchangeError } = await withDiscordTimeout(supabase.functions.invoke('discord-token-exchange', {
           body: { code }
         }));
@@ -99,8 +161,10 @@ export function useDiscordSDK() {
         const { access_token } = exchangeData;
         
         // 3. Authenticate with SDK using the obtained access token
+        stage = 'authenticate';
         const auth = await withDiscordTimeout(discordSdk.commands.authenticate({ access_token }));
         attachDiscordPresence(discordSdk);
+        setDiscordSelfId(auth.user?.id);
         
         if (mounted) {
           setDiscordUser(auth.user);
@@ -158,6 +222,7 @@ export function useDiscordSDK() {
           }
         } catch (autoAuthErr) {
           console.error("Discord auto-auth failed (non-critical):", autoAuthErr);
+          trackDiscordFail('sign_in', discordSdk);
           if (mounted) setError(autoAuthErr instanceof Error ? autoAuthErr : new Error(String(autoAuthErr)));
         }
 
@@ -166,6 +231,7 @@ export function useDiscordSDK() {
         }
       } catch (err) {
         console.error("Error setting up Discord SDK:", err);
+        trackDiscordFail(stage, discordSdk);
         // It might fail if not running in Discord iframe, proceed anyway
         if (mounted) {
           setIsReady(true);
