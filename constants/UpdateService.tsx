@@ -1,22 +1,18 @@
 import { gameAlert } from "@/constants/GameDialog";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking, Platform } from 'react-native';
 import * as Application from 'expo-application';
-import { supabase } from './Supabase';
-import { loadStoredLanguage, translate, type Language } from './Localization';
+import { loadStoredLanguage, translate } from './Localization';
 import { getInstallerPackageName, getPlayUpdate, GOOGLE_PLAY_INSTALLER, startPlayUpdate } from '@/modules/install-source';
-
-export interface AppVersionConfig {
-    latestVersion: string;
-    latestBuildNumber: number;
-    downloadUrl: string;
-    releaseNotes?: string;
-    isMandatory?: boolean;
-}
 
 // Automatic checks (launch, coming back to the app, a timer) are throttled; a manual
 // check from Settings always goes through.
 const AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000;
+const PLAY_SUGGESTED_KEY = "PLAY_MOVE_SUGGESTED";
 
+// Google Play is the only update channel. A build from Google Play gets Play's own "Update available" window
+// (2.0.9 and newer). An APK from GitHub is signed with another key, so it can never be updated over the Google Play
+// version: it is pointed to the store once, and a manual check opens the store page.
 class UpdateService {
     private lastCheckAt = 0;
     private checking = false;
@@ -30,62 +26,32 @@ class UpdateService {
             return;
         }
 
-        // An app from Google Play may only be updated through Play: it gets Play's own "Update available" window
-        // (2.0.9 and newer); only the GitHub APK gets our dialog.
         if (getInstallerPackageName() === GOOGLE_PLAY_INSTALLER) {
             await this.checkPlayUpdate(force);
             return;
         }
 
-        if (this.checking) return;
-        if (!force && Date.now() - this.lastCheckAt < AUTO_CHECK_INTERVAL_MS) {
+        if (force) {
+            await this.openPlayListing();
             return;
         }
+        await this.suggestPlayOnce();
+    }
 
-        this.checking = true;
-        const language = await loadStoredLanguage();
-
+    /** A sideloaded APK hears about Google Play once; a development build never does. */
+    private async suggestPlayOnce(): Promise<void> {
+        if (__DEV__) return;
         try {
-            const currentVersion = Application.nativeApplicationVersion || '1.0.0';
-            const currentBuildNumber = Application.nativeBuildVersion || '1';
-
-            // Получаем информацию о последней версии из Supabase
-            const { data, error } = await supabase
-                .from('app_config')
-                .select('*')
-                .eq('key', 'android_version')
-                .single();
-
-            if (error || !data) {
-                console.log('No update config found');
-                return;
-            }
-
-            const config = data.value as AppVersionConfig;
-
-            this.lastCheckAt = Date.now();
-
-            if (this.isNewerVersion(
-                currentVersion,
-                parseInt(currentBuildNumber),
-                config.latestVersion,
-                config.latestBuildNumber
-            )) {
-                if (force || config.latestBuildNumber > this.notifiedBuild) {
-                    this.notifiedBuild = Math.max(this.notifiedBuild, config.latestBuildNumber);
-                    this.showUpdateDialog(config, language);
-                }
-            } else if (force) {
-                gameAlert(translate(language, 'update.upToDateTitle'), translate(language, 'update.upToDate', { version: currentVersion }));
-            }
-        } catch (error) {
-            console.error('Error checking for updates:', error);
-            if (force) {
-                gameAlert(translate(language, 'update.failedTitle'), translate(language, 'update.failed'));
-            }
-        } finally {
-            this.checking = false;
+            if (await AsyncStorage.getItem(PLAY_SUGGESTED_KEY)) return;
+            await AsyncStorage.setItem(PLAY_SUGGESTED_KEY, "true");
+        } catch {
+            return;
         }
+        const language = await loadStoredLanguage();
+        gameAlert(translate(language, 'update.playTitle'), translate(language, 'update.playMessage'), [
+            { text: translate(language, 'update.later'), style: 'cancel' },
+            { text: translate(language, 'update.playOpen'), onPress: () => void this.openPlayListing() },
+        ]);
     }
 
     private async checkPlayUpdate(force: boolean): Promise<void> {
@@ -119,87 +85,6 @@ class UpdateService {
             }
         } finally {
             this.checking = false;
-        }
-    }
-
-    private isNewerVersion(
-        currentVersion: string,
-        currentBuild: number,
-        latestVersion: string,
-        latestBuild: number
-    ): boolean {
-        const current = this.parseVersion(currentVersion, currentBuild);
-        const latest = this.parseVersion(latestVersion, latestBuild);
-
-        // Сравниваем major.minor.patch
-        if (latest.major > current.major) return true;
-        if (latest.major < current.major) return false;
-
-        if (latest.minor > current.minor) return true;
-        if (latest.minor < current.minor) return false;
-
-        if (latest.patch > current.patch) return true;
-        if (latest.patch < current.patch) return false;
-
-        // Если версии одинаковые, сравниваем build number
-        return latest.build > current.build;
-    }
-
-    private parseVersion(version: string, build: number) {
-        const parts = version.split('.').map(p => parseInt(p) || 0);
-        return {
-            major: parts[0] || 0,
-            minor: parts[1] || 0,
-            patch: parts[2] || 0,
-            build: build
-        };
-    }
-
-    private showUpdateDialog(config: AppVersionConfig, language: Language): void {
-        const title = translate(language, 'update.title');
-        const message = translate(language, 'update.message', {
-            version: config.latestVersion,
-            notes: config.releaseNotes || translate(language, 'update.defaultNotes'),
-        });
-
-        if (config.isMandatory) {
-            // Обязательное обновление - только одна кнопка
-            gameAlert(
-                title,
-                message,
-                [
-                    {
-                        text: translate(language, 'update.now'),
-                        onPress: () => this.openDownloadUrl(config.downloadUrl, language)
-                    }
-                ],
-                { cancelable: false }
-            );
-        } else {
-            // Опциональное обновление
-            gameAlert(
-                title,
-                message,
-                [
-                    {
-                        text: translate(language, 'update.later'),
-                        style: 'cancel'
-                    },
-                    {
-                        text: translate(language, 'update.now'),
-                        onPress: () => this.openDownloadUrl(config.downloadUrl, language)
-                    }
-                ]
-            );
-        }
-    }
-
-    private async openDownloadUrl(url: string, language: Language): Promise<void> {
-        try {
-            await Linking.openURL(url);
-        } catch (error) {
-            console.error('Error opening download URL:', error);
-            gameAlert(translate(language, 'update.openFailedTitle'), translate(language, 'update.openFailed'));
         }
     }
 

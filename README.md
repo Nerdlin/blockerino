@@ -10,7 +10,7 @@
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-FF5E5B?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/nerdlin)
 [![Boosty](https://img.shields.io/badge/Boosty-F15F2C?style=for-the-badge&logo=boosty&logoColor=white)](https://boosty.to/nerdlin_souls)
 
-### [▶ Играть в браузере](https://blockerino.aionerdlin.me) &nbsp;·&nbsp; [📥 Скачать APK](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9.apk) &nbsp;·&nbsp; [🪟 Windows](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9-windows-setup.exe) &nbsp;·&nbsp; [📖 Что нового](./docs/release-2.0.9.md)
+### [▶ Играть в браузере](https://blockerino.aionerdlin.me) &nbsp;·&nbsp; [🤖 Google Play](https://play.google.com/store/apps/details?id=com.nerdlin.blockerino) &nbsp;·&nbsp; [📥 APK без Google Play](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9.apk) &nbsp;·&nbsp; [🪟 Windows](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9-windows-setup.exe) &nbsp;·&nbsp; [📖 Что нового](./docs/release-2.0.9.md)
 
 [Как играть](#-как-играть) · [Сундуки](#-сундуки-ключи-и-коллекция) · [Что внутри](#-что-внутри) · [Скачать](#-скачать-android) · [Быстрый старт](#-быстрый-старт) · [Технологии](#-технологии)
 
@@ -107,9 +107,11 @@
 > **Последний релиз: [v2.0.9](https://github.com/Nerdlin/blockerino/releases/tag/v2.0.9)**, сборка 22.
 > Карта из 50 уровней с кристаллами, звёздами и сундуками за главы, медали и растущая сложность в Классике и Хаосе, календарь входа на 28 дней с сундуками разной редкости, шесть видов скинов, живые фоны, плейлисты настоящей музыки, свой звук уведомлений и окно обновления из Google Play (2.0.9). Раньше: вход через Discord в Android-приложении, честные рейтинги мини-игр и ставки в Дураке, дуэль с другом начинается после его ответа, игра для Windows, обновления по воздуху снова доходят до телефона (2.0.8). Раньше: звёзды в испытаниях, таблица головоломки дня и монеты за три звезды, честные режимы Дурака с ботами, крупные доски Морского боя и крестиков-ноликов, 12 новых достижений, анимация нового ранга (2.0.7). Раньше: звуки, вибрация и анимации в мини-играх, игры на весь экран, новые таблицы лидеров (2.0.6), шашки, новая таблица лидеров «Ещё игр», Google Play Игры, перенос рейтинга с chess.com, исправленная веб-версия (2.0.5), партия без фризов, тень фигуры, Stockfish, задачи и разбор партий (2.0.4), анимации карт в Дураке и новый Маджонг (2.0.3), фото в аватарке и жалобы на фото, приглашения друзей в Durak, Sea Battle и Tic-Tac-Toe, исправление шахматных вызовов, шахматы с часами, Elo и ботами (2.0.1), исправления удаления аккаунта и заданий дня.
 
+> 🤖 **Android: основной способ установки это [Google Play](https://play.google.com/store/apps/details?id=com.nerdlin.blockerino)**, оттуда игра обновляется сама. APK ниже нужен только тем, у кого нет Google Play: он подписан другим ключом и **не ставится поверх версии из Google Play** (сначала удалите одну из них; прогресс аккаунта сохраняется).
+
 | Файл | Размер | Для чего |
 | --- | --- | --- |
-| 📥 [**blockerino-2.0.9.apk**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9.apk) | 61,3 МиБ | Установка на телефон |
+| 📥 [**blockerino-2.0.9.apk**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9.apk) | 61,3 МиБ | Телефон без Google Play (запасной вариант) |
 | 📦 [**blockerino-2.0.9.aab**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9.aab) | 78,7 МиБ | Google Play Console |
 | 🪟 [**blockerino-2.0.9-windows-setup.exe**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9-windows-setup.exe) | 183,4 МиБ | Windows, установщик |
 | 🪟 [**blockerino-2.0.9-windows-portable.exe**](https://github.com/Nerdlin/blockerino/releases/download/v2.0.9/blockerino-2.0.9-windows-portable.exe) | 172,7 МиБ | Windows, без установки |

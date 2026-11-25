@@ -14,7 +14,7 @@ import PixelIcon from "./PixelIcon";
 import { useLanguage } from "@/constants/Localization";
 import { getDailyQuests, subscribeToDailyQuests } from "@/constants/DailyQuests";
 import { useAccountIdentity } from "@/hooks/useAccountIdentity";
-import AndroidTesterBanner from "./AndroidTesterBanner";
+import AndroidPlayBanner from "./AndroidPlayBanner";
 import { badgeLabel, badgeTotal, useProfileBadge } from "@/constants/ProfileBadge";
 import { claimableTiers, useSeasonPass } from "@/constants/SeasonPass";
 import { useOnlineStatus } from "@/constants/NetworkStatus";
@@ -182,7 +182,7 @@ export default function MainMenu() {
 			<QuietButton title={t("pass.menuButton")} size={quietSize} short={isShortScreen} onClick={() => appendAppState(MenuStateType.SEASON_PASS)} dot={passReady} />
 			<QuietButton title={t("mainmenu.optionsTitle")} size={quietSize} short={isShortScreen} onClick={() => appendAppState(MenuStateType.OPTIONS)} />
 		</View>
-		<AndroidTesterBanner />
+		<AndroidPlayBanner />
 		</FadeInView>
 		</View>
 	</View>
