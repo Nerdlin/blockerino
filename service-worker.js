@@ -1,6 +1,6 @@
 /* eslint-env serviceworker, browser */
 
-const CACHE_NAME = 'blockerino-v3';
+const CACHE_NAME = 'blockerino-v4';
 
 // Install event: cache initial assets if any
 self.addEventListener('install', (event) => {
@@ -47,6 +47,12 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
+  // Only the game's own files. The server API (also proxied under /supabase for Discord), the songs and every
+  // other host are never cached here: an old answer from them would be worse than an error.
+  if (url.origin !== self.location.origin || url.pathname.startsWith('/supabase/') || url.pathname.startsWith('/music/')) {
+    return;
+  }
+
   // For navigate requests (HTML pages) or JS/manifest files, use Network-First
   if (event.request.mode === 'navigate' || 
       url.pathname.endsWith('.js') || 
@@ -69,7 +75,8 @@ self.addEventListener('fetch', (event) => {
             }
             // If even cache fails for navigation, return the offline index
             if (event.request.mode === 'navigate') {
-              return caches.match('./index.html');
+              // the same page with another query (a room link, a callback) opens the saved one
+              return caches.match(event.request, { ignoreSearch: true }).then((page) => page || caches.match('./index.html'));
             }
           });
         })
@@ -103,4 +110,17 @@ self.addEventListener('fetch', (event) => {
       })
     );
   }
+});
+
+// The page tells the worker what it loaded (scripts, fonts, images), so a first visit is complete offline too.
+self.addEventListener('message', (event) => {
+  const data = event.data;
+  if (!data || data.type !== 'cache-urls' || !Array.isArray(data.urls)) return;
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(data.urls.map((url) =>
+        cache.match(url).then((hit) => hit || cache.add(url).catch(() => undefined))
+      ))
+    )
+  );
 });
